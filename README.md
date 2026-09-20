@@ -1,194 +1,221 @@
-# AI20K Agent Template
+# ContractGuard AI — Hệ Thống AI Agent Rà Soát Hợp Đồng & Cảnh Báo Rủi Ro Pháp Lý
 
-Template chính thức cho học viên VinUni AI20K Build Phase: cấu trúc dự án, code
-mẫu và hướng dẫn kỹ thuật để xây dựng một AI Agent hoàn chỉnh — từ kiến trúc,
-code, test cho đến deploy và nộp bài Demo Day.
+> **Mã đội:** P-138 · **Khoá:** VinUni AI20K Build Phase (Cohort 4)  
+> **Tóm tắt 1 câu:** Tự động hoá rà soát hợp đồng, đối chiếu corpus pháp luật & template mẫu, cảnh báo rủi ro pháp lý và đề xuất sửa đổi trực quan (track-changes diff UI) cho doanh nghiệp và đội ngũ pháp chế.
 
-Technical Guidebook: <https://phoenix.note.transformerlabs.ai/technical-book>
+[![CI](https://github.com/AI20K-Build-Phase-Cohort-4/P-138/actions/workflows/ci.yml/badge.svg)](https://github.com/AI20K-Build-Phase-Cohort-4/P-138/actions/workflows/ci.yml)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Agentic%20AI-orange.svg)](https://langchain-ai.github.io/langgraph/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Template có sẵn những gì
+---
 
-- **Cấu trúc thư mục tách lớp** — `agents/`, `api/`, `services/`, `models/` đã
-  chia sẵn, không phải bàn lại từ đầu.
-- **Code mẫu chạy được** — LangGraph agent (state, node, tool), FastAPI routes,
-  Pydantic settings, schema.
-- **Docker và CI** — Dockerfile multi-stage, `docker-compose.yml`, workflow
-  GitHub Actions chạy `ruff` + `pytest` khi push lên `main`/`develop` và khi mở
-  pull request vào `main`.
-- **Technical Guidebook 10 chương** trong `docs/guide/`, đồng thời đọc được
-  online.
-- **Checklist 10 deliverables** của Demo Day.
-- **AI usage logging** — hook cài sẵn cho 6 công cụ AI, log tự động gửi lên
-  grading server mỗi lần `git push`.
+## 1. Vấn đề (Problem Statement)
 
-## Yêu cầu
+Tại các doanh nghiệp vừa và nhỏ (SME), startup và các phòng ban vận hành (Mua sắm, Kinh doanh, Nhân sự), hợp đồng thương mại, dịch vụ và lao động liên tục được khởi tạo và ký kết:
 
-- Python 3.11 (phiên bản CI đang dùng)
-- Git
-- Docker — tuỳ chọn, chỉ cần nếu chạy `docker compose`
+- **Thiếu nhân sự pháp chế chuyên trách (in-house legal):** Phần lớn SME không có luật sư nội bộ hoặc bộ phận pháp chế luôn trong tình trạng quá tải, dẫn đến việc rà soát hợp đồng bị chậm trễ từ 3–7 ngày làm việc.
+- **Dễ bỏ sót điều khoản bất lợi & rủi ro tiềm ẩn:** Rà soát thủ công dễ bỏ sót các "bẫy" pháp lý: phạt vi phạm vượt mức trần luật định (ví dụ: quá 8% theo Luật Thương mại), điều khoản bồi thường thiệt hại vô hạn, quyền đơn phương chấm dứt hợp đồng bất bình đẳng, điều khoản bất khả kháng thiếu chặt chẽ, hoặc cơ quan tài phán/trọng tài bất lợi.
+- **Hạn chế của giải pháp truyền thống & LLM thông thường:** Các công cụ regex/từ khoá không hiểu ngữ cảnh pháp lý; trong khi dùng ChatGPT/LLM thuần túy dễ gặp tình trạng ảo giác (hallucination), bịa đặt số điều luật, không kiểm chứng được trích dẫn (citation) và không tích hợp sâu vào quy trình phê duyệt doanh nghiệp (HITL).
 
-## Bắt đầu
+---
 
-### 1. Clone repo của đội
+## 2. Giải pháp (Solution)
 
-Khi đội được chốt, hệ thống tự sinh repo cho đội từ template này, nằm trong org
-GitHub của khoá bạn đang học và đặt tên theo mã đội. Copy URL ở trang đội trên
-Phoenix rồi clone về:
+**ContractGuard AI** là một hệ sinh thái AI Agent toàn diện hỗ trợ rà soát, đánh giá rủi ro và đề xuất hiệu chỉnh hợp đồng theo nguyên tắc **"AI phân tích sâu, Agent kiểm chứng chéo, Con người phê duyệt (Human-in-the-Loop)"**:
 
-```bash
-git clone https://github.com/<ORG-CỦA-KHOÁ>/<MÃ-ĐỘI>.git
-cd <MÃ-ĐỘI>
+- **Phân tích điều khoản chuyên sâu (Clause-level Analysis):** Bóc tách cấu trúc hợp đồng thành từng điều khoản độc lập, phân loại và đánh giá mức độ rủi ro (Cao / Trung bình / Thấp) theo chuẩn rubric pháp lý.
+- **RAG pháp luật & Checklist rủi ro (Qdrant Vector DB):** Đối chiếu nội dung hợp đồng với kho template hợp đồng mẫu chuẩn, checklist rủi ro theo từng loại giao dịch, và corpus văn bản quy phạm pháp luật Việt Nam (Bộ luật Dân sự, Luật Thương mại, Luật Doanh nghiệp...).
+- **Cơ chế xác thực trích dẫn (Citation Validator & Safeguards):** Agent kiểm tra chéo từng điều luật được trích dẫn để chặn hoàn toàn lỗi ảo giác viện dẫn sai luật; tự động kích hoạt fallback khi độ tin cậy thấp.
+- **Giao diện Track-Changes Diff trực quan (Next.js):** Hiển thị trực quan điều khoản gốc bên cạnh điều khoản đề xuất sửa đổi (redline diff giống tính năng Track Changes trong Word), giúp người dùng dễ dàng so sánh và đưa ra quyết định.
+- **Human-in-the-loop (HITL) Workflow:** Cho phép Chuyên viên / PO duyệt (`Accept` / `Reject` / `Edit`) từng đề xuất trước khi kết xuất văn bản cuối cùng kèm báo cáo tóm tắt rủi ro (Risk Summary Report).
+
+---
+
+## 3. Người dùng mục tiêu (Target Users)
+
+- **Người dùng chính (Primary Persona):**
+  - **Chuyên viên Pháp chế / Legal Counsel:** Cần công cụ trợ lực (copilot) để quét nhanh hàng chục trang hợp đồng, lọc ra các điểm bất thường và đối chiếu luật định chuẩn xác trong vài chục giây.
+  - **Founder / Giám đốc điều hành SME:** Cần nắm bắt nhanh mức độ rủi ro, nghĩa vụ tài chính và trách nhiệm pháp lý cốt lõi trước khi đặt bút ký.
+- **Người dùng phụ (Secondary Persona):**
+  - **Trưởng bộ phận Mua hàng (Procurement) / Kinh doanh (Sales):** Cần rà soát sơ bộ bản thảo hợp đồng nhận từ đối tác trước khi chuyển giao cho cấp thẩm quyền phê duyệt.
+
+---
+
+## 4. Tech Stack
+
+| Thành phần               | Công nghệ                          | Chi tiết sử dụng                                                                |
+| ------------------------ | ---------------------------------- | ------------------------------------------------------------------------------- |
+| **AI Agent**             | LangGraph + LangChain 0.3          | StateGraph, ReAct loop, tool calling, conditional routing, safeguards           |
+| **LLM Provider**         | OpenAI (`gpt-4o-mini`, `gpt-4o`)   | Trích xuất điều khoản, giải thích rủi ro, đề xuất chỉnh sửa văn phong           |
+| **Vector DB / RAG**      | Qdrant                             | Lưu trữ & tìm kiếm ngữ nghĩa corpus pháp luật, checklist rủi ro, template chuẩn |
+| **Backend API**          | FastAPI 0.115+ (Python 3.11)       | RESTful API bất đồng bộ (async), Pydantic v2 schemas, streaming responses       |
+| **Database**             | PostgreSQL                         | Quản lý hợp đồng, phiên rà soát, lịch sử audit log và phản hồi người dùng       |
+| **Frontend**             | Next.js 14+ (React 19, TypeScript) | Giao diện tương tác, Redline/Track-Changes diff UI, bảng đánh giá rủi ro        |
+| **CI / CD & DevOps**     | Docker, GitHub Actions             | Multi-stage build Dockerfile, docker-compose, CI ruff linter + pytest           |
+| **Monitoring & Logging** | LangSmith & AI Usage Hooks         | AI prompt logging tự động lên Phoenix server, LangSmith trace agent reasoning   |
+
+---
+
+## 5. Kiến trúc hệ thống (System Architecture)
+
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend Layer (Next.js + TypeScript)"]
+        UI["Track-Changes Diff UI & Dashboard"]
+        Review["HITL Review & Clause Approval"]
+    end
+
+    subgraph API["Backend API (FastAPI)"]
+        Routes["REST Endpoints (/api/v1/...)"]
+        Auth["Auth & Upload Handler"]
+    end
+
+    subgraph Agent["AI Agent Core (LangGraph)"]
+        State["Contract State Machine"]
+        ReAct["ReAct Reasoning Loop"]
+        Validator["Citation Validator & Safeguard"]
+    end
+
+    subgraph Knowledge["Knowledge & Data Layer"]
+        Qdrant[("Qdrant Vector DB\n(Corpus Luật & Templates)")]
+        Postgres[("PostgreSQL\n(Contracts, Sessions, Audits)")]
+        LLM["OpenAI LLM Engine"]
+    end
+
+    UI -->|Upload contract / Trigger review| Routes
+    Routes --> State
+    State --> ReAct
+    ReAct <-->|Semantic Search| Qdrant
+    ReAct <-->|Prompt / Analysis| LLM
+    ReAct --> Validator
+    Validator -->|Risk assessment & Diff suggestion| State
+    State -->|JSON Result| Routes
+    Routes --> Review
+    Review -->|Audit & Decision| Postgres
 ```
 
-Không cần `rm -rf .git`, `git init` hay `git remote add`: repo sinh từ template
-đã bắt đầu bằng lịch sử riêng của đội và remote trỏ sẵn đúng chỗ. Chưa thấy repo
-của đội thì báo BTC — repo tự tạo nằm ngoài org sẽ không được chấm.
+---
 
-### 2. Cài môi trường
+## 6. Quick Start
 
 ```bash
+# 1. Clone repo
+git clone https://github.com/AI20K-Build-Phase-Cohort-4/P-138.git
+cd P-138
+
+# 2. Setup environment
 python3.11 -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 3. Cấu hình biến môi trường
-
-```bash
 cp .env.example .env
+# Edit .env with your API keys (OPENAI_API_KEY, AI_LOG_API_KEY)
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Setup AI logging hooks
+bash scripts/setup_hooks.sh
+
+# 5. Run development server
+uvicorn src.main:app --reload
 ```
 
-Mở `.env` và điền `OPENAI_API_KEY`. Riêng `AI_LOG_API_KEY`, mỗi thành viên tự
-tạo key riêng tại [dashboard Phoenix](https://phoenix.note.transformerlabs.ai/api-keys)
-rồi thay vào chỗ `<get-your-api-key-from-dashboard-phoenix>` — giá trị trong
-`.env.example` chỉ là placeholder, để nguyên thì log không vào được hệ thống chấm.
+---
 
-### 4. Cài hook ghi log AI
+## 7. Cấu trúc thư mục dự án (Project Structure)
 
-```bash
-bash scripts/setup_hooks.sh                                      # Linux / macOS / Git Bash
-powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1 # Windows PowerShell
+```text
+P-138/
+├── src/
+│   ├── agents/                   # LangGraph Agent Core
+│   │   ├── graph.py              # StateGraph (nodes, conditional edges)
+│   │   ├── state.py              # AgentState TypedDict schema
+│   │   ├── nodes/                # Node functions (bóc tách, phân tích, đối chiếu)
+│   │   └── tools/                # Tools (tra cứu Qdrant, citation validator)
+│   ├── api/
+│   │   └── routes.py             # FastAPI routes (/chat, /analyze, /status)
+│   ├── models/
+│   │   └── schemas.py            # Pydantic request & response schemas
+│   ├── services/
+│   │   └── llm.py                # LLM client & OpenAI integration
+│   ├── config.py                 # Pydantic Settings từ .env
+│   └── main.py                   # FastAPI Application Entrypoint
+├── tests/                        # Pytest suite
+│   ├── test_agents/              # Test agent logic & tools
+│   ├── test_api/                 # Test API endpoints
+│   └── test_services/            # Test LLM & services
+├── docs/                         # Tài liệu kiến trúc & hướng dẫn
+│   ├── architecture_diagram.md   # Sơ đồ thiết kế hệ thống
+│   ├── brief.md                  # Project brief
+│   ├── prd.md                    # PRD chi tiết
+│   ├── ui.md                     # UI Flow & Wireframe
+│   └── guide/                    # Technical Guidebook 10 chương
+├── scripts/                      # AI usage logging & setup hooks
+├── eval/                         # Kịch bản đánh giá & Gold set benchmarks
+├── presentation/                 # Slide Pitch Deck & Video Demo
+├── Dockerfile                    # Multi-stage production Docker build
+├── docker-compose.yml            # Khởi chạy toàn bộ hệ thống
+├── Makefile                      # Lệnh tắt cho dev: run, test, lint
+└── README.md                     # Tài liệu chính của dự án
 ```
 
-Chạy một lần sau khi clone. Hook ghi lại prompt khi bạn dùng Claude Code, Cursor,
-Codex CLI, Gemini CLI, Antigravity hoặc GitHub Copilot, và cài pre-push hook để
-đẩy log lên server.
+---
 
-### 5. Chạy server
+## 8. Danh sách thành viên & Bảng RACI-lite
 
-```bash
-uvicorn src.main:app --reload --port 8000
-```
+### Bảng phân công thành viên (Đội P-138)
 
-Swagger UI ở <http://localhost:8000/docs>. Hoặc dùng `make run`, `make test`,
-`make lint` — xem `Makefile`.
+| Họ và tên                               | Email                        | Vai trò chính                                                                                                                                                           |   Phân công RACI    |
+| --------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----------------: |
+| **Nguyễn Đình Phúc**<br>_(Nhóm trưởng)_ | `ndphuc1903@gmail.com`       | **Biz / Product Owner** — Chốt phạm vi sản phẩm, nghiệp vụ rà soát hợp đồng & rủi ro pháp lý, xây dựng rubric rủi ro, gán nhãn bộ vàng (Gold set), kịch bản demo script | **Accountable (A)** |
+| **Trần Xuân Tùng**                      | `xuantungtran64@gmail.com`   | **AI Engineer (Agent)** — Thiết kế LangGraph state graph, System Prompt, tool schemas, ReAct loop, Citation Validator, Safeguard & Fallback mechanisms                  | **Responsible (R)** |
+| **Nguyễn Trung Kiên**                   | `kiennguyen300703@gmail.com` | **AI Engineer (Data/RAG)** — Xây dựng kho template mẫu, checklist rủi ro, thu thập & xử lý corpus pháp luật chọn lọc, chunking strategy, indexing trên Qdrant Vector DB | **Responsible (R)** |
+| **Đoàn Tuấn Long**                      | `tuanlong161003@gmail.com`   | **Platform & Ops** — Xây dựng FastAPI backend, kết nối PostgreSQL, phát triển frontend Next.js (track-changes diff UI), đóng gói Docker/CI/CD, evaluation harness       | **Responsible (R)** |
 
-## Cấu trúc thư mục
+---
 
-```
-src/
-  agents/            LangGraph agent
-    graph.py         State graph (nodes + edges)
-    state.py         State schema (TypedDict)
-    nodes/           Node functions
-    tools/           Agent tools (@tool)
-  api/routes.py      FastAPI endpoints
-  models/schemas.py  Pydantic schemas
-  services/llm.py    LLM client
-  config.py          Pydantic Settings
-  main.py            App entry point
-tests/               pytest suite
-scripts/             Hook ghi log AI + installer
-docs/
-  guide/             Technical Guidebook (nguồn của bản online)
-  architecture_diagram.md
-eval/                Kết quả evaluation
-presentation/        Slide và video Demo Day
-.claude/ .codex/ .cursor/ .gemini/ .agents/ .github/hooks/
-                     Config hook cho từng công cụ
-.github/workflows/   CI
-Dockerfile           Multi-stage build
-docker-compose.yml   Chạy backend bằng Docker
-README_boilerplate.md  Khung README cho dự án của đội
-```
+### Bảng tham chiếu phân vai trong giai đoạn Nghiên cứu & Kiến trúc (RA Phase)
 
-## Technical Guidebook
+| Vai trò tham chiếu                     | Trách nhiệm chính                                                     | Kỹ năng yêu cầu                           | Công việc cụ thể trong giai đoạn RA                                                       | Phụ trách chính     |
+| -------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------- |
+| **Trưởng nhóm (Team Lead)**            | Điều phối toàn bộ dự án, báo cáo mentor, chốt quyết định phạm vi      | Quản lý dự án, giao tiếp, tư duy hệ thống | Lập kế hoạch, phân việc, thiết lập quy trình Git/CI, theo dõi tiến độ, họp mentor         | Nguyễn Đình Phúc    |
+| **Biz / Product Owner**                | Định hình bài toán, quy chuẩn rủi ro pháp lý, kịch bản nghiệp vụ      | Nghiệp vụ pháp lý, phân tích sản phẩm     | Xây dựng PRD, soạn rubric rủi ro hợp đồng, xây dựng và gán nhãn Gold set                  | Nguyễn Đình Phúc    |
+| **Kỹ sư AI (Agent Engine)**            | Thiết kế kiến trúc Agent, prompt, luồng suy luận và kiểm soát an toàn | Python, LangGraph, LLM APIs, ReAct Loop   | Thiết kế StateGraph, System Prompts, xây dựng Citation Validator và cơ chế fallback       | Trần Xuân Tùng      |
+| **Xử lý dữ liệu / Knowledge Base**     | Thu thập, tiền xử lý và lập chỉ mục cơ sở tri thức pháp lý            | Python, NLP, chunking, Vector DB (Qdrant) | Thu thập văn bản luật, xây dựng checklist rủi ro & template mẫu, nạp dữ liệu Qdrant       | Nguyễn Trung Kiên   |
+| **Lập trình Backend & Database**       | Phát triển API, xử lý nghiệp vụ server, cơ sở dữ liệu                 | FastAPI, Python 3.11, PostgreSQL, Alembic | Xây dựng kiến trúc API RESTful, schema Pydantic, kết nối CSDL và lưu trữ phiên            | Đoàn Tuấn Long      |
+| **Lập trình Frontend**                 | Thiết kế giao diện và trải nghiệm tương tác người dùng                | Next.js, React, TypeScript, CSS           | Dựng wireframe, giao diện Redline Diff hiển thị thay đổi hợp đồng, tích hợp API           | Đoàn Tuấn Long      |
+| **Kiểm thử & Đảm bảo chất lượng (QA)** | Đánh giá độ chính xác, đo lường metrics và test tự động               | Pytest, RAG evaluation, test cases        | Viết unit test cho agent/routes, thiết lập eval harness đo Precision/Recall trên Gold set | Toàn đội (Cộng tác) |
 
-| Chương | Nội dung | Thời gian |
-|---|---|---|
-| 1 | Lời mở đầu — mục tiêu, cách sử dụng | 15 phút |
-| 2 | Khởi tạo dự án — clone, setup, git workflow | 4 giờ |
-| 3 | Thiết kế kiến trúc — 3-tier, diagram, ADR | 6 giờ |
-| 4 | LangGraph Agent — state, node, edge, tool, RAG | 8 giờ |
-| 5 | FastAPI — routes, validation, error handling, streaming | 6 giờ |
-| 6 | Giao diện — Next.js và Streamlit | 6 giờ |
-| 7 | DevOps — Docker, CI/CD, deploy, logging | 6 giờ |
-| 8 | Kiểm thử — unit test, integration test, RAGAS | 4 giờ |
-| 9 | Demo Day — 10 deliverables, checklist | 2 giờ |
-| 10 | Tài nguyên — khoá học, tài liệu, BMAD method | tham khảo |
+---
 
-Đọc online tại <https://phoenix.note.transformerlabs.ai/technical-book>: đăng
-nhập bằng GitHub (đúng account đã được BTC mời vào org của khoá), chọn tab
-**Technical Book** ở sidebar trái. Bản offline nằm trong `docs/guide/`, mở được
-bằng bất kỳ markdown viewer nào.
+## 9. Danh mục 10 Deliverables (Demo Day Checklist)
 
-## 10 deliverables cho Demo Day
+|  #  | Deliverable                | Vị trí trong repo                                   |      Trạng thái      |
+| :-: | -------------------------- | --------------------------------------------------- | :------------------: |
+|  1  | **Source code**            | `src/` (Agents, API, Services, Models)              |  🟡 Đang hoàn thiện  |
+|  2  | **README hoàn chỉnh**      | `README.md`                                         |    🟢 Hoàn thành     |
+|  3  | **Architecture diagram**   | `docs/architecture_diagram.md`                      |    🟢 Hoàn thành     |
+|  4  | **AI Usage Logs**          | `.ai-log/` + LangSmith tracing                      |   🟢 Cấu hình sẵn    |
+|  5  | **Live URL**               | Deploy trên Render / Railway / Vercel               |  🟡 Đang thiết lập   |
+|  6  | **Video Demo** (3–5 phút)  | `presentation/`                                     | ⚪ Kế hoạch Demo Day |
+|  7  | **Pitch Deck** (10 slides) | `presentation/`                                     | ⚪ Kế hoạch Demo Day |
+|  8  | **Weekly Journal**         | `JOURNAL.md`                                        |  🟡 Cập nhật tuần 1  |
+|  9  | **Worklog**                | `WORKLOG.md`                                        |   🟡 Đang cập nhật   |
+| 10  | **Evaluation Evidence**    | `eval/` (Kết quả đo Precision/Recall trên Gold set) |   🟡 Đang xây dựng   |
 
-| # | Deliverable | Vị trí | Template lo tới đâu |
-|---|---|---|---|
-| 1 | Source code | `src/` | Khung sẵn |
-| 2 | README | copy `README_boilerplate.md` thành `README.md` | Khung sẵn |
-| 3 | Architecture diagram | `docs/architecture_diagram.md` | Khung sẵn |
-| 4 | AI logs | LangSmith (3 biến môi trường) + auto AI usage logging | Cấu hình sẵn |
-| 5 | Live URL | deploy lên Render/Vercel | CI/CD sẵn |
-| 6 | Video demo | `presentation/` | Đội tự làm |
-| 7 | Pitch deck | `presentation/` | Đội tự làm |
-| 8 | Development journal | `JOURNAL.md` | Khung sẵn |
-| 9 | Worklog | `WORKLOG.md` | Khung sẵn |
-| 10 | Evaluation evidence | `eval/` | Đội tự làm |
+---
 
-## Tech stack
+## 10. Tài liệu tham khảo hữu ích
 
-| Lớp | Công nghệ |
-|---|---|
-| Agent | LangGraph + LangChain 0.3 |
-| Backend | FastAPI 0.115 + Uvicorn |
-| LLM | OpenAI, mặc định `gpt-4o-mini` (đổi trong `src/config.py`) |
-| Giao diện | Next.js hoặc Streamlit (đội tự chọn, hướng dẫn ở chương 6) |
-| Lint / test | ruff + pytest 8 |
-| DevOps | Docker + GitHub Actions |
+- **Technical Guidebook (VinUni AI20K):** <https://phoenix.note.transformerlabs.ai/technical-book>
+- **Bản offline Guidebook:** nằm trong thư mục [docs/guide/](file:///Users/phucnguyen/Desktop/AI/team_build_phase/P-138/docs/guide/)
+- **LangGraph Documentation:** <https://langchain-ai.github.io/langgraph/>
+- **FastAPI Documentation:** <https://fastapi.tiangolo.com/>
+- **Qdrant Vector Database:** <https://qdrant.tech/documentation/>
 
-## AI usage logging
+---
 
-Mọi prompt được ghi vào `.ai-log/session.jsonl` và tự động gửi lên grading server
-ở bước pre-push.
+## 11. Giấy phép (License)
 
-| Công cụ | Cấu hình | Thời điểm ghi |
-|---|---|---|
-| Claude Code | `.claude/settings.json` | mỗi prompt (`UserPromptSubmit`) |
-| Cursor | `.cursor/hooks.json` | mỗi prompt và khi dừng |
-| OpenAI Codex CLI | `.codex/hooks.json` | mỗi prompt và khi dừng |
-| Gemini CLI | `.gemini/settings.json` | mỗi lượt agent chạy |
-| GitHub Copilot | `.github/hooks/hooks.json` | mỗi prompt và cuối session |
-| Antigravity IDE | `.agents/hooks.json` | mỗi prompt, kèm lần quét lại lúc `git push` |
-
-Dùng ChatGPT hay công cụ web khác thì log thủ công:
-
-```bash
-bash scripts/_pyrun.sh scripts/log_manual.py --tool chatgpt --prompt "What you asked"
-```
-
-## Đóng góp
-
-Repo này là open source. Đọc [CONTRIBUTING.md](CONTRIBUTING.md) trước khi mở PR.
-
-Nội dung trong `docs/guide/` là nguồn của Technical Book và được đồng bộ lên bản
-online, nên mọi thay đổi ở đó cần review của
-[@AI20K-Build-Phase/book-maintainers](https://github.com/orgs/AI20K-Build-Phase/teams/book-maintainers)
-— xem [.github/CODEOWNERS](.github/CODEOWNERS).
-
-Báo lỗ hổng bảo mật theo [SECURITY.md](SECURITY.md), đừng mở public issue.
-
-## License
-
-[MIT](LICENSE) — dùng tự do cho mục đích giáo dục.
+Dự án được phân phối dưới giấy phép [MIT](LICENSE). Tự do sử dụng cho mục đích giáo dục và nghiên cứu trong khuôn khổ VinUni AI20K Build Phase.
