@@ -1,43 +1,42 @@
 # PIIGuard VN — Brief
 
-**Mã đề:** DATA-06 · **Đội:** P-138 · **Ngày:** 21/09/2026
+**Mã đề:** DATA-06 · **Đội:** P-138 · **Ngày:** 21/09/2026 · **MVP:** 14 ngày
 
 ## Bài toán
 
-Dữ liệu trong hệ thống y tế hoặc doanh nghiệp công nghệ chứa PII như CMND/CCCD, số điện thoại và hồ sơ y tế nằm rải rác trong database, gây khó khăn cho DPO và đội dữ liệu khi rà soát bảo vệ dữ liệu cá nhân. Việc che dữ liệu cần xem xét ảnh hưởng đến các tác vụ phân tích phía sau, đặc biệt khi thông tin như CCCD được dùng làm khóa liên kết giữa các bảng.
+DPO và đội dữ liệu đang rà thủ công các trường dữ liệu cá nhân trước khi chia sẻ cho Analyst. Họ dễ bỏ sót trường mơ hồ; che nhầm khóa liên kết lại khiến báo cáo phân tích sai hoặc không chạy được.
 
 ## Người dùng mục tiêu
 
-- **DPO:** cần xem kết quả phân loại PII, duyệt chính sách bảo vệ và theo dõi báo cáo, cảnh báo rủi ro; đánh giá qua độ chính xác phát hiện và thời gian duyệt một dataset.
-- **Analyst:** cần sử dụng view đã che dữ liệu theo quyền truy cập, đáp ứng các tác vụ downstream được phép; đánh giá qua kết quả kiểm thử join và truy vấn trước/sau xử lý.
+- **DPO:** cần duyệt phân loại và biện pháp có căn cứ; đo độ chính xác phát hiện và thời gian duyệt.
+- **Analyst:** cần bộ dữ liệu được duyệt, vẫn chạy được tác vụ phân tích; đo kết quả trước và sau xử lý.
 
 ## Giải pháp
 
-AI Agent quét dataset trong database, phát hiện và phân loại PII, đề xuất chính sách masking/tokenization để DPO duyệt, sinh view đã che dữ liệu, tạo báo cáo tuân thủ và cảnh báo dataset rủi ro cao.
+PIIGuard VN hỗ trợ rà soát và bảo vệ dữ liệu trước khi chia sẻ từ **PostgreSQL và MongoDB**.
 
-- Kết hợp regex/NER và LLM để phát hiện, phân loại PII dựa trên cấu trúc và ngữ cảnh dữ liệu.
-- Đề xuất chính sách theo loại dữ liệu, căn cứ bảo vệ dữ liệu áp dụng và nhu cầu downstream; DPO duyệt cả phân loại lẫn chính sách trước khi thực thi.
-- Code áp dụng chính sách đã duyệt để sinh view; kiểm tra ảnh hưởng của masking/hashing/tokenization đến các phép join và truy vấn liên quan.
-- Giao diện web có hai vai trò DPO/Analyst; kiểm soát truy cập, không làm lộ PII thật ra ngoài và không ghi giá trị PII thật vào audit log.
-- Hậu kiểm view, đối chiếu số liệu báo cáo với kết quả xử lý, cảnh báo dataset rủi ro cao và lưu nhật ký kiểm toán.
+- Quét mọi trường trong phạm vi chọn; đối chiếu danh mục pháp lý, không giới hạn cứng 4–5 trường PII.
+- Code và AI đề xuất; DPO duyệt từng trường. Mục chưa rõ phải được giải quyết hoặc loại khỏi đầu ra.
+- Che toàn bộ giá trị, bỏ trường, hoặc băm có khóa HMAC cho khóa liên kết; không sửa nguồn.
+- Tạo bản dữ liệu cố định, kiểm tra SQL join và MongoDB lookup, rồi DPO phát hành cho Analyst; lưu báo cáo và lịch sử duyệt.
 
 ## Vì sao cần AI
 
-LLM hỗ trợ nhận diện ngữ cảnh của cột mơ hồ và nội dung tự do, đề xuất phân loại/chính sách và giải thích kết quả cho DPO. Regex và các bộ kiểm tra xử lý mẫu định dạng; code thực thi và kiểm chứng chính sách đã duyệt. Dữ liệu đưa vào LLM phải được kiểm soát để đáp ứng yêu cầu không làm lộ PII thật ra ngoài.
+LLM hỗ trợ hiểu tên trường, đường dẫn và ngữ cảnh schema mơ hồ mà regex khó ánh xạ. Code đảm nhiệm kết nối, kiểm tra định dạng, biến đổi và chặn phát hành; AI không nhận giá trị gốc hay tự quyết định. Đo phần đóng góp của AI bằng đối chiếu với bộ quy tắc thuần.
 
 ## Không làm (Non-goals)
 
-- Không thay DPO hoặc tự đưa ra kết luận pháp lý.
-- Không để LLM tự áp dụng chính sách hay sửa dữ liệu nguồn.
-- Không dùng dữ liệu cá nhân thật trong demo; dùng dữ liệu mô phỏng lưu trong database.
-- Không xử lý ảnh, PDF, âm thanh hoặc quét thời gian thực trong MVP.
+- Dữ liệu thật; quét mọi loại SQL/NoSQL; văn bản tự do, ảnh và tệp.
+- Đồng bộ thời gian thực, truy vấn tùy ý, liên kết xuyên hai database.
+- Tự kết luận tuân thủ pháp luật; nhận diện đầy đủ mọi loại dữ liệu cá nhân.
+- SSO, đa khách hàng, kho token đảo ngược và vận hành production.
 
 ## Đo thành công bằng gì
 
-Đánh giá trên bộ dữ liệu mô phỏng có nhãn trong database, gồm PII và các mẫu dễ nhầm, với tập kiểm thử tách riêng. Các con số dưới đây là mục tiêu thử nghiệm, chưa phải kết quả đã đạt.
+Các số sau là **mục tiêu**, chưa phải kết quả:
 
-- **Phát hiện:** precision ≥ 95%; báo cáo recall theo từng loại PII, kèm số trường hợp bỏ sót và nhận nhầm.
-- **Đầu ra:** các ca kiểm thử join/truy vấn được phép phải giữ kết quả đúng sau xử lý; số liệu báo cáo khớp kết quả quét và audit log ghi đủ bước phê duyệt, áp dụng chính sách. Kiểm tra PII còn sót bằng đối chiếu nhãn chuẩn, không chỉ dựa vào việc chạy lại cùng bộ quét.
-- **Hiệu năng và sử dụng:** mục tiêu quét bảng 10.000 dòng dưới 60 giây và DPO duyệt một dataset demo dưới 5 phút; ghi rõ cấu hình, số cột, số phát hiện cần duyệt và chi phí xử lý khi đo.
+- Precision ≥95%, recall ≥90% cho từng loại được công bố hỗ trợ, trên tập kiểm thử giữ riêng.
+- **2/2 tác vụ downstream** giữ kết quả nghiệp vụ; mọi ca chặn phát hành bắt buộc đều đạt.
+- DPO duyệt ≤5 phút/nguồn với tối đa 20 trường; không tính thời gian máy xử lý.
 
-Các chỉ số về giờ công tiết kiệm, sự cố thực tế và mức độ hài lòng cần được đánh giá khi có người dùng thử nghiệm.
+Căn cứ phân loại: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Độ phủ thực tế và giới hạn được ghi trong PRD; lựa chọn kỹ thuật không đồng nghĩa chứng nhận tuân thủ.
