@@ -116,6 +116,15 @@ Cảnh báo có ba nhóm riêng: **lỗi chặn phát hành**, **phân loại ph
 | HMAC   | HMAC-SHA-256 cho chuỗi định danh đã chuẩn hóa                                                | Chỉ khóa cần liên kết trong tác vụ đã duyệt                                                                                     |
 | KEEP   | Giữ nguyên đúng trường được duyệt                                                            | Chỉ trường nghiệp vụ được đánh giá không mang thông tin cá nhân trong ngữ cảnh đầu ra; không mặc định cho trường chưa phát hiện |
 
+Policy chọn action theo **mục đích sử dụng dữ liệu**, không chỉ theo tên trường:
+
+| Mục đích dùng PII | Action P0 | Lý do |
+| ----------------- | --------- | ----- |
+| Lookup, mapping, join hoặc aggregate theo định danh như `customer_id`, CCCD, số điện thoại | `HMAC` | Thay thế hoàn toàn bằng băm có khóa một chiều, không khôi phục giá trị gốc, nhưng vẫn giữ khả năng so khớp trong tác vụ đã duyệt. |
+| Trường cá nhân không cần cho downstream, ví dụ số điện thoại liên hệ, email, địa chỉ, ghi chú chứa PII | `MASK` hoặc `DROP` | Giữ cấu trúc nếu UI/báo cáo cần biết trường tồn tại; loại khỏi đầu ra nếu không cần. |
+| Dữ liệu cá nhân cần trả lại cho chính user, ví dụ user xem profile của mình | Ngoài P0; cần thiết kế lưu trữ riêng có kiểm soát truy cập | Hash một chiều không trả lại được giá trị gốc. Nếu sản phẩm cần hiển thị lại thông tin thật, phải tách khỏi luồng phát hành dataset và dùng cơ chế bảo vệ khác, không đưa vào bản Analyst. |
+| Ảnh, voice, file KYC hoặc dữ liệu sinh trắc học | Ngoài P0; on-prem/data center doanh nghiệp hoặc API nội bộ | Không đưa file nhạy cảm lên cloud demo. P0 chỉ mô phỏng metadata và `ocr_text`; hướng mở rộng là xử lý/lưu tại hạ tầng doanh nghiệp, ứng dụng chỉ gọi API có phân quyền. |
+
 DPO không được KEEP giá trị đã xác định là dữ liệu cá nhân trong chính sách demo này. Tính cần thiết cho tác vụ không tự làm mất tính chất cá nhân của trường. Nếu tổ hợp trường tạo khả năng nhận diện, giảm/bỏ thêm trường hoặc chặn; hậu kiểm demo không chứng minh đã loại trừ mọi khả năng tái nhận diện.
 
 HMAC dùng cùng `key_version`, `join_group`, mục đích và hàm chuẩn hóa cho hai phía trong cùng nguồn; khác nguồn dùng miền khóa riêng. Không thêm tên bảng vào đầu vào nếu cần ghép giữa hai bảng. Giữ đủ digest; không dùng hash không khóa, không gọi HMAC là mã hóa có thể giải mã. HMAC là [băm có khóa](https://docs.python.org/3/library/hmac.html), không phải bằng chứng dữ liệu đã ẩn danh.
@@ -148,17 +157,17 @@ LLM không nhìn thấy giá trị gốc nên không được hứa phát hiện
 
 ### 7.1. Nguồn, cấu trúc và cách lấy
 
-Bộ dữ liệu demo cho PostgreSQL sử dụng **cơ sở dữ liệu quan hệ doanh nghiệp mô phỏng đầy đủ nhiều bảng** (multi-table relational schema), kết hợp dữ liệu PII tổng hợp theo định dạng chuẩn Việt Nam:
+Bộ dữ liệu demo cho PostgreSQL sử dụng fixture đã commit tại `data/fixtures/seed.sql`: **cơ sở dữ liệu quan hệ doanh nghiệp mô phỏng đầy đủ nhiều bảng** (multi-table relational schema), kết hợp dữ liệu PII tổng hợp theo định dạng chuẩn Việt Nam. File này là dữ liệu synthetic 100%, không chứa dữ liệu cá nhân thật.
 
 1. **Cấu trúc bảng quan hệ đầy đủ:** Hệ thống bảng quản lý quan hệ khách hàng, đơn vị mua hàng, đơn hàng, chi tiết giao dịch, danh mục sản phẩm, nhân sự và đối tác có liên kết khóa ngoại (FK) chặt chẽ.
 2. **Các nhóm trường và dữ liệu làm giàu PII Việt Nam (Synthetic VN PII):**
    - **Thông tin định danh & liên hệ cá nhân:** Bổ sung `email`, số điện thoại di động VN (đầu số 03x, 05x, 07x, 08x, 09x), số CCCD (12 chữ số theo định dạng Bộ Công an), ngày tháng năm sinh, mã số thuế cá nhân.
    - **Thông tin liên kết nghiệp vụ:** Khóa liên kết định danh khách hàng - đơn hàng (`customer_id`), số điện thoại giao hàng, mã vận đơn, thông tin người liên hệ đối tác.
-   - **Dữ liệu mở rộng & văn bản tự do:** Bảng khiếu nại/yêu cầu hỗ trợ khách hàng, hồ sơ định danh/tài liệu đính kèm, trường ghi chú cá nhân dạng văn bản tự do chứa PII nhúng để kiểm thử khả năng rà soát ngữ cảnh.
+   - **Dữ liệu mở rộng & văn bản tự do:** Bảng `support_tickets`, bảng `kyc_documents`, trường `personal_notes`, `order_notes` và `ocr_text` chứa PII nhúng để kiểm thử khả năng rà soát ngữ cảnh.
 
 | Nguồn      | Cấu trúc P0 & Mở rộng                                                                                                | Tác vụ vàng (Downstream)                                                                                     |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| PostgreSQL | CSDL quan hệ đầy đủ nhiều bảng; nòng cốt kiểm thử là cặp bảng khách hàng & đơn hàng (`customers`, `orders`)          | JOIN `orders` và `customers` theo khóa `customer_id` đã HMAC; đếm đơn và tổng doanh thu theo nhóm khách hàng |
+| PostgreSQL | `data/fixtures/seed.sql`; nòng cốt kiểm thử là cặp bảng khách hàng & đơn hàng (`customers`, `orders`), có thêm `support_tickets` và `kyc_documents` | JOIN `orders` và `customers` theo khóa `customer_id` đã HMAC; đếm đơn và tổng doanh thu theo nhóm khách hàng |
 | MongoDB    | 2 collection mô phỏng cùng nghiệp vụ (`customers`, `orders`); scalar ở gốc hoặc object lồng tối đa 2 cấp; không mảng | `$lookup` theo khóa đã HMAC; kết quả nhóm tương đương với bản nguồn                                          |
 
 Fixture có các trường định danh, liên hệ, thuộc tính cá nhân có cấu trúc và trường nghiệp vụ. Ví dụ ánh xạ: họ tên → Điều 3 khoản 1; ngày sinh → khoản 2; địa chỉ liên hệ → khoản 4; điện thoại và số định danh → khoản 7. Đây là ví dụ minh họa từ [Điều 3 Nghị định 356](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf), không phải danh sách giới hạn của hệ thống.
@@ -245,6 +254,15 @@ Ngày 1–14 là ngày của sprint sau khi bắt đầu, không phải hạn l�
 ## 10. Đo lường và điều kiện nghiệm thu
 
 Tất cả là **mục tiêu thiết kế**, chưa có kết quả chạy. Đơn vị đo phát hiện là **trường trong một biến thể schema**, không phải hàng nghìn ô lặp cùng một mẫu.
+
+Golden dataset P0 phải được build cùng fixture, không chỉ dùng cảm tính khi demo. Tối thiểu gồm:
+
+- `data/fixtures/seed.sql`: nguồn PostgreSQL synthetic đã đóng băng.
+- Ground truth theo từng trường/đường dẫn: loại PII, căn cứ taxonomy, basic/sensitive/unknown/non-personal và lý do.
+- Ca âm dễ nhầm: tracking code giống CCCD, mã đơn, số tiền đứng riêng, mã khách hàng do hệ thống sinh, email tổ chức.
+- Expected policy: trường nào `HMAC`, `MASK`, `DROP`, `KEEP`, kèm mục đích sử dụng.
+- Expected downstream: số hàng join được, số hàng không join, tổng doanh thu/đếm đơn theo nhóm trước và sau xử lý.
+- Bộ test giữ riêng cho eval; DPO sửa sau review không được tính là điểm AI trước review.
 
 | Nhóm            | Mục tiêu                                                         | Bằng chứng phải lưu                                                                                                      |
 | --------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

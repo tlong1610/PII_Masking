@@ -18,7 +18,7 @@ DPO và đội dữ liệu mất công rà từng trường trước khi cung c�
 - Hai connector dùng chung bộ xử lý và chính sách; cả SQL và NoSQL là P0.
 - Danh mục phân loại có nguồn pháp lý, tách khỏi độ phủ detector; không đóng cứng thành 4–5 trường PII.
 - LLM hỗ trợ schema mơ hồ từ profile đã lọc; code kiểm tra, biến đổi và thực thi quyền; DPO quyết định.
-- MASK toàn bộ, DROP, HMAC có khóa cho trường liên kết; chỉ KEEP trường nghiệp vụ đã được review theo ngữ cảnh.
+- Chọn MASK/DROP/HMAC theo mục đích dùng PII: lookup/mapping/aggregate dùng HMAC một chiều; trường không cần downstream thì MASK/DROP; dữ liệu cần trả về user và ảnh/voice nằm ngoài P0.
 - Snapshot đầu ra riêng, nguồn chỉ đọc; SQL join và MongoDB lookup phải đạt trước khi phát hành.
 - Báo cáo web/JSON, cảnh báo có lý do, lịch sử review; không tuyên bố tuân thủ tuyệt đối.
 
@@ -42,7 +42,7 @@ Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid
 | Snapshot SQL/NoSQL, 2 tác vụ downstream định trước                                                       | Realtime, truy vấn tùy ý, join xuyên database     |
 | MASK/DROP/HMAC; báo cáo và audit tối thiểu                                                               | Token vault, KMS, vận hành production             |
 
-Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).
+PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).
 
 ## Tech Stack
 
@@ -78,6 +78,8 @@ uvicorn src.main:app --reload
 
 Chỉ dùng lệnh tương ứng sau khi xác nhận `.env.example`, `requirements.txt` và module `src.main:app` tồn tại. Mở `http://localhost:8000/docs` sau khi server chạy. Không commit `.env`, khóa HMAC/API hoặc chuỗi kết nối.
 
+Fixture `data/fixtures/seed.sql` được commit để làm bằng chứng bối cảnh database cho Gate 1. File này không chứa dữ liệu thật; các số CCCD, số điện thoại, email, OCR text và đường dẫn ảnh KYC đều là synthetic/fake để phục vụ demo scan, review, MASK/DROP/HMAC và downstream join.
+
 Quick Start chỉ hoàn tất khi đội bổ sung và chạy thật các bước:
 
 1. Khởi động PostgreSQL/MongoDB theo cấu hình Compose đã kiểm tra; seed fixture CSDL quan hệ đầy đủ cho Postgres và fixture tương ứng cho Mongo.
@@ -95,7 +97,7 @@ Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential �
 | Đường dẫn                                      | Nội dung                                                                  |
 | ---------------------------------------------- | ------------------------------------------------------------------------- |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng |
-| `data/fixtures/`                               | Bộ dữ liệu fixture CSDL quan hệ mô phỏng đầy đủ nhiều bảng + VN PII       |
+| `data/fixtures/seed.sql`                       | PostgreSQL fixture synthetic: Northwind + VN PII giả lập cho scan/mask/HMAC |
 | `docs/brief.md`, `docs/brief-one-page.pdf`     | Brief theo 6 mục Gate 1; PDF đúng một trang                               |
 | `docs/prd.md`                                  | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu      |
 | `docs/ui-flow.md`                              | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                         |
