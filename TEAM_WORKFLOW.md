@@ -1,7 +1,7 @@
 # Quy trình làm việc Team PIIGuard VN
 
 **Dự án:** PIIGuard VN — Công cụ phát hiện và che giấu PII theo luật Việt Nam  
-**Thời gian:** 6 tuần (AI20K Cohort 3)  
+**Thời gian:** MVP 14 ngày (VinUni AI20K Cohort 4)  
 **Team:** 4 người
 
 ---
@@ -22,30 +22,34 @@
 
 ## 📐 Cấu trúc nhánh (Branching Strategy)
 
+> 📖 **Xem chi tiết ai làm folder/file nào tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
+
 ```
 main
  └── develop
-      ├── feature/database-scanner
-      ├── feature/pii-detection-engine
-      ├── docs/update-prd-masking-strategy
-      ├── bugfix/fix-null-cccd-handling
+      ├── feature/fe-dpo-review-dashboard     [Phúc - Frontend]
+      ├── feature/be-runs-api                 [Long - Backend]
+      ├── feature/ai-langgraph-scanner        [Tùng - AI Eng]
+      ├── feature/data-mongo-connector        [Kiên - Data Eng]
+      ├── docs/update-team-structure
       └── test/add-integration-tests
 ```
 
 ### Các loại nhánh
 
-| Nhánh | Mục đích | Merge vào | Xóa sau merge |
-|-------|----------|-----------|---------------|
-| `main` | Production-ready code, luôn deploy được | — *(Chỉ Team Lead release)* | Không |
-| `develop` | Nhánh tích hợp chính, tiếp nhận tất cả PR | `main` *(chỉ tại Gate/Release)* | Không |
-| `feature/*` | Tính năng mới | `develop` | ✅ Có |
-| `bugfix/*` | Sửa lỗi | `develop` | ✅ Có |
-| `docs/*` | Cập nhật tài liệu | `develop` | ✅ Có |
-| `test/*` | Thêm/sửa tests | `develop` | ✅ Có |
-| `refactor/*` | Tái cấu trúc code | `develop` | ✅ Có |
-| `hotfix/*` | Sửa lỗi khẩn cấp | `develop` | ✅ Có |
+| Nhánh        | Mục đích                                  | Merge vào                       | Xóa sau merge |
+| ------------ | ----------------------------------------- | ------------------------------- | ------------- |
+| `main`       | Production-ready code, luôn deploy được   | — _(Chỉ Team Lead release)_     | Không         |
+| `develop`    | Nhánh tích hợp chính, tiếp nhận tất cả PR | `main` _(chỉ tại Gate/Release)_ | Không         |
+| `feature/*`  | Tính năng mới                             | `develop`                       | ✅ Có         |
+| `bugfix/*`   | Sửa lỗi                                   | `develop`                       | ✅ Có         |
+| `docs/*`     | Cập nhật tài liệu                         | `develop`                       | ✅ Có         |
+| `test/*`     | Thêm/sửa tests                            | `develop`                       | ✅ Có         |
+| `refactor/*` | Tái cấu trúc code                         | `develop`                       | ✅ Có         |
+| `hotfix/*`   | Sửa lỗi khẩn cấp                          | `develop`                       | ✅ Có         |
 
 > ⛔ **QUY TẮC BẤT DI BẤT DỊCH: KHÔNG BAO GIỜ MERGE VÀO `main`!**
+>
 > - Toàn bộ thành viên **KHÔNG ĐƯỢC PHÉP** merge bất kỳ nhánh nào (`feature/*`, `bugfix/*`, `docs/*`...) vào `main`.
 > - Mọi Pull Request (PR) đều **BẮT BUỘC** chọn **Base: `develop`**.
 > - Bất kỳ PR nào trỏ target base vào `main` sẽ bị từ chối / close ngay lập tức và yêu cầu mở lại vào `develop`.
@@ -54,19 +58,32 @@ main
 
 ## 🔤 Quy ước đặt tên nhánh
 
-### Format: `<type>/<short-kebab-case-description>`
+### Format: `<type>/<role-prefix>-<short-kebab-case-description>`
+
+**Quy ước tiền tố vai trò (Role Prefix) để phân biệt nhánh của từng người:**
+
+- `feature/fe-...` — Dành cho Phúc (Frontend & UI Flow)
+- `feature/be-...` — Dành cho Long (Backend FastAPI & PostgreSQL)
+- `feature/ai-...` — Dành cho Tùng (AI LangGraph & Detection Rules)
+- `feature/data-...` — Dành cho Kiên (Data Fixtures & MongoDB)
+- `docs/...` — Cập nhật tài liệu (Dùng chung)
+- `bugfix/...` — Sửa lỗi (Dùng chung)
+- `test/...` — Viết unit/integration tests (Dùng chung)
 
 **✅ TỐT:**
+
 ```bash
-feature/postgres-table-scanner
-feature/pii-detection-vietnamese-phone
+feature/fe-dpo-scan-review
+feature/be-runs-api-endpoints
+feature/ai-pii-regex-detector
+feature/data-mongo-connector-adapter
 docs/update-prd-after-mentor-feedback
 bugfix/handle-null-values-in-cccd
 test/add-unit-tests-for-tokenizer
-refactor/extract-masking-logic
 ```
 
 **❌ TỆ (TRÁNH):**
+
 ```bash
 phuc-branch              # Không rõ làm gì
 new-feature              # Quá chung chung
@@ -76,11 +93,13 @@ feature/PII-Detection    # Viết hoa không cần thiết
 ```
 
 ### Độ dài tên nhánh
+
 - **Tối thiểu:** 3 từ có nghĩa
 - **Tối đa:** 5 từ
 - **Nếu quá dài:** Rút gọn nhưng giữ nguyên ý nghĩa
 
 **Ví dụ:**
+
 - ❌ `feature/scanner` → quá ngắn
 - ✅ `feature/database-scanner`
 - ✅ `feature/pii-detection-engine`
@@ -94,6 +113,7 @@ feature/PII-Detection    # Viết hoa không cần thiết
 ### Format: `<type>(<scope>): <subject>`
 
 **Type (bắt buộc):**
+
 - `feat` — Tính năng mới
 - `fix` — Sửa lỗi
 - `docs` — Thay đổi tài liệu (README, PRD, brief...)
@@ -102,6 +122,7 @@ feature/PII-Detection    # Viết hoa không cần thiết
 - `chore` — Công việc bảo trì (cập nhật dependencies, config...)
 
 **Scope (tùy chọn nhưng khuyến khích):**
+
 - `agent` — LangGraph agent logic
 - `api` — FastAPI endpoints
 - `db` — Database models, migrations
@@ -111,6 +132,7 @@ feature/PII-Detection    # Viết hoa không cần thiết
 - `ci` — CI/CD workflows
 
 **Subject:**
+
 - Viết thường, không dấu chấm cuối
 - Dùng động từ ở hiện tại: "add" không phải "added"
 - Tối đa 50 ký tự
@@ -118,6 +140,7 @@ feature/PII-Detection    # Viết hoa không cần thiết
 ### Ví dụ
 
 **✅ TỐT:**
+
 ```bash
 feat(scanner): add PostgreSQL table scanner
 fix(masking): handle null values in CCCD column
@@ -128,6 +151,7 @@ chore(deps): update langchain to 0.3.0
 ```
 
 **❌ TỆ:**
+
 ```bash
 update code                    # Quá chung chung
 fixed bug                      # Không nói bug nào
@@ -190,7 +214,8 @@ git commit -m "feat(scanner): implement PostgreSQL table scanner"
 ```
 
 **⚠️ KHÔNG BAO GIỜ:**
-- `git add .` → dễ commit nhầm file (.env, __pycache__, .DS_Store)
+
+- `git add .` → dễ commit nhầm file (.env, **pycache**, .DS_Store)
 - `git commit -am "update"` → bỏ qua việc review file trước khi commit
 
 ### 3️⃣ Push lên remote
@@ -204,6 +229,7 @@ git push
 ```
 
 **💡 Push code hàng ngày** — Không đợi đến khi "hoàn thiện":
+
 - Backup code
 - Teammate thấy được progress
 - AI log gắn với commit → mentor thấy được quá trình làm việc
@@ -211,15 +237,17 @@ git push
 ### 4️⃣ Tạo Pull Request
 
 #### Trên GitHub UI:
+
 1. Vào repo → Tab "Pull requests" → "New pull request"
 2. **Base:** `develop` ← **Compare:** `feature/database-scanner`  
-   *(⚠️ **CỰC KỲ QUAN TRỌNG:** GitHub UI thường mặc định chọn Base là `main`. Bạn **BẮT BUỘC** phải bấm dropdown đổi Base thành `develop`. **TUYỆT ĐỐI KHÔNG ĐỂ BASE LÀ `main`**!)*
+   _(⚠️ **CỰC KỲ QUAN TRỌNG:** GitHub UI thường mặc định chọn Base là `main`. Bạn **BẮT BUỘC** phải bấm dropdown đổi Base thành `develop`. **TUYỆT ĐỐI KHÔNG ĐỂ BASE LÀ `main`**!)_
 3. Điền title và description theo template
 4. **Request review** từ ít nhất 1 teammate
 5. Assign cho chính mình
 6. Add labels nếu có (enhancement, bug, documentation...)
 
 #### Hoặc dùng GitHub CLI (nhanh hơn):
+
 ```bash
 gh pr create \\
   --base develop \\
@@ -250,9 +278,11 @@ Repo đã có template sẵn ở `.github/PULL_REQUEST_TEMPLATE.md`, nhưng cầ
 
 ```markdown
 ## Thay đổi gì
+
 [Mô tả ngắn gọn 2-3 câu]
 
 ## Loại thay đổi
+
 - [ ] \`feat\` — tính năng mới
 - [ ] \`fix\` — sửa lỗi
 - [ ] \`docs\` — cập nhật tài liệu (PRD, brief, README...)
@@ -261,20 +291,26 @@ Repo đã có template sẵn ở `.github/PULL_REQUEST_TEMPLATE.md`, nhưng cầ
 - [ ] \`chore\` — công việc bảo trì
 
 ## Chi tiết kỹ thuật
+
 - File nào thay đổi
 - Logic chính là gì
 - Dependencies mới (nếu có)
 
 ## Cách test
+
 \\\`\\\`\\\`bash
+
 # Command để chạy test
+
 pytest tests/unit/test_scanner.py -v
 \\\`\\\`\\\`
 
 ## Screenshots (nếu có UI)
+
 [Đính kèm ảnh]
 
 ## Checklist (BẮT BUỘC)
+
 - [ ] Code chạy được locally
 - [ ] Tests pass: \`pytest\`
 - [ ] Lint pass: \`ruff check .\`
@@ -283,6 +319,7 @@ pytest tests/unit/test_scanner.py -v
 - [ ] Ít nhất 1 teammate đã review
 
 ## Liên quan
+
 Closes #[issue-number]
 Related to #[issue-number]
 ```
@@ -290,11 +327,13 @@ Related to #[issue-number]
 ### 6️⃣ Review Code
 
 #### Người tạo PR:
+
 - **Tự review trước** — đọc lại diff trên GitHub, tìm lỗi chính tả, logic sai
 - Tag reviewer: `@username can you review this?`
 - Trả lời comments của reviewer
 
 #### Reviewer:
+
 - Đọc description để hiểu context
 - Check code logic, edge cases, naming conventions
 - Check tests có cover đủ không
@@ -305,24 +344,27 @@ Related to #[issue-number]
   - Commit message không theo chuẩn
 
 **Comment types:**
+
 - **❗ Blocking:** Phải fix mới merge được
 - **💡 Suggestion:** Nên sửa nhưng không blocking
 - **❓ Question:** Hỏi để hiểu rõ hơn
 
 **Ví dụ review comment tốt:**
+
 ```
-❗ Line 45: Nên check \`if cccd is None\` trước khi gọi \`.strip()\` 
+❗ Line 45: Nên check \`if cccd is None\` trước khi gọi \`.strip()\`
 để tránh AttributeError.
 
-💡 Line 78: Có thể extract hàm \`validate_cccd_format()\` ra riêng 
+💡 Line 78: Có thể extract hàm \`validate_cccd_format()\` ra riêng
 để dễ test và tái sử dụng.
 
-❓ Tại sao dùng regex này thay vì regex kia? 
+❓ Tại sao dùng regex này thay vì regex kia?
 ```
 
 ### 7️⃣ Merge Pull Request
 
 **Điều kiện merge:**
+
 - ⛔ **Target Base Branch BẮT BUỘC là `develop`** — Kiểm tra kỹ trước khi bấm merge: nếu thấy Base đang là `main`, DỪNG LẠI NGAY! Đổi base về `develop`. **KHÔNG BAO GIỜ merge vào `main`**.
 - ✅ Ít nhất 1 approval từ teammate
 - ✅ All CI checks pass (tests, lint)
@@ -330,10 +372,12 @@ Related to #[issue-number]
 - ✅ Description đã điền đầy đủ
 
 **Cách merge:**
+
 1. GitHub UI: Click "Squash and merge" (khuyến khích) hoặc "Merge pull request"
 2. GitHub CLI: `gh pr merge <PR-number> --squash`
 
 **Sau khi merge:**
+
 ```bash
 # Xóa nhánh remote (GitHub tự động suggest)
 # Xóa nhánh local
@@ -376,6 +420,7 @@ git push
 ```
 
 ### Tránh conflicts từ đầu:
+
 - Pull develop mỗi sáng trước khi bắt đầu làm
 - Tạo PR nhỏ, merge nhanh (< 300 dòng code)
 - Phân chia task để 2 người không sửa cùng 1 file
@@ -387,12 +432,14 @@ git push
 ### Gate 1 (Tuần 1-2): Chốt đề tài
 
 **4 deliverables bắt buộc đi qua PR:**
+
 1. `docs/brief.md` → PR: `docs/add-one-page-brief`
 2. `docs/prd.md` → PR: `docs/add-prd-for-gate-1`
 3. `docs/ui-flow.md` → PR: `docs/add-wireframe-and-ui-flow`
 4. `README.md` (cập nhật) → PR: `docs/update-readme-project-info`
 
 **⚠️ Yêu cầu đặc biệt:**
+
 - **PRD phải có đủ mục 5, 6, 9:**
   - Mục 5: Human-in-the-loop
   - Mục 6: Xử lý lỗi & giới hạn
@@ -406,6 +453,7 @@ git push
   - Trạng thái rỗng (empty state)
 
 **🚫 KHÔNG được:**
+
 - Push trực tiếp `docs/*.md` vào develop/main
 - Commit file `.env` (chứa API key)
 - Để PRD stale khi code đã thay đổi
@@ -413,12 +461,14 @@ git push
 ### Gate 2 (Tuần 3-4): Demo 1
 
 **Yêu cầu bắt buộc:**
+
 - ✅ **≥ 10 PR đã merge** — Không làm bù được, bắt đầu từ tuần 1
 - ✅ **CI/CD đang chạy** — File `.github/workflows/ci.yml` có sẵn
 - ✅ **Tests pass** — Ít nhất unit tests cho core logic
 - ✅ **AI log đã hoạt động** — Chạy `setup_hooks.sh`
 
 **💡 Tips:**
+
 - Tạo PR cho mọi thứ, kể cả docs, kể cả 1 dòng code
 - Review nhanh (trong ngày) để không block teammate
 - Squash commits khi merge để giữ history sạch
@@ -430,12 +480,14 @@ git push
 ### 1. KHÔNG BAO GIỜ commit secrets
 
 **❌ TRÁNH:**
+
 ```python
 # WRONG - hardcoded API key
 GEMINI_API_KEY = "AIzaSyC..."
 ```
 
 **✅ ĐÚNG:**
+
 ```python
 # RIGHT - load from environment
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -444,6 +496,7 @@ if not GEMINI_API_KEY:
 ```
 
 **File `.env` đã nằm trong `.gitignore`** — Nhưng nếu lỡ commit:
+
 1. **Đổi API key ngay lập tức** trên dashboard provider
 2. Xóa khỏi git history bằng `git filter-repo` hoặc BFG Repo-Cleaner
 3. Force push (sau khi thông báo team)
@@ -562,19 +615,22 @@ git cherry-pick <commit-hash-2>
 ## 📊 Theo dõi tiến độ
 
 ### Checklist hàng ngày (Daily Standup)
+
 - [ ] Pull develop mới nhất
 - [ ] Review ≥ 1 PR của teammate (nếu có)
 - [ ] Push code ít nhất 1 lần (backup + transparency)
 - [ ] Check CI status của PR đang mở
 
 ### Checklist hàng tuần
-- [ ] Số lượng PR merged: ___ / 10 (target: ≥ 2 PR/tuần)
+
+- [ ] Số lượng PR merged: \_\_\_ / 10 (target: ≥ 2 PR/tuần)
 - [ ] PRD/docs đã sync với code chưa?
-- [ ] Tests coverage: ___ %
+- [ ] Tests coverage: \_\_\_ %
 - [ ] AI log có hoạt động không?
 
 ### Dashboard theo dõi
-- **GitHub Insights:** `github.com/AI20K-Build-Phase-Cohort-3/P-XXX/pulse`
+
+- **GitHub Insights:** `github.com/AI20K-Build-Phase-Cohort-4/P-138/pulse`
 - **PR stats:** Số PR mở / merged / closed
 - **Contributor activity:** Ai commit nhiều nhất, ai cần support
 
@@ -583,6 +639,8 @@ git cherry-pick <commit-hash-2>
 ## 📚 Tài liệu tham khảo
 
 ### Trong repo này:
+
+- [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) — Bản đồ cây thư mục & phân chia trách nhiệm chi tiết cho 4 thành viên
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — Hướng dẫn đóng góp chung
 - [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — Template PR
 - [`docs/prd.md`](docs/prd.md) — Product Requirements Document
@@ -590,6 +648,7 @@ git cherry-pick <commit-hash-2>
 - [`README.md`](README.md) — Tổng quan dự án
 
 ### External:
+
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Flow](https://guides.github.com/introduction/flow/)
 - [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf)
@@ -624,4 +683,3 @@ A: Tối đa 2-3 ngày. Nếu quá 3 ngày chưa merge, chia nhỏ thành nhiề
 
 **📅 Last updated:** 2026-09-22  
 **👥 Maintainer:** Team Leader — cập nhật file này khi có quy trình mới
-

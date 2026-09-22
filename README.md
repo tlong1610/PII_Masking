@@ -85,10 +85,11 @@ Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential �
 
 ## Project Structure
 
-Cấu trúc mục tiêu; các thư mục code chưa được xác minh trong lần sửa tài liệu này.
+> 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
 
 | Đường dẫn | Nội dung |
 |---|---|
+| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng |
 | `docs/brief.md`, `docs/brief-one-page.pdf` | Brief theo 6 mục Gate 1; PDF đúng một trang |
 | `docs/prd.md` | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu |
 | `docs/ui-flow.md` | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc |
