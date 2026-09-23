@@ -1,6 +1,6 @@
-from typing import Optional
-from src.models.schemas import ColumnProfile, FieldScanResult
+
 from src.detection.regex_patterns import HIGH_CONFIDENCE_COLUMNS, REGEX_PATTERNS
+from src.models.schemas import ColumnProfile, FieldScanResult
 
 
 class RuleBasedScanner:
@@ -15,7 +15,7 @@ class RuleBasedScanner:
         # Mặc định: 50% (VD: 3/5 mẫu là số điện thoại thì cột đó chứa SĐT)
         self.match_threshold = match_threshold
 
-    def _check_column_name(self, column_name: str) -> Optional[str]:
+    def _check_column_name(self, column_name: str) -> str | None:
         """
         Kiểm tra tên cột có nằm trong danh sách High Confidence không.
         Returns: PII Type (VD: "CCCD") hoặc None.
@@ -33,7 +33,7 @@ class RuleBasedScanner:
         """
         if not samples:
             return 0.0
-            
+
         pattern = REGEX_PATTERNS.get(pii_type)
         if not pattern:
             return 0.0
@@ -56,10 +56,10 @@ class RuleBasedScanner:
             # Nếu tên cột rất khả nghi (VD: "so_dien_thoai")
             # Ta dùng Regex để "kiểm chứng" lại các mẫu dữ liệu
             match_ratio = self._check_samples_regex(guessed_pii_type, col_profile.samples)
-            
-            # Kể cả match_ratio thấp (do data lỗi, null nhiều), nhưng tên cột đã nằm trong 
+
+            # Kể cả match_ratio thấp (do data lỗi, null nhiều), nhưng tên cột đã nằm trong
             # bộ HIGH_CONFIDENCE thì vẫn có thể tự tin kết luận.
-            if match_ratio >= 0.0 or len(col_profile.samples) == 0: 
+            if match_ratio >= 0.0 or len(col_profile.samples) == 0:
                 # (Ở đây ta tin tưởng 100% vào tên cột rõ ràng)
                 return FieldScanResult(
                     field_name=col_profile.column_name,
@@ -72,7 +72,7 @@ class RuleBasedScanner:
         # Bước 2: Tên cột không rõ ràng, thử vét cạn Regex cho mọi loại PII
         for pii_type in REGEX_PATTERNS.keys():
             match_ratio = self._check_samples_regex(pii_type, col_profile.samples)
-            
+
             if match_ratio >= self.match_threshold:
                 # Đa số dữ liệu khớp định dạng cứng
                 return FieldScanResult(

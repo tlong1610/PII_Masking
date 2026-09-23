@@ -1,7 +1,5 @@
 import logging
-import json
 from pathlib import Path
-from typing import List
 
 try:
     import psycopg
@@ -10,12 +8,7 @@ except ImportError:
     logging.warning("psycopg is not installed. Please install it using `pip install psycopg`.")
     psycopg = None
 
-from src.models.schemas import (
-    DatabaseProfile,
-    TableProfile,
-    ColumnProfile,
-    TableRelation
-)
+from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +23,8 @@ class PostgresConnector:
         self.connection_string = connection_string
 
     def extract_database_profile(
-        self, 
-        schema_name: str = "public", 
+        self,
+        schema_name: str = "public",
         sample_size: int = 5
     ) -> DatabaseProfile:
         """
@@ -47,7 +40,7 @@ class PostgresConnector:
         if psycopg is None:
             raise RuntimeError("Thư viện psycopg chưa được cài đặt. Không thể kết nối Database.")
 
-        tables_profile: List[TableProfile] = []
+        tables_profile: list[TableProfile] = []
         # Lấy tên database từ chuỗi kết nối (ví dụ: postgresql://user:pass@host:5432/dbname)
         db_name = self.connection_string.split("/")[-1].split("?")[0]
 
@@ -84,7 +77,7 @@ class PostgresConnector:
                     WHERE tc.constraint_schema = %s AND tc.constraint_type = 'FOREIGN KEY'
                 """, (schema_name,))
                 fks = cur.fetchall()
-                
+
                 # Gom nhóm FK theo từng bảng nguồn
                 fk_map = {}
                 for fk in fks:
@@ -118,10 +111,10 @@ class PostgresConnector:
                     for col_info in columns_info:
                         col_name = col_info["column_name"]
                         data_type = col_info["data_type"]
-                        
+
                         is_pk = (table, col_name) in pk_set
                         is_fk = col_name in fk_columns
-                        
+
                         # Hard-code recommend: Các trường khóa bắt buộc dùng HASHING
                         system_rec = "HASHING" if is_pk or is_fk else None
 
@@ -134,7 +127,7 @@ class PostgresConnector:
                             sql.Identifier(col_name),
                             sql.Literal(sample_size)
                         )
-                        
+
                         try:
                             cur.execute(query)
                             samples_raw = cur.fetchall()
@@ -179,13 +172,13 @@ class PostgresConnector:
         """
         # 1. Trích xuất
         profile = self.extract_database_profile(schema_name, sample_size)
-        
+
         # 2. Convert sang JSON string
         json_data = profile.model_dump_json(indent=4)
-        
+
         # 3. Lưu ra file
         out_file = Path(output_path)
         out_file.parent.mkdir(parents=True, exist_ok=True)
         out_file.write_text(json_data, encoding="utf-8")
-        
+
         logger.info(f"Đã lưu cấu trúc DB ra file: {output_path}")

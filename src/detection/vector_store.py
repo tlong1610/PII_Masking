@@ -1,11 +1,9 @@
 import json
 import os
-from pathlib import Path
-from typing import List
 
 try:
-    from langchain_core.documents import Document
     from langchain_chroma import Chroma
+    from langchain_core.documents import Document
     from langchain_huggingface import HuggingFaceEmbeddings
 except ImportError:
     raise ImportError("Vui lòng cài đặt thư viện: pip install langchain-chroma chromadb langchain-huggingface sentence-transformers")
@@ -33,27 +31,27 @@ class PIIKnowledgeBase:
         if not os.path.exists(corpus_path):
             raise FileNotFoundError(f"Không tìm thấy file corpus tại {corpus_path}")
 
-        with open(corpus_path, 'r', encoding='utf-8') as f:
+        with open(corpus_path, encoding='utf-8') as f:
             data = json.load(f)
-            
-        documents: List[Document] = []
+
+        documents: list[Document] = []
         for item in data:
             content = item.get("content", "")
             meta = item.get("metadata", {})
-            
+
             # Lưu ý quan trọng: ChromaDB chỉ chấp nhận metadata là string, int, float, bool.
             # Không chấp nhận kiểu mảng (List), nên ta phải biến đổi mảng keywords thành string.
             if "keywords" in meta and isinstance(meta["keywords"], list):
                 meta["keywords"] = ", ".join(meta["keywords"])
-                
+
             # Đẩy thêm ID vào metadata để dễ truy vết
             meta["entity_id"] = item.get("id", "")
-            
+
             doc = Document(page_content=content, metadata=meta)
             documents.append(doc)
-            
+
         print(f"Đang nhúng (embed) {len(documents)} chunks ngữ nghĩa vào ChromaDB...")
-        
+
         # Tạo mới và lưu trực tiếp xuống ổ cứng (persist_directory)
         self.vector_store = Chroma.from_documents(
             documents=documents,
@@ -72,7 +70,7 @@ class PIIKnowledgeBase:
                 persist_directory=self.db_directory,
                 embedding_function=self.embeddings
             )
-            
+
         # Trả về retriever, cấu hình lấy top 3 chunks giống ngữ nghĩa nhất
         return self.vector_store.as_retriever(search_kwargs={"k": top_k})
 
