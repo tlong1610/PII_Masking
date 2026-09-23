@@ -47,3 +47,8 @@ class FieldScanResult(BaseModel):
     confidence: float = Field(..., description="Độ tin cậy (0.0 đến 1.0)")
     recommended_action: str = Field(..., description="Hành động gợi ý: MASK, DROP, HMAC, KEEP")
     reasoning: str = Field(..., description="Lý do hoặc căn cứ quyết định")
+
+    # Các trường mở rộng cho mô hình Phễu lọc 3 tầng
+    tier: str = Field(default="", description="Tầng ra quyết định (TIER_1, TIER_2, TIER_3)")
+    bm25_score: float | None = Field(default=None, description="Điểm tần suất từ khóa BM25 (Tầng 2)")
+    hybrid_score: float | None = Field(default=None, description="Điểm hỗn hợp Hybrid (Tầng 3.1)")

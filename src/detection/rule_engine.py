@@ -1,4 +1,4 @@
-from src.detection.regex_patterns import HIGH_CONFIDENCE_COLUMNS, NEGATIVE_COLUMNS, REGEX_PATTERNS
+from src.detection.regex_patterns import NEGATIVE_COLUMNS, REGEX_PATTERNS
 from src.detection.taxonomy import PIIType
 from src.models.schemas import ColumnProfile, FieldScanResult
 
@@ -57,14 +57,15 @@ class RuleBasedScanner:
 
         return "MASK"
 
-    def scan_column(self, col_profile: ColumnProfile) -> FieldScanResult:
+    def tier1_static_filter(self, col_profile: ColumnProfile) -> FieldScanResult | None:
         """
-        Động cơ quyết định (Decision Logic) cho 1 cột.
+        Tầng 1 (Cascade Funnel): Lọc tĩnh (Rule-based & Regex).
+        Chỉ trả về kết quả nếu khớp 100% (chắc chắn PII hoặc chắc chắn KHÔNG phải).
+        Nếu mập mờ (không khớp 100%), trả về None để đẩy xuống Tầng 2.
         """
         enforced_action = col_profile.system_recommendation
 
-        # Bước 0: Bắt các ca ÂM (Tracking, Order, Amount)
-        # Nếu tên cột rơi vào nhóm này, chặn ngay, không cho chạy regex CCCD
+        # Bước 0: Bắt các ca ÂM (Tracking, Order, Amount) - Chắc chắn 100% không phải PII
         negative_type = self._check_column_name(col_profile.column_name, NEGATIVE_COLUMNS)
         if negative_type:
             return FieldScanResult(
@@ -72,46 +73,45 @@ class RuleBasedScanner:
                 inferred_pii_type=negative_type,
                 confidence=1.0,
                 recommended_action=self._get_recommended_action(negative_type, enforced_action),
-                reasoning=f"Matched negative keyword for {negative_type}. Bypassing regex checks."
+                reasoning=f"Matched negative keyword for {negative_type}. Bypassing regex checks.",
+                tier="TIER_1"
             )
 
-        # Bước 1: Quét bằng Tên cột khả nghi (High Confidence)
-        guessed_pii_type = self._check_column_name(col_profile.column_name, HIGH_CONFIDENCE_COLUMNS)
-
-        if guessed_pii_type:
-            match_ratio = self._check_samples_regex(guessed_pii_type, col_profile.samples)
-
-            # Kể cả match_ratio thấp (do data lỗi, null nhiều), nhưng tên cột rõ ràng
-            # thì vẫn tin tưởng.
-            if match_ratio >= 0.0 or len(col_profile.samples) == 0:
-                return FieldScanResult(
-                    field_name=col_profile.column_name,
-                    inferred_pii_type=guessed_pii_type,
-                    confidence=0.9 if match_ratio == 0 else 1.0,
-                    recommended_action=self._get_recommended_action(guessed_pii_type, enforced_action),
-                    reasoning=f"Matched high-confidence column name keyword for {guessed_pii_type}."
-                )
-
-        # Bước 2: Tên cột không rõ ràng, thử vét cạn Regex
+        # Bước 1: Quét bằng Regex (Vét cạn) - Chỉ lấy nếu khớp 100%
+        # Ưu tiên kiểm tra các cột có tên trong HIGH_CONFIDENCE trước để tối ưu, nhưng ở đây
+        # theo yêu cầu Tầng 1: Khớp regex 100% mới tính.
         for pii_type in REGEX_PATTERNS.keys():
             match_ratio = self._check_samples_regex(pii_type, col_profile.samples)
-
-            if match_ratio >= self.match_threshold:
-                # Đặc biệt: Nếu Regex email khớp, vẫn trả về EMAIL, LLM layer sau
-                # sẽ đánh giá xem nó là email cá nhân hay tổ chức nếu cần (hoặc DPO).
+            if match_ratio == 1.0 and len(col_profile.samples) > 0:
                 return FieldScanResult(
                     field_name=col_profile.column_name,
                     inferred_pii_type=pii_type,
-                    confidence=match_ratio,
+                    confidence=1.0,
                     recommended_action=self._get_recommended_action(pii_type, enforced_action),
-                    reasoning=f"{match_ratio*100}% samples matched strict Regex for {pii_type}."
+                    reasoning=f"100% samples matched strict Regex for {pii_type}.",
+                    tier="TIER_1"
                 )
 
-        # Bước 3: Không lọt lưới Rule-based -> Trả về UNKNOWN để đẩy xuống Lớp 2 (LLM)
-        return FieldScanResult(
-            field_name=col_profile.column_name,
-            inferred_pii_type=PIIType.UNKNOWN.value,
-            confidence=0.0,
-            recommended_action=self._get_recommended_action(PIIType.UNKNOWN.value, enforced_action),
-            reasoning="Rule-based scanner found no strong evidence. Delegating to next layers."
-        )
+        # Mập mờ -> Trả về None để đẩy xuống Tầng 2 (BM25)
+        return None
+
+    @staticmethod
+    def transform_to_data_shape(samples: list[str]) -> list[str]:
+        """
+        Helper cho Tầng 3: Biến đổi dữ liệu thô thành Data Shape ẩn danh.
+        VD: '0901234567' -> 'XXXXXXXXXX', 'nguyen@gmail.com' -> 'XXXXXX@XXXXX.XXX'
+        """
+        shapes = []
+        for sample in samples:
+            if not sample:
+                continue
+            shape_str = ""
+            for char in str(sample):
+                if char.isdigit():
+                    shape_str += "X"
+                elif char.isalpha():
+                    shape_str += "C"  # C for Character
+                else:
+                    shape_str += char # Giữ lại các ký tự đặc biệt như @, -, .
+            shapes.append(shape_str)
+        return shapes

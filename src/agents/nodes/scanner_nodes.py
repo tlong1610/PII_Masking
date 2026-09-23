@@ -1,97 +1,179 @@
 from typing import Any
 
 from src.agents.state import AgentState
+from src.detection.bm25_engine import BM25Engine
+from src.detection.hitl_feedback import get_few_shot_examples, save_few_shot_example, update_rag_corpus
 from src.detection.rule_engine import RuleBasedScanner
 from src.detection.taxonomy import PIIType
+from src.detection.vector_store import PIIKnowledgeBase
 from src.models.schemas import FieldScanResult
 
-# Khởi tạo scanner toàn cục cho node
+# Khởi tạo các engines toàn cục cho node
 scanner = RuleBasedScanner()
+try:
+    bm25_engine = BM25Engine()
+except FileNotFoundError:
+    bm25_engine = None # Sẽ handle trong node nếu file chưa có
 
+# Khởi tạo VectorDB (cần chắc chắn đã chạy script initialize_db trước đó)
+kb = PIIKnowledgeBase()
+retriever = kb.get_retriever(top_k=3)
 
-def rule_scan_node(state: AgentState) -> dict[str, Any]:
-    """Node 1: Chạy Rule-Based Scanner."""
+def tier1_static_node(state: AgentState) -> dict[str, Any]:
+    """Node Tầng 1: Lọc tĩnh (Rule-Based & Regex)."""
     col_profile = state.get("column_profile")
     if not col_profile:
         return {"error": "Missing column_profile in state"}
 
-    scan_result = scanner.scan_column(col_profile)
-    return {"rule_scan_result": scan_result}
+    scan_result = scanner.tier1_static_filter(col_profile)
+    return {"tier1_result": scan_result}
 
 
-def llm_classify_node(state: AgentState) -> dict[str, Any]:
-    """
-    Node 2: Tùy chọn LLM Classify.
-    CHÚ Ý: TUYỆT ĐỐI KHÔNG GỬI RAW PII (samples) VÀO LLM.
-    Chỉ gửi metadata (tên cột, kiểu dữ liệu, các cờ) cho LLM.
-    """
+def tier2_bm25_node(state: AgentState) -> dict[str, Any]:
+    """Node Tầng 2: Lọc từ vựng cơ bản (BM25)."""
     col_profile = state.get("column_profile")
-    rule_result = state.get("rule_scan_result")
+    if bm25_engine is None:
+        # Fallback nếu chưa setup JSON corpus, cho qua phễu luôn với điểm 1.0
+        return {"bm25_score": 1.0}
 
-    if not col_profile or not rule_result:
-        return {"error": "Missing profile or rule result"}
+    score, reject_result = bm25_engine.calculate_lexical_score(col_profile, threshold=0.2)
 
-    # --- SANITIZE DỮ LIỆU THÔ TRƯỚC KHI GỌI LLM ---
-    # Loại bỏ 'samples' hoàn toàn khỏi prompt
-    safe_metadata = {
-        "column_name": col_profile.column_name,
-        "data_type": col_profile.data_type,
-        "is_primary_key": col_profile.is_primary_key,
-        "is_foreign_key": col_profile.is_foreign_key,
-        "system_recommendation": col_profile.system_recommendation
-    }
+    if reject_result:
+        # Bị loại ngay tại Tầng 2
+        return {"bm25_score": score, "final_proposal": reject_result}
 
-    # Ở đây chúng ta sẽ gọi module LLM (ví dụ src.services.llm)
-    # Tuy nhiên vì bài toán tập trung vào cấu trúc graph, ta mô phỏng (mock) LLM response
-    # dựa vào safe_metadata.
-    # TODO: Tích hợp Langchain LLM thực tế vào đây.
+    return {"bm25_score": score}
 
-    # MOCK LLM Logic (Ví dụ: đoán tên cột)
-    col_lower = safe_metadata["column_name"].lower()
-    inferred_type = PIIType.UNKNOWN.value
-    action = "KEEP"
-    reasoning = "LLM analyzed metadata and found no clear PII context."
 
-    if "name" in col_lower:
-        inferred_type = PIIType.UNKNOWN.value  # Có thể là BASIC nếu là tên người
-        action = "MASK"
-        reasoning = "LLM inferred this might be a personal name from column context."
-    elif "address" in col_lower:
-        inferred_type = PIIType.ADDRESS.value
-        action = "MASK"
-        reasoning = "LLM inferred this is an address from column context."
+def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
+    """Node Tầng 3.1: Chấm điểm hỗn hợp (BM25 + Vector Semantic)."""
+    col_profile = state.get("column_profile")
+    bm25_score = state.get("bm25_score", 0.0)
 
-    llm_result = FieldScanResult(
-        field_name=col_profile.column_name,
-        inferred_pii_type=inferred_type,
-        confidence=0.8,
-        recommended_action=action,
-        reasoning=reasoning
+    query = col_profile.column_name.replace("_", " ")
+
+    # Tính Vector Similarity (Mô phỏng lấy điểm từ retriever của Chroma)
+    # Vì Langchain Retriever chuẩn không trả về kèm điểm số một cách dễ dàng,
+    # chúng ta query trực tiếp từ vector_store để lấy distance/score.
+    hybrid_score = 0.5 # Giá trị mặc định nếu lỗi
+    if kb.vector_store:
+        results = kb.vector_store.similarity_search_with_score(query, k=1)
+        if results:
+            # ChromaDB trả về distance (nhỏ hơn là tốt hơn), cần chuyển đổi thành similarity (0->1)
+            distance = results[0][1]
+            semantic_score = max(0.0, 1.0 - distance)
+
+            # Hybrid score = 40% BM25 + 60% Semantic
+            hybrid_score = (bm25_score * 0.4) + (semantic_score * 0.6)
+
+    # Quy tắc phân luồng Tầng 3.1
+    if hybrid_score > 0.85:
+        res = FieldScanResult(
+            field_name=col_profile.column_name,
+            inferred_pii_type=PIIType.UNKNOWN.value, # Cần LLM hoặc mapping lại để biết type chính xác, tạm để UNKNOWN
+            confidence=hybrid_score,
+            recommended_action="MASK",
+            reasoning=f"Hybrid Score ({hybrid_score:.2f}) > 0.85. Khẳng định là PII.",
+            tier="TIER_3_HYBRID",
+            hybrid_score=hybrid_score
+        )
+        return {"hybrid_score": hybrid_score, "final_proposal": res}
+
+    if hybrid_score < 0.4:
+        res = FieldScanResult(
+            field_name=col_profile.column_name,
+            inferred_pii_type=PIIType.NOT_PERSONAL_DATA.value,
+            confidence=1.0 - hybrid_score,
+            recommended_action="KEEP",
+            reasoning=f"Hybrid Score ({hybrid_score:.2f}) < 0.4. Không phải PII.",
+            tier="TIER_3_HYBRID",
+            hybrid_score=hybrid_score
+        )
+        return {"hybrid_score": hybrid_score, "final_proposal": res}
+
+    # Vùng xám (0.4 - 0.85): Cần Data Shape để đẩy sang LLM
+    data_shape = RuleBasedScanner.transform_to_data_shape(col_profile.samples)
+    return {"hybrid_score": hybrid_score, "data_shape": data_shape}
+
+
+def tier3_llm_node(state: AgentState) -> dict[str, Any]:
+    """Node Tầng 3.2: LLM Context Reasoning."""
+    import json
+
+    from langchain_core.prompts import PromptTemplate
+
+    from src.services.llm import get_llm
+
+    col_profile = state.get("column_profile")
+    data_shape = state.get("data_shape", [])
+
+    # Lấy Few-shot examples từ lịch sử DPO để đưa vào System Prompt
+    few_shot_examples = get_few_shot_examples(limit=3)
+    few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
+
+    llm = get_llm()
+    structured_llm = llm.with_structured_output(FieldScanResult)
+
+    prompt = PromptTemplate.from_template(
+        """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
+Nhiệm vụ của bạn là phân tích cấu trúc của một cột trong Database và quyết định xem nó có chứa dữ liệu cá nhân (PII) hay không, dựa trên tên cột và hình dáng dữ liệu (Data Shape) đã được ẩn danh.
+
+Các loại PII (inferred_pii_type) có thể là: CCCD, PHONE, EMAIL, ADDRESS, DOB, TAX_CODE, UNKNOWN, NOT_PERSONAL_DATA...
+Hành động khuyến nghị (recommended_action): MASK (nếu là PII), KEEP (nếu không phải).
+
+ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
+{few_shot_examples}
+
+THÔNG TIN CỘT CẦN PHÂN TÍCH:
+- Tên cột: {column_name}
+- Kiểu dữ liệu SQL: {data_type}
+- Data Shapes (Mẫu dữ liệu đã được biến đổi thành dạng ký tự X và C): {data_shapes}
+
+Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu."""
     )
 
-    return {"llm_scan_result": llm_result}
+    chain = prompt | structured_llm
+
+    try:
+        # Gọi API thật
+        result: FieldScanResult = chain.invoke({
+            "few_shot_examples": few_shot_str,
+            "column_name": col_profile.column_name,
+            "data_type": col_profile.data_type,
+            "data_shapes": json.dumps(data_shape)
+        })
+        # Ghi đè tier logic
+        result.tier = "TIER_3_LLM"
+        return {"tier3_result": result}
+
+    except Exception as e:
+        print(f"[Error] Lỗi khi gọi LLM: {e}")
+        # Fallback an toàn
+        fallback_res = FieldScanResult(
+            field_name=col_profile.column_name,
+            inferred_pii_type=PIIType.UNKNOWN.value,
+            confidence=0.0,
+            recommended_action="KEEP",
+            reasoning=f"LLM API Failed: {str(e)}",
+            tier="TIER_3_LLM_ERROR"
+        )
+        return {"tier3_result": fallback_res}
 
 
 def proposal_node(state: AgentState) -> dict[str, Any]:
-    """
-    Node 3: Tổng hợp kết quả và đưa ra Proposal.
-    Xác định xem có cần DPO review không.
-    """
-    rule_res = state.get("rule_scan_result")
-    llm_res = state.get("llm_scan_result")
+    """Node 3.3: Tổng hợp và kích hoạt HITL (Data Steward)."""
+    # Nếu đã có final_proposal từ các Tầng trước thì lấy luôn
+    final_res = state.get("final_proposal")
 
-    # Chọn kết quả cuối cùng (Ưu tiên LLM nếu Rule trả về UNKNOWN)
-    final_res = rule_res
-    if rule_res and rule_res.inferred_pii_type == PIIType.UNKNOWN.value and llm_res:
-        final_res = llm_res
+    # Nếu chưa có, lấy từ Tầng 1 hoặc Tầng 3 LLM
+    if not final_res:
+        final_res = state.get("tier1_result") or state.get("tier3_result")
 
-    # Quyết định có cần DPO review không
-    # Ví dụ: Nếu LLM vẫn trả về UNKNOWN, hoặc độ tự tin thấp, hoặc là loại nhạy cảm đặc biệt
+    # Quyết định có cần DPO/Data Steward review không
+    # (Trường hợp LLM có độ tự tin thấp)
     requires_dpo = False
-    if final_res:
-        if final_res.inferred_pii_type == PIIType.UNKNOWN.value:
-            requires_dpo = True
-        elif final_res.confidence < 0.8:
+    if final_res and final_res.tier == "TIER_3_LLM":
+        if final_res.confidence < 0.8 or final_res.inferred_pii_type == PIIType.UNKNOWN.value:
             requires_dpo = True
 
     return {
@@ -101,11 +183,38 @@ def proposal_node(state: AgentState) -> dict[str, Any]:
 
 
 def dpo_review_node(state: AgentState) -> dict[str, Any]:
-    """
-    Node 4: DPO Review (Human-in-the-loop).
-    Node này đại diện cho trạng thái chờ con người duyệt.
-    """
-    # Trong thực tế, graph sẽ interrupt trước khi vào node này.
-    # Khi user/DPO duyệt xong và resume graph, node này sẽ lưu kết quả.
-    return {"dpo_decision": "APPROVED_BY_DPO"}
+    """Node: DPO Review (Human-in-the-loop)."""
+    # DPO xem xét final_proposal và submit lại quyết định mới qua biến state 'dpo_decision'.
+    # Ví dụ format: {"inferred_pii_type": "PHONE", "recommended_action": "MASK"}
+
+    dpo_decision = state.get("dpo_decision")
+    final_res = state.get("final_proposal")
+    col_profile = state.get("column_profile")
+    data_shape = state.get("data_shape", [])
+
+    if dpo_decision and final_res and col_profile:
+        # 1. Ghi đè kết quả
+        final_res.inferred_pii_type = dpo_decision.get("inferred_pii_type", final_res.inferred_pii_type)
+        final_res.recommended_action = dpo_decision.get("recommended_action", final_res.recommended_action)
+        final_res.confidence = 1.0
+        final_res.reasoning = "Overridden by DPO (Human-in-the-loop)."
+
+        # 2. Lưu Few-shot memory (Ý tưởng 2)
+        save_few_shot_example(
+            column_name=col_profile.column_name,
+            data_shape=data_shape,
+            dpo_decision=final_res.inferred_pii_type,
+            action=final_res.recommended_action
+        )
+
+        # 3. Auto-update RAG Corpus (Ý tưởng 1)
+        if final_res.inferred_pii_type not in [PIIType.UNKNOWN.value, PIIType.NOT_PERSONAL_DATA.value]:
+            update_rag_corpus(
+                column_name=col_profile.column_name,
+                pii_type=final_res.inferred_pii_type
+            )
+
+        return {"final_proposal": final_res}
+
+    return {}
 
