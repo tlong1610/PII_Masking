@@ -1,0 +1,219 @@
+[
+  {
+    "id": "ENT-CCCD",
+    "content": "Bản thân số CCCD (số định danh cá nhân) là dữ liệu cơ bản. Quy tắc kết hợp: Nếu số CCCD đi cùng ảnh CCCD hoặc hồ sơ tài chính thì toàn bộ tập dữ liệu phải được bảo vệ theo mức nhạy cảm cao hơn.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số CCCD",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 7 Điều 3 NĐ 356",
+      "keywords": ["số cccd", "cccd", "cmnd", "chứng minh nhân dân", "số định danh cá nhân"]
+    }
+  },
+  {
+    "id": "ENT-NAME",
+    "content": "Họ tên của cá nhân thuộc nhóm dữ liệu cá nhân cơ bản. Bao gồm họ, chữ đệm, tên khai sinh và tên gọi khác.",
+    "metadata": {
+      "type": "entity",
+      "name": "Họ tên",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 3 NĐ 356",
+      "keywords": ["họ tên", "họ và tên", "tên khai sinh", "tên gọi khác"]
+    }
+  },
+  {
+    "id": "ENT-DOB",
+    "content": "Bao gồm ngày, tháng, năm sinh. Thuộc nhóm dữ liệu cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Ngày sinh",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 2 Điều 3 NĐ 356",
+      "keywords": ["ngày sinh", "tháng sinh", "năm sinh", "dob", "sinh nhật"]
+    }
+  },
+  {
+    "id": "ENT-ADDRESS",
+    "content": "Dữ liệu địa chỉ bao gồm thường trú, tạm trú, nơi ở hiện tại và địa chỉ liên hệ. Thuộc nhóm dữ liệu cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 4 Điều 3 NĐ 356",
+      "keywords": ["địa chỉ", "thường trú", "tạm trú", "nơi ở", "địa chỉ liên hệ"]
+    }
+  },
+  {
+    "id": "ENT-PHONE",
+    "content": "Số điện thoại được liệt kê trực tiếp trong luật là dữ liệu cá nhân cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số điện thoại",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 7 Điều 3 NĐ 356",
+      "keywords": ["số điện thoại", "phone", "sđt", "mobile"]
+    }
+  },
+  {
+    "id": "ENT-EMAIL",
+    "content": "Email không được gọi tên riêng nhưng thuộc nhóm thông tin gắn với hoặc giúp xác định một người. Quy tắc ngữ cảnh: Là dữ liệu cơ bản nếu xác định được người. Email chung của tổ chức (như support@company.vn) có thể không phải dữ liệu cá nhân.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Email",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 11 Điều 3 NĐ 356; khoản 1 Điều 2 Luật 91",
+      "keywords": ["email", "thư điện tử", "mail address"]
+    }
+  },
+  {
+    "id": "ENT-CCCD-IMG",
+    "content": "Hình ảnh thẻ căn cước (Ảnh CCCD) được liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Ảnh CCCD",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm i khoản 1 Điều 4 NĐ 356",
+      "keywords": ["ảnh cccd", "hình ảnh thẻ căn cước", "ảnh chứng minh"]
+    }
+  },
+  {
+    "id": "ENT-FACE-IMG",
+    "content": "Hình ảnh của cá nhân là dữ liệu cơ bản nếu nó chỉ là ảnh chụp thông thường (chưa qua xử lý trích xuất đặc trưng sinh trắc học).",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Ảnh khuôn mặt thông thường",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 6 Điều 3 NĐ 356",
+      "keywords": ["ảnh khuôn mặt", "hình ảnh cá nhân", "ảnh chụp", "face image"]
+    }
+  },
+  {
+    "id": "ENT-FACE-VECTOR",
+    "content": "Khi dữ liệu khuôn mặt được xử lý thành đặc trưng (vector/template) phục vụ nhận dạng/xác thực thì nó trở thành dữ liệu sinh trắc học và thuộc mức Nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Vector/template khuôn mặt",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356; khoản 2 Điều 31 Luật 91",
+      "keywords": ["vector khuôn mặt", "template khuôn mặt", "nhận dạng khuôn mặt"]
+    }
+  },
+  {
+    "id": "ENT-BIOMETRICS",
+    "content": "Vân tay, mống mắt, giọng nói hoặc đặc điểm sinh học dùng nhận dạng thuộc dữ liệu sinh trắc học và là dữ liệu Nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Sinh trắc học",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356",
+      "keywords": ["vân tay", "mống mắt", "giọng nói", "đặc điểm sinh học", "sinh trắc học", "biometrics"]
+    }
+  },
+  {
+    "id": "ENT-BANK-ACCOUNT",
+    "content": "Thông tin tài khoản số (Số tài khoản ngân hàng) thường thuộc dữ liệu cơ bản. Quy tắc kết hợp: Tuy nhiên, nếu tài khoản ngân hàng đặt trong hồ sơ khách hàng/tài chính thì có thể bị xem là thông tin tài chính nhạy cảm. Hệ thống nên bảo vệ nó như dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Số tài khoản ngân hàng",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "TB",
+      "legal_basis": "Khoản 10 Điều 3; điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": ["số tài khoản ngân hàng", "thông tin tài khoản số", "số tài khoản", "bank account"]
+    }
+  },
+  {
+    "id": "ENT-BANK-LOGIN",
+    "content": "Tên đăng nhập và mật khẩu ngân hàng được pháp luật liệt kê trực tiếp là dữ liệu tài chính nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Tên đăng nhập/mật khẩu ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": ["tên đăng nhập ngân hàng", "mật khẩu ngân hàng", "password", "đăng nhập"]
+    }
+  },
+  {
+    "id": "ENT-BANK-CARD",
+    "content": "Thông tin thẻ ngân hàng được pháp luật liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Thông tin thẻ ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": ["thông tin thẻ ngân hàng", "thẻ ngân hàng", "thẻ tín dụng", "credit card"]
+    }
+  },
+  {
+    "id": "ENT-BANK-TX-HIST",
+    "content": "Dữ liệu lịch sử giao dịch và hoạt động tài chính được liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Lịch sử/giao dịch ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": ["lịch sử giao dịch", "giao dịch ngân hàng", "hoạt động tài chính"]
+    }
+  },
+  {
+    "id": "ENT-BANK-TX-AMOUNT",
+    "content": "Số tiền giao dịch khi được gắn với một người hoặc tài khoản cụ thể là một thành phần của thông tin giao dịch tài chính, do đó được coi là dữ liệu Nhạy cảm.",
+    "metadata": {
+      "type": "combination_rule",
+      "name": "Số tiền gắn với người",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": ["số tiền giao dịch", "số tiền", "số dư"]
+    }
+  },
+  {
+    "id": "ENT-MONEY-ALONE",
+    "content": "Số tiền đứng riêng, không liên kết với người thì không phải dữ liệu cá nhân. Nó chỉ là dữ liệu cá nhân nếu xác định hoặc giúp xác định một người.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Số tiền đơn lẻ",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 2 Luật 91",
+      "keywords": ["số tiền đứng riêng", "số tiền", "con số"]
+    }
+  },
+  {
+    "id": "ENT-CCCD-OCR",
+    "content": "Text trích xuất (OCR) từ thẻ CCCD không làm thay đổi bản chất của dữ liệu. Phân loại theo từng trường; nhưng nếu là một tập dữ liệu OCR đầy đủ thì nên coi toàn bộ tập đó là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Text OCR từ CCCD",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "Cao",
+      "legal_basis": "Điều 3-4 NĐ 356",
+      "keywords": ["text ocr cccd", "ocr", "trích xuất text"]
+    }
+  },
+  {
+    "id": "ENT-CCCD-QR",
+    "content": "QR/barcode trên CCCD có thể chứa hoặc dẫn tới nhiều trường định danh. Do đó ít nhất nó là dữ liệu cá nhân, và trên thực tế nên coi là dữ liệu Nhạy cảm. Không nên để lộ trong log hay demo.",
+    "metadata": {
+      "type": "entity",
+      "name": "QR/barcode CCCD",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điều 2 Luật 91; Điều 4 NĐ 356",
+      "keywords": ["qr cccd", "barcode cccd", "mã qr", "mã vạch"]
+    }
+  }
+]
+

@@ -1,4 +1,4 @@
-import sys
+import logging
 from pathlib import Path
 
 # Đảm bảo import được module `src` khi chạy file script trực tiếp
@@ -15,7 +15,7 @@ except ImportError:
     logging.warning("psycopg is not installed. Please install it using `pip install psycopg`.")
     psycopg = None
 
-from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation  # noqa: E402
+from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation
 
 logger = logging.getLogger(__name__)
 
