@@ -8,9 +8,12 @@ class AgentState(TypedDict, total=False):
     # Đầu vào
     column_profile: ColumnProfile
 
-    # Kết quả từ các bước
-    rule_scan_result: FieldScanResult | None
-    llm_scan_result: FieldScanResult | None
+    # Các trạng thái trung gian cho mô hình Phễu 3 tầng
+    tier1_result: FieldScanResult | None
+    bm25_score: float | None
+    data_shape: list[str] | None  # Dữ liệu mẫu đã được ẩn danh hình dáng
+    hybrid_score: float | None
+    tier3_result: FieldScanResult | None
 
     # Kết quả cuối cùng
     final_proposal: FieldScanResult | None

@@ -1,81 +1,92 @@
 from langgraph.graph import END, StateGraph
 
-from src.agents.nodes.scanner_nodes import dpo_review_node, llm_classify_node, proposal_node, rule_scan_node
+from src.agents.nodes.scanner_nodes import (
+    dpo_review_node,
+    proposal_node,
+    tier1_static_node,
+    tier2_bm25_node,
+    tier3_hybrid_node,
+    tier3_llm_node,
+)
 from src.agents.state import AgentState
-from src.detection.taxonomy import PIIType
 
 
-def route_after_rule(state: AgentState) -> str:
-    """Định tuyến sau khi chạy Rule Engine."""
+def route_after_tier1(state: AgentState) -> str:
+    """Nếu Tầng 1 bắt được kết quả chắc chắn -> Đóng đinh, nhảy tới Proposal."""
     if state.get("error"):
         return END
+    if state.get("tier1_result"):
+        return "proposal"
+    return "tier2_bm25"
 
-    rule_res = state.get("rule_scan_result")
-    if not rule_res:
-        return END
 
-    # Nếu rule engine không xác định được (UNKNOWN) HOẶC
-    # nó là EMAIL (có thể cần LLM phân biệt tổ chức/cá nhân)
-    # thì đẩy qua LLM.
-    if rule_res.inferred_pii_type in [PIIType.UNKNOWN.value, PIIType.EMAIL.value]:
-        return "llm_classify"
+def route_after_tier2(state: AgentState) -> str:
+    """Nếu điểm Tầng 2 < ngưỡng -> bị loại luôn, đưa tới Proposal. Nếu >= ngưỡng -> xuống Tầng 3.1"""
+    if state.get("final_proposal"):
+        return "proposal"
+    return "tier3_hybrid"
 
-    # Các trường hợp chắc chắn (như CCCD, PHONE, TRACKING_CODE) thì chốt luôn
-    return "proposal"
+
+def route_after_tier3_hybrid(state: AgentState) -> str:
+    """Nếu điểm Tầng 3.1 > 0.85 hoặc < 0.4 -> chốt kết quả. Nếu ở vùng xám (0.4 - 0.85) -> chuyển qua LLM."""
+    if state.get("final_proposal"):
+        return "proposal"
+    return "tier3_llm"
 
 
 def route_after_proposal(state: AgentState) -> str:
-    """Định tuyến sau khi có proposal (xem có cần DPO duyệt không)."""
+    """Xem xét có cần Data Steward / DPO duyệt không."""
     if state.get("requires_dpo_review"):
         return "dpo_review"
     return END
 
 
 def build_graph() -> StateGraph:
-    """
-    Xây dựng luồng LangGraph:
-    scan rules -> [optional LLM classify] -> proposals -> [chờ DPO review]
-    """
+    """Xây dựng luồng LangGraph Phễu Lọc 3 Tầng."""
     graph = StateGraph(AgentState)
 
     # 1. Khai báo các Nodes
-    graph.add_node("rule_scan", rule_scan_node)
-    graph.add_node("llm_classify", llm_classify_node)
+    graph.add_node("tier1_static", tier1_static_node)
+    graph.add_node("tier2_bm25", tier2_bm25_node)
+    graph.add_node("tier3_hybrid", tier3_hybrid_node)
+    graph.add_node("tier3_llm", tier3_llm_node)
     graph.add_node("proposal", proposal_node)
     graph.add_node("dpo_review", dpo_review_node)
 
     # 2. Khai báo các Edges và Routing
-    graph.set_entry_point("rule_scan")
+    graph.set_entry_point("tier1_static")
 
-    # Từ rule_scan -> llm_classify hoặc thẳng tới proposal
     graph.add_conditional_edges(
-        "rule_scan",
-        route_after_rule,
-        {
-            "llm_classify": "llm_classify",
-            "proposal": "proposal",
-            END: END
-        }
+        "tier1_static",
+        route_after_tier1,
+        {"proposal": "proposal", "tier2_bm25": "tier2_bm25", END: END}
     )
 
-    # Từ llm_classify -> luôn đi tới proposal
-    graph.add_edge("llm_classify", "proposal")
+    graph.add_conditional_edges(
+        "tier2_bm25",
+        route_after_tier2,
+        {"proposal": "proposal", "tier3_hybrid": "tier3_hybrid"}
+    )
 
-    # Từ proposal -> dpo_review hoặc kết thúc
+    graph.add_conditional_edges(
+        "tier3_hybrid",
+        route_after_tier3_hybrid,
+        {"proposal": "proposal", "tier3_llm": "tier3_llm"}
+    )
+
+    # Từ LLM thì luôn đưa qua tổng hợp
+    graph.add_edge("tier3_llm", "proposal")
+
     graph.add_conditional_edges(
         "proposal",
         route_after_proposal,
-        {
-            "dpo_review": "dpo_review",
-            END: END
-        }
+        {"dpo_review": "dpo_review", END: END}
     )
 
-    # Từ dpo_review -> kết thúc
     graph.add_edge("dpo_review", END)
 
-    # Biên dịch graph (nếu có checkpointer thì sẽ cấu hình interrupt_before=["dpo_review"])
     return graph.compile()
 
 
 agent = build_graph()
+

@@ -20,11 +20,11 @@ def sample_profile():
 @pytest.mark.asyncio
 async def test_agent_basic_flow(sample_profile):
     result = await agent.ainvoke({"column_profile": sample_profile})
-    assert "rule_scan_result" in result
+    assert "tier1_result" in result
     assert "final_proposal" in result
 
     # Do tracking code bị chặn ngay ở rule_scan nên không chạy qua llm
-    assert result["rule_scan_result"].inferred_pii_type == PIIType.TRACKING_CODE.value
+    assert result["tier1_result"].inferred_pii_type == PIIType.TRACKING_CODE.value
     assert result["final_proposal"].inferred_pii_type == PIIType.TRACKING_CODE.value
 
 

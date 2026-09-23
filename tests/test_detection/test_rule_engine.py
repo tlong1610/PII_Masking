@@ -20,7 +20,7 @@ def test_tracking_code_not_cccd(scanner):
         samples=["400691172582", "123456789012"],
         system_recommendation=None
     )
-    result = scanner.scan_column(profile)
+    result = scanner.tier1_static_filter(profile)
     assert result.inferred_pii_type == PIIType.TRACKING_CODE.value
     assert result.recommended_action == "KEEP"
 
@@ -35,7 +35,7 @@ def test_order_id_not_pii(scanner):
         samples=["ORD123", "ORD456"],
         system_recommendation=None
     )
-    result = scanner.scan_column(profile)
+    result = scanner.tier1_static_filter(profile)
     assert result.inferred_pii_type == PIIType.TRACKING_CODE.value
     assert result.recommended_action == "KEEP"
 
@@ -50,7 +50,7 @@ def test_org_email_detected_as_email(scanner):
         samples=["support@company.vn", "contact@exoticliquids.co.uk"],
         system_recommendation=None
     )
-    result = scanner.scan_column(profile)
+    result = scanner.tier1_static_filter(profile)
     # Rule engine bắt bằng regex email nên sẽ ra EMAIL.
     # LLM sẽ đánh giá là personal hay non_personal sau.
     assert result.inferred_pii_type == PIIType.EMAIL.value
@@ -66,7 +66,7 @@ def test_money_alone_non_personal(scanner):
         samples=["1000.50", "200.0"],
         system_recommendation=None
     )
-    result = scanner.scan_column(profile)
+    result = scanner.tier1_static_filter(profile)
     assert result.inferred_pii_type == PIIType.MONEY_ALONE.value
     assert result.recommended_action == "KEEP"
 
@@ -81,9 +81,9 @@ def test_cccd_regex_strict_12_digits(scanner):
         samples=["123456789"],  # CMND cũ 9 số
         system_recommendation=None
     )
-    result = scanner.scan_column(profile_9_digits)
+    result = scanner.tier1_static_filter(profile_9_digits)
     # Không còn khớp CCCD vì regex đã siết chặt lại thành 12 số
-    assert result.inferred_pii_type == PIIType.UNKNOWN.value
+    assert result is None
 
     profile_12_digits = ColumnProfile(
         column_name="unknown_col",
@@ -93,7 +93,7 @@ def test_cccd_regex_strict_12_digits(scanner):
         samples=["033254456184"],
         system_recommendation=None
     )
-    result_12 = scanner.scan_column(profile_12_digits)
+    result_12 = scanner.tier1_static_filter(profile_12_digits)
     assert result_12.inferred_pii_type == PIIType.CCCD.value
 
 
@@ -106,6 +106,6 @@ def test_tax_code(scanner):
         samples=["8023456789"],
         system_recommendation=None
     )
-    result = scanner.scan_column(profile)
+    result = scanner.tier1_static_filter(profile)
     assert result.inferred_pii_type == PIIType.TAX_CODE.value
 
