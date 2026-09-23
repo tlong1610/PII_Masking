@@ -15,6 +15,7 @@ DPO và đội dữ liệu đang rà thủ công các trường dữ liệu cá 
 
 PIIGuard VN hỗ trợ rà soát và bảo vệ dữ liệu trước khi chia sẻ từ **PostgreSQL và MongoDB**.
 
+- PostgreSQL demo dùng fixture đã commit tại `data/fixtures/seed.sql`: Northwind + PII Việt Nam synthetic, không chứa dữ liệu thật.
 - Quét mọi trường trong phạm vi chọn; đối chiếu danh mục pháp lý, không giới hạn cứng 4–5 trường PII.
 - Code và AI đề xuất; DPO duyệt từng trường. Mục chưa rõ phải được giải quyết hoặc loại khỏi đầu ra.
 - Che toàn bộ giá trị, bỏ trường, hoặc băm có khóa HMAC cho khóa liên kết; không sửa nguồn.
