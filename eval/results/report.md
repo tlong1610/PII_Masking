@@ -1,46 +1,21 @@
-# Evaluation Report
+# Evaluation Report (Rule-Based Only)
 
-> Báo cáo đánh giá chất lượng sản phẩm theo tiêu chí BTC.
+- **Tổng số test cases:** 72
+- **Độ chính xác tổng thể (Overall Accuracy):** 84.72%
+- **Độ chính xác trên các nhãn quy tắc hỗ trợ:** 87.88% (29/33)
 
----
+## Các ca dự đoán SAI (Failed Cases)
 
-## 1. Metrics
-
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Response accuracy | >80% | — | ⏳ |
-| Response latency | <3s | — | ⏳ |
-| User satisfaction | >4/5 | — | ⏳ |
-| Test coverage | >60% | — | ⏳ |
-
-## 2. Test Results
-
-### Unit Tests
-```
-pytest tests/ -v
-# Paste output here
-```
-
-### Integration Tests
-```
-# Mô tả test scenarios và kết quả
-```
-
-## 3. User Feedback
-
-| User | Feedback | Rating |
-|------|----------|--------|
-| [User 1] | [feedback] | [1-5] |
-| [User 2] | [feedback] | [1-5] |
-
-## 4. Demo Results
-
-- Ngày demo: [YYYY-MM-DD]
-- Người tham gia: [số người]
-- Feedback chung: [tóm tắt]
-- Issues phát hiện: [danh sách]
-
-## 5. Action Items
-
-- [ ] [Cần cải thiện 1]
-- [ ] [Cần cải thiện 2]
+| ID | Trường dữ liệu (Field) | Golden Label | Kỳ vọng Rule Engine | Thực tế Rule Engine |
+|---|---|---|---|---|
+| pg-ord-notes-01 | `order_notes` | FREE_TEXT_PII | **UNKNOWN** | TRACKING_CODE |
+| pg-ord-freight-01 | `freight` | FINANCIAL_AMOUNT | **MONEY_ALONE** | UNKNOWN |
+| pg-ord-date-01 | `order_date` | TRANSACTION_DATE | **UNKNOWN** | TRACKING_CODE |
+| mg-ord-id-01 | `_id` | TRANSACTION_ID | **TRACKING_CODE** | UNKNOWN |
+| mg-ord-freight-01 | `shipment.freight` | FINANCIAL_AMOUNT | **MONEY_ALONE** | TRACKING_CODE |
+| mg-ord-shipname-01 | `shipment.name` | RECIPIENT_NAME | **UNKNOWN** | TRACKING_CODE |
+| mg-ord-shipaddr-01 | `shipment.address` | STREET_ADDRESS | **UNKNOWN** | TRACKING_CODE |
+| mg-ord-piinotes-01 | `pii_ext.order_notes` | FREE_TEXT_PII | **UNKNOWN** | TRACKING_CODE |
+| holdout-edge-tracking-notes-01 | `order_notes` | FREE_TEXT_PII | **UNKNOWN** | TRACKING_CODE |
+| holdout-edge-freight-num-01 | `freight` | FINANCIAL_AMOUNT | **MONEY_ALONE** | UNKNOWN |
+| holdout-mg-edge-ordnotes-01 | `pii_ext.order_notes` | FREE_TEXT_PII | **UNKNOWN** | TRACKING_CODE |

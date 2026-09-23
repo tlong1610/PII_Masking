@@ -1,5 +1,5 @@
-
-from src.detection.regex_patterns import HIGH_CONFIDENCE_COLUMNS, REGEX_PATTERNS
+from src.detection.regex_patterns import HIGH_CONFIDENCE_COLUMNS, NEGATIVE_COLUMNS, REGEX_PATTERNS
+from src.detection.taxonomy import PIIType
 from src.models.schemas import ColumnProfile, FieldScanResult
 
 
@@ -7,7 +7,8 @@ class RuleBasedScanner:
     """
     Lớp Lọc 1: Rule-Based & Regex Scanner.
     Nhiệm vụ: Chặn ngay lập tức các PII rõ ràng (như CCCD, Email, Phone)
-    để không cần tốn chi phí gọi LLM.
+    hoặc bỏ qua các loại chắc chắn không phải PII (Mã vận đơn, số tiền).
+    Những thứ không chắc chắn (UNKNOWN) sẽ được đẩy qua các lớp sau (LLM, DPO).
     """
 
     def __init__(self, match_threshold: float = 0.5):
@@ -15,13 +16,13 @@ class RuleBasedScanner:
         # Mặc định: 50% (VD: 3/5 mẫu là số điện thoại thì cột đó chứa SĐT)
         self.match_threshold = match_threshold
 
-    def _check_column_name(self, column_name: str) -> str | None:
+    def _check_column_name(self, column_name: str, keyword_dict: dict) -> str | None:
         """
-        Kiểm tra tên cột có nằm trong danh sách High Confidence không.
-        Returns: PII Type (VD: "CCCD") hoặc None.
+        Kiểm tra tên cột có nằm trong danh sách từ khóa không.
+        Returns: PII Type hoặc None.
         """
         col_lower = column_name.lower()
-        for pii_type, keywords in HIGH_CONFIDENCE_COLUMNS.items():
+        for pii_type, keywords in keyword_dict.items():
             if any(kw in col_lower for kw in keywords):
                 return pii_type
         return None
@@ -41,54 +42,76 @@ class RuleBasedScanner:
         match_count = sum(1 for sample in samples if pattern.match(str(sample).strip()))
         return match_count / len(samples)
 
+    def _get_recommended_action(self, inferred_type: str, enforced_action: str | None) -> str:
+        """Helper để map loại PII với action nếu chưa có enforced_action."""
+        if enforced_action:
+            return enforced_action
+
+        # Nếu là loại không phải dữ liệu cá nhân -> KEEP
+        if inferred_type in [PIIType.TRACKING_CODE.value, PIIType.MONEY_ALONE.value]:
+            return "KEEP"
+
+        # Nếu là UNKNOWN -> KEEP (để pass qua LLM quyết định)
+        if inferred_type == PIIType.UNKNOWN.value:
+            return "KEEP"
+
+        return "MASK"
+
     def scan_column(self, col_profile: ColumnProfile) -> FieldScanResult:
         """
         Động cơ quyết định (Decision Logic) cho 1 cột.
         """
-        # Nếu cột này đã được đánh dấu cứng từ bước trước (VD: HASHING do là Khóa ngoại)
-        # Vẫn cần xác định nó chứa PII loại gì (nếu có thể), nhưng action giữ nguyên.
         enforced_action = col_profile.system_recommendation
 
-        # Bước 1: Quét bằng Tên cột
-        guessed_pii_type = self._check_column_name(col_profile.column_name)
+        # Bước 0: Bắt các ca ÂM (Tracking, Order, Amount)
+        # Nếu tên cột rơi vào nhóm này, chặn ngay, không cho chạy regex CCCD
+        negative_type = self._check_column_name(col_profile.column_name, NEGATIVE_COLUMNS)
+        if negative_type:
+            return FieldScanResult(
+                field_name=col_profile.column_name,
+                inferred_pii_type=negative_type,
+                confidence=1.0,
+                recommended_action=self._get_recommended_action(negative_type, enforced_action),
+                reasoning=f"Matched negative keyword for {negative_type}. Bypassing regex checks."
+            )
+
+        # Bước 1: Quét bằng Tên cột khả nghi (High Confidence)
+        guessed_pii_type = self._check_column_name(col_profile.column_name, HIGH_CONFIDENCE_COLUMNS)
 
         if guessed_pii_type:
-            # Nếu tên cột rất khả nghi (VD: "so_dien_thoai")
-            # Ta dùng Regex để "kiểm chứng" lại các mẫu dữ liệu
             match_ratio = self._check_samples_regex(guessed_pii_type, col_profile.samples)
 
-            # Kể cả match_ratio thấp (do data lỗi, null nhiều), nhưng tên cột đã nằm trong
-            # bộ HIGH_CONFIDENCE thì vẫn có thể tự tin kết luận.
+            # Kể cả match_ratio thấp (do data lỗi, null nhiều), nhưng tên cột rõ ràng
+            # thì vẫn tin tưởng.
             if match_ratio >= 0.0 or len(col_profile.samples) == 0:
-                # (Ở đây ta tin tưởng 100% vào tên cột rõ ràng)
                 return FieldScanResult(
                     field_name=col_profile.column_name,
                     inferred_pii_type=guessed_pii_type,
                     confidence=0.9 if match_ratio == 0 else 1.0,
-                    recommended_action=enforced_action or "MASK",
+                    recommended_action=self._get_recommended_action(guessed_pii_type, enforced_action),
                     reasoning=f"Matched high-confidence column name keyword for {guessed_pii_type}."
                 )
 
-        # Bước 2: Tên cột không rõ ràng, thử vét cạn Regex cho mọi loại PII
+        # Bước 2: Tên cột không rõ ràng, thử vét cạn Regex
         for pii_type in REGEX_PATTERNS.keys():
             match_ratio = self._check_samples_regex(pii_type, col_profile.samples)
 
             if match_ratio >= self.match_threshold:
-                # Đa số dữ liệu khớp định dạng cứng
+                # Đặc biệt: Nếu Regex email khớp, vẫn trả về EMAIL, LLM layer sau
+                # sẽ đánh giá xem nó là email cá nhân hay tổ chức nếu cần (hoặc DPO).
                 return FieldScanResult(
                     field_name=col_profile.column_name,
                     inferred_pii_type=pii_type,
                     confidence=match_ratio,
-                    recommended_action=enforced_action or "MASK",
+                    recommended_action=self._get_recommended_action(pii_type, enforced_action),
                     reasoning=f"{match_ratio*100}% samples matched strict Regex for {pii_type}."
                 )
 
-        # Bước 3: Nếu không lọt lưới Rule-based -> Trả về UNKNOWN để đẩy xuống Lớp 2 (LLM)
+        # Bước 3: Không lọt lưới Rule-based -> Trả về UNKNOWN để đẩy xuống Lớp 2 (LLM)
         return FieldScanResult(
             field_name=col_profile.column_name,
-            inferred_pii_type="UNKNOWN",
+            inferred_pii_type=PIIType.UNKNOWN.value,
             confidence=0.0,
-            recommended_action=enforced_action or "KEEP",
-            reasoning="Rule-based scanner found no strong evidence. Delegating to LLM context analysis."
+            recommended_action=self._get_recommended_action(PIIType.UNKNOWN.value, enforced_action),
+            reasoning="Rule-based scanner found no strong evidence. Delegating to next layers."
         )
-

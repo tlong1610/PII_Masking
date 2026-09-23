@@ -1,14 +1,7 @@
 import logging
 from pathlib import Path
 
-# Đảm bảo import được module `src` khi chạy file script trực tiếp
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-import logging  # noqa: E402
-
-try:  # noqa: E402
+try:
     import psycopg
     from psycopg.rows import dict_row
 except ImportError:
@@ -189,26 +182,3 @@ class PostgresConnector:
         out_file.write_text(json_data, encoding="utf-8")
 
         logger.info(f"Đã lưu cấu trúc DB ra file: {output_path}")
-
-
-if __name__ == "__main__":
-    import os
-
-    # Thay đổi URL này cho khớp với Database Postgres thực tế trên máy bạn.
-    # Format: postgresql://username:password@host:port/database_name
-    DB_URL = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/mydatabase",
-    )
-    print(f"Đang kết nối tới: {DB_URL}")
-
-    try:
-        connector = PostgresConnector(connection_string=DB_URL)
-
-        # Đường dẫn file JSON sẽ xuất ra (theo cấu trúc thư mục của team).
-        output_file = "data/fixtures/db_profile.json"
-        print("Đang trích xuất dữ liệu...")
-        connector.export_profile_to_json(output_path=output_file)
-        print(f"Xong! Hãy mở file '{output_file}' để kiểm tra thành quả.")
-    except Exception as e:
-        print(f"Có lỗi xảy ra (kiểm tra lại DB_URL xem DB đã bật chưa): {e}")
