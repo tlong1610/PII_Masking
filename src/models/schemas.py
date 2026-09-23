@@ -1,4 +1,4 @@
-from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -18,8 +18,8 @@ class ColumnProfile(BaseModel):
     data_type: str = Field(..., description="Kiểu dữ liệu SQL")
     is_primary_key: bool = Field(..., description="Có phải khóa chính không")
     is_foreign_key: bool = Field(..., description="Có phải khóa ngoại không")
-    samples: List[str] = Field(..., description="3-5 dữ liệu mẫu khác NULL")
-    system_recommendation: Optional[str] = Field(default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)")
+    samples: list[str] = Field(..., description="3-5 dữ liệu mẫu khác NULL")
+    system_recommendation: str | None = Field(default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)")
 
 
 class TableRelation(BaseModel):
@@ -30,13 +30,13 @@ class TableRelation(BaseModel):
 
 class TableProfile(BaseModel):
     table_name: str = Field(..., description="Tên bảng")
-    relations: List[TableRelation] = Field(..., description="Danh sách quan hệ khóa ngoại")
-    columns: List[ColumnProfile] = Field(..., description="Profile của các cột trong bảng")
+    relations: list[TableRelation] = Field(..., description="Danh sách quan hệ khóa ngoại")
+    columns: list[ColumnProfile] = Field(..., description="Profile của các cột trong bảng")
 
 
 class DatabaseProfile(BaseModel):
     database_name: str = Field(..., description="Tên CSDL")
-    tables: List[TableProfile] = Field(..., description="Danh sách cấu trúc các bảng")
+    tables: list[TableProfile] = Field(..., description="Danh sách cấu trúc các bảng")
 
 
 # --- Schema cho kết quả quét PII (Output của Scanner / LLM) ---
