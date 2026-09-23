@@ -1,21 +1,21 @@
-import logging
-import json
+import sys
 from pathlib import Path
-from typing import List
 
-try:
+# Đảm bảo import được module `src` khi chạy file script trực tiếp
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+import logging  # noqa: E402
+
+try:  # noqa: E402
     import psycopg
     from psycopg.rows import dict_row
 except ImportError:
     logging.warning("psycopg is not installed. Please install it using `pip install psycopg`.")
     psycopg = None
 
-from src.models.schemas import (
-    DatabaseProfile,
-    TableProfile,
-    ColumnProfile,
-    TableRelation
-)
+from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +30,24 @@ class PostgresConnector:
         self.connection_string = connection_string
 
     def extract_database_profile(
-        self, 
-        schema_name: str = "public", 
+        self,
+        schema_name: str = "public",
         sample_size: int = 5
     ) -> DatabaseProfile:
         """
         Trích xuất toàn bộ cấu trúc CSDL bao gồm quan hệ và dữ liệu mẫu.
-        
+
         Args:
             schema_name: Tên schema cần quét (thường là 'public' trong Postgres)
             sample_size: Số lượng giá trị mẫu cần trích xuất mỗi cột
-            
+
         Returns:
             DatabaseProfile: Object chứa cấu trúc DB chuẩn bị cho AI Agent
         """
         if psycopg is None:
             raise RuntimeError("Thư viện psycopg chưa được cài đặt. Không thể kết nối Database.")
 
-        tables_profile: List[TableProfile] = []
+        tables_profile: list[TableProfile] = []
         # Lấy tên database từ chuỗi kết nối (ví dụ: postgresql://user:pass@host:5432/dbname)
         db_name = self.connection_string.split("/")[-1].split("?")[0]
 
@@ -64,9 +64,9 @@ class PostgresConnector:
                 cur.execute("""
                     SELECT c.table_name, c.column_name
                     FROM information_schema.columns c
-                    JOIN information_schema.key_column_usage kcu 
+                    JOIN information_schema.key_column_usage kcu
                         ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name
-                    JOIN information_schema.table_constraints tc 
+                    JOIN information_schema.table_constraints tc
                         ON kcu.constraint_name = tc.constraint_name AND tc.constraint_type = 'PRIMARY KEY'
                     WHERE c.table_schema = %s
                 """, (schema_name,))
@@ -84,7 +84,7 @@ class PostgresConnector:
                     WHERE tc.constraint_schema = %s AND tc.constraint_type = 'FOREIGN KEY'
                 """, (schema_name,))
                 fks = cur.fetchall()
-                
+
                 # Gom nhóm FK theo từng bảng nguồn
                 fk_map = {}
                 for fk in fks:
@@ -108,8 +108,8 @@ class PostgresConnector:
 
                     # Quét danh sách cột của bảng
                     cur.execute("""
-                        SELECT column_name, data_type 
-                        FROM information_schema.columns 
+                        SELECT column_name, data_type
+                        FROM information_schema.columns
                         WHERE table_schema = %s AND table_name = %s
                     """, (schema_name, table))
                     columns_info = cur.fetchall()
@@ -118,10 +118,10 @@ class PostgresConnector:
                     for col_info in columns_info:
                         col_name = col_info["column_name"]
                         data_type = col_info["data_type"]
-                        
+
                         is_pk = (table, col_name) in pk_set
                         is_fk = col_name in fk_columns
-                        
+
                         # Hard-code recommend: Các trường khóa bắt buộc dùng HASHING
                         system_rec = "HASHING" if is_pk or is_fk else None
 
@@ -134,7 +134,7 @@ class PostgresConnector:
                             sql.Identifier(col_name),
                             sql.Literal(sample_size)
                         )
-                        
+
                         try:
                             cur.execute(query)
                             samples_raw = cur.fetchall()
@@ -171,7 +171,7 @@ class PostgresConnector:
         """
         Tiện ích: Trích xuất và lưu toàn bộ cấu trúc DB ra file JSON vật lý.
         Dành cho mục đích debug hoặc chia sẻ data contract giữa Backend và AI Engineer.
-        
+
         Args:
             output_path: Đường dẫn file JSON cần lưu (VD: 'data/fixtures/db_profile.json')
             schema_name: Tên schema cần quét
@@ -179,13 +179,36 @@ class PostgresConnector:
         """
         # 1. Trích xuất
         profile = self.extract_database_profile(schema_name, sample_size)
-        
+
         # 2. Convert sang JSON string
         json_data = profile.model_dump_json(indent=4)
-        
+
         # 3. Lưu ra file
         out_file = Path(output_path)
         out_file.parent.mkdir(parents=True, exist_ok=True)
         out_file.write_text(json_data, encoding="utf-8")
-        
+
         logger.info(f"Đã lưu cấu trúc DB ra file: {output_path}")
+
+
+if __name__ == "__main__":
+    import os
+
+    # Thay đổi URL này cho khớp với Database Postgres thực tế trên máy bạn.
+    # Format: postgresql://username:password@host:port/database_name
+    DB_URL = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    print(f"Đang kết nối tới: {DB_URL}")
+
+    try:
+        connector = PostgresConnector(connection_string=DB_URL)
+
+        # Đường dẫn file JSON sẽ xuất ra (theo cấu trúc thư mục của team).
+        output_file = "data/fixtures/db_profile.json"
+        print("Đang trích xuất dữ liệu...")
+        connector.export_profile_to_json(output_path=output_file)
+        print(f"Xong! Hãy mở file '{output_file}' để kiểm tra thành quả.")
+    except Exception as e:
+        print(f"Có lỗi xảy ra (kiểm tra lại DB_URL xem DB đã bật chưa): {e}")
