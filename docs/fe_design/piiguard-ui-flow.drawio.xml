@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="ChatGPT" compressed="false" pages="10">
+  <diagram id="architecture" name="01 - Architecture &amp; Flow">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title1" parent="1" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;align=left;verticalAlign=middle;" value="PIIGuard VN — Web application triển khai on-premise" vertex="1">
+          <mxGeometry height="40" width="900" x="50" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sub1" parent="1" style="text;html=1;fontSize=14;fontColor=#527078;align=left;" value="Dữ liệu thô ở trong mạng nội bộ • AI/LLM nội bộ • DPO quyết định trước khi áp dụng" vertex="1">
+          <mxGeometry height="28" width="900" x="50" y="68" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" parent="1" style="swimlane;html=1;rounded=1;startSize=34;horizontal=1;fillColor=#F3FAFA;strokeColor=#0F766E;strokeWidth=2;fontColor=#0F766E;fontStyle=1;fontSize=14;dashed=1;" value="MẠNG NỘI BỘ / ON-PREMISE" vertex="1">
+          <mxGeometry height="570" width="1510" x="45" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="dpo" parent="boundary" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fontStyle=1;strokeColor=#7C3AED;" value="DPO&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;quét • duyệt • áp dụng • phát hành&lt;/font&gt;" vertex="1">
+          <mxGeometry height="95" width="150" x="785" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="output" parent="boundary" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E8FAF6;strokeColor=#0F766E;fontSize=14;fontStyle=1;" value="Protected snapshot&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;DB/schema đích riêng&lt;br&gt;writer scoped permission&lt;/font&gt;" vertex="1">
+          <mxGeometry height="100" width="170" x="1310" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="report" parent="boundary" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#F4F7F8;strokeColor=#5B7180;fontSize=14;fontStyle=1;" value="Report + Audit&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;không chứa giá trị raw&lt;/font&gt;" vertex="1">
+          <mxGeometry height="85" width="170" x="1195" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="boundary" source="output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#0F766E;" target="report" value="verifier">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="analyst" parent="boundary" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fontStyle=1;strokeColor=#0F766E;" value="Analyst&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;chỉ dùng bản PUBLISHED&lt;/font&gt;" vertex="1">
+          <mxGeometry height="100" width="150" x="1320" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="boundary" source="output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#0F766E;" target="analyst" value="PUBLISHED">
+          <mxGeometry relative="1" x="0.6471" y="40" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mongo" parent="boundary" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EAF8EE;strokeColor=#16803A;fontSize=14;fontStyle=1;" value="MongoDB&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;source account: read-only&lt;/font&gt;" vertex="1">
+          <mxGeometry height="85" width="150" x="25" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" parent="boundary" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E8F1FF;strokeColor=#2563EB;fontSize=14;fontStyle=1;" value="PostgreSQL&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;source account: read-only&lt;/font&gt;" vertex="1">
+          <mxGeometry height="85" width="150" x="25" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="review" parent="boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F7EDFF;strokeColor=#7C3AED;fontSize=14;fontStyle=1;" value="DPO Review&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Accept / Edit / Reject&lt;br&gt;DROP / MASK / HMAC / KEEP&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="200" x="760" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="boundary" source="dpo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7C3AED;" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="connector" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B7180;fontSize=14;fontStyle=1;" value="Connector layer&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;schema + field profile&lt;br&gt;không gửi raw data ra ngoài&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="190" x="290" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="detect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E8;strokeColor=#D97706;fontSize=14;fontStyle=1;" value="Detection engine&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;rules + validation + API LLM suggestion&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="205" x="540" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="preview" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;fontSize=14;fontStyle=1;" value="Preview &amp; Confirm&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;so sánh trước/sau&lt;br&gt;ảnh hưởng downstream&lt;/font&gt;" vertex="1">
+          <mxGeometry height="105" width="200" x="1065" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud" parent="1" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#A0A0A0;dashed=1;fontSize=13;fontColor=#666666;" value="Internet / dịch vụ AI bên ngoài&lt;br&gt;&lt;b&gt;KHÔNG nhận dữ liệu thô&lt;/b&gt;" vertex="1">
+          <mxGeometry height="100" width="300" x="560" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="note" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFFBEA;strokeColor=#C9A227;fontSize=13;" value="Security boundary: trình duyệt truy cập web app nội bộ; backend giữ credentials; raw data không đi qua internet." vertex="1">
+          <mxGeometry height="80" width="520" x="940" y="790" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="pg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;" target="connector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="mongo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#16803A;" target="connector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="connector" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#5B7180;" target="detect" value="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="detect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#D97706;" target="review" value="đề xuất">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="review" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7C3AED;" target="preview" value="quyết định">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="preview" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#E11D48;" target="output" value="xác nhận áp dụng">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="detect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#B91C1C;dashed=1;" target="cloud" value="blocked">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="dpo-source-review" name="02 - DPO Source &amp; Review">
+    <mxGraphModel dx="1286" dy="879" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t2" parent="1" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" value="DPO — chọn nguồn, quét và review" vertex="1">
+          <mxGeometry height="40" width="800" x="45" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="frame1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="700" width="710" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="nav1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=15;" value="PIIGuard VN     Nguồn dữ liệu     Phiên quét     Báo cáo                       DPO ▾" vertex="1">
+          <mxGeometry height="48" width="710" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="badge1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8FAF6;strokeColor=#0F766E;fontColor=#0F766E;fontSize=11;fontStyle=1;" value="ON-PREMISE • RAW DATA STAYS LOCAL" vertex="1">
+          <mxGeometry height="30" width="250" x="80" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" parent="1" style="text;html=1;fontSize=22;fontStyle=1;fontColor=#14333D;" value="Chọn nguồn dữ liệu" vertex="1">
+          <mxGeometry height="35" width="300" x="80" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="cardpg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2563EB;fontSize=16;fontStyle=1;align=left;spacingLeft=18;" value="&lt;font style=&quot;&quot;&gt;SQL&lt;/font&gt;&lt;font style=&quot;font-size:12px&quot;&gt;&lt;br&gt;✓ Read-only verified&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="290" x="80" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="cardmongo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFFAF2;strokeColor=#16803A;fontSize=16;fontStyle=1;align=left;spacingLeft=18;" value="&lt;font style=&quot;&quot;&gt;No SQL&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Internal Order DB&lt;br&gt;✓ Read-only verified&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="290" x="400" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="scope" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFCFC;strokeColor=#B8C6CB;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=15;" value="Phạm vi quét&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;☑ customers &amp;nbsp; 12 fields &amp;nbsp; 1,000 rows&lt;br&gt;☑ orders &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; 8 fields &amp;nbsp;&amp;nbsp; 1,000 rows&lt;br&gt;&lt;br&gt;Downstream test: customer ↔ orders join&lt;/font&gt;" vertex="1">
+          <mxGeometry height="175" width="610" x="80" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="btnscan" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=#0F766E;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" value="Bắt đầu quét" vertex="1">
+          <mxGeometry height="45" width="180" x="510" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="security" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D5B954;fontColor=#6E5A00;fontSize=12;align=left;spacingLeft=12;" value="🔒 Credentials được giữ ở backend. Trình duyệt không nhận chuỗi kết nối." vertex="1">
+          <mxGeometry height="45" width="610" x="80" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="frame2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="700" width="710" x="825" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="nav2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=15;" value="PIIGuard VN     Nguồn dữ liệu     Phiên quét     Báo cáo                       DPO ▾" vertex="1">
+          <mxGeometry height="48" width="710" x="825" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" parent="1" style="text;html=1;fontSize=22;fontStyle=1;fontColor=#14333D;" value="Review trường dữ liệu" vertex="1">
+          <mxGeometry height="35" width="310" x="855" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="sum" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3FAFA;strokeColor=#9BCBC6;fontColor=#0F766E;fontSize=12;align=left;spacingLeft=12;" value="20 fields  •  14 reviewed  •  4 unknown  •  2 need decision" vertex="1">
+          <mxGeometry height="36" width="650" x="855" y="205" as="geometry" />
+        </mxCell>
+        <mxCell id="table" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8C6CB;fontFamily=Courier New;fontSize=12;align=left;verticalAlign=top;spacing=14;" value="FIELD PATH                         CLASSIFICATION        ACTION&lt;br&gt;&lt;br&gt;full_name                          Personal/basic       MASK        ✓&lt;br&gt;identity.national_id              Personal/basic       HMAC        ✓&lt;br&gt;contact.phone                     Personal/basic       MASK        ✓&lt;br&gt;order_code                        Non-personal         KEEP        ✓&lt;br&gt;col_7                             Unknown              —           !" vertex="1">
+          <mxGeometry height="300" width="365" x="855" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="detail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF7FF;strokeColor=#7C3AED;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacing=14;" value="identity.national_id&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Personal data • Điều 3 khoản 7&lt;br&gt;Source: rule + schema relation&lt;br&gt;Coverage: AUTO_SUPPORTED&lt;br&gt;&lt;br&gt;Proposed action&lt;br&gt;&lt;b&gt;HMAC — mã liên kết&lt;/b&gt;&lt;br&gt;Giữ phép join đã khai báo.&lt;br&gt;Không phải ẩn danh tuyệt đối.&lt;/font&gt;" vertex="1">
+          <mxGeometry height="300" width="265" x="1240" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="reject" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#7C3AED;fontSize=12;fontStyle=1;" value="Bác đề xuất" vertex="1">
+          <mxGeometry height="38" width="120" x="1240" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="edit" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#7C3AED;fontSize=12;fontStyle=1;" value="Sửa" vertex="1">
+          <mxGeometry height="38" width="65" x="1370" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="accept" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=#7C3AED;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" value="Chấp nhận" vertex="1">
+          <mxGeometry height="38" width="60" x="1445" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="unknown" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;fontColor=#9F1239;fontSize=12;align=left;spacingLeft=12;" value="UNKNOWN không tự động thành KEEP. DPO phải ánh xạ có căn cứ hoặc DROP khỏi đầu ra." vertex="1">
+          <mxGeometry height="55" width="650" x="855" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="continue" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B9C4C8;strokeColor=#B9C4C8;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" value="Xem trước kết quả →" vertex="1">
+          <mxGeometry height="45" width="190" x="1315" y="725" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="preview-results" name="03 - Preview, Apply &amp; Results">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t3" value="DPO — xem trước, xác nhận và phát hành" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f3a" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="710" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="n3a" value="PIIGuard VN     Review     Preview     Kết quả                              DPO ▾" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="710" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="hp" value="Xem trước trước khi áp dụng" style="text;html=1;fontSize=22;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="360" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="before" value="TRƯỚC — chỉ DPO&lt;br&gt;&lt;br&gt;full_name: Nguyễn Văn A&lt;br&gt;national_id: 079...&lt;br&gt;phone: 090...&lt;br&gt;order_code: ORD-124" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7F7;strokeColor=#E6A5A5;fontFamily=Courier New;fontSize=12;align=left;verticalAlign=top;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="285" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="after" value="SAU — protected snapshot&lt;br&gt;&lt;br&gt;full_name: [REDACTED]&lt;br&gt;national_id: a91f...8c2d&lt;br&gt;phone: [REDACTED]&lt;br&gt;order_code: ORD-124" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FBF8;strokeColor=#77BDB5;fontFamily=Courier New;fontSize=12;align=left;verticalAlign=top;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="395" y="220" width="295" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="impact" value="DOWNSTREAM IMPACT&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;✓ Join key preserved via HMAC&lt;br&gt;✓ 1,000 customer rows&lt;br&gt;✓ 1,000 order rows&lt;br&gt;! Preview is synthetic; raw values must not be logged&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D5B954;fontSize=14;fontStyle=1;align=left;verticalAlign=top;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="470" width="610" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="back" value="← Quay lại review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B7180;fontColor=#334B55;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="670" width="170" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="apply" value="Xác nhận tạo snapshot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E11D48;strokeColor=#E11D48;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="670" width="200" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="f3b" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="825" y="90" width="710" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="n3b" value="PIIGuard VN     Review     Preview     Kết quả                              DPO ▾" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="825" y="90" width="710" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="hr" value="Kết quả kiểm tra" style="text;html=1;fontSize=22;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="855" y="160" width="300" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="verified" value="✓ VERIFIED&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Đạt các kiểm tra đã khai báo trên fixture này&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF8EE;strokeColor=#16803A;fontColor=#11602D;fontSize=17;fontStyle=1;align=left;spacingLeft=18;" vertex="1" parent="1">
+          <mxGeometry x="855" y="210" width="650" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="metrics" value="Policy checks                 20/20 passed&lt;br&gt;Unresolved fields            2 dropped&lt;br&gt;Source writes                 0&lt;br&gt;Join matched rows             987 / 987&lt;br&gt;Group totals                  identical&lt;br&gt;Analyst unauthorized tests    denied" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFCFC;strokeColor=#B8C6CB;fontFamily=Courier New;fontSize=12;align=left;verticalAlign=top;spacing=16;" vertex="1" parent="1">
+          <mxGeometry x="855" y="310" width="650" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="scopewarn" value="Phạm vi: PostgreSQL fixture v1 • snapshot 22/09/2026 10:30 • Không phải chứng nhận tuân thủ hoặc cam kết không còn mọi PII." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D5B954;fontColor=#6E5A00;fontSize=12;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="855" y="570" width="650" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="json" value="Tải báo cáo JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0F766E;fontColor=#0F766E;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="855" y="680" width="165" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="publish" value="Xác nhận phát hành" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=#0F766E;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="680" width="185" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="analyst" name="04 - Analyst Workspace">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t4" value="Analyst — chỉ sử dụng protected dataset đã phát hành" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="90" width="1360" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" value="PIIGuard VN     Kho dữ liệu     Tác vụ phân tích                         Analyst ▾" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=14;align=left;spacingLeft=18;" vertex="1" parent="1">
+          <mxGeometry x="120" y="90" width="1360" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="Kho dữ liệu phân tích" style="text;html=1;fontSize=24;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="160" y="170" width="360" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" value="PUBLISHED ONLY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8FAF6;strokeColor=#0F766E;fontColor=#0F766E;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="170" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dataset" value="customer_orders_protected_v1&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;PostgreSQL • published 22/09/2026 10:45&lt;br&gt;Snapshot — không tự đồng bộ theo nguồn&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3FAFA;strokeColor=#0F766E;fontSize=17;fontStyle=1;align=left;verticalAlign=top;spacing=18;" vertex="1" parent="1">
+          <mxGeometry x="160" y="235" width="1260" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="preview4" value="PREVIEW&lt;br&gt;&lt;br&gt;customer_key          product_category       quantity&lt;br&gt;a91f...8c2d           Electronics            2&lt;br&gt;bf08...1a77           Home                   1&lt;br&gt;42cc...9d11           Books                  4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8C6CB;fontFamily=Courier New;fontSize=13;align=left;verticalAlign=top;spacing=18;" vertex="1" parent="1">
+          <mxGeometry x="160" y="375" width="760" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="task4" value="Tác vụ đã kiểm tra&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Orders grouped by product category&lt;br&gt;Join key: customer_key (HMAC)&lt;br&gt;&lt;br&gt;✓ Baseline matched&lt;br&gt;✓ Dataset status: PUBLISHED&lt;br&gt;✓ Access: Analyst read-only&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF7FF;strokeColor=#7C3AED;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacing=18;" vertex="1" parent="1">
+          <mxGeometry x="955" y="375" width="465" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="run4" value="Chạy tác vụ mẫu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=#0F766E;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1225" y="675" width="195" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="deny4" value="Không có: source connection • raw preview • policy editor • SQL editor • nút publish" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;fontColor=#9F1239;fontSize=12;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="160" y="675" width="740" height="46" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="login-dashboard" name="05 - Login &amp; Dashboards">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p5t" value="Đăng nhập và màn hình đầu theo vai trò" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="loginFrame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FBFB;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="410" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="loginLogo" value="PIIGuard VN&lt;br&gt;&lt;font style=&quot;font-size:13px;font-weight:normal&quot;&gt;On-premise Privacy Workspace&lt;/font&gt;" style="text;html=1;fontSize=25;fontStyle=1;fontColor=#14333D;align=center;" vertex="1" parent="1">
+          <mxGeometry x="120" y="155" width="310" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="loginBadge" value="🔒 DỮ LIỆU Ở TRONG MẠNG NỘI BỘ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8FAF6;strokeColor=#0F766E;fontColor=#0F766E;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="245" width="270" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="email" value="Tên đăng nhập" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8C6CB;fontColor=#71868E;fontSize=13;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="325" width="310" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="password" value="Mật khẩu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8C6CB;fontColor=#71868E;fontSize=13;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="390" width="310" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="loginBtn" value="Đăng nhập" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=#0F766E;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="465" width="310" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="loginNote" value="Vai trò do server xác thực.&lt;br&gt;Không có nút tự chọn DPO/Analyst." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#FFFBEA;strokeColor=#D5B954;fontColor=#6E5A00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="555" width="310" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dpoDash" value="DPO DASHBOARD&lt;br&gt;&lt;br&gt;Nguồn đã cấu hình: 2&lt;br&gt;Phiên cần review: 1&lt;br&gt;Dataset VERIFIED: 1&lt;br&gt;Dataset PUBLISHED: 2&lt;br&gt;&lt;br&gt;[ Chọn nguồn và bắt đầu quét ]&lt;br&gt;&lt;br&gt;Hoạt động gần đây&lt;br&gt;• Run PG-014 — REVIEW_REQUIRED&lt;br&gt;• Mongo-009 — VERIFIED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;strokeWidth=2;fontSize=14;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="450" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="analystDash" value="ANALYST DASHBOARD&lt;br&gt;&lt;br&gt;Dataset được phép dùng: 2&lt;br&gt;Tác vụ đã kiểm tra: 2&lt;br&gt;&lt;br&gt;[ Mở kho dữ liệu ]&lt;br&gt;&lt;br&gt;Mới phát hành&lt;br&gt;• customer_orders_pg_v1&lt;br&gt;• customer_orders_mongo_v1&lt;br&gt;&lt;br&gt;Không hiển thị nguồn, phiên review,&lt;br&gt;policy hoặc bản staging." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0F766E;strokeWidth=2;fontSize=14;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="100" width="450" height="650" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="scan-progress" name="06 - Scan Progress &amp; AI Fallback">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p6t" value="S2 — Đang quét và xử lý khi AI không trả lời" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="scanFrame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="720" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="scanNav" value="PIIGuard VN     Phiên PG-014                                      DPO ▾" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="720" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="scanTitle" value="Đang quét PostgreSQL" style="text;html=1;fontSize=23;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="100" y="170" width="350" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="scanInfo" value="Run PG-014 • customers + orders • bắt đầu 10:30:12&lt;br&gt;Không hiển thị phần trăm nếu backend không cung cấp tiến độ thật." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3FAFA;strokeColor=#9BCBC6;fontSize=12;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="640" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="steps" value="✓  Kiểm tra quyền chỉ đọc&lt;br&gt;&lt;br&gt;✓  Đọc schema và khóa liên kết&lt;br&gt;&lt;br&gt;✓  Profile 20/20 trường&lt;br&gt;&lt;br&gt;●  Chạy rules và validation&lt;br&gt;&lt;br&gt;○  AI hỗ trợ trường mơ hồ&lt;br&gt;&lt;br&gt;○  Tổng hợp đề xuất cho DPO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFCFC;strokeColor=#B8C6CB;fontSize=14;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="100" y="315" width="640" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="scanCancel" value="Dừng phiên quét" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B91C1C;fontColor=#B91C1C;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="700" width="180" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackFrame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="840" y="90" width="700" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackNav" value="PIIGuard VN     Phiên PG-014                                      DPO ▾" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#123947;strokeColor=#123947;fontColor=#FFFFFF;fontSize=13;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="840" y="90" width="700" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackTitle" value="Quét hoàn tất — cần review thủ công" style="text;html=1;fontSize=23;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="880" y="170" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackWarn" value="AI không trả đề xuất sau 1 lần retry.&lt;br&gt;Kết quả từ rules vẫn được giữ; 4 trường chuyển sang UNKNOWN.&lt;br&gt;Không trường nào tự động được gắn NON_PERSONAL." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D97706;fontColor=#744600;fontSize=13;align=left;verticalAlign=top;spacing=16;" vertex="1" parent="1">
+          <mxGeometry x="880" y="235" width="620" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackSummary" value="Đã đọc đủ phạm vi                20/20 fields&lt;br&gt;Rules có đề xuất                 16 fields&lt;br&gt;AI chưa xử lý                    4 fields&lt;br&gt;Giá trị thô gửi tới AI           0&lt;br&gt;Trạng thái                       REVIEW_REQUIRED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFCFC;strokeColor=#B8C6CB;fontFamily=Courier New;fontSize=13;align=left;verticalAlign=top;spacing=18;" vertex="1" parent="1">
+          <mxGeometry x="880" y="395" width="620" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="fallbackBtn" value="Tiếp tục review thủ công" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=#7C3AED;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="685" width="240" height="46" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="build-error" name="07 - Build Progress &amp; Error States">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p7t" value="S5/S8 — Tạo snapshot, hậu kiểm và lỗi chặn" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="buildCard" value="ĐANG TẠO SNAPSHOT&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Run PG-014 • policy v3 • staging only&lt;/font&gt;&lt;br&gt;&lt;br&gt;✓ Kiểm tra decision version&lt;br&gt;✓ Chuẩn hóa khóa liên kết&lt;br&gt;✓ Áp dụng MASK / DROP / HMAC&lt;br&gt;● Ghi protected snapshot&lt;br&gt;○ Kiểm tra allowlist/schema&lt;br&gt;○ Chạy SQL join&lt;br&gt;○ Đối chiếu báo cáo&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Analyst không truy cập được staging.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0F766E;strokeWidth=2;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="480" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="errorCard" value="FAILED — DOWNSTREAM KHÔNG KHỚP&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Bản staging không được phát hành.&lt;/font&gt;&lt;br&gt;&lt;br&gt;Baseline matched rows: 987&lt;br&gt;Protected matched rows: 964&lt;br&gt;Difference: -23&lt;br&gt;&lt;br&gt;Có thể do chuẩn hóa khóa không đồng nhất.&lt;br&gt;&lt;br&gt;[ Quay lại policy ]   [ Thử tạo lại ]&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Không có nút “Bỏ qua và phát hành”.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8F8;strokeColor=#B91C1C;strokeWidth=2;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="460" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="staleCard" value="STALE — NGUỒN ĐÃ THAY ĐỔI&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Manifest hiện tại không còn khớp phiên đã review.&lt;/font&gt;&lt;br&gt;&lt;br&gt;Run review: fixture-v1&lt;br&gt;Nguồn hiện tại: fixture-v2&lt;br&gt;&lt;br&gt;Quyết định cũ không được tự áp dụng.&lt;br&gt;&lt;br&gt;[ Quét lại nguồn ]&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Credential, stack trace và raw value không xuất hiện trong lỗi.&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D97706;strokeWidth=2;fontSize=16;fontStyle=1;align=left;verticalAlign=top;spacing=20;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="100" width="460" height="660" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="empty-access" name="08 - Empty, Unsupported &amp; Access Denied">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p8t" value="S8/S9 — Empty state, dữ liệu không hỗ trợ và trái quyền" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="950" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="emptyDpo" value="DPO — CHƯA CHỌN NGUỒN&lt;br&gt;&lt;br&gt;Chưa có phiên quét nào.&lt;br&gt;Chọn PostgreSQL hoặc MongoDB đã cấu hình để bắt đầu.&lt;br&gt;&lt;br&gt;[ Chọn nguồn dữ liệu ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9FB3BA;strokeWidth=2;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;spacing=25;" vertex="1" parent="1">
+          <mxGeometry x="55" y="110" width="470" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="unsupported" value="DPO — TRƯỜNG CHƯA HỖ TRỢ&lt;br&gt;&lt;br&gt;orders.items[]&lt;br&gt;Array/object vượt phạm vi MVP.&lt;br&gt;&lt;br&gt;Chọn một trong hai:&lt;br&gt;• DROP toàn bộ nhánh khỏi đầu ra&lt;br&gt;• Sửa phạm vi rồi quét lại&lt;br&gt;&lt;br&gt;[ DROP nhánh ]  [ Sửa phạm vi ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEA;strokeColor=#D97706;strokeWidth=2;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;spacing=25;" vertex="1" parent="1">
+          <mxGeometry x="565" y="110" width="470" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="denied" value="ANALYST — KHÔNG CÓ QUYỀN&lt;br&gt;&lt;br&gt;Bạn không thể truy cập:&lt;br&gt;• database nguồn&lt;br&gt;• bản staging&lt;br&gt;• màn review/policy&lt;br&gt;• API publish/revoke&lt;br&gt;&lt;br&gt;Sự kiện đã được ghi audit.&lt;br&gt;&lt;br&gt;[ Quay về kho dữ liệu ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;strokeWidth=2;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;spacing=25;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="110" width="470" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="emptyAnalyst" value="Empty state Analyst: “Chưa có dataset được DPO phát hành” → chỉ có nút Làm mới; không dẫn sang luồng DPO." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#F3FAFA;strokeColor=#0F766E;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="770" width="520" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="confirm-modals" name="09 - Confirmation Modals">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p9t" value="HITL — ba modal xác nhận hành động rủi ro" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="createModal" value="XÁC NHẬN TẠO SNAPSHOT&lt;br&gt;&lt;br&gt;Nguồn: PostgreSQL / fixture-v1&lt;br&gt;Đích: protected.pg_run_014&lt;br&gt;MASK: 5 • DROP: 3 • HMAC: 2 • KEEP: 10&lt;br&gt;UNKNOWN bị loại: col_7, legacy_code&lt;br&gt;Downstream: customer ↔ orders join&lt;br&gt;&lt;br&gt;Nguồn không bị sửa. Bản staging chưa được chia sẻ.&lt;br&gt;&lt;br&gt;[ Hủy ]     [ Xác nhận tạo ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#E11D48;strokeWidth=2;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacing=22;" vertex="1" parent="1">
+          <mxGeometry x="55" y="115" width="470" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="publishModal" value="XÁC NHẬN PHÁT HÀNH&lt;br&gt;&lt;br&gt;Dataset: customer_orders_pg_v1&lt;br&gt;Trạng thái: VERIFIED&lt;br&gt;Người được đọc: Analyst&lt;br&gt;Tác vụ: orders grouped by category&lt;br&gt;Kiểm tra bắt buộc: 6/6 đạt&lt;br&gt;&lt;br&gt;Giới hạn: chỉ đúng với fixture và snapshot này.&lt;br&gt;&lt;br&gt;[ Hủy ]     [ Phát hành cho Analyst ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0F766E;strokeWidth=2;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacing=22;" vertex="1" parent="1">
+          <mxGeometry x="565" y="115" width="470" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="revokeModal" value="XÁC NHẬN THU HỒI&lt;br&gt;&lt;br&gt;Dataset: customer_orders_pg_v1&lt;br&gt;Analyst sẽ mất quyền truy cập qua ứng dụng.&lt;br&gt;&lt;br&gt;Việc này không thể xóa bản sao người dùng đã tải hoặc thông tin đã xem trước đó.&lt;br&gt;&lt;br&gt;Lý do thu hồi *&lt;br&gt;[________________________________]&lt;br&gt;&lt;br&gt;[ Hủy ]     [ Thu hồi dataset ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B91C1C;strokeWidth=2;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacing=22;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="115" width="470" height="610" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="audit-task" name="10 - Audit &amp; Analyst Task">
+    <mxGraphModel dx="1528" dy="1044" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p10t" parent="1" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#14333D;" value="Báo cáo/audit của DPO và kết quả tác vụ Analyst" vertex="1">
+          <mxGeometry height="40" width="950" x="45" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;strokeWidth=2;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacing=22;" value="DPO — REPORT &amp; AUDIT&lt;br&gt;&lt;br&gt;Run: PG-014 • Dataset v1 • PUBLISHED&lt;br&gt;Taxonomy: vn-pii-2026-v1 • Policy: v3&lt;br&gt;&lt;br&gt;10:30  DPO started scan&lt;br&gt;10:32  Rules classified 16 fields&lt;br&gt;10:33  AI abstained on 4 fields&lt;br&gt;10:36  DPO dropped 2 unknown fields&lt;br&gt;10:38  Snapshot verified&lt;br&gt;10:40  DPO published dataset&lt;br&gt;&lt;br&gt;Report counts: MASK 5 / DROP 3 / HMAC 2 / KEEP 10&lt;br&gt;Raw values stored in audit: 0&lt;br&gt;&lt;br&gt;[ Tải JSON ]  [ Thu hồi ]" vertex="1">
+          <mxGeometry height="680" width="720" x="55" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="taskResult" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0F766E;strokeWidth=2;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacing=22;" value="ANALYST — TÁC VỤ MẪU&lt;br&gt;&lt;br&gt;Dataset: customer_orders_pg_v1&lt;br&gt;Snapshot at: 22/09/2026 10:38&lt;br&gt;&lt;br&gt;Orders grouped by product category&lt;br&gt;&lt;br&gt;Electronics       431 orders / 812 items&lt;br&gt;Home              308 orders / 496 items&lt;br&gt;Books             248 orders / 530 items&lt;br&gt;&lt;br&gt;Matched rows: 987&lt;br&gt;Unmatched/null keys: 13&lt;br&gt;&lt;br&gt;✓ Kết quả tương đương baseline đã khai báo&lt;br&gt;&lt;br&gt;[ Quay lại dataset ]  [ Chạy lại ]" vertex="1">
+          <mxGeometry height="680" width="720" x="825" y="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
