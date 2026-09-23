@@ -35,6 +35,8 @@ data/*
 !data/fixtures/
 data/fixtures/*
 !data/fixtures/seed.sql
+!data/fixtures/mongo/
+!data/fixtures/mongo/**
 *.db
 *.sqlite3
 

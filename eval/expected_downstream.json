@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Baseline metrics and expectations for downstream joins and lookups before/after PII transformation",
+    "author": "Nguyen Trung Kien (Data Engineer, Team P-138)"
+  },
+  "postgres_join": {
+    "query": "SELECT o.order_id, o.customer_cccd, c.cccd FROM orders o JOIN customers c ON o.customer_cccd = c.cccd",
+    "description": "Join orders ⨝ customers via CCCD (HMAC join key preservation)",
+    "baseline": {
+      "total_orders": 830,
+      "orders_with_cccd": 830,
+      "matched_rows": 830,
+      "unmatched_orders": 0,
+      "note": "All orders have customer_cccd; join count must remain identical after consistent HMAC transformation"
+    },
+    "post_mask_requirement": {
+      "matched_rows_must_equal_baseline": true,
+      "hmac_key_consistent": true,
+      "tolerance": 0
+    }
+  },
+  "postgres_aggregate": {
+    "query": "SELECT c.customer_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_revenue FROM orders o JOIN customers c ON o.customer_cccd = c.cccd JOIN order_details od ON o.order_id = od.order_id GROUP BY c.customer_id",
+    "description": "Customer revenue aggregation across 3 tables joined via CCCD",
+    "baseline": {
+      "distinct_customers": 89,
+      "total_revenue": 1265793.01,
+      "total_order_details_matched": 2155,
+      "note": "After HMAC masking of CCCD, aggregate group counts and revenue sum must remain unchanged"
+    },
+    "post_mask_requirement": {
+      "distinct_customers_must_equal_baseline": true,
+      "revenue_sum_must_equal_baseline": true,
+      "revenue_tolerance": 0.01
+    }
+  },
+  "mongo_lookup": {
+    "pipeline": [
+      {
+        "$lookup": {
+          "from": "customers",
+          "localField": "customer_id",
+          "foreignField": "_id",
+          "as": "customer_info"
+        }
+      },
+      {
+        "$match": {
+          "customer_info": {
+            "$ne": []
+          }
+        }
+      }
+    ],
+    "description": "$lookup orders -> customers via customer_id (system identifier)",
+    "baseline": {
+      "total_orders": 830,
+      "matched_orders": 830,
+      "unmatched_orders": 0
+    },
+    "post_mask_requirement": {
+      "matched_orders_must_equal_baseline": true,
+      "tolerance": 0
+    }
+  },
+  "mongo_lookup_cccd": {
+    "pipeline": [
+      {
+        "$lookup": {
+          "from": "customers",
+          "localField": "pii_ext.customer_cccd",
+          "foreignField": "identity.cccd",
+          "as": "verified_customer"
+        }
+      },
+      {
+        "$match": {
+          "verified_customer": {
+            "$ne": []
+          }
+        }
+      }
+    ],
+    "description": "$lookup orders -> customers via CCCD (pii_ext.customer_cccd <-> identity.cccd, HMAC join key)",
+    "baseline": {
+      "total_orders": 830,
+      "matched_rows": 830,
+      "unmatched_orders": 0,
+      "note": "After HMAC transformation of CCCD in both collections, matched document count must match baseline"
+    },
+    "post_mask_requirement": {
+      "matched_rows_must_equal_baseline": true,
+      "tolerance": 0
+    }
+  }
+}
