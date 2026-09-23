@@ -1,7 +1,14 @@
 import logging
 from pathlib import Path
 
-try:
+# Đảm bảo import được module `src` khi chạy file script trực tiếp
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+import logging  # noqa: E402
+
+try:  # noqa: E402
     import psycopg
     from psycopg.rows import dict_row
 except ImportError:
@@ -29,11 +36,11 @@ class PostgresConnector:
     ) -> DatabaseProfile:
         """
         Trích xuất toàn bộ cấu trúc CSDL bao gồm quan hệ và dữ liệu mẫu.
-        
+
         Args:
             schema_name: Tên schema cần quét (thường là 'public' trong Postgres)
             sample_size: Số lượng giá trị mẫu cần trích xuất mỗi cột
-            
+
         Returns:
             DatabaseProfile: Object chứa cấu trúc DB chuẩn bị cho AI Agent
         """
@@ -57,9 +64,9 @@ class PostgresConnector:
                 cur.execute("""
                     SELECT c.table_name, c.column_name
                     FROM information_schema.columns c
-                    JOIN information_schema.key_column_usage kcu 
+                    JOIN information_schema.key_column_usage kcu
                         ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name
-                    JOIN information_schema.table_constraints tc 
+                    JOIN information_schema.table_constraints tc
                         ON kcu.constraint_name = tc.constraint_name AND tc.constraint_type = 'PRIMARY KEY'
                     WHERE c.table_schema = %s
                 """, (schema_name,))
@@ -101,8 +108,8 @@ class PostgresConnector:
 
                     # Quét danh sách cột của bảng
                     cur.execute("""
-                        SELECT column_name, data_type 
-                        FROM information_schema.columns 
+                        SELECT column_name, data_type
+                        FROM information_schema.columns
                         WHERE table_schema = %s AND table_name = %s
                     """, (schema_name, table))
                     columns_info = cur.fetchall()
@@ -164,7 +171,7 @@ class PostgresConnector:
         """
         Tiện ích: Trích xuất và lưu toàn bộ cấu trúc DB ra file JSON vật lý.
         Dành cho mục đích debug hoặc chia sẻ data contract giữa Backend và AI Engineer.
-        
+
         Args:
             output_path: Đường dẫn file JSON cần lưu (VD: 'data/fixtures/db_profile.json')
             schema_name: Tên schema cần quét
@@ -182,3 +189,26 @@ class PostgresConnector:
         out_file.write_text(json_data, encoding="utf-8")
 
         logger.info(f"Đã lưu cấu trúc DB ra file: {output_path}")
+
+
+if __name__ == "__main__":
+    import os
+
+    # Thay đổi URL này cho khớp với Database Postgres thực tế trên máy bạn.
+    # Format: postgresql://username:password@host:port/database_name
+    DB_URL = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    print(f"Đang kết nối tới: {DB_URL}")
+
+    try:
+        connector = PostgresConnector(connection_string=DB_URL)
+
+        # Đường dẫn file JSON sẽ xuất ra (theo cấu trúc thư mục của team).
+        output_file = "data/fixtures/db_profile.json"
+        print("Đang trích xuất dữ liệu...")
+        connector.export_profile_to_json(output_path=output_file)
+        print(f"Xong! Hãy mở file '{output_file}' để kiểm tra thành quả.")
+    except Exception as e:
+        print(f"Có lỗi xảy ra (kiểm tra lại DB_URL xem DB đã bật chưa): {e}")

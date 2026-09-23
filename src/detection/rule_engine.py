@@ -6,7 +6,7 @@ from src.models.schemas import ColumnProfile, FieldScanResult
 class RuleBasedScanner:
     """
     Lớp Lọc 1: Rule-Based & Regex Scanner.
-    Nhiệm vụ: Chặn ngay lập tức các PII rõ ràng (như CCCD, Email, Phone) 
+    Nhiệm vụ: Chặn ngay lập tức các PII rõ ràng (như CCCD, Email, Phone)
     để không cần tốn chi phí gọi LLM.
     """
 
