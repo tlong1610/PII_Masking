@@ -1,0 +1,2459 @@
+[
+  {
+    "_id": "ALFKI",
+    "company": {
+      "name": "Alfreds Futterkiste",
+      "contact_name": "Maria Anders",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Obere Str. 57",
+      "city": "Berlin",
+      "region": null,
+      "postal_code": "12209",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0327540543",
+      "fax": "030-0076545",
+      "email": "alfki.0712@example.vn",
+      "mobile_phone": "0327540543"
+    },
+    "identity": {
+      "cccd": "033254456184",
+      "date_of_birth": "1967-11-24",
+      "tax_code": "4518834201"
+    },
+    "notes": "LH 0327540543; CCCD 033254456184. Don hang cu #152506320724 da giao. Email backup: alfki.0712@example.vn"
+  },
+  {
+    "_id": "ANATR",
+    "company": {
+      "name": "Ana Trujillo Emparedados y helados",
+      "contact_name": "Ana Trujillo",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Avda. de la Constitución 2222",
+      "city": "México D.F.",
+      "region": null,
+      "postal_code": "05021",
+      "country": "Mexico"
+    },
+    "contact": {
+      "phone": "0336059364",
+      "fax": "(5) 555-3745",
+      "email": "anatr.3844@example.vn",
+      "mobile_phone": "0336059364"
+    },
+    "identity": {
+      "cccd": "040280283936",
+      "date_of_birth": "1963-01-18",
+      "tax_code": "2890241933"
+    },
+    "notes": "LH 0336059364; CCCD 040280283936. Don hang cu #683201500090 da giao. Email backup: anatr.3844@example.vn"
+  },
+  {
+    "_id": "ANTON",
+    "company": {
+      "name": "Antonio Moreno Taquería",
+      "contact_name": "Antonio Moreno",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Mataderos  2312",
+      "city": "México D.F.",
+      "region": null,
+      "postal_code": "05023",
+      "country": "Mexico"
+    },
+    "contact": {
+      "phone": "0940454294",
+      "fax": null,
+      "email": "anton.6311@example.vn",
+      "mobile_phone": "0940454294"
+    },
+    "identity": {
+      "cccd": "048221541620",
+      "date_of_birth": "1988-06-11",
+      "tax_code": "3575164574"
+    },
+    "notes": "LH 0940454294; CCCD 048221541620. Don hang cu #158503381327 da giao. Email backup: anton.6311@example.vn"
+  },
+  {
+    "_id": "AROUT",
+    "company": {
+      "name": "Around the Horn",
+      "contact_name": "Thomas Hardy",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "120 Hanover Sq.",
+      "city": "London",
+      "region": null,
+      "postal_code": "WA1 1DP",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0347084243",
+      "fax": "(171) 555-6750",
+      "email": "arout.5404@example.vn",
+      "mobile_phone": "0347084243"
+    },
+    "identity": {
+      "cccd": "092223119120",
+      "date_of_birth": "1979-11-11",
+      "tax_code": "2256332212"
+    },
+    "notes": "LH 0347084243; CCCD 092223119120. Don hang cu #110239121292 da giao. Email backup: arout.5404@example.vn"
+  },
+  {
+    "_id": "BERGS",
+    "company": {
+      "name": "Berglunds snabbköp",
+      "contact_name": "Christina Berglund",
+      "contact_title": "Order Administrator"
+    },
+    "address": {
+      "street": "Berguvsvägen  8",
+      "city": "Luleå",
+      "region": null,
+      "postal_code": "S-958 22",
+      "country": "Sweden"
+    },
+    "contact": {
+      "phone": "0989403235",
+      "fax": "0921-12 34 67",
+      "email": "bergs.8183@example.vn",
+      "mobile_phone": "0989403235"
+    },
+    "identity": {
+      "cccd": "079265505644",
+      "date_of_birth": "1971-06-04",
+      "tax_code": "0509146619"
+    },
+    "notes": "LH 0989403235; CCCD 079265505644. Don hang cu #064017068890 da giao. Email backup: bergs.8183@example.vn"
+  },
+  {
+    "_id": "BLAUS",
+    "company": {
+      "name": "Blauer See Delikatessen",
+      "contact_name": "Hanna Moos",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Forsterstr. 57",
+      "city": "Mannheim",
+      "region": null,
+      "postal_code": "68306",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0935506730",
+      "fax": "0621-08924",
+      "email": "blaus.4708@example.vn",
+      "mobile_phone": "0935506730"
+    },
+    "identity": {
+      "cccd": "033226374328",
+      "date_of_birth": "1972-07-16",
+      "tax_code": "5438430592"
+    },
+    "notes": "LH 0935506730; CCCD 033226374328. Don hang cu #831286536245 da giao. Email backup: blaus.4708@example.vn"
+  },
+  {
+    "_id": "BLONP",
+    "company": {
+      "name": "Blondesddsl père et fils",
+      "contact_name": "Frédérique Citeaux",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "24, place Kléber",
+      "city": "Strasbourg",
+      "region": null,
+      "postal_code": "67000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0349312006",
+      "fax": "88.60.15.32",
+      "email": "blonp.3962@example.vn",
+      "mobile_phone": "0349312006"
+    },
+    "identity": {
+      "cccd": "046234423770",
+      "date_of_birth": "1964-09-01",
+      "tax_code": "5776055022"
+    },
+    "notes": "LH 0349312006; CCCD 046234423770. Don hang cu #155173281014 da giao. Email backup: blonp.3962@example.vn"
+  },
+  {
+    "_id": "BOLID",
+    "company": {
+      "name": "Bólido Comidas preparadas",
+      "contact_name": "Martín Sommer",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "C/ Araquil, 67",
+      "city": "Madrid",
+      "region": null,
+      "postal_code": "28023",
+      "country": "Spain"
+    },
+    "contact": {
+      "phone": "0911330041",
+      "fax": "(91) 555 91 99",
+      "email": "bolid.3153@example.vn",
+      "mobile_phone": "0911330041"
+    },
+    "identity": {
+      "cccd": "079261880141",
+      "date_of_birth": "1991-04-21",
+      "tax_code": "0204525262"
+    },
+    "notes": "LH 0911330041; CCCD 079261880141. Don hang cu #110431208081 da giao. Email backup: bolid.3153@example.vn"
+  },
+  {
+    "_id": "BONAP",
+    "company": {
+      "name": "Bon app'",
+      "contact_name": "Laurence Lebihan",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "12, rue des Bouchers",
+      "city": "Marseille",
+      "region": null,
+      "postal_code": "13008",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0375341004",
+      "fax": "91.24.45.41",
+      "email": "bonap.2765@example.vn",
+      "mobile_phone": "0375341004"
+    },
+    "identity": {
+      "cccd": "033222229438",
+      "date_of_birth": "1987-11-05",
+      "tax_code": "6941993500"
+    },
+    "notes": "LH 0375341004; CCCD 033222229438. Don hang cu #403562325443 da giao. Email backup: bonap.2765@example.vn"
+  },
+  {
+    "_id": "BOTTM",
+    "company": {
+      "name": "Bottom-Dollar Markets",
+      "contact_name": "Elizabeth Lincoln",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "23 Tsawassen Blvd.",
+      "city": "Tsawassen",
+      "region": "BC",
+      "postal_code": "T2F 8M4",
+      "country": "Canada"
+    },
+    "contact": {
+      "phone": "0941560135",
+      "fax": "(604) 555-3745",
+      "email": "bottm.9301@example.vn",
+      "mobile_phone": "0941560135"
+    },
+    "identity": {
+      "cccd": "048221040674",
+      "date_of_birth": "1983-02-16",
+      "tax_code": "1034747385"
+    },
+    "notes": "LH 0941560135; CCCD 048221040674. Don hang cu #824108144025 da giao. Email backup: bottm.9301@example.vn"
+  },
+  {
+    "_id": "BSBEV",
+    "company": {
+      "name": "B's Beverages",
+      "contact_name": "Victoria Ashworth",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Fauntleroy Circus",
+      "city": "London",
+      "region": null,
+      "postal_code": "EC2 5NT",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0973244980",
+      "fax": null,
+      "email": "bsbev.5041@example.vn",
+      "mobile_phone": "0973244980"
+    },
+    "identity": {
+      "cccd": "001210636233",
+      "date_of_birth": "1975-06-05",
+      "tax_code": "1573116617"
+    },
+    "notes": "LH 0973244980; CCCD 001210636233. Don hang cu #335549154105 da giao. Email backup: bsbev.5041@example.vn"
+  },
+  {
+    "_id": "CACTU",
+    "company": {
+      "name": "Cactus Comidas para llevar",
+      "contact_name": "Patricio Simpson",
+      "contact_title": "Sales Agent"
+    },
+    "address": {
+      "street": "Cerrito 333",
+      "city": "Buenos Aires",
+      "region": null,
+      "postal_code": "1010",
+      "country": "Argentina"
+    },
+    "contact": {
+      "phone": "0948987319",
+      "fax": "(1) 135-4892",
+      "email": "cactu.6316@example.vn",
+      "mobile_phone": "0948987319"
+    },
+    "identity": {
+      "cccd": "048210492418",
+      "date_of_birth": "1988-07-15",
+      "tax_code": "3333143808"
+    },
+    "notes": "LH 0948987319; CCCD 048210492418. Don hang cu #540620931664 da giao. Email backup: cactu.6316@example.vn"
+  },
+  {
+    "_id": "CENTC",
+    "company": {
+      "name": "Centro comercial Moctezuma",
+      "contact_name": "Francisco Chang",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Sierras de Granada 9993",
+      "city": "México D.F.",
+      "region": null,
+      "postal_code": "05022",
+      "country": "Mexico"
+    },
+    "contact": {
+      "phone": "0330631139",
+      "fax": "(5) 555-7293",
+      "email": "centc.2317@example.vn",
+      "mobile_phone": "0330631139"
+    },
+    "identity": {
+      "cccd": "048230628024",
+      "date_of_birth": "1983-07-24",
+      "tax_code": "6406548222"
+    },
+    "notes": "LH 0330631139; CCCD 048230628024. Don hang cu #040396530001 da giao. Email backup: centc.2317@example.vn"
+  },
+  {
+    "_id": "CHOPS",
+    "company": {
+      "name": "Chop-suey Chinese",
+      "contact_name": "Yang Wang",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Hauptstr. 29",
+      "city": "Bern",
+      "region": null,
+      "postal_code": "3012",
+      "country": "Switzerland"
+    },
+    "contact": {
+      "phone": "0942650785",
+      "fax": null,
+      "email": "chops.0320@example.vn",
+      "mobile_phone": "0942650785"
+    },
+    "identity": {
+      "cccd": "048210984228",
+      "date_of_birth": "1963-09-04",
+      "tax_code": "5146273762"
+    },
+    "notes": "LH 0942650785; CCCD 048210984228. Don hang cu #019941489199 da giao. Email backup: chops.0320@example.vn"
+  },
+  {
+    "_id": "COMMI",
+    "company": {
+      "name": "Comércio Mineiro",
+      "contact_name": "Pedro Afonso",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "Av. dos Lusíadas, 23",
+      "city": "Sao Paulo",
+      "region": "SP",
+      "postal_code": "05432-043",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0946623143",
+      "fax": null,
+      "email": "commi.6355@example.vn",
+      "mobile_phone": "0946623143"
+    },
+    "identity": {
+      "cccd": "048261171560",
+      "date_of_birth": "1988-02-14",
+      "tax_code": "9050205875"
+    },
+    "notes": "LH 0946623143; CCCD 048261171560. Don hang cu #045222111401 da giao. Email backup: commi.6355@example.vn"
+  },
+  {
+    "_id": "CONSH",
+    "company": {
+      "name": "Consolidated Holdings",
+      "contact_name": "Elizabeth Brown",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Berkeley Gardens 12  Brewery",
+      "city": "London",
+      "region": null,
+      "postal_code": "WX1 6LT",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0975238362",
+      "fax": "(171) 555-9199",
+      "email": "consh.5057@example.vn",
+      "mobile_phone": "0975238362"
+    },
+    "identity": {
+      "cccd": "001229650685",
+      "date_of_birth": "1975-12-04",
+      "tax_code": "3376948094"
+    },
+    "notes": "LH 0975238362; CCCD 001229650685. Don hang cu #065241029325 da giao. Email backup: consh.5057@example.vn"
+  },
+  {
+    "_id": "DRACD",
+    "company": {
+      "name": "Drachenblut Delikatessen",
+      "contact_name": "Sven Ottlieb",
+      "contact_title": "Order Administrator"
+    },
+    "address": {
+      "street": "Walserweg 21",
+      "city": "Aachen",
+      "region": null,
+      "postal_code": "52066",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0352517205",
+      "fax": "0241-059428",
+      "email": "dracd.2521@example.vn",
+      "mobile_phone": "0352517205"
+    },
+    "identity": {
+      "cccd": "056271744241",
+      "date_of_birth": "1985-06-15",
+      "tax_code": "0044124841"
+    },
+    "notes": "LH 0352517205; CCCD 056271744241. Don hang cu #508230140623 da giao. Email backup: dracd.2521@example.vn"
+  },
+  {
+    "_id": "DUMON",
+    "company": {
+      "name": "Du monde entier",
+      "contact_name": "Janine Labrune",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "67, rue des Cinquante Otages",
+      "city": "Nantes",
+      "region": null,
+      "postal_code": "44000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0320541192",
+      "fax": "40.67.89.89",
+      "email": "dumon.8212@example.vn",
+      "mobile_phone": "0320541192"
+    },
+    "identity": {
+      "cccd": "031267344633",
+      "date_of_birth": "1972-12-08",
+      "tax_code": "5502213423"
+    },
+    "notes": "LH 0320541192; CCCD 031267344633. Don hang cu #454281909477 da giao. Email backup: dumon.8212@example.vn"
+  },
+  {
+    "_id": "EASTC",
+    "company": {
+      "name": "Eastern Connection",
+      "contact_name": "Ann Devon",
+      "contact_title": "Sales Agent"
+    },
+    "address": {
+      "street": "35 King George",
+      "city": "London",
+      "region": null,
+      "postal_code": "WX3 6FW",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0915035989",
+      "fax": "(171) 555-3373",
+      "email": "eastc.3110@example.vn",
+      "mobile_phone": "0915035989"
+    },
+    "identity": {
+      "cccd": "079267043122",
+      "date_of_birth": "1991-05-23",
+      "tax_code": "5224253230"
+    },
+    "notes": "LH 0915035989; CCCD 079267043122. Don hang cu #235324412219 da giao. Email backup: eastc.3110@example.vn"
+  },
+  {
+    "_id": "ERNSH",
+    "company": {
+      "name": "Ernst Handel",
+      "contact_name": "Roland Mendel",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Kirchgasse 6",
+      "city": "Graz",
+      "region": null,
+      "postal_code": "8010",
+      "country": "Austria"
+    },
+    "contact": {
+      "phone": "0935900762",
+      "fax": "7675-3426",
+      "email": "ernsh.3206@example.vn",
+      "mobile_phone": "0935900762"
+    },
+    "identity": {
+      "cccd": "031254533090",
+      "date_of_birth": "1992-05-07",
+      "tax_code": "7404033136"
+    },
+    "notes": "LH 0935900762; CCCD 031254533090. Don hang cu #459141439612 da giao. Email backup: ernsh.3206@example.vn"
+  },
+  {
+    "_id": "FAMIA",
+    "company": {
+      "name": "Familia Arquibaldo",
+      "contact_name": "Aria Cruz",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "Rua Orós, 92",
+      "city": "Sao Paulo",
+      "region": "SP",
+      "postal_code": "05442-030",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0960687537",
+      "fax": null,
+      "email": "famia.3439@example.vn",
+      "mobile_phone": "0960687537"
+    },
+    "identity": {
+      "cccd": "092241961807",
+      "date_of_birth": "1994-02-28",
+      "tax_code": "3531366721"
+    },
+    "notes": "LH 0960687537; CCCD 092241961807. Don hang cu #621953056340 da giao. Email backup: famia.3439@example.vn"
+  },
+  {
+    "_id": "FISSA",
+    "company": {
+      "name": "FISSA Fabrica Inter. Salchichas S.A.",
+      "contact_name": "Diego Roel",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "C/ Moralzarzal, 86",
+      "city": "Madrid",
+      "region": null,
+      "postal_code": "28034",
+      "country": "Spain"
+    },
+    "contact": {
+      "phone": "0937540470",
+      "fax": "(91) 555 55 93",
+      "email": "fissa.9254@example.vn",
+      "mobile_phone": "0937540470"
+    },
+    "identity": {
+      "cccd": "031223940817",
+      "date_of_birth": "1982-05-11",
+      "tax_code": "3576838310"
+    },
+    "notes": "LH 0937540470; CCCD 031223940817. Don hang cu #543603325402 da giao. Email backup: fissa.9254@example.vn"
+  },
+  {
+    "_id": "FOLIG",
+    "company": {
+      "name": "Folies gourmandes",
+      "contact_name": "Martine Rancé",
+      "contact_title": "Assistant Sales Agent"
+    },
+    "address": {
+      "street": "184, chaussée de Tournai",
+      "city": "Lille",
+      "region": null,
+      "postal_code": "59000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0933303034",
+      "fax": "20.16.10.17",
+      "email": "folig.0232@example.vn",
+      "mobile_phone": "0933303034"
+    },
+    "identity": {
+      "cccd": "031249679568",
+      "date_of_birth": "1962-04-14",
+      "tax_code": "4731005093"
+    },
+    "notes": "LH 0933303034; CCCD 031249679568. Don hang cu #183413753031 da giao. Email backup: folig.0232@example.vn"
+  },
+  {
+    "_id": "FOLKO",
+    "company": {
+      "name": "Folk och fä HB",
+      "contact_name": "Maria Larsson",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Åkergatan 24",
+      "city": "Bräcke",
+      "region": null,
+      "postal_code": "S-844 67",
+      "country": "Sweden"
+    },
+    "contact": {
+      "phone": "0343679171",
+      "fax": null,
+      "email": "folko.2424@example.vn",
+      "mobile_phone": "0343679171"
+    },
+    "identity": {
+      "cccd": "092274529665",
+      "date_of_birth": "1984-11-02",
+      "tax_code": "7060381858"
+    },
+    "notes": "LH 0343679171; CCCD 092274529665. Don hang cu #425408833128 da giao. Email backup: folko.2424@example.vn"
+  },
+  {
+    "_id": "FRANK",
+    "company": {
+      "name": "Frankenversand",
+      "contact_name": "Peter Franken",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Berliner Platz 43",
+      "city": "München",
+      "region": null,
+      "postal_code": "80805",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0901360404",
+      "fax": "089-0877451",
+      "email": "frank.7518@example.vn",
+      "mobile_phone": "0901360404"
+    },
+    "identity": {
+      "cccd": "056253350043",
+      "date_of_birth": "1965-01-01",
+      "tax_code": "7311260853"
+    },
+    "notes": "LH 0901360404; CCCD 056253350043. Don hang cu #311225997202 da giao. Email backup: frank.7518@example.vn"
+  },
+  {
+    "_id": "FRANR",
+    "company": {
+      "name": "France restauration",
+      "contact_name": "Carine Schmitt",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "54, rue Royale",
+      "city": "Nantes",
+      "region": null,
+      "postal_code": "44000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0364222314",
+      "fax": "40.32.21.20",
+      "email": "franr.2652@example.vn",
+      "mobile_phone": "0364222314"
+    },
+    "identity": {
+      "cccd": "038271911005",
+      "date_of_birth": "1986-03-02",
+      "tax_code": "0031465742"
+    },
+    "notes": "LH 0364222314; CCCD 038271911005. Don hang cu #305831059544 da giao. Email backup: franr.2652@example.vn"
+  },
+  {
+    "_id": "FRANS",
+    "company": {
+      "name": "Franchi S.p.A.",
+      "contact_name": "Paolo Accorti",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Via Monte Bianco 34",
+      "city": "Torino",
+      "region": null,
+      "postal_code": "10100",
+      "country": "Italy"
+    },
+    "contact": {
+      "phone": "0373124147",
+      "fax": "011-4988261",
+      "email": "frans.4235@example.vn",
+      "mobile_phone": "0373124147"
+    },
+    "identity": {
+      "cccd": "031225011357",
+      "date_of_birth": "1967-09-03",
+      "tax_code": "5952482803"
+    },
+    "notes": "LH 0373124147; CCCD 031225011357. Don hang cu #345371053141 da giao. Email backup: frans.4235@example.vn"
+  },
+  {
+    "_id": "FURIB",
+    "company": {
+      "name": "Furia Bacalhau e Frutos do Mar",
+      "contact_name": "Lino Rodriguez",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Jardim das rosas n. 32",
+      "city": "Lisboa",
+      "region": null,
+      "postal_code": "1675",
+      "country": "Portugal"
+    },
+    "contact": {
+      "phone": "0383044083",
+      "fax": "(1) 354-2535",
+      "email": "furib.4321@example.vn",
+      "mobile_phone": "0383044083"
+    },
+    "identity": {
+      "cccd": "048225053552",
+      "date_of_birth": "1968-12-06",
+      "tax_code": "2350917374"
+    },
+    "notes": "LH 0383044083; CCCD 048225053552. Don hang cu #237927128031 da giao. Email backup: furib.4321@example.vn"
+  },
+  {
+    "_id": "GALED",
+    "company": {
+      "name": "Galería del gastrónomo",
+      "contact_name": "Eduardo Saavedra",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Rambla de Cataluña, 23",
+      "city": "Barcelona",
+      "region": null,
+      "postal_code": "08022",
+      "country": "Spain"
+    },
+    "contact": {
+      "phone": "0932481255",
+      "fax": "(93) 203 4561",
+      "email": "galed.0227@example.vn",
+      "mobile_phone": "0932481255"
+    },
+    "identity": {
+      "cccd": "031227576727",
+      "date_of_birth": "1962-04-20",
+      "tax_code": "7654009810"
+    },
+    "notes": "LH 0932481255; CCCD 031227576727. Don hang cu #315212346419 da giao. Email backup: galed.0227@example.vn"
+  },
+  {
+    "_id": "GODOS",
+    "company": {
+      "name": "Godos Cocina Típica",
+      "contact_name": "José Pedro Freyre",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "C/ Romero, 33",
+      "city": "Sevilla",
+      "region": null,
+      "postal_code": "41101",
+      "country": "Spain"
+    },
+    "contact": {
+      "phone": "0931229404",
+      "fax": null,
+      "email": "godos.0215@example.vn",
+      "mobile_phone": "0931229404"
+    },
+    "identity": {
+      "cccd": "031223803463",
+      "date_of_birth": "1962-06-14",
+      "tax_code": "0201131432"
+    },
+    "notes": "LH 0931229404; CCCD 031223803463. Don hang cu #805051061157 da giao. Email backup: godos.0215@example.vn"
+  },
+  {
+    "_id": "GOURL",
+    "company": {
+      "name": "Gourmet Lanchonetes",
+      "contact_name": "André Fonseca",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "Av. Brasil, 442",
+      "city": "Campinas",
+      "region": "SP",
+      "postal_code": "04876-786",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0322049849",
+      "fax": null,
+      "email": "gourl.8231@example.vn",
+      "mobile_phone": "0322049849"
+    },
+    "identity": {
+      "cccd": "031284043040",
+      "date_of_birth": "1972-10-08",
+      "tax_code": "7831531651"
+    },
+    "notes": "LH 0322049849; CCCD 031284043040. Don hang cu #462465571919 da giao. Email backup: gourl.8231@example.vn"
+  },
+  {
+    "_id": "GREAL",
+    "company": {
+      "name": "Great Lakes Food Market",
+      "contact_name": "Howard Snyder",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "2732 Baker Blvd.",
+      "city": "Eugene",
+      "region": "OR",
+      "postal_code": "97403",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0341388241",
+      "fax": null,
+      "email": "greal.5441@example.vn",
+      "mobile_phone": "0341388241"
+    },
+    "identity": {
+      "cccd": "092244057004",
+      "date_of_birth": "1979-12-24",
+      "tax_code": "8400360341"
+    },
+    "notes": "LH 0341388241; CCCD 092244057004. Don hang cu #295181531196 da giao. Email backup: greal.5441@example.vn"
+  },
+  {
+    "_id": "GROSR",
+    "company": {
+      "name": "GROSELLA-Restaurante",
+      "contact_name": "Manuel Pereira",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "5ª Ave. Los Palos Grandes",
+      "city": "Caracas",
+      "region": "DF",
+      "postal_code": "1081",
+      "country": "Venezuela"
+    },
+    "contact": {
+      "phone": "0379842506",
+      "fax": "(2) 283-3397",
+      "email": "grosr.7232@example.vn",
+      "mobile_phone": "0379842506"
+    },
+    "identity": {
+      "cccd": "031234758892",
+      "date_of_birth": "1962-06-05",
+      "tax_code": "1542975148"
+    },
+    "notes": "LH 0379842506; CCCD 031234758892. Don hang cu #683747241940 da giao. Email backup: grosr.7232@example.vn"
+  },
+  {
+    "_id": "HANAR",
+    "company": {
+      "name": "Hanari Carnes",
+      "contact_name": "Mario Pontes",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Rua do Paço, 67",
+      "city": "Rio de Janeiro",
+      "region": "RJ",
+      "postal_code": "05454-876",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0334375164",
+      "fax": "(21) 555-8765",
+      "email": "hanar.5350@example.vn",
+      "mobile_phone": "0334375164"
+    },
+    "identity": {
+      "cccd": "048283534450",
+      "date_of_birth": "1978-12-19",
+      "tax_code": "2058960480"
+    },
+    "notes": "LH 0334375164; CCCD 048283534450. Don hang cu #883748273159 da giao. Email backup: hanar.5350@example.vn"
+  },
+  {
+    "_id": "HILAA",
+    "company": {
+      "name": "HILARION-Abastos",
+      "contact_name": "Carlos Hernández",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Carrera 22 con Ave. Carlos Soublette #8-35",
+      "city": "San Cristóbal",
+      "region": "Táchira",
+      "postal_code": "5022",
+      "country": "Venezuela"
+    },
+    "contact": {
+      "phone": "0919417228",
+      "fax": "(5) 555-1948",
+      "email": "hilaa.9157@example.vn",
+      "mobile_phone": "0919417228"
+    },
+    "identity": {
+      "cccd": "079213257230",
+      "date_of_birth": "1981-05-16",
+      "tax_code": "0055677324"
+    },
+    "notes": "LH 0919417228; CCCD 079213257230. Don hang cu #157037510651 da giao. Email backup: hilaa.9157@example.vn"
+  },
+  {
+    "_id": "HUNGC",
+    "company": {
+      "name": "Hungry Coyote Import Store",
+      "contact_name": "Yoshi Latimer",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "City Center Plaza 516 Main St.",
+      "city": "Elgin",
+      "region": "OR",
+      "postal_code": "97827",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0395249595",
+      "fax": "(503) 555-2376",
+      "email": "hungc.1430@example.vn",
+      "mobile_phone": "0395249595"
+    },
+    "identity": {
+      "cccd": "092210431243",
+      "date_of_birth": "1974-08-10",
+      "tax_code": "1008188341"
+    },
+    "notes": "LH 0395249595; CCCD 092210431243. Don hang cu #291450512876 da giao. Email backup: hungc.1430@example.vn"
+  },
+  {
+    "_id": "HUNGO",
+    "company": {
+      "name": "Hungry Owl All-Night Grocers",
+      "contact_name": "Patricia McKenna",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "8 Johnstown Road",
+      "city": "Cork",
+      "region": "Co. Cork",
+      "postal_code": null,
+      "country": "Ireland"
+    },
+    "contact": {
+      "phone": "0982961025",
+      "fax": "2967 3333",
+      "email": "hungo.5152@example.vn",
+      "mobile_phone": "0982961025"
+    },
+    "identity": {
+      "cccd": "079265313420",
+      "date_of_birth": "1976-05-02",
+      "tax_code": "3324277194"
+    },
+    "notes": "LH 0982961025; CCCD 079265313420. Don hang cu #434324620565 da giao. Email backup: hungo.5152@example.vn"
+  },
+  {
+    "_id": "ISLAT",
+    "company": {
+      "name": "Island Trading",
+      "contact_name": "Helen Bennett",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Garden House Crowther Way",
+      "city": "Cowes",
+      "region": "Isle of Wight",
+      "postal_code": "PO31 7PJ",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0972814590",
+      "fax": null,
+      "email": "islat.0523@example.vn",
+      "mobile_phone": "0972814590"
+    },
+    "identity": {
+      "cccd": "056236234103",
+      "date_of_birth": "1965-01-07",
+      "tax_code": "5340749892"
+    },
+    "notes": "LH 0972814590; CCCD 056236234103. Don hang cu #408432716014 da giao. Email backup: islat.0523@example.vn"
+  },
+  {
+    "_id": "KOENE",
+    "company": {
+      "name": "Königlich Essen",
+      "contact_name": "Philip Cramer",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "Maubelstr. 90",
+      "city": "Brandenburg",
+      "region": null,
+      "postal_code": "14776",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0972331255",
+      "fax": null,
+      "email": "koene.0530@example.vn",
+      "mobile_phone": "0972331255"
+    },
+    "identity": {
+      "cccd": "056265265304",
+      "date_of_birth": "1965-10-01",
+      "tax_code": "9141325651"
+    },
+    "notes": "LH 0972331255; CCCD 056265265304. Don hang cu #341243773013 da giao. Email backup: koene.0530@example.vn"
+  },
+  {
+    "_id": "LACOR",
+    "company": {
+      "name": "La corne d'abondance",
+      "contact_name": "Daniel Tonini",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "67, avenue de l'Europe",
+      "city": "Versailles",
+      "region": null,
+      "postal_code": "78000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0915245244",
+      "fax": "30.59.85.11",
+      "email": "lacor.3183@example.vn",
+      "mobile_phone": "0915245244"
+    },
+    "identity": {
+      "cccd": "079240834146",
+      "date_of_birth": "1991-10-14",
+      "tax_code": "4474217116"
+    },
+    "notes": "LH 0915245244; CCCD 079240834146. Don hang cu #242057760994 da giao. Email backup: lacor.3183@example.vn"
+  },
+  {
+    "_id": "LAMAI",
+    "company": {
+      "name": "La maison d'Asie",
+      "contact_name": "Annette Roulet",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "1 rue Alsace-Lorraine",
+      "city": "Toulouse",
+      "region": null,
+      "postal_code": "31000",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0332950110",
+      "fax": "61.77.61.11",
+      "email": "lamai.2394@example.vn",
+      "mobile_phone": "0332950110"
+    },
+    "identity": {
+      "cccd": "048226733932",
+      "date_of_birth": "1983-05-18",
+      "tax_code": "1354255761"
+    },
+    "notes": "LH 0332950110; CCCD 048226733932. Don hang cu #622541454681 da giao. Email backup: lamai.2394@example.vn"
+  },
+  {
+    "_id": "LAUGB",
+    "company": {
+      "name": "Laughing Bacchus Wine Cellars",
+      "contact_name": "Yoshi Tannamuri",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "1900 Oak St.",
+      "city": "Vancouver",
+      "region": "BC",
+      "postal_code": "V3F 2K1",
+      "country": "Canada"
+    },
+    "contact": {
+      "phone": "0909376851",
+      "fax": "(604) 555-7293",
+      "email": "laugb.4590@example.vn",
+      "mobile_phone": "0909376851"
+    },
+    "identity": {
+      "cccd": "056228744750",
+      "date_of_birth": "1970-03-15",
+      "tax_code": "2356536101"
+    },
+    "notes": "LH 0909376851; CCCD 056228744750. Don hang cu #631320767000 da giao. Email backup: laugb.4590@example.vn"
+  },
+  {
+    "_id": "LAZYK",
+    "company": {
+      "name": "Lazy K Kountry Store",
+      "contact_name": "John Steel",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "12 Orchestra Terrace",
+      "city": "Walla Walla",
+      "region": "WA",
+      "postal_code": "99362",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0332992379",
+      "fax": "(509) 555-6221",
+      "email": "lazyk.2301@example.vn",
+      "mobile_phone": "0332992379"
+    },
+    "identity": {
+      "cccd": "048253866041",
+      "date_of_birth": "1983-12-04",
+      "tax_code": "0789660464"
+    },
+    "notes": "LH 0332992379; CCCD 048253866041. Don hang cu #546295515252 da giao. Email backup: lazyk.2301@example.vn"
+  },
+  {
+    "_id": "LEHMS",
+    "company": {
+      "name": "Lehmanns Marktstand",
+      "contact_name": "Renate Messner",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Magazinweg 7",
+      "city": "Frankfurt a.M.",
+      "region": null,
+      "postal_code": "60528",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0340203015",
+      "fax": "069-0245874",
+      "email": "lehms.5418@example.vn",
+      "mobile_phone": "0340203015"
+    },
+    "identity": {
+      "cccd": "092285253915",
+      "date_of_birth": "1979-03-25",
+      "tax_code": "3142049201"
+    },
+    "notes": "LH 0340203015; CCCD 092285253915. Don hang cu #025360812421 da giao. Email backup: lehms.5418@example.vn"
+  },
+  {
+    "_id": "LETSS",
+    "company": {
+      "name": "Let's Stop N Shop",
+      "contact_name": "Jaime Yorres",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "87 Polk St. Suite 5",
+      "city": "San Francisco",
+      "region": "CA",
+      "postal_code": "94117",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0389735053",
+      "fax": null,
+      "email": "letss.4335@example.vn",
+      "mobile_phone": "0389735053"
+    },
+    "identity": {
+      "cccd": "048262272324",
+      "date_of_birth": "1968-01-08",
+      "tax_code": "6212452523"
+    },
+    "notes": "LH 0389735053; CCCD 048262272324. Don hang cu #122141203223 da giao. Email backup: letss.4335@example.vn"
+  },
+  {
+    "_id": "LILAS",
+    "company": {
+      "name": "LILA-Supermercado",
+      "contact_name": "Carlos González",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Carrera 52 con Ave. Bolívar #65-98 Llano Largo",
+      "city": "Barquisimeto",
+      "region": "Lara",
+      "postal_code": "3508",
+      "country": "Venezuela"
+    },
+    "contact": {
+      "phone": "0961553845",
+      "fax": "(9) 331-7256",
+      "email": "lilas.0417@example.vn",
+      "mobile_phone": "0961553845"
+    },
+    "identity": {
+      "cccd": "092261351332",
+      "date_of_birth": "1964-07-17",
+      "tax_code": "3416312599"
+    },
+    "notes": "LH 0961553845; CCCD 092261351332. Don hang cu #423038292663 da giao. Email backup: lilas.0417@example.vn"
+  },
+  {
+    "_id": "LINOD",
+    "company": {
+      "name": "LINO-Delicateses",
+      "contact_name": "Felipe Izquierdo",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Ave. 5 de Mayo Porlamar",
+      "city": "I. de Margarita",
+      "region": "Nueva Esparta",
+      "postal_code": "4980",
+      "country": "Venezuela"
+    },
+    "contact": {
+      "phone": "0970893344",
+      "fax": "(8) 34-93-93",
+      "email": "linod.5032@example.vn",
+      "mobile_phone": "0970893344"
+    },
+    "identity": {
+      "cccd": "001217423492",
+      "date_of_birth": "1975-11-09",
+      "tax_code": "2656242592"
+    },
+    "notes": "LH 0970893344; CCCD 001217423492. Don hang cu #191345400877 da giao. Email backup: linod.5032@example.vn"
+  },
+  {
+    "_id": "LONEP",
+    "company": {
+      "name": "Lonesome Pine Restaurant",
+      "contact_name": "Fran Wilson",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "89 Chiaroscuro Rd.",
+      "city": "Portland",
+      "region": "OR",
+      "postal_code": "97219",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0981537836",
+      "fax": "(503) 555-9646",
+      "email": "lonep.2157@example.vn",
+      "mobile_phone": "0981537836"
+    },
+    "identity": {
+      "cccd": "079219717457",
+      "date_of_birth": "1981-08-03",
+      "tax_code": "4503423031"
+    },
+    "notes": "LH 0981537836; CCCD 079219717457. Don hang cu #550403775525 da giao. Email backup: lonep.2157@example.vn"
+  },
+  {
+    "_id": "MAGAA",
+    "company": {
+      "name": "Magazzini Alimentari Riuniti",
+      "contact_name": "Giovanni Rovelli",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Via Ludovico il Moro 22",
+      "city": "Bergamo",
+      "region": null,
+      "postal_code": "24100",
+      "country": "Italy"
+    },
+    "contact": {
+      "phone": "0910563543",
+      "fax": "035-640231",
+      "email": "magaa.9143@example.vn",
+      "mobile_phone": "0910563543"
+    },
+    "identity": {
+      "cccd": "079212457642",
+      "date_of_birth": "1981-12-10",
+      "tax_code": "6442807475"
+    },
+    "notes": "LH 0910563543; CCCD 079212457642. Don hang cu #775340504831 da giao. Email backup: magaa.9143@example.vn"
+  },
+  {
+    "_id": "MAISD",
+    "company": {
+      "name": "Maison Dewey",
+      "contact_name": "Catherine Dewey",
+      "contact_title": "Sales Agent"
+    },
+    "address": {
+      "street": "Rue Joseph-Bens 532",
+      "city": "Bruxelles",
+      "region": null,
+      "postal_code": "B-1180",
+      "country": "Belgium"
+    },
+    "contact": {
+      "phone": "0396344002",
+      "fax": "(02) 201 24 68",
+      "email": "maisd.7450@example.vn",
+      "mobile_phone": "0396344002"
+    },
+    "identity": {
+      "cccd": "092211651262",
+      "date_of_birth": "1964-04-01",
+      "tax_code": "5230001611"
+    },
+    "notes": "LH 0396344002; CCCD 092211651262. Don hang cu #493851343270 da giao. Email backup: maisd.7450@example.vn"
+  },
+  {
+    "_id": "MEREP",
+    "company": {
+      "name": "Mère Paillarde",
+      "contact_name": "Jean Fresnière",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "43 rue St. Laurent",
+      "city": "Montréal",
+      "region": "Québec",
+      "postal_code": "H1J 1C3",
+      "country": "Canada"
+    },
+    "contact": {
+      "phone": "0375113756",
+      "fax": "(514) 555-8055",
+      "email": "merep.2700@example.vn",
+      "mobile_phone": "0375113756"
+    },
+    "identity": {
+      "cccd": "033223595251",
+      "date_of_birth": "1987-08-14",
+      "tax_code": "2425221404"
+    },
+    "notes": "LH 0375113756; CCCD 033223595251. Don hang cu #451769806817 da giao. Email backup: merep.2700@example.vn"
+  },
+  {
+    "_id": "MORGK",
+    "company": {
+      "name": "Morgenstern Gesundkost",
+      "contact_name": "Alexander Feuer",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "Heerstr. 22",
+      "city": "Leipzig",
+      "region": null,
+      "postal_code": "04179",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0375574212",
+      "fax": null,
+      "email": "morgk.4226@example.vn",
+      "mobile_phone": "0375574212"
+    },
+    "identity": {
+      "cccd": "031261827644",
+      "date_of_birth": "1967-08-15",
+      "tax_code": "2610914040"
+    },
+    "notes": "LH 0375574212; CCCD 031261827644. Don hang cu #315486541856 da giao. Email backup: morgk.4226@example.vn"
+  },
+  {
+    "_id": "NORTS",
+    "company": {
+      "name": "North/South",
+      "contact_name": "Simon Crowther",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "South House 300 Queensbridge",
+      "city": "London",
+      "region": null,
+      "postal_code": "SW7 1RZ",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0982821437",
+      "fax": "(171) 555-2530",
+      "email": "norts.5134@example.vn",
+      "mobile_phone": "0982821437"
+    },
+    "identity": {
+      "cccd": "079246856774",
+      "date_of_birth": "1976-08-02",
+      "tax_code": "2512621560"
+    },
+    "notes": "LH 0982821437; CCCD 079246856774. Don hang cu #945411253527 da giao. Email backup: norts.5134@example.vn"
+  },
+  {
+    "_id": "OCEAN",
+    "company": {
+      "name": "Océano Atlántico Ltda.",
+      "contact_name": "Yvonne Moncada",
+      "contact_title": "Sales Agent"
+    },
+    "address": {
+      "street": "Ing. Gustavo Moncada 8585 Piso 20-A",
+      "city": "Buenos Aires",
+      "region": null,
+      "postal_code": "1010",
+      "country": "Argentina"
+    },
+    "contact": {
+      "phone": "0333358515",
+      "fax": "(1) 135-5535",
+      "email": "ocean.3832@example.vn",
+      "mobile_phone": "0333358515"
+    },
+    "identity": {
+      "cccd": "040215439252",
+      "date_of_birth": "1963-08-19",
+      "tax_code": "7214550885"
+    },
+    "notes": "LH 0333358515; CCCD 040215439252. Don hang cu #018441042224 da giao. Email backup: ocean.3832@example.vn"
+  },
+  {
+    "_id": "OLDWO",
+    "company": {
+      "name": "Old World Delicatessen",
+      "contact_name": "Rene Phillips",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "2743 Bering St.",
+      "city": "Anchorage",
+      "region": "AK",
+      "postal_code": "99508",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0933307042",
+      "fax": "(907) 555-2880",
+      "email": "oldwo.3290@example.vn",
+      "mobile_phone": "0933307042"
+    },
+    "identity": {
+      "cccd": "031257553555",
+      "date_of_birth": "1992-08-23",
+      "tax_code": "0423468465"
+    },
+    "notes": "LH 0933307042; CCCD 031257553555. Don hang cu #972328200503 da giao. Email backup: oldwo.3290@example.vn"
+  },
+  {
+    "_id": "OTTIK",
+    "company": {
+      "name": "Ottilies Käseladen",
+      "contact_name": "Henriette Pfalzheim",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Mehrheimerstr. 369",
+      "city": "Köln",
+      "region": null,
+      "postal_code": "50739",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0345626133",
+      "fax": "0221-0765721",
+      "email": "ottik.5441@example.vn",
+      "mobile_phone": "0345626133"
+    },
+    "identity": {
+      "cccd": "092220520021",
+      "date_of_birth": "1979-10-01",
+      "tax_code": "1049278043"
+    },
+    "notes": "LH 0345626133; CCCD 092220520021. Don hang cu #913271610745 da giao. Email backup: ottik.5441@example.vn"
+  },
+  {
+    "_id": "PARIS",
+    "company": {
+      "name": "Paris spécialités",
+      "contact_name": "Marie Bertrand",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "265, boulevard Charonne",
+      "city": "Paris",
+      "region": null,
+      "postal_code": "75012",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0908287802",
+      "fax": "(1) 42.34.22.77",
+      "email": "paris.4501@example.vn",
+      "mobile_phone": "0908287802"
+    },
+    "identity": {
+      "cccd": "056236709412",
+      "date_of_birth": "1970-01-24",
+      "tax_code": "7679341430"
+    },
+    "notes": "LH 0908287802; CCCD 056236709412. Don hang cu #011492435353 da giao. Email backup: paris.4501@example.vn"
+  },
+  {
+    "_id": "PERIC",
+    "company": {
+      "name": "Pericles Comidas clásicas",
+      "contact_name": "Guillermo Fernández",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Calle Dr. Jorge Cash 321",
+      "city": "México D.F.",
+      "region": null,
+      "postal_code": "05033",
+      "country": "Mexico"
+    },
+    "contact": {
+      "phone": "0324281949",
+      "fax": "(5) 545-3745",
+      "email": "peric.5251@example.vn",
+      "mobile_phone": "0324281949"
+    },
+    "identity": {
+      "cccd": "031252613701",
+      "date_of_birth": "1977-10-15",
+      "tax_code": "4479351656"
+    },
+    "notes": "LH 0324281949; CCCD 031252613701. Don hang cu #027923302434 da giao. Email backup: peric.5251@example.vn"
+  },
+  {
+    "_id": "PICCO",
+    "company": {
+      "name": "Piccolo und mehr",
+      "contact_name": "Georg Pipps",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Geislweg 14",
+      "city": "Salzburg",
+      "region": null,
+      "postal_code": "5020",
+      "country": "Austria"
+    },
+    "contact": {
+      "phone": "0395462700",
+      "fax": "6562-9723",
+      "email": "picco.7436@example.vn",
+      "mobile_phone": "0395462700"
+    },
+    "identity": {
+      "cccd": "092239621798",
+      "date_of_birth": "1964-03-25",
+      "tax_code": "7971160541"
+    },
+    "notes": "LH 0395462700; CCCD 092239621798. Don hang cu #714717835028 da giao. Email backup: picco.7436@example.vn"
+  },
+  {
+    "_id": "PRINI",
+    "company": {
+      "name": "Princesa Isabel Vinhos",
+      "contact_name": "Isabel de Castro",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Estrada da saúde n. 58",
+      "city": "Lisboa",
+      "region": null,
+      "postal_code": "1756",
+      "country": "Portugal"
+    },
+    "contact": {
+      "phone": "0377951874",
+      "fax": null,
+      "email": "prini.2754@example.vn",
+      "mobile_phone": "0377951874"
+    },
+    "identity": {
+      "cccd": "033250235555",
+      "date_of_birth": "1987-12-12",
+      "tax_code": "4946519400"
+    },
+    "notes": "LH 0377951874; CCCD 033250235555. Don hang cu #302450016605 da giao. Email backup: prini.2754@example.vn"
+  },
+  {
+    "_id": "QUEDE",
+    "company": {
+      "name": "Que Delícia",
+      "contact_name": "Bernardo Batista",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Rua da Panificadora, 12",
+      "city": "Rio de Janeiro",
+      "region": "RJ",
+      "postal_code": "02389-673",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0364875080",
+      "fax": "(21) 555-4545",
+      "email": "quede.4190@example.vn",
+      "mobile_phone": "0364875080"
+    },
+    "identity": {
+      "cccd": "079215955122",
+      "date_of_birth": "1966-10-04",
+      "tax_code": "6155811150"
+    },
+    "notes": "LH 0364875080; CCCD 079215955122. Don hang cu #480673579559 da giao. Email backup: quede.4190@example.vn"
+  },
+  {
+    "_id": "QUEEN",
+    "company": {
+      "name": "Queen Cozinha",
+      "contact_name": "Lúcia Carvalho",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "Alameda dos Canàrios, 891",
+      "city": "Sao Paulo",
+      "region": "SP",
+      "postal_code": "05487-020",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0395103319",
+      "fax": null,
+      "email": "queen.5916@example.vn",
+      "mobile_phone": "0395103319"
+    },
+    "identity": {
+      "cccd": "046219121351",
+      "date_of_birth": "1984-01-15",
+      "tax_code": "5056994002"
+    },
+    "notes": "LH 0395103319; CCCD 046219121351. Don hang cu #931046291634 da giao. Email backup: queen.5916@example.vn"
+  },
+  {
+    "_id": "QUICK",
+    "company": {
+      "name": "QUICK-Stop",
+      "contact_name": "Horst Kloss",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Taucherstraße 10",
+      "city": "Cunewalde",
+      "region": null,
+      "postal_code": "01307",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0355005443",
+      "fax": null,
+      "email": "quick.4027@example.vn",
+      "mobile_phone": "0355005443"
+    },
+    "identity": {
+      "cccd": "001261085930",
+      "date_of_birth": "1965-07-10",
+      "tax_code": "5326513400"
+    },
+    "notes": "LH 0355005443; CCCD 001261085930. Don hang cu #800434113904 da giao. Email backup: quick.4027@example.vn"
+  },
+  {
+    "_id": "RANCH",
+    "company": {
+      "name": "Rancho grande",
+      "contact_name": "Sergio Gutiérrez",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Av. del Libertador 900",
+      "city": "Buenos Aires",
+      "region": null,
+      "postal_code": "1010",
+      "country": "Argentina"
+    },
+    "contact": {
+      "phone": "0390246297",
+      "fax": "(1) 123-5556",
+      "email": "ranch.5941@example.vn",
+      "mobile_phone": "0390246297"
+    },
+    "identity": {
+      "cccd": "046231230085",
+      "date_of_birth": "1984-11-03",
+      "tax_code": "3416078231"
+    },
+    "notes": "LH 0390246297; CCCD 046231230085. Don hang cu #224326936335 da giao. Email backup: ranch.5941@example.vn"
+  },
+  {
+    "_id": "RATTC",
+    "company": {
+      "name": "Rattlesnake Canyon Grocery",
+      "contact_name": "Paula Wilson",
+      "contact_title": "Assistant Sales Representative"
+    },
+    "address": {
+      "street": "2817 Milton Dr.",
+      "city": "Albuquerque",
+      "region": "NM",
+      "postal_code": "87110",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0910119187",
+      "fax": "(505) 555-3620",
+      "email": "rattc.7627@example.vn",
+      "mobile_phone": "0910119187"
+    },
+    "identity": {
+      "cccd": "038267220285",
+      "date_of_birth": "1966-07-25",
+      "tax_code": "2474181085"
+    },
+    "notes": "LH 0910119187; CCCD 038267220285. Don hang cu #927240055424 da giao. Email backup: rattc.7627@example.vn"
+  },
+  {
+    "_id": "REGGC",
+    "company": {
+      "name": "Reggiani Caseifici",
+      "contact_name": "Maurizio Moroni",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "Strada Provinciale 124",
+      "city": "Reggio Emilia",
+      "region": null,
+      "postal_code": "42100",
+      "country": "Italy"
+    },
+    "contact": {
+      "phone": "0370031510",
+      "fax": "0522-556722",
+      "email": "reggc.5750@example.vn",
+      "mobile_phone": "0370031510"
+    },
+    "identity": {
+      "cccd": "033214405055",
+      "date_of_birth": "1982-08-26",
+      "tax_code": "9696124937"
+    },
+    "notes": "LH 0370031510; CCCD 033214405055. Don hang cu #142603222105 da giao. Email backup: reggc.5750@example.vn"
+  },
+  {
+    "_id": "RICAR",
+    "company": {
+      "name": "Ricardo Adocicados",
+      "contact_name": "Janete Limeira",
+      "contact_title": "Assistant Sales Agent"
+    },
+    "address": {
+      "street": "Av. Copacabana, 267",
+      "city": "Rio de Janeiro",
+      "region": "RJ",
+      "postal_code": "02389-890",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0972045017",
+      "fax": null,
+      "email": "ricar.5028@example.vn",
+      "mobile_phone": "0972045017"
+    },
+    "identity": {
+      "cccd": "001228014805",
+      "date_of_birth": "1975-12-10",
+      "tax_code": "1742137882"
+    },
+    "notes": "LH 0972045017; CCCD 001228014805. Don hang cu #379528110175 da giao. Email backup: ricar.5028@example.vn"
+  },
+  {
+    "_id": "RICSU",
+    "company": {
+      "name": "Richter Supermarkt",
+      "contact_name": "Michael Holz",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Grenzacherweg 237",
+      "city": "Genève",
+      "region": null,
+      "postal_code": "1203",
+      "country": "Switzerland"
+    },
+    "contact": {
+      "phone": "0325481390",
+      "fax": null,
+      "email": "ricsu.6707@example.vn",
+      "mobile_phone": "0325481390"
+    },
+    "identity": {
+      "cccd": "033218265124",
+      "date_of_birth": "1992-11-14",
+      "tax_code": "1923304871"
+    },
+    "notes": "LH 0325481390; CCCD 033218265124. Don hang cu #474111260425 da giao. Email backup: ricsu.6707@example.vn"
+  },
+  {
+    "_id": "ROMEY",
+    "company": {
+      "name": "Romero y tomillo",
+      "contact_name": "Alejandra Camino",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Gran Vía, 1",
+      "city": "Madrid",
+      "region": null,
+      "postal_code": "28001",
+      "country": "Spain"
+    },
+    "contact": {
+      "phone": "0354364343",
+      "fax": "(91) 745 6210",
+      "email": "romey.4038@example.vn",
+      "mobile_phone": "0354364343"
+    },
+    "identity": {
+      "cccd": "001250825071",
+      "date_of_birth": "1965-11-26",
+      "tax_code": "3375172863"
+    },
+    "notes": "LH 0354364343; CCCD 001250825071. Don hang cu #802285041284 da giao. Email backup: romey.4038@example.vn"
+  },
+  {
+    "_id": "SANTG",
+    "company": {
+      "name": "Santé Gourmet",
+      "contact_name": "Jonas Bergulfsen",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Erling Skakkes gate 78",
+      "city": "Stavern",
+      "region": null,
+      "postal_code": "4110",
+      "country": "Norway"
+    },
+    "contact": {
+      "phone": "0380505875",
+      "fax": "07-98 92 47",
+      "email": "santg.2850@example.vn",
+      "mobile_phone": "0380505875"
+    },
+    "identity": {
+      "cccd": "040250435835",
+      "date_of_birth": "1988-05-19",
+      "tax_code": "8241919705"
+    },
+    "notes": "LH 0380505875; CCCD 040250435835. Don hang cu #555529140041 da giao. Email backup: santg.2850@example.vn"
+  },
+  {
+    "_id": "SAVEA",
+    "company": {
+      "name": "Save-a-lot Markets",
+      "contact_name": "Jose Pavarotti",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "187 Suffolk Ln.",
+      "city": "Boise",
+      "region": "ID",
+      "postal_code": "83720",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0975271573",
+      "fax": null,
+      "email": "savea.3538@example.vn",
+      "mobile_phone": "0975271573"
+    },
+    "identity": {
+      "cccd": "056225432578",
+      "date_of_birth": "1960-02-05",
+      "tax_code": "4250191933"
+    },
+    "notes": "LH 0975271573; CCCD 056225432578. Don hang cu #249004823426 da giao. Email backup: savea.3538@example.vn"
+  },
+  {
+    "_id": "SEVES",
+    "company": {
+      "name": "Seven Seas Imports",
+      "contact_name": "Hari Kumar",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "90 Wadhurst Rd.",
+      "city": "London",
+      "region": null,
+      "postal_code": "OX15 4NB",
+      "country": "UK"
+    },
+    "contact": {
+      "phone": "0908875672",
+      "fax": "(171) 555-5646",
+      "email": "seves.6092@example.vn",
+      "mobile_phone": "0908875672"
+    },
+    "identity": {
+      "cccd": "001235806974",
+      "date_of_birth": "1985-05-11",
+      "tax_code": "5101245912"
+    },
+    "notes": "LH 0908875672; CCCD 001235806974. Don hang cu #548770505200 da giao. Email backup: seves.6092@example.vn"
+  },
+  {
+    "_id": "SIMOB",
+    "company": {
+      "name": "Simons bistro",
+      "contact_name": "Jytte Petersen",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Vinbæltet 34",
+      "city": "Kobenhavn",
+      "region": null,
+      "postal_code": "1734",
+      "country": "Denmark"
+    },
+    "contact": {
+      "phone": "0392306393",
+      "fax": "31 13 35 57",
+      "email": "simob.2914@example.vn",
+      "mobile_phone": "0392306393"
+    },
+    "identity": {
+      "cccd": "046222239335",
+      "date_of_birth": "1989-07-18",
+      "tax_code": "2662943153"
+    },
+    "notes": "LH 0392306393; CCCD 046222239335. Don hang cu #865334437534 da giao. Email backup: simob.2914@example.vn"
+  },
+  {
+    "_id": "SPECD",
+    "company": {
+      "name": "Spécialités du monde",
+      "contact_name": "Dominique Perrier",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "25, rue Lauriston",
+      "city": "Paris",
+      "region": null,
+      "postal_code": "75016",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0944027252",
+      "fax": "(1) 47.55.60.20",
+      "email": "specd.9394@example.vn",
+      "mobile_phone": "0944027252"
+    },
+    "identity": {
+      "cccd": "048231573405",
+      "date_of_birth": "1983-03-21",
+      "tax_code": "3357795901"
+    },
+    "notes": "LH 0944027252; CCCD 048231573405. Don hang cu #011033205195 da giao. Email backup: specd.9394@example.vn"
+  },
+  {
+    "_id": "SPLIR",
+    "company": {
+      "name": "Split Rail Beer & Ale",
+      "contact_name": "Art Braunschweiger",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "P.O. Box 555",
+      "city": "Lander",
+      "region": "WY",
+      "postal_code": "82520",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0965199430",
+      "fax": "(307) 555-6525",
+      "email": "splir.9455@example.vn",
+      "mobile_phone": "0965199430"
+    },
+    "identity": {
+      "cccd": "092215108411",
+      "date_of_birth": "1984-04-04",
+      "tax_code": "1214243203"
+    },
+    "notes": "LH 0965199430; CCCD 092215108411. Don hang cu #464720375787 da giao. Email backup: splir.9455@example.vn"
+  },
+  {
+    "_id": "SUPRD",
+    "company": {
+      "name": "Suprêmes délices",
+      "contact_name": "Pascale Cartrain",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Boulevard Tirou, 255",
+      "city": "Charleroi",
+      "region": null,
+      "postal_code": "B-6000",
+      "country": "Belgium"
+    },
+    "contact": {
+      "phone": "0325000503",
+      "fax": "(071) 23 67 22 21",
+      "email": "suprd.5222@example.vn",
+      "mobile_phone": "0325000503"
+    },
+    "identity": {
+      "cccd": "031211045211",
+      "date_of_birth": "1977-03-10",
+      "tax_code": "0054413201"
+    },
+    "notes": "LH 0325000503; CCCD 031211045211. Don hang cu #567130109705 da giao. Email backup: suprd.5222@example.vn"
+  },
+  {
+    "_id": "THEBI",
+    "company": {
+      "name": "The Big Cheese",
+      "contact_name": "Liz Nixon",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "89 Jefferson Way Suite 2",
+      "city": "Portland",
+      "region": "OR",
+      "postal_code": "97201",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0931370524",
+      "fax": null,
+      "email": "thebi.0252@example.vn",
+      "mobile_phone": "0931370524"
+    },
+    "identity": {
+      "cccd": "031257742610",
+      "date_of_birth": "1962-01-18",
+      "tax_code": "2961388605"
+    },
+    "notes": "LH 0931370524; CCCD 031257742610. Don hang cu #573100406562 da giao. Email backup: thebi.0252@example.vn"
+  },
+  {
+    "_id": "THECR",
+    "company": {
+      "name": "The Cracker Box",
+      "contact_name": "Liu Wong",
+      "contact_title": "Marketing Assistant"
+    },
+    "address": {
+      "street": "55 Grizzly Peak Rd.",
+      "city": "Butte",
+      "region": "MT",
+      "postal_code": "59801",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0901940995",
+      "fax": "(406) 555-8083",
+      "email": "thecr.0044@example.vn",
+      "mobile_phone": "0901940995"
+    },
+    "identity": {
+      "cccd": "001232730093",
+      "date_of_birth": "1960-02-15",
+      "tax_code": "4211498758"
+    },
+    "notes": "LH 0901940995; CCCD 001232730093. Don hang cu #721819733396 da giao. Email backup: thecr.0044@example.vn"
+  },
+  {
+    "_id": "TOMSP",
+    "company": {
+      "name": "Toms Spezialitäten",
+      "contact_name": "Karin Josephs",
+      "contact_title": "Marketing Manager"
+    },
+    "address": {
+      "street": "Luisenstr. 48",
+      "city": "Münster",
+      "region": null,
+      "postal_code": "44087",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0902236681",
+      "fax": "0251-035695",
+      "email": "tomsp.3022@example.vn",
+      "mobile_phone": "0902236681"
+    },
+    "identity": {
+      "cccd": "001255907270",
+      "date_of_birth": "1990-10-11",
+      "tax_code": "5358271140"
+    },
+    "notes": "LH 0902236681; CCCD 001255907270. Don hang cu #426570655801 da giao. Email backup: tomsp.3022@example.vn"
+  },
+  {
+    "_id": "TORTU",
+    "company": {
+      "name": "Tortuga Restaurante",
+      "contact_name": "Miguel Angel Paolino",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "Avda. Azteca 123",
+      "city": "México D.F.",
+      "region": null,
+      "postal_code": "05033",
+      "country": "Mexico"
+    },
+    "contact": {
+      "phone": "0357033775",
+      "fax": null,
+      "email": "tortu.1064@example.vn",
+      "mobile_phone": "0357033775"
+    },
+    "identity": {
+      "cccd": "001225021047",
+      "date_of_birth": "1970-06-15",
+      "tax_code": "1146313374"
+    },
+    "notes": "LH 0357033775; CCCD 001225021047. Don hang cu #127458792180 da giao. Email backup: tortu.1064@example.vn"
+  },
+  {
+    "_id": "TRADH",
+    "company": {
+      "name": "Tradição Hipermercados",
+      "contact_name": "Anabela Domingues",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Av. Inês de Castro, 414",
+      "city": "Sao Paulo",
+      "region": "SP",
+      "postal_code": "05634-030",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0378061413",
+      "fax": "(11) 555-2168",
+      "email": "tradh.4225@example.vn",
+      "mobile_phone": "0378061413"
+    },
+    "identity": {
+      "cccd": "031245431471",
+      "date_of_birth": "1967-06-13",
+      "tax_code": "2945933923"
+    },
+    "notes": "LH 0378061413; CCCD 031245431471. Don hang cu #116331301840 da giao. Email backup: tradh.4225@example.vn"
+  },
+  {
+    "_id": "TRAIH",
+    "company": {
+      "name": "Trail's Head Gourmet Provisioners",
+      "contact_name": "Helvetius Nagy",
+      "contact_title": "Sales Associate"
+    },
+    "address": {
+      "street": "722 DaVinci Blvd.",
+      "city": "Kirkland",
+      "region": "WA",
+      "postal_code": "98034",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0384591011",
+      "fax": "(206) 555-2174",
+      "email": "traih.4345@example.vn",
+      "mobile_phone": "0384591011"
+    },
+    "identity": {
+      "cccd": "048225134053",
+      "date_of_birth": "1968-06-05",
+      "tax_code": "3592410613"
+    },
+    "notes": "LH 0384591011; CCCD 048225134053. Don hang cu #878206965880 da giao. Email backup: traih.4345@example.vn"
+  },
+  {
+    "_id": "VAFFE",
+    "company": {
+      "name": "Vaffeljernet",
+      "contact_name": "Palle Ibsen",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Smagsloget 45",
+      "city": "Århus",
+      "region": null,
+      "postal_code": "8200",
+      "country": "Denmark"
+    },
+    "contact": {
+      "phone": "0963420049",
+      "fax": "86 22 33 44",
+      "email": "vaffe.9453@example.vn",
+      "mobile_phone": "0963420049"
+    },
+    "identity": {
+      "cccd": "092260122246",
+      "date_of_birth": "1984-10-13",
+      "tax_code": "0675054121"
+    },
+    "notes": "LH 0963420049; CCCD 092260122246. Don hang cu #427626677534 da giao. Email backup: vaffe.9453@example.vn"
+  },
+  {
+    "_id": "VICTE",
+    "company": {
+      "name": "Victuailles en stock",
+      "contact_name": "Mary Saveley",
+      "contact_title": "Sales Agent"
+    },
+    "address": {
+      "street": "2, rue du Commerce",
+      "city": "Lyon",
+      "region": null,
+      "postal_code": "69004",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0386373532",
+      "fax": "78.32.54.87",
+      "email": "victe.7396@example.vn",
+      "mobile_phone": "0386373532"
+    },
+    "identity": {
+      "cccd": "048242705055",
+      "date_of_birth": "1963-11-11",
+      "tax_code": "6901201376"
+    },
+    "notes": "LH 0386373532; CCCD 048242705055. Don hang cu #770497474855 da giao. Email backup: victe.7396@example.vn"
+  },
+  {
+    "_id": "VINET",
+    "company": {
+      "name": "Vins et alcools Chevalier",
+      "contact_name": "Paul Henriot",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "59 rue de l'Abbaye",
+      "city": "Reims",
+      "region": null,
+      "postal_code": "51100",
+      "country": "France"
+    },
+    "contact": {
+      "phone": "0365845738",
+      "fax": "26.47.15.11",
+      "email": "vinet.2604@example.vn",
+      "mobile_phone": "0365845738"
+    },
+    "identity": {
+      "cccd": "038263451360",
+      "date_of_birth": "1986-08-14",
+      "tax_code": "2283936352"
+    },
+    "notes": "LH 0365845738; CCCD 038263451360. Don hang cu #456004352431 da giao. Email backup: vinet.2604@example.vn"
+  },
+  {
+    "_id": "WANDK",
+    "company": {
+      "name": "Die Wandernde Kuh",
+      "contact_name": "Rita Müller",
+      "contact_title": "Sales Representative"
+    },
+    "address": {
+      "street": "Adenauerallee 900",
+      "city": "Stuttgart",
+      "region": null,
+      "postal_code": "70563",
+      "country": "Germany"
+    },
+    "contact": {
+      "phone": "0982671193",
+      "fax": "0711-035428",
+      "email": "wandk.5154@example.vn",
+      "mobile_phone": "0982671193"
+    },
+    "identity": {
+      "cccd": "079211269325",
+      "date_of_birth": "1976-03-22",
+      "tax_code": "5526511806"
+    },
+    "notes": "LH 0982671193; CCCD 079211269325. Don hang cu #158139322434 da giao. Email backup: wandk.5154@example.vn"
+  },
+  {
+    "_id": "WARTH",
+    "company": {
+      "name": "Wartian Herkku",
+      "contact_name": "Pirkko Koskitalo",
+      "contact_title": "Accounting Manager"
+    },
+    "address": {
+      "street": "Torikatu 38",
+      "city": "Oulu",
+      "region": null,
+      "postal_code": "90110",
+      "country": "Finland"
+    },
+    "contact": {
+      "phone": "0905041766",
+      "fax": "981-443655",
+      "email": "warth.1571@example.vn",
+      "mobile_phone": "0905041766"
+    },
+    "identity": {
+      "cccd": "056230409914",
+      "date_of_birth": "1975-04-05",
+      "tax_code": "1371951242"
+    },
+    "notes": "LH 0905041766; CCCD 056230409914. Don hang cu #021236521786 da giao. Email backup: warth.1571@example.vn"
+  },
+  {
+    "_id": "WELLI",
+    "company": {
+      "name": "Wellington Importadora",
+      "contact_name": "Paula Parente",
+      "contact_title": "Sales Manager"
+    },
+    "address": {
+      "street": "Rua do Mercado, 12",
+      "city": "Resende",
+      "region": "SP",
+      "postal_code": "08737-363",
+      "country": "Brazil"
+    },
+    "contact": {
+      "phone": "0375142504",
+      "fax": null,
+      "email": "welli.1213@example.vn",
+      "mobile_phone": "0375142504"
+    },
+    "identity": {
+      "cccd": "031226650249",
+      "date_of_birth": "1972-09-27",
+      "tax_code": "4351145236"
+    },
+    "notes": "LH 0375142504; CCCD 031226650249. Don hang cu #277422283311 da giao. Email backup: welli.1213@example.vn"
+  },
+  {
+    "_id": "WHITC",
+    "company": {
+      "name": "White Clover Markets",
+      "contact_name": "Karl Jablonski",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "305 - 14th Ave. S. Suite 3B",
+      "city": "Seattle",
+      "region": "WA",
+      "postal_code": "98128",
+      "country": "USA"
+    },
+    "contact": {
+      "phone": "0942247253",
+      "fax": "(206) 555-4115",
+      "email": "whitc.3376@example.vn",
+      "mobile_phone": "0942247253"
+    },
+    "identity": {
+      "cccd": "048231011831",
+      "date_of_birth": "1993-11-07",
+      "tax_code": "1602400536"
+    },
+    "notes": "LH 0942247253; CCCD 048231011831. Don hang cu #459882411041 da giao. Email backup: whitc.3376@example.vn"
+  },
+  {
+    "_id": "WILMK",
+    "company": {
+      "name": "Wilman Kala",
+      "contact_name": "Matti Karttunen",
+      "contact_title": "Owner/Marketing Assistant"
+    },
+    "address": {
+      "street": "Keskuskatu 45",
+      "city": "Helsinki",
+      "region": null,
+      "postal_code": "21240",
+      "country": "Finland"
+    },
+    "contact": {
+      "phone": "0933073545",
+      "fax": "90-224 8858",
+      "email": "wilmk.4701@example.vn",
+      "mobile_phone": "0933073545"
+    },
+    "identity": {
+      "cccd": "033260203083",
+      "date_of_birth": "1972-08-25",
+      "tax_code": "0145126533"
+    },
+    "notes": "LH 0933073545; CCCD 033260203083. Don hang cu #923350865084 da giao. Email backup: wilmk.4701@example.vn"
+  },
+  {
+    "_id": "WOLZA",
+    "company": {
+      "name": "Wolski  Zajazd",
+      "contact_name": "Zbyszek Piestrzeniewicz",
+      "contact_title": "Owner"
+    },
+    "address": {
+      "street": "ul. Filtrowa 68",
+      "city": "Warszawa",
+      "region": null,
+      "postal_code": "01-012",
+      "country": "Poland"
+    },
+    "contact": {
+      "phone": "0398999120",
+      "fax": "(26) 642-7012",
+      "email": "wolza.4456@example.vn",
+      "mobile_phone": "0398999120"
+    },
+    "identity": {
+      "cccd": "092210212206",
+      "date_of_birth": "1969-02-23",
+      "tax_code": "1398319207"
+    },
+    "notes": "LH 0398999120; CCCD 092210212206. Don hang cu #942209180864 da giao. Email backup: wolza.4456@example.vn"
+  }
+]
