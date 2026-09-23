@@ -37,3 +37,13 @@ class TableProfile(BaseModel):
 class DatabaseProfile(BaseModel):
     database_name: str = Field(..., description="Tên CSDL")
     tables: List[TableProfile] = Field(..., description="Danh sách cấu trúc các bảng")
+
+
+# --- Schema cho kết quả quét PII (Output của Scanner / LLM) ---
+
+class FieldScanResult(BaseModel):
+    field_name: str = Field(..., description="Tên cột đã phân tích")
+    inferred_pii_type: str = Field(..., description="Loại PII phát hiện (Ví dụ: CCCD, PHONE, EMAIL, UNKNOWN)")
+    confidence: float = Field(..., description="Độ tin cậy (0.0 đến 1.0)")
+    recommended_action: str = Field(..., description="Hành động gợi ý: MASK, DROP, HMAC, KEEP")
+    reasoning: str = Field(..., description="Lý do hoặc căn cứ quyết định")
