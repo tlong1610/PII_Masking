@@ -20,6 +20,7 @@ DPO và đội dữ liệu mất công rà từng trường trước khi cung c�
 - LLM hỗ trợ schema mơ hồ từ profile đã lọc; code kiểm tra, biến đổi và thực thi quyền; DPO quyết định.
 - Chọn MASK/DROP/HMAC theo mục đích dùng PII: lookup/mapping/aggregate dùng HMAC một chiều; trường không cần downstream thì MASK/DROP; dữ liệu cần trả về user và ảnh/voice nằm ngoài P0.
 - Snapshot đầu ra riêng, nguồn chỉ đọc; SQL join và MongoDB lookup phải đạt trước khi phát hành.
+- UI không hiển thị raw PII value cho bất kỳ vai trò nào, kể cả DPO. DPO duyệt bằng field path, kiểu dữ liệu, pattern/profile đã lọc, căn cứ, action đề xuất và tác động downstream.
 - Báo cáo web/JSON, cảnh báo có lý do, lịch sử review; không tuyên bố tuân thủ tuyệt đối.
 
 Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Mapping, độ phủ và giới hạn: [PRD](docs/prd.md).
@@ -42,7 +43,7 @@ Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid
 | Snapshot SQL/NoSQL, 2 tác vụ downstream định trước                                                       | Realtime, truy vấn tùy ý, join xuyên database     |
 | MASK/DROP/HMAC; báo cáo và audit tối thiểu                                                               | Token vault, KMS, vận hành production             |
 
-PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).
+PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Nếu file nhãn nội bộ cần `sample_value` để eval, các giá trị đó chỉ dùng trong fixture/eval và không được hiển thị trong UI, report, prompt hoặc log. Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).
 
 ## Tech Stack
 

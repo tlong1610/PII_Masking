@@ -34,6 +34,8 @@ Tách ba khái niệm: **danh mục pháp lý**, **khả năng phát hiện đã
 
 Mọi trường đều phải có quyết định đầu ra. Không phát hiện được không đồng nghĩa không phải dữ liệu cá nhân. Không dùng nhãn “đã tuân thủ hoàn toàn”, “không còn PII” hoặc “giữ được mọi phép join”.
 
+PIIGuard VN áp dụng nguyên tắc **no-raw-value UI**: giao diện không hiển thị giá trị nguồn thô cho bất kỳ vai trò nào, kể cả DPO. DPO review dựa trên đường dẫn trường, kiểu dữ liệu, pattern/profile đã lọc, taxonomy/căn cứ, action đề xuất và tác động downstream. Với trường UNKNOWN, DPO vẫn không xem raw value; nếu profile chưa đủ căn cứ thì chọn DROP hoặc chặn để xử lý ngoài phạm vi demo.
+
 ### Non-goals
 
 - Dữ liệu doanh nghiệp thật, file upload, OCR/ảnh/âm thanh, NER văn bản tự do, mảng object hoặc schema NoSQL tùy ý.
@@ -45,7 +47,7 @@ Mọi trường đều phải có quyết định đầu ra. Không phát hiện
 
 | Vai trò             | Mô tả                                               | Mục tiêu chính                                                      | Quyền hạn P0                                                                                     |
 | ------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| DPO / Data reviewer | Người chịu trách nhiệm rà soát và phê duyệt chia sẻ | Có căn cứ, thấy phần chưa rõ, duyệt biện pháp và kiểm tra ảnh hưởng | Chọn nguồn demo; quét; sửa/duyệt phân loại; tạo, phát hành, thu hồi đầu ra; đọc báo cáo          |
+| DPO / Data reviewer | Người chịu trách nhiệm rà soát và phê duyệt chia sẻ | Có căn cứ, thấy phần chưa rõ, duyệt biện pháp và kiểm tra ảnh hưởng mà không xem raw value | Chọn nguồn demo; quét; sửa/duyệt phân loại; tạo, phát hành, thu hồi đầu ra; đọc báo cáo          |
 | Analyst             | Người thực hiện phân tích được cho phép             | Dataset dùng được cho tác vụ đã định nghĩa                          | Xem bản đã phát hành và chạy tác vụ mẫu; không đọc nguồn, sửa policy, tạo hoặc phát hành dataset |
 
 Dùng hai tài khoản cấu hình sẵn; phiên đăng nhập và vai trò do server xác thực. Không nhận vai trò từ một ô chọn hoặc header do trình duyệt tự khai. Mọi API kiểm tra vai trò và trạng thái dataset; ẩn nút trên UI không đủ. Không mở cổng database cho Analyst, không đưa credential nguồn xuống trình duyệt.
@@ -80,7 +82,7 @@ Tích hợp pipeline/BI, giám sát thay đổi, triển khai VPC/on-premise, qu
 1. DPO đăng nhập; chọn một nguồn demo và cặp bảng/collection. Mỗi nguồn là một phiên độc lập.
 2. Backend kiểm tra quyền chỉ đọc, giới hạn schema, số bản ghi; khóa phiên vào một phiên bản fixture.
 3. Connector đọc toàn bộ phạm vi, tạo profile chung. Code chạy quy tắc định dạng/metadata; LLM hỗ trợ ánh xạ ngữ nghĩa các mục mơ hồ.
-4. DPO rà mọi trường, xem căn cứ, điều chỉnh phân loại và action. Trường ngoài khả năng xử lý được DROP có xác nhận hoặc tiếp tục chặn.
+4. DPO rà mọi trường bằng profile/pattern đã lọc, xem căn cứ, điều chỉnh phân loại và action. UI không hiện raw value. Trường ngoài khả năng xử lý được DROP có xác nhận hoặc tiếp tục chặn.
 5. DPO xác nhận tạo đầu ra. Backend kiểm tra phiên nguồn, phiên quyết định, taxonomy và quyền trước khi ghi.
 6. Code tạo snapshot trong vùng staging riêng; áp dụng policy theo danh sách trường cho phép. Không dùng sao chép toàn bộ rồi mới bỏ vài trường.
 7. Verifier kiểm tra policy, schema đầu ra, số liệu và downstream test. Lỗi làm phiên FAILED; không cấp quyền Analyst.
@@ -99,8 +101,8 @@ Quét lại tạo run mới. Chỉnh policy không làm biến đổi snapshot �
 
 | Quyết định                | Thông tin DPO phải thấy                                                      | Điều kiện backend                                                                            |
 | ------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Duyệt phân loại/action    | Đường dẫn, căn cứ nếu có, giới hạn detector, lý do và tác động downstream    | Lưu người duyệt, lý do, action, phiên bản; mọi trường được xử lý rõ ràng                     |
-| Loại trường chưa xác định | “Chưa phân loại”; tên trường bị loại; tác vụ nào mất dữ liệu                 | Chỉ cho DROP; giữ trạng thái chưa phân loại trong báo cáo                                    |
+| Duyệt phân loại/action    | Đường dẫn, kiểu dữ liệu, pattern/profile đã lọc, căn cứ nếu có, giới hạn detector, lý do và tác động downstream; không có raw value | Lưu người duyệt, lý do, action, phiên bản; mọi trường được xử lý rõ ràng                     |
+| Loại trường chưa xác định | “Chưa phân loại”; profile/pattern đã lọc; tên trường bị loại; tác vụ nào mất dữ liệu | Chỉ cho DROP hoặc chặn; giữ trạng thái chưa phân loại trong báo cáo                         |
 | Tạo dataset               | Nguồn/phiên, danh sách đầu ra, chính sách, đích staging và kiểm tra bắt buộc | Không ghi nếu scan thiếu, còn mục chưa quyết định, khóa lỗi hoặc nguồn đã đổi                |
 | Phát hành                 | Kết quả verifier, downstream, phần bị loại, phạm vi và giới hạn              | Chỉ VERIFIED; kiểm tra phiên bản quyết định và manifest đầu ra; lệnh lặp không tạo bản trùng |
 | Thu hồi                   | Dataset và tác vụ Analyst sẽ mất quyền truy cập                              | Chỉ DPO; ngừng quyền đọc qua app, ghi audit                                                  |
@@ -213,7 +215,7 @@ Nguồn demo đóng băng theo seed/version trong suốt run; tác vụ seed kh�
 
 Tài khoản ghi đích tách khỏi tài khoản đọc nguồn; chỉ được ghi vào vùng đích. PostgreSQL tạo bảng snapshot đã biến đổi, sau đó SQL view trỏ vào bảng này và chỉ cấp SELECT cho tài khoản đọc của ứng dụng. View không trỏ về bảng nguồn: [PostgreSQL view thông thường đọc lại truy vấn khi được dùng](https://www.postgresql.org/docs/current/sql-createview.html), nên chỉ tạo view không đủ giữ nguyên phiên dữ liệu DPO đã duyệt. MongoDB ghi collection snapshot sang database đích riêng.
 
-Metadata của run, policy, quyết định, trạng thái và audit lưu trong schema ứng dụng của PostgreSQL. Không lưu giá trị nguồn vào metadata, prompt, lỗi, báo cáo hay AI log. Fingerprint nguồn dùng HMAC nội bộ; key ở biến môi trường ngoài git. Staging và raw fixture không được đưa vào endpoint Analyst. Đầu ra không được thay đổi sau khi verifier đạt; muốn đổi phải tạo run mới.
+Metadata của run, policy, quyết định, trạng thái và audit lưu trong schema ứng dụng của PostgreSQL. Không lưu giá trị nguồn vào metadata, prompt, lỗi, báo cáo, audit, UI preview hay AI log. Fingerprint nguồn dùng HMAC nội bộ; key ở biến môi trường ngoài git. Staging và raw fixture không được đưa vào endpoint Analyst. Đầu ra không được thay đổi sau khi verifier đạt; muốn đổi phải tạo run mới.
 
 Audit tối thiểu: run/dataset ID, actor/role, thời gian, hành động, taxonomy/policy version, lý do review và kết quả kiểm tra. Audit P0 không được mô tả là kho bằng chứng bất biến hoặc chống sửa ở mức production.
 
@@ -263,6 +265,8 @@ Golden dataset P0 phải được build cùng fixture, không chỉ dùng cảm 
 - Expected policy: trường nào `HMAC`, `MASK`, `DROP`, `KEEP`, kèm mục đích sử dụng.
 - Expected downstream: số hàng join được, số hàng không join, tổng doanh thu/đếm đơn theo nhóm trước và sau xử lý.
 - Bộ test giữ riêng cho eval; DPO sửa sau review không được tính là điểm AI trước review.
+
+Nếu golden label hoặc benchmark nội bộ cần chứa `sample_value` để kiểm thử, trường này chỉ được dùng trong fixture/eval cục bộ. Ứng dụng không được đưa `sample_value` vào UI, report, audit, prompt, log hoặc endpoint dành cho DPO/Analyst.
 
 | Nhóm            | Mục tiêu                                                         | Bằng chứng phải lưu                                                                                                      |
 | --------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

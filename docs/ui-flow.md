@@ -3,7 +3,7 @@
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Cập nhật:** 21/09/2026  
 **Phạm vi:** MVP 14 ngày; PostgreSQL và MongoDB đều P0; dữ liệu mô phỏng.
 
-Có hai tài khoản demo **DPO** và **Analyst**, vai trò xác thực tại server. DPO có quy trình quét–duyệt–phát hành; Analyst chỉ dùng snapshot đã phát hành. Mười trạng thái dưới đây được gộp vào **5 trang và 2 modal**, không cần xây mười trang riêng.
+Có hai tài khoản demo **DPO** và **Analyst**, vai trò xác thực tại server. DPO có quy trình quét–duyệt–phát hành; Analyst chỉ dùng snapshot đã phát hành. UI áp dụng nguyên tắc **no-raw-value**: không hiển thị giá trị nguồn thô cho bất kỳ vai trò nào, kể cả DPO. Mười trạng thái dưới đây được gộp vào **5 trang và 2 modal**, không cần xây mười trang riêng.
 
 ## 1. Màn hình và trạng thái
 
@@ -66,17 +66,18 @@ LLM hết quota/timeout/JSON sai: thông báo “AI chưa đưa ra đề xuất;
 
 ### S3 — Review trường và chính sách, trang chính DPO
 
-Bảng trái liệt kê **mọi trường**, gồm cả UNKNOWN và trường do hệ thống sinh. Các cột: đường dẫn; kiểu; phân loại; độ phủ detector; action; trạng thái duyệt. Bộ lọc nhanh: chưa duyệt, chưa rõ, bị loại, có ảnh hưởng liên kết.
+Bảng trái liệt kê **mọi trường**, gồm cả UNKNOWN và trường do hệ thống sinh. Các cột: đường dẫn; kiểu; profile/pattern đã lọc; phân loại; độ phủ detector; action; trạng thái duyệt. Bộ lọc nhanh: chưa duyệt, chưa rõ, bị loại, có ảnh hưởng liên kết.
 
 Panel phải hiển thị:
 
 - Tên loại pháp lý nếu đã ánh xạ; văn bản, điều/khoản và link nguồn từ danh mục đã duyệt.
 - Nguồn đề xuất: rule, AI hoặc DPO; lý do ngắn; giới hạn nhận diện. Không hiện “độ tin cậy 98%” nếu chưa hiệu chuẩn.
+- Profile đã lọc: dạng dữ liệu, pattern, tỉ lệ null/missing, độ dài, số lượng distinct hoặc quan hệ khóa nếu có. Không hiện raw value hoặc sample PII.
 - Action bằng ngôn ngữ người dùng: **Bỏ trường**, **Che toàn bộ**, **Tạo mã liên kết**, **Giữ trường đã được duyệt**.
 - Ảnh hưởng: giữ/mất khóa cần cho tác vụ, thiếu trường phân tích, hoặc cần xem lại tổ hợp trường.
 - Nút **Chấp nhận**, **Sửa**, **Bác đề xuất**; lý do bắt buộc khi sửa/bác hoặc xác nhận không phải dữ liệu cá nhân.
 
-“Tạo mã liên kết” dùng HMAC theo PRD; không cho user chọn thuật toán hay nhập khóa bí mật. Bác đề xuất không tự động giữ dữ liệu. Với UNKNOWN, DPO có thể chọn loại có căn cứ hoặc **Bỏ trường chưa xác định**; không cho chọn KEEP để bỏ qua cảnh báo.
+“Tạo mã liên kết” dùng HMAC theo PRD; không cho user chọn thuật toán hay nhập khóa bí mật. Bác đề xuất không tự động giữ dữ liệu. Với UNKNOWN, DPO có thể chọn loại có căn cứ từ profile hoặc **Bỏ trường chưa xác định**; không cho xem raw value và không cho chọn KEEP để bỏ qua cảnh báo.
 
 Cảnh báo tách riêng: lỗi chặn, phân loại pháp lý, độ chắc chắn phát hiện. Không có thang điểm pháp lý do AI tự tạo. Với loại chưa triển khai, hiện “Chưa có bằng chứng nhận diện tự động” thay vì “Không có PII”.
 
@@ -84,7 +85,7 @@ Cuối trang có tổng số trường, đã quyết định, chưa quyết đ�
 
 ### S4 — Xác nhận tạo dataset
 
-Modal liệt kê nguồn và phiên dữ liệu, nơi ghi đích, số trường MASK/DROP/HMAC/KEEP, danh sách UNKNOWN sẽ bị loại, tên khóa liên kết và tác vụ cần đạt.
+Modal liệt kê nguồn và phiên dữ liệu, nơi ghi đích, số trường MASK/DROP/HMAC/KEEP, danh sách UNKNOWN sẽ bị loại, tên khóa liên kết và tác vụ cần đạt. Phần “trước xử lý” nếu có chỉ hiển thị field profile/pattern; phần “sau xử lý” chỉ hiển thị dạng output an toàn như `[REDACTED]`, `NULL`, `DROPPED` hoặc digest HMAC rút gọn.
 
 Nội dung xác nhận: “Tạo bản dữ liệu theo các quyết định đã duyệt. Bản này chỉ được chia sẻ sau khi kiểm tra đạt và bạn xác nhận phát hành.”
 
@@ -98,7 +99,7 @@ Hoàn tất chỉ dẫn đến S6 khi VERIFIED. Lỗi dẫn S8; không có nút 
 
 ### S6 — Kết quả và báo cáo
 
-Hiển thị nguồn, thời điểm snapshot, phiên policy, phạm vi đã quét, actions, kết quả verifier và downstream. Báo cáo có cả trường UNKNOWN đã bị loại; không báo chúng là đã phân loại thành công.
+Hiển thị nguồn, thời điểm snapshot, phiên policy, phạm vi đã quét, actions, kết quả verifier và downstream. Báo cáo có cả trường UNKNOWN đã bị loại; không báo chúng là đã phân loại thành công. Báo cáo không chứa raw value hoặc sample PII.
 
 Kết quả downstream chỉ gồm các số so sánh và sai khác cần thiết; không đưa định danh nguồn vào báo cáo. Nhãn chuẩn: **“Đạt các kiểm tra đã khai báo trên fixture này”**. Tránh nhãn “Đã tuân thủ luật” hoặc “Đã sạch toàn bộ PII”.
 
