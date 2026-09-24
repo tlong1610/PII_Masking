@@ -1,10 +1,30 @@
+import os
 from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from src.main import app
+# Use isolated SQLite DB for tests before app imports engine.
+os.environ["DATABASE_URL"] = "sqlite:///./data/test_sessions.db"
+os.environ["APP_ENV"] = "test"
+
+from src.api.session_store import clear_sessions
+from src.config import get_settings
+from src.db.session import init_db, reset_engine
+
+get_settings.cache_clear()
+reset_engine()
+init_db()
+
+from src.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _clean_sessions():
+    clear_sessions()
+    yield
+    clear_sessions()
 
 
 @pytest_asyncio.fixture

@@ -1,0 +1,71 @@
+"""Database engine and session helpers for app metadata."""
+
+from collections.abc import Generator
+
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
+
+from src.config import get_settings
+from src.db.base import Base
+from src.db.models import DemoUser
+
+_engine = None
+_SessionLocal: sessionmaker[Session] | None = None
+
+DEMO_USERS = (
+    {"username": "dpo", "password": "dpo123", "role": "DPO"},
+    {"username": "analyst", "password": "analyst123", "role": "ANALYST"},
+)
+
+
+def get_engine():
+    global _engine, _SessionLocal
+    if _engine is None:
+        settings = get_settings()
+        connect_args = {}
+        if settings.database_url.startswith("sqlite"):
+            connect_args["check_same_thread"] = False
+        _engine = create_engine(settings.database_url, connect_args=connect_args)
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+    return _engine
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    get_engine()
+    assert _SessionLocal is not None
+    return _SessionLocal
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = get_session_factory()()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def reset_engine() -> None:
+    """Reset engine (used by tests when DATABASE_URL changes)."""
+    global _engine, _SessionLocal
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+    _SessionLocal = None
+
+
+def seed_demo_users(db: Session) -> None:
+    for row in DEMO_USERS:
+        exists = db.scalar(select(DemoUser).where(DemoUser.username == row["username"]))
+        if exists is None:
+            db.add(DemoUser(**row))
+    db.commit()
+
+
+def init_db() -> None:
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+    db = get_session_factory()()
+    try:
+        seed_demo_users(db)
+    finally:
+        db.close()
