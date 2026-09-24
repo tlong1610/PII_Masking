@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite:///./data/app.db"
 
+    # HMAC join-key hashing (not encryption)
+    hmac_secret: str = "dev-hmac-secret-change-me"
+    hmac_key_version: str = "v1"
+
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
 
