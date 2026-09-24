@@ -31,45 +31,61 @@ class BM25Engine:
         # Xây dựng corpus từ khóa
         for item in data:
             meta = item.get("metadata", {})
+            # CHỈ LẤY CÁC CASE POSITIVE (PII)
+            if meta.get("classification") == "NOT_PERSONAL_DATA":
+                continue
+                
             keywords = meta.get("keywords", [])
-            # Tokenize đơn giản bằng cách tách khoảng trắng
+            # Tokenize từ khóa (thay thế dấu chấm, gạch dưới)
             tokens = []
             for kw in keywords:
-                tokens.extend(kw.lower().split())
+                clean_kw = kw.lower().replace("_", " ").replace(".", " ")
+                tokens.extend(clean_kw.split())
             self.tokenized_corpus.append(tokens)
 
         # Fit mô hình BM25
         self.bm25 = BM25Okapi(self.tokenized_corpus)
 
-    def calculate_lexical_score(self, col_profile: ColumnProfile, threshold: float = 0.2) -> tuple[float, FieldScanResult | None]:
+    def calculate_lexical_score(self, col_profile: ColumnProfile, threshold: float = 0.85) -> tuple[float, FieldScanResult | None]:
         """
         Đánh giá cột bằng BM25.
         Returns:
             - Tuple (bm25_score, FieldScanResult | None)
-            - Nếu score < threshold: Dữ liệu dưới ngưỡng bị loại bỏ hoàn toàn (Trả về Result KHÔNG PHẢI PII).
-            - Nếu score >= threshold: Trả về None (để đẩy xuống Tầng 3).
+            - Lọc trên (Top-filter): Nếu score > threshold, chốt luôn đây là PII để tiết kiệm LLM.
+            - Nếu score <= threshold: Trả về None để Đẩy xuống Tầng 3 (ưu tiên recall, không bỏ sót).
         """
-        # Chuẩn bị query từ tên cột (có thể mở rộng thêm mô tả cột nếu có)
-        query_str = col_profile.column_name.lower().replace("_", " ")
+        # Chuẩn bị query từ tên cột (thay thế cả dấu chấm và gạch dưới)
+        query_str = col_profile.column_name.lower().replace("_", " ").replace(".", " ")
         tokenized_query = query_str.split()
 
         # Tính điểm
         doc_scores = self.bm25.get_scores(tokenized_query)
-        max_score = max(doc_scores) if len(doc_scores) > 0 else 0.0
+        max_raw_score = max(doc_scores) if len(doc_scores) > 0 else 0.0
+        
+        # Chuẩn hóa bằng hàm Sigmoid để ép điểm về [0, 1]
+        import math
+        if max_raw_score == 0.0:
+            max_score = 0.0
+        else:
+            # x0 = 2.5 (ngưỡng bắt đầu khớp từ khóa), k = 2.0 (độ dốc)
+            max_score = 1.0 / (1.0 + math.exp(-2.0 * (max_raw_score - 2.5)))
 
-        if max_score < threshold:
-            # Bị loại bỏ, không phải PII
+        if max_score > threshold:
+            # Điểm cao -> Chắc chắn là PII
+            # Nếu là khoá (PK/FK) thì dùng HMAC/HASHING, ngược lại dùng MASK
+            action = col_profile.system_recommendation if col_profile.system_recommendation else "MASK"
+            
             result = FieldScanResult(
                 field_name=col_profile.column_name,
-                inferred_pii_type=PIIType.UNKNOWN.value,  # Hoặc NOT_PERSONAL_DATA
+                inferred_pii_type=PIIType.UNKNOWN.value,  # LLM/DPO có thể phân loại chi tiết sau, tạm thời đánh dấu là PII
                 confidence=1.0,
-                recommended_action="KEEP",
-                reasoning=f"BM25 Score ({max_score:.2f}) dưới ngưỡng ({threshold}). Loại bỏ tại Tầng 2.",
+                recommended_action=action,
+                reasoning=f"BM25 Score ({max_score:.2f}) vượt ngưỡng ({threshold}). Khẳng định là PII tại Tầng 2.",
                 tier="TIER_2",
                 bm25_score=max_score
             )
             return max_score, result
 
-        # Qua được phễu lọc Tầng 2, đi tiếp Tầng 3
+        # Dưới ngưỡng -> Chưa chắc chắn, đi tiếp Tầng 3 để LLM quét kỹ hơn
         return max_score, None
 

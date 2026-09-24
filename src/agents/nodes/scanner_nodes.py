@@ -36,7 +36,7 @@ def tier2_bm25_node(state: AgentState) -> dict[str, Any]:
         # Fallback nếu chưa setup JSON corpus, cho qua phễu luôn với điểm 1.0
         return {"bm25_score": 1.0}
 
-    score, reject_result = bm25_engine.calculate_lexical_score(col_profile, threshold=0.2)
+    score, reject_result = bm25_engine.calculate_lexical_score(col_profile, threshold=0.95)
 
     if reject_result:
         # Bị loại ngay tại Tầng 2
@@ -67,31 +67,32 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
             hybrid_score = (bm25_score * 0.4) + (semantic_score * 0.6)
 
     # Quy tắc phân luồng Tầng 3.1
-    if hybrid_score > 0.85:
+    if hybrid_score > 0.75:
+        action = col_profile.system_recommendation if col_profile.system_recommendation else "MASK"
         res = FieldScanResult(
             field_name=col_profile.column_name,
             inferred_pii_type=PIIType.UNKNOWN.value, # Cần LLM hoặc mapping lại để biết type chính xác, tạm để UNKNOWN
             confidence=hybrid_score,
-            recommended_action="MASK",
-            reasoning=f"Hybrid Score ({hybrid_score:.2f}) > 0.85. Khẳng định là PII.",
+            recommended_action=action,
+            reasoning=f"Hybrid Score ({hybrid_score:.2f}) > 0.75. Khẳng định là PII.",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
         return {"hybrid_score": hybrid_score, "final_proposal": res}
-
-    if hybrid_score < 0.4:
+        
+    if hybrid_score < 0.1:
         res = FieldScanResult(
             field_name=col_profile.column_name,
-            inferred_pii_type=PIIType.NOT_PERSONAL_DATA.value,
+            inferred_pii_type="NOT_PERSONAL_DATA",
             confidence=1.0 - hybrid_score,
             recommended_action="KEEP",
-            reasoning=f"Hybrid Score ({hybrid_score:.2f}) < 0.4. Không phải PII.",
+            reasoning=f"Hybrid Score ({hybrid_score:.2f}) < 0.1. Khẳng định không phải PII.",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
         return {"hybrid_score": hybrid_score, "final_proposal": res}
 
-    # Vùng xám (0.4 - 0.85): Cần Data Shape để đẩy sang LLM
+    # Vùng xám (0.1 - 0.75): Cần Data Shape để đẩy sang LLM
     data_shape = RuleBasedScanner.transform_to_data_shape(col_profile.samples)
     return {"hybrid_score": hybrid_score, "data_shape": data_shape}
 
@@ -100,7 +101,8 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 3.2: LLM Context Reasoning."""
     import json
 
-    from langchain_core.prompts import PromptTemplate
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import PydanticOutputParser
 
     from src.services.llm import get_llm
 
@@ -112,52 +114,43 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
 
     llm = get_llm()
-    structured_llm = llm.with_structured_output(FieldScanResult)
+    parser = PydanticOutputParser(pydantic_object=FieldScanResult)
 
-    prompt = PromptTemplate.from_template(
-        """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
 Nhiệm vụ của bạn là phân tích cấu trúc của một cột trong Database và quyết định xem nó có chứa dữ liệu cá nhân (PII) hay không, dựa trên tên cột và hình dáng dữ liệu (Data Shape) đã được ẩn danh.
 
 Các loại PII (inferred_pii_type) có thể là: CCCD, PHONE, EMAIL, ADDRESS, DOB, TAX_CODE, UNKNOWN, NOT_PERSONAL_DATA...
-Hành động khuyến nghị (recommended_action): MASK (nếu là PII), KEEP (nếu không phải).
+Hành động khuyến nghị (recommended_action): HMAC (nếu là Khóa chính/Khóa ngoại - PK/FK), MASK (nếu là PII thông thường), KEEP (nếu không phải).
 
-ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
+{format_instructions}"""),
+        ("human", """ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
 {few_shot_examples}
 
 THÔNG TIN CỘT CẦN PHÂN TÍCH:
 - Tên cột: {column_name}
 - Kiểu dữ liệu SQL: {data_type}
+- Là Khóa (Key): {system_rec}
 - Data Shapes (Mẫu dữ liệu đã được biến đổi thành dạng ký tự X và C): {data_shapes}
 
-Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu."""
-    )
+Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu (không thêm bất kỳ văn bản giải thích nào khác).""")
+    ])
 
-    chain = prompt | structured_llm
+    chain = prompt | llm | parser
 
-    try:
-        # Gọi API thật
-        result: FieldScanResult = chain.invoke({
-            "few_shot_examples": few_shot_str,
-            "column_name": col_profile.column_name,
-            "data_type": col_profile.data_type,
-            "data_shapes": json.dumps(data_shape)
-        })
-        # Ghi đè tier logic
-        result.tier = "TIER_3_LLM"
-        return {"tier3_result": result}
-
-    except Exception as e:
-        print(f"[Error] Lỗi khi gọi LLM: {e}")
-        # Fallback an toàn
-        fallback_res = FieldScanResult(
-            field_name=col_profile.column_name,
-            inferred_pii_type=PIIType.UNKNOWN.value,
-            confidence=0.0,
-            recommended_action="KEEP",
-            reasoning=f"LLM API Failed: {str(e)}",
-            tier="TIER_3_LLM_ERROR"
-        )
-        return {"tier3_result": fallback_res}
+    # Gọi API thật. Nếu có lỗi (Rate Limit), Exception sẽ được ném lên trên
+    # để script đánh giá (run_eval_full.py) bắt lấy và kích hoạt cơ chế Retry.
+    result: FieldScanResult = chain.invoke({
+        "few_shot_examples": few_shot_str,
+        "column_name": col_profile.column_name,
+        "data_type": col_profile.data_type,
+        "system_rec": col_profile.system_recommendation or "Không",
+        "data_shapes": json.dumps(data_shape),
+        "format_instructions": parser.get_format_instructions()
+    })
+    # Ghi đè tier logic
+    result.tier = "TIER_3_LLM"
+    return {"tier3_result": result}
 
 
 def proposal_node(state: AgentState) -> dict[str, Any]:

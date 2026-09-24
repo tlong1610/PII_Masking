@@ -42,8 +42,8 @@ def run_eval():
             system_recommendation=None
         )
 
-        scan_res = scanner.scan_column(profile)
-        pred = scan_res.inferred_pii_type
+        scan_res = scanner.tier1_static_filter(profile)
+        pred = scan_res.inferred_pii_type if scan_res else PIIType.UNKNOWN.value
 
         golden = row['taxonomy_id']
         expected = label_map.get(golden, PIIType.UNKNOWN.value)
@@ -68,12 +68,26 @@ def run_eval():
     total = len(results)
     correct = sum(1 for r in results if r['match'])
 
+    # Tính toán các metric nhị phân (Positive: PII, Negative: UNKNOWN hoặc Không phải PII)
+    negative_classes = [PIIType.UNKNOWN.value, PIIType.TRACKING_CODE.value, PIIType.MONEY_ALONE.value]
+    tp = sum(1 for r in results if r['expected'] not in negative_classes and r['predicted'] not in negative_classes)
+    fp = sum(1 for r in results if r['expected'] in negative_classes and r['predicted'] not in negative_classes)
+    tn = sum(1 for r in results if r['expected'] in negative_classes and r['predicted'] in negative_classes)
+    fn = sum(1 for r in results if r['expected'] not in negative_classes and r['predicted'] in negative_classes)
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f2 = 5 * precision * recall / (4 * precision + recall) if (4 * precision + recall) > 0 else 0.0
+
     # Tạo nội dung báo cáo
     report = "# Evaluation Report (Rule-Based Only)\n\n"
     report += f"- **Tổng số test cases:** {total}\n"
     report += f"- **Độ chính xác tổng thể (Overall Accuracy):** {correct/total*100:.2f}%\n"
     if supported_classes_count > 0:
         report += f"- **Độ chính xác trên các nhãn quy tắc hỗ trợ:** {supported_classes_correct/supported_classes_count*100:.2f}% ({supported_classes_correct}/{supported_classes_count})\n"
+    report += f"- **Precision (PII Detection):** {precision*100:.2f}%\n"
+    report += f"- **Recall (PII Detection):** {recall*100:.2f}%\n"
+    report += f"- **F2 Score (PII Detection):** {f2*100:.2f}%\n"
     report += "\n## Các ca dự đoán SAI (Failed Cases)\n\n"
 
     report += "| ID | Trường dữ liệu (Field) | Golden Label | Kỳ vọng Rule Engine | Thực tế Rule Engine |\n"
@@ -88,6 +102,9 @@ def run_eval():
         f.write(report)
 
     print(f"Eval finished. Overall Accuracy: {correct/total*100:.2f}%.")
+    print(f"Precision: {precision*100:.2f}%")
+    print(f"Recall: {recall*100:.2f}%")
+    print(f"F2 Score: {f2*100:.2f}%")
     print(f"Report saved to {report_path}")
 
 
