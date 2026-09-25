@@ -1,133 +1,113 @@
-from typing import List, Dict, Optional
-
 class PostgresViewGenerator:
-    """
-    Trình tạo lệnh SQL CREATE VIEW cho PostgreSQL với cơ chế tùy chỉnh (Customizable).
-    Cho phép thay đổi logic mask/hash dễ dàng từ bên ngoài.
-    """
+    """Generate PostgreSQL masking views from reviewed PII actions."""
 
     def __init__(
-        self, 
-        salt: str = "MY_DEFAULT_SALT", 
-        pepper: str = "MY_SECRET_PEPPER", 
-        custom_logic: Optional[Dict[str, str]] = None
+        self,
+        salt: str = "MY_DEFAULT_SALT",
+        pepper: str = "MY_SECRET_PEPPER",
+        custom_logic: dict[str, str] | None = None,
     ):
-        """
-        Khởi tạo view generator.
-        
-        Args:
-            salt: Chuỗi ngẫu nhiên (hoặc tên cột salt) để chống Rainbow table.
-            pepper: Khóa bí mật (chỉ lưu trên server/code) để tăng cường bảo mật.
-            custom_logic: (Tùy chọn) Dictionary map action với biểu thức SQL. 
-        """
         self.salt = salt
         self.pepper = pepper
-        
-        # Logic mặc định đã được đơn giản hóa Mask và tăng cường Hash
         self.sql_templates = {
-            # Hashing với Pepper + Data + Salt
-            'hash': f"md5(concat('{self.pepper}', {{column}}::text, '{self.salt}'))",
-            
-            # Masking đơn giản
-            'mask': "'********'",
-            'mask_all': "'[MASKED]'",
-            
-            # Hash SHA256 (tốt nhất, yêu cầu extension pgcrypto)
-            'hash_sha256': f"encode(digest(concat('{self.pepper}', {{column}}::text, '{self.salt}'), 'sha256'), 'hex')" 
+            "HMAC": (
+                "encode(hmac(coalesce({column}::text, ''), "
+                f"'{self._escape_literal(self.pepper)}:{self._escape_literal(self.salt)}', 'sha256'), 'hex')"
+            ),
+            "HASHING": (
+                "encode(hmac(coalesce({column}::text, ''), "
+                f"'{self._escape_literal(self.pepper)}:{self._escape_literal(self.salt)}', 'sha256'), 'hex')"
+            ),
+            "HASH": f"md5(concat('{self._escape_literal(self.pepper)}', {{column}}::text, '{self._escape_literal(self.salt)}'))",
+            "MASK": "'[MASKED]'",
+            "MASK_ALL": "'[MASKED]'",
+            "NULL": "NULL",
+            "KEEP": "{column}",
         }
-        
-        # Ghi đè/bổ sung bằng logic tùy chỉnh từ người dùng
+
         if custom_logic:
-            self.sql_templates.update(custom_logic)
+            self.sql_templates.update({key.upper(): value for key, value in custom_logic.items()})
 
     def generate_postgres_view(
         self,
-        table_name: str, 
-        all_columns: List[str], 
-        pii_actions: Dict[str, str],
-        view_prefix: str = "vw_masked_"
+        table_name: str,
+        all_columns: list[str],
+        pii_actions: dict[str, str],
+        view_prefix: str = "vw_masked_",
+        schema_name: str | None = None,
     ) -> str:
-        """
-        Sinh mã SQL tạo View cho PostgreSQL.
-        
-        Args:
-            table_name: Tên bảng gốc (vd: 'users')
-            all_columns: Danh sách tất cả các cột của bảng gốc
-            pii_actions: Kết quả từ PII Detect, map Tên Cột -> Action (vd: {'email': 'hash', 'phone': 'mask'})
-            view_prefix: Tiền tố cho tên View (mặc định: vw_masked_)
-            
-        Returns:
-            Chuỗi câu lệnh CREATE OR REPLACE VIEW
-        """
+        """Return a CREATE OR REPLACE VIEW statement for one table."""
         view_name = f"{view_prefix}{table_name}"
+        source_table = self._qualified_name(table_name, schema_name)
+        target_view = self._qualified_name(view_name, schema_name)
         select_items = []
 
-        for col in all_columns:
-            action = pii_actions.get(col)
+        for column in all_columns:
+            action = pii_actions.get(column, "KEEP").upper()
+            quoted_column = self._quote_identifier(column)
 
-            # Nếu cột cần được xử lý và action tồn tại trong bộ rules
-            if action and action in self.sql_templates:
-                expression = self.sql_templates[action].format(column=col)
-                select_items.append(f"    {expression} AS {col}")
-            else:
-                # Cột bình thường hoặc action không hợp lệ thì giữ nguyên
-                select_items.append(f"    {col}")
+            if action == "DROP":
+                continue
 
-        # Nối các cột lại
+            template = self.sql_templates.get(action, "{column}")
+            expression = template.format(column=quoted_column)
+            select_items.append(f"    {expression} AS {quoted_column}")
+
+        if not select_items:
+            raise ValueError("Cannot generate a view with zero output columns.")
+
         select_clause = ",\n".join(select_items)
-        
-        sql_query = f"""CREATE OR REPLACE VIEW {view_name} AS
+        return f"""CREATE OR REPLACE VIEW {target_view} AS
 SELECT
 {select_clause}
-FROM {table_name};"""
+FROM {source_table};"""
 
-        return sql_query
+    @staticmethod
+    def _escape_literal(value: str) -> str:
+        return value.replace("'", "''")
 
-# --- Helper Function (Interface nhanh) ---
+    @classmethod
+    def _qualified_name(cls, name: str, schema_name: str | None = None) -> str:
+        quoted_name = cls._quote_identifier(name)
+        if schema_name is None:
+            return quoted_name
+        return f"{cls._quote_identifier(schema_name)}.{quoted_name}"
+
+    @staticmethod
+    def _quote_identifier(identifier: str) -> str:
+        return f'"{identifier.replace(chr(34), chr(34) * 2)}"'
+
+
 def generate_postgres_view(
-    table_name: str, 
-    all_columns: List[str], 
-    pii_actions: Dict[str, str],
+    table_name: str,
+    all_columns: list[str],
+    pii_actions: dict[str, str],
     salt: str = "MY_DEFAULT_SALT",
     pepper: str = "MY_SECRET_PEPPER",
-    custom_logic: Optional[Dict[str, str]] = None
+    custom_logic: dict[str, str] | None = None,
+    schema_name: str | None = None,
 ) -> str:
-    """
-    Hàm tĩnh hỗ trợ gọi nhanh trình tạo View.
-    """
     generator = PostgresViewGenerator(salt=salt, pepper=pepper, custom_logic=custom_logic)
-    return generator.generate_postgres_view(table_name, all_columns, pii_actions)
+    return generator.generate_postgres_view(table_name, all_columns, pii_actions, schema_name=schema_name)
 
 
 if __name__ == "__main__":
-    # --- VÍ DỤ SỬ DỤNG ---
-    # 1. Schema giả định lấy từ CSDL
     table = "customers"
     columns = ["id", "full_name", "email", "phone_number", "address", "created_at"]
-    
-    # 2. Đầu ra từ thuật toán PII Detection
     detected_pii = {
-        "email": "hash",          
-        "phone_number": "mask",   
-        "full_name": "mask_name"  # Một action custom mới tinh
+        "email": "HMAC",
+        "phone_number": "MASK",
+        "address": "DROP",
+        "full_name": "MASK_NAME",
     }
-    
-    # 3. Định nghĩa logic custom 
-    my_custom_rules = {
-        # Đổi logic hash sang xài mã hóa sinh UUID ngẫu nhiên kết hợp salt (ví dụ)
-        "hash": "md5(concat({column}::text, 'SALT_123'))",
-        
-        # Định nghĩa logic mask_name (chỉ lấy phần tên, che phần họ đệm)
-        "mask_name": "concat(split_part({column}::text, ' ', 1), ' ***')" 
+    custom_rules = {
+        "MASK_NAME": "concat(split_part({column}::text, ' ', 1), ' ***')",
     }
-    
-    # 4. Sinh mã lệnh
     sql = generate_postgres_view(
         table_name=table,
         all_columns=columns,
         pii_actions=detected_pii,
-        custom_logic=my_custom_rules
+        custom_logic=custom_rules,
     )
-    
     print("--- GENERATED SQL ---")
     print(sql)
