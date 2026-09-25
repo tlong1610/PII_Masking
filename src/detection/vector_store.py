@@ -56,7 +56,8 @@ class PIIKnowledgeBase:
         self.vector_store = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
-            persist_directory=self.db_directory
+            persist_directory=self.db_directory,
+            collection_metadata={"hnsw:space": "cosine"}
         )
         print(f"✅ Đã tạo VectorDB thành công tại: {self.db_directory}")
 
@@ -65,11 +66,30 @@ class PIIKnowledgeBase:
         Bước 2: Lấy công cụ tìm kiếm (Retriever) để cắm vào LLM Chain / LangGraph
         """
         if not self.vector_store:
-            # Load lại DB từ ổ cứng (dùng cho các lần chạy sau)
-            self.vector_store = Chroma(
-                persist_directory=self.db_directory,
-                embedding_function=self.embeddings
-            )
+            import os
+            import shutil
+            corpus_path = "src/detection/pii_rag_corpus.json"
+            db_file = os.path.join(self.db_directory, "chroma.sqlite3")
+
+            # Kiểm tra nếu chưa có DB hoặc file JSON mới hơn DB
+            needs_rebuild = False
+            if not os.path.exists(self.db_directory) or not os.path.exists(db_file):
+                needs_rebuild = True
+            elif os.path.exists(corpus_path) and os.path.getmtime(corpus_path) > os.path.getmtime(db_file):
+                print("💡 Cập nhật mới từ Corpus! Đang tạo lại VectorDB...")
+                needs_rebuild = True
+
+            if needs_rebuild:
+                if os.path.exists(self.db_directory):
+                    shutil.rmtree(self.db_directory) # Xóa db cũ để tránh trùng lặp
+                self.initialize_db(corpus_path)
+            else:
+                # Load lại DB từ ổ cứng
+                self.vector_store = Chroma(
+                    persist_directory=self.db_directory,
+                    embedding_function=self.embeddings,
+                    collection_metadata={"hnsw:space": "cosine"}
+                )
 
         # Trả về retriever, cấu hình lấy top 3 chunks giống ngữ nghĩa nhất
         return self.vector_store.as_retriever(search_kwargs={"k": top_k})

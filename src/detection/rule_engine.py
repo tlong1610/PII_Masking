@@ -21,7 +21,7 @@ class RuleBasedScanner:
         Kiểm tra tên cột có nằm trong danh sách từ khóa không.
         Returns: PII Type hoặc None.
         """
-        col_lower = column_name.lower()
+        col_lower = column_name.lower().replace(".", "_")
         for pii_type, keywords in keyword_dict.items():
             if any(kw in col_lower for kw in keywords):
                 return pii_type
@@ -48,7 +48,7 @@ class RuleBasedScanner:
             return enforced_action
 
         # Nếu là loại không phải dữ liệu cá nhân -> KEEP
-        if inferred_type in [PIIType.TRACKING_CODE.value, PIIType.MONEY_ALONE.value]:
+        if inferred_type in [PIIType.TRACKING_CODE.value, PIIType.MONEY_ALONE.value, "NOT_PERSONAL_DATA"]:
             return "KEEP"
 
         # Nếu là UNKNOWN -> KEEP (để pass qua LLM quyết định)

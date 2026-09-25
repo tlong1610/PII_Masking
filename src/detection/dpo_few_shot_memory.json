@@ -1,0 +1,26 @@
+[
+  {
+    "column_name": "city",
+    "data_shape": ["Cccccc"],
+    "dpo_decision": "CITY",
+    "action": "KEEP"
+  },
+  {
+    "column_name": "address.region",
+    "data_shape": ["Cccccc"],
+    "dpo_decision": "GEOGRAPHIC_REGION",
+    "action": "KEEP"
+  },
+  {
+    "column_name": "body",
+    "data_shape": ["Cccccc XX X X Cccccccc XXXXXXXXX"],
+    "dpo_decision": "FREE_TEXT_PII",
+    "action": "MASK"
+  },
+  {
+    "column_name": "tax_code",
+    "data_shape": ["XXXXXXXXXX"],
+    "dpo_decision": "TAX_CODE_ORG",
+    "action": "KEEP"
+  }
+]

@@ -8,7 +8,13 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 7 Điều 3 NĐ 356",
-      "keywords": ["số cccd", "cccd", "cmnd", "chứng minh nhân dân", "số định danh cá nhân"]
+      "keywords": [
+        "số cccd",
+        "cccd",
+        "cmnd",
+        "chứng minh nhân dân",
+        "số định danh cá nhân"
+      ]
     }
   },
   {
@@ -20,7 +26,12 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 1 Điều 3 NĐ 356",
-      "keywords": ["họ tên", "họ và tên", "tên khai sinh", "tên gọi khác"]
+      "keywords": [
+        "họ tên",
+        "họ và tên",
+        "tên khai sinh",
+        "tên gọi khác"
+      ]
     }
   },
   {
@@ -32,7 +43,16 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 2 Điều 3 NĐ 356",
-      "keywords": ["ngày sinh", "tháng sinh", "năm sinh", "dob", "sinh nhật"]
+      "keywords": [
+        "ngày sinh",
+        "tháng sinh",
+        "năm sinh",
+        "dob",
+        "sinh nhật",
+        "date of birth",
+        "birth date",
+        "birth"
+      ]
     }
   },
   {
@@ -44,7 +64,19 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 4 Điều 3 NĐ 356",
-      "keywords": ["địa chỉ", "thường trú", "tạm trú", "nơi ở", "địa chỉ liên hệ"]
+      "keywords": [
+        "địa chỉ",
+        "thường trú",
+        "tạm trú",
+        "nơi ở",
+        "địa chỉ liên hệ",
+        "address",
+        "city",
+        "country",
+        "postal code",
+        "region",
+        "zip"
+      ]
     }
   },
   {
@@ -56,7 +88,14 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 7 Điều 3 NĐ 356",
-      "keywords": ["số điện thoại", "phone", "sđt", "mobile"]
+      "keywords": [
+        "số điện thoại",
+        "phone",
+        "sđt",
+        "mobile",
+        "fax",
+        "telephone"
+      ]
     }
   },
   {
@@ -68,7 +107,11 @@
       "classification": "CONTEXT_DEPENDENT",
       "confidence": "Cao",
       "legal_basis": "Khoản 11 Điều 3 NĐ 356; khoản 1 Điều 2 Luật 91",
-      "keywords": ["email", "thư điện tử", "mail address"]
+      "keywords": [
+        "email",
+        "thư điện tử",
+        "mail address"
+      ]
     }
   },
   {
@@ -80,7 +123,11 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm i khoản 1 Điều 4 NĐ 356",
-      "keywords": ["ảnh cccd", "hình ảnh thẻ căn cước", "ảnh chứng minh"]
+      "keywords": [
+        "ảnh cccd",
+        "hình ảnh thẻ căn cước",
+        "ảnh chứng minh"
+      ]
     }
   },
   {
@@ -92,7 +139,12 @@
       "classification": "BASIC",
       "confidence": "Cao",
       "legal_basis": "Khoản 6 Điều 3 NĐ 356",
-      "keywords": ["ảnh khuôn mặt", "hình ảnh cá nhân", "ảnh chụp", "face image"]
+      "keywords": [
+        "ảnh khuôn mặt",
+        "hình ảnh cá nhân",
+        "ảnh chụp",
+        "face image"
+      ]
     }
   },
   {
@@ -104,7 +156,11 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356; khoản 2 Điều 31 Luật 91",
-      "keywords": ["vector khuôn mặt", "template khuôn mặt", "nhận dạng khuôn mặt"]
+      "keywords": [
+        "vector khuôn mặt",
+        "template khuôn mặt",
+        "nhận dạng khuôn mặt"
+      ]
     }
   },
   {
@@ -116,7 +172,14 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356",
-      "keywords": ["vân tay", "mống mắt", "giọng nói", "đặc điểm sinh học", "sinh trắc học", "biometrics"]
+      "keywords": [
+        "vân tay",
+        "mống mắt",
+        "giọng nói",
+        "đặc điểm sinh học",
+        "sinh trắc học",
+        "biometrics"
+      ]
     }
   },
   {
@@ -128,7 +191,12 @@
       "classification": "CONTEXT_DEPENDENT",
       "confidence": "TB",
       "legal_basis": "Khoản 10 Điều 3; điểm k khoản 1 Điều 4 NĐ 356",
-      "keywords": ["số tài khoản ngân hàng", "thông tin tài khoản số", "số tài khoản", "bank account"]
+      "keywords": [
+        "số tài khoản ngân hàng",
+        "thông tin tài khoản số",
+        "số tài khoản",
+        "bank account"
+      ]
     }
   },
   {
@@ -140,7 +208,12 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
-      "keywords": ["tên đăng nhập ngân hàng", "mật khẩu ngân hàng", "password", "đăng nhập"]
+      "keywords": [
+        "tên đăng nhập ngân hàng",
+        "mật khẩu ngân hàng",
+        "password",
+        "đăng nhập"
+      ]
     }
   },
   {
@@ -152,7 +225,12 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
-      "keywords": ["thông tin thẻ ngân hàng", "thẻ ngân hàng", "thẻ tín dụng", "credit card"]
+      "keywords": [
+        "thông tin thẻ ngân hàng",
+        "thẻ ngân hàng",
+        "thẻ tín dụng",
+        "credit card"
+      ]
     }
   },
   {
@@ -164,7 +242,11 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
-      "keywords": ["lịch sử giao dịch", "giao dịch ngân hàng", "hoạt động tài chính"]
+      "keywords": [
+        "lịch sử giao dịch",
+        "giao dịch ngân hàng",
+        "hoạt động tài chính"
+      ]
     }
   },
   {
@@ -176,7 +258,11 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
-      "keywords": ["số tiền giao dịch", "số tiền", "số dư"]
+      "keywords": [
+        "số tiền giao dịch",
+        "số tiền",
+        "số dư"
+      ]
     }
   },
   {
@@ -188,7 +274,11 @@
       "classification": "NOT_PERSONAL_DATA",
       "confidence": "Cao",
       "legal_basis": "Khoản 1 Điều 2 Luật 91",
-      "keywords": ["số tiền đứng riêng", "số tiền", "con số"]
+      "keywords": [
+        "số tiền đứng riêng",
+        "số tiền",
+        "con số"
+      ]
     }
   },
   {
@@ -200,7 +290,11 @@
       "classification": "CONTEXT_DEPENDENT",
       "confidence": "Cao",
       "legal_basis": "Điều 3-4 NĐ 356",
-      "keywords": ["text ocr cccd", "ocr", "trích xuất text"]
+      "keywords": [
+        "text ocr cccd",
+        "ocr",
+        "trích xuất text"
+      ]
     }
   },
   {
@@ -212,8 +306,108 @@
       "classification": "SENSITIVE",
       "confidence": "Cao",
       "legal_basis": "Điều 2 Luật 91; Điều 4 NĐ 356",
-      "keywords": ["qr cccd", "barcode cccd", "mã qr", "mã vạch"]
+      "keywords": [
+        "qr cccd",
+        "barcode cccd",
+        "mã qr",
+        "mã vạch"
+      ]
+    }
+  },
+  {
+    "id": "ENT-ORG-SYSTEM",
+    "content": "Tên công ty, tổ chức hoặc các ID hệ thống nội bộ (như customer_id, order_id) không được coi là dữ liệu cá nhân nhạy cảm trừ khi chúng kết hợp với các thông tin khác.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Tổ chức & ID hệ thống",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Quy định chung",
+      "keywords": [
+        "company",
+        "company name",
+        "organization",
+        "customer id",
+        "order id",
+        "system id",
+        "id",
+        "doc type",
+        "subject",
+        "ship via"
+      ]
+    }
+  },
+  {
+    "id": "ENT-FREE-TEXT-PII",
+    "content": "Dữ liệu văn bản tự do, ghi chú, nội dung tin nhắn, ticket hỗ trợ. Loại dữ liệu này không có cấu trúc cố định nhưng rất dễ chứa thông tin nhạy cảm của cá nhân như số điện thoại, địa chỉ, số chứng minh, số thẻ. Phải cẩn trọng và có xu hướng làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Ghi chú / Văn bản tự do",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Chính sách bảo mật nội bộ / Tối thiểu hóa dữ liệu",
+      "keywords": [
+        "notes",
+        "personal_notes",
+        "order_notes",
+        "body",
+        "ghi_chu",
+        "description",
+        "comment"
+      ]
+    }
+  },
+  {
+    "id": "ENT-RECIPIENT-INFO",
+    "content": "Thông tin người nhận hàng, bao gồm tên người nhận, đơn vị nhận hàng. Tuy có thể liên quan tới giao dịch kinh doanh nhưng chứa tên định danh cá nhân nên cần được làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Tên người nhận",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Điều 9 Khoản 1",
+      "keywords": [
+        "shipment.name",
+        "ship_name",
+        "receiver",
+        "consignee",
+        "nguoi_nhan"
+      ]
+    }
+  },
+  {
+    "id": "ENT-SHIPPING-ADDRESS",
+    "content": "Thông tin địa chỉ giao hàng, địa chỉ kho bãi cá nhân. Địa chỉ giao hàng cũng là nơi sinh sống/làm việc của cá nhân, cần làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ giao hàng",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Điều 9 Khoản 1",
+      "keywords": [
+        "shipment.address",
+        "ship_address",
+        "delivery_address",
+        "dia_chi_giao"
+      ]
+    }
+  },
+  {
+    "id": "ENT-KYC-UNPROCESSED",
+    "content": "Dữ liệu KYC chưa xử lý bao gồm đường dẫn file ảnh thẻ, chuỗi ký tự OCR trích xuất nguyên bản. Đây là vùng dữ liệu có độ rủi ro lớn nhất, chứa toàn bộ mặt mũi, số liệu định danh, ngày sinh. Nguyên tắc là loại bỏ hoàn toàn (DROP) không cho phép xuất hiện trong dữ liệu phân tích.",
+    "metadata": {
+      "type": "entity",
+      "name": "Dữ liệu thô KYC",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Luật 91/2025/QH15 Điều 9 Khoản 2",
+      "keywords": [
+        "ocr_text",
+        "file_path",
+        "kyc_image",
+        "document_path",
+        "raw_data"
+      ]
     }
   }
 ]
-

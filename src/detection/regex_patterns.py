@@ -22,8 +22,9 @@ AMBIGUOUS_COLUMNS = ["id", "code", "name", "note", "address", "contact_info", "d
 
 # Các từ khóa tên cột chắc chắn KHÔNG PHẢI PII CÁ NHÂN (Negative Cases)
 NEGATIVE_COLUMNS = {
-    PIIType.TRACKING_CODE.value: ["tracking", "order", "shipment", "waybill", "bill_of_lading"],
-    PIIType.MONEY_ALONE.value: ["amount", "total", "price", "balance", "fee", "cost"]
+    PIIType.TRACKING_CODE.value: ["tracking_number", "tracking_code", "order_id", "order_number", "shipment_id", "waybill", "bill_of_lading"],
+    PIIType.MONEY_ALONE.value: ["amount", "total_price", "unit_price", "balance", "fee", "cost"],
+    "NOT_PERSONAL_DATA": ["customer_id", "_id", "company_name", "ship_via", "doc_type", "postal_code"]
 }
 
 # ==========================================
@@ -38,14 +39,9 @@ REGEX_PATTERNS = {
     PIIType.EMAIL.value: re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"),
 
     # Số điện thoại VN: Bắt đầu 0, 84 hoặc +84, sau đó là 3,5,7,8,9 và đúng 8 số đằng sau
-    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\d{8}$"),
+    # S? di?n tho?i VN: B?t d?u 0, 84 ho?c +84, sau do la 3,5,7,8,9 va d?ng 8 s? d?ng sau
+    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\\d{8}$"),
 
-    # Mã số thuế (MST) cá nhân: 10 số, hoặc 10 số + dấu gạch ngang + 3 số
+    # Ma so thue
     PIIType.TAX_CODE.value: re.compile(r"^\d{10}(-\d{3})?$"),
-
-    # Regex cơ bản cho thẻ tín dụng (Visa, Master, v.v. - 16 số)
-    "CREDIT_CARD": re.compile(r"^(4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14})$"),
-
-    # Đuôi file ảnh thông dụng
-    "BIOMETRIC_FILE": re.compile(r"(?i)\.(jpg|jpeg|png)$")
 }
