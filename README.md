@@ -173,6 +173,6 @@ Xin vui lòng tham khảo file này để xem các kết quả đo lường, pre
 
 Để chạy lại quá trình đánh giá (eval), bạn có thể sử dụng lệnh sau:
 
-`ash
+`
 PYTHONPATH=. python eval/run_eval_full.py
 `
