@@ -39,5 +39,9 @@ REGEX_PATTERNS = {
     PIIType.EMAIL.value: re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"),
 
     # Số điện thoại VN: Bắt đầu 0, 84 hoặc +84, sau đó là 3,5,7,8,9 và đúng 8 số đằng sau
-    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\d{8}$"),
+    # S? di?n tho?i VN: B?t d?u 0, 84 ho?c +84, sau do la 3,5,7,8,9 va d?ng 8 s? d?ng sau
+    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\\d{8}$"),
+
+    # Ma so thue
+    PIIType.TAX_CODE.value: re.compile(r"^\d{10}(-\d{3})?$"),
 }

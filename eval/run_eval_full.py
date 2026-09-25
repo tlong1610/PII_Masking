@@ -1,17 +1,19 @@
 import asyncio
 import json
 import os
+
 from tqdm import tqdm
 
 from src.agents.graph import agent
 from src.detection.taxonomy import PIIType
 from src.models.schemas import ColumnProfile
 
+
 async def process_row(row):
     # Giả lập Database Connector (connector thực tế sẽ tự biết cột nào là PK/FK nhờ metadata)
     is_key = row.get('expected_action') == 'HMAC'
     system_rec = "HMAC" if is_key else None
-    
+
     profile = ColumnProfile(
         column_name=row['field_path'],
         data_type=row['data_type'],
@@ -27,7 +29,7 @@ async def process_row(row):
             # Gọi toàn bộ luồng Agent
             result_state = await agent.ainvoke({"column_profile": profile})
             final_proposal = result_state.get("final_proposal")
-            
+
             if final_proposal:
                 pred_type = final_proposal.inferred_pii_type
                 pred_action = final_proposal.recommended_action
@@ -36,9 +38,9 @@ async def process_row(row):
                 pred_type = PIIType.UNKNOWN.value
                 pred_action = "KEEP"
                 tier = "ERROR_OR_NO_PROPOSAL"
-            
+
             break # Thành công, thoát vòng lặp retry
-                
+
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "502" in error_msg or "resourceexhausted" in error_msg.lower() or "quota" in error_msg.lower():
@@ -46,7 +48,7 @@ async def process_row(row):
                     print(f"\n[⚠️] Đụng trần API Google. Tạm nghỉ 15s để hồi phục (Lần {attempt+1}/{max_retries})...")
                     await asyncio.sleep(15)
                     continue
-            
+
             # Lỗi khác hoặc hết lượt thử
             pred_type = PIIType.UNKNOWN.value
             pred_action = "KEEP"
@@ -55,7 +57,7 @@ async def process_row(row):
 
     golden_type = row['taxonomy_id']
     expected_action = row.get('expected_action', 'KEEP')
-    
+
     # Đánh giá theo 2 tiêu chí
     # Lưu ý: Hệ thống đề xuất HMAC, nhưng trong nhãn có thể là HASHING, cần chuẩn hóa
     pred_action_norm = "HMAC" if pred_action in ["HASHING", "HMAC"] else pred_action
@@ -78,7 +80,7 @@ async def run_eval_full():
         data = json.load(f)
 
     print(f"Bắt đầu chạy đánh giá toàn bộ luồng Agent trên {len(data)} test cases...")
-    
+
     results = []
     # Chạy tuần tự để tránh bị Rate Limit của API
     for row in tqdm(data, desc="Evaluating"):
@@ -96,7 +98,7 @@ async def run_eval_full():
     # Tính toán các metric nhị phân (Positive: Action != KEEP, Negative: Action == KEEP)
     tp = sum(1 for r in results if r['expected_action'] != "KEEP" and r['predicted_action'] != "KEEP")
     fp = sum(1 for r in results if r['expected_action'] == "KEEP" and r['predicted_action'] != "KEEP")
-    tn = sum(1 for r in results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
+    sum(1 for r in results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
     fn = sum(1 for r in results if r['expected_action'] != "KEEP" and r['predicted_action'] == "KEEP")
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
@@ -110,9 +112,9 @@ async def run_eval_full():
     report += f"- **Precision (Action):** {precision*100:.2f}%\n"
     report += f"- **Recall (Action):** {recall*100:.2f}%\n"
     report += f"- **F2 Score (Action):** {f2*100:.2f}%\n"
-    
+
     report += "\n## Thống kê chuyên sâu theo Tầng (Tier)\n\n"
-    
+
     # Analyze by tier
     tier_names = ["TIER_1", "TIER_2", "TIER_3_HYBRID", "TIER_3_LLM"]
     for t in tier_names:
@@ -121,16 +123,16 @@ async def run_eval_full():
         if t_total == 0:
             report += f"### {t}\n- Không có case nào dừng ở tầng này.\n\n"
             continue
-            
+
         t_correct = sum(1 for r in t_results if r['match_action'])
         t_tp = sum(1 for r in t_results if r['expected_action'] != "KEEP" and r['predicted_action'] != "KEEP")
         t_fp = sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] != "KEEP")
-        t_tn = sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
+        sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
         t_fn = sum(1 for r in t_results if r['expected_action'] != "KEEP" and r['predicted_action'] == "KEEP")
-        
+
         t_prec = t_tp / (t_tp + t_fp) if (t_tp + t_fp) > 0 else 0.0
         t_rec = t_tp / (t_tp + t_fn) if (t_tp + t_fn) > 0 else 0.0
-        
+
         report += f"### {t}\n"
         report += f"- **Số lượng:** {t_total} cases\n"
         report += f"- **Action Accuracy:** {t_correct/t_total*100:.2f}%\n"
@@ -155,7 +157,7 @@ async def run_eval_full():
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(report)
 
-    print(f"\nEval finished.")
+    print("\nEval finished.")
     print(f"- Action Accuracy: {correct_action/total*100:.2f}%")
     print(f"- Action Precision: {precision*100:.2f}%")
     print(f"- Action Recall: {recall*100:.2f}%")

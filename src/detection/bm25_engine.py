@@ -34,7 +34,7 @@ class BM25Engine:
             # CHỈ LẤY CÁC CASE POSITIVE (PII)
             if meta.get("classification") == "NOT_PERSONAL_DATA":
                 continue
-                
+
             keywords = meta.get("keywords", [])
             # Tokenize từ khóa (thay thế dấu chấm, gạch dưới)
             tokens = []
@@ -61,7 +61,7 @@ class BM25Engine:
         # Tính điểm
         doc_scores = self.bm25.get_scores(tokenized_query)
         max_raw_score = max(doc_scores) if len(doc_scores) > 0 else 0.0
-        
+
         # Chuẩn hóa bằng hàm Sigmoid để ép điểm về [0, 1]
         import math
         if max_raw_score == 0.0:
@@ -74,7 +74,7 @@ class BM25Engine:
             # Điểm cao -> Chắc chắn là PII
             # Nếu là khoá (PK/FK) thì dùng HMAC/HASHING, ngược lại dùng MASK
             action = col_profile.system_recommendation if col_profile.system_recommendation else "MASK"
-            
+
             result = FieldScanResult(
                 field_name=col_profile.column_name,
                 inferred_pii_type=PIIType.UNKNOWN.value,  # LLM/DPO có thể phân loại chi tiết sau, tạm thời đánh dấu là PII

@@ -79,7 +79,7 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
             hybrid_score=hybrid_score
         )
         return {"hybrid_score": hybrid_score, "final_proposal": res}
-        
+
     if hybrid_score < 0.1:
         res = FieldScanResult(
             field_name=col_profile.column_name,
@@ -101,8 +101,8 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 3.2: LLM Context Reasoning."""
     import json
 
-    from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.output_parsers import PydanticOutputParser
+    from langchain_core.prompts import ChatPromptTemplate
 
     from src.services.llm import get_llm
 

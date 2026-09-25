@@ -70,7 +70,7 @@ class PIIKnowledgeBase:
             import shutil
             corpus_path = "src/detection/pii_rag_corpus.json"
             db_file = os.path.join(self.db_directory, "chroma.sqlite3")
-            
+
             # Kiểm tra nếu chưa có DB hoặc file JSON mới hơn DB
             needs_rebuild = False
             if not os.path.exists(self.db_directory) or not os.path.exists(db_file):
@@ -78,7 +78,7 @@ class PIIKnowledgeBase:
             elif os.path.exists(corpus_path) and os.path.getmtime(corpus_path) > os.path.getmtime(db_file):
                 print("💡 Cập nhật mới từ Corpus! Đang tạo lại VectorDB...")
                 needs_rebuild = True
-                
+
             if needs_rebuild:
                 if os.path.exists(self.db_directory):
                     shutil.rmtree(self.db_directory) # Xóa db cũ để tránh trùng lặp
