@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import json
 import os
 
@@ -79,9 +80,14 @@ async def process_row(row):
         "latency": latency
     }
 
-async def run_eval_full():
+async def run_eval_full(source: str | None = None, split: str | None = None, report_path: str = "eval/results/report_full.md"):
     with open('eval/golden_labels.json', encoding='utf-8') as f:
         data = json.load(f)
+
+    if source:
+        data = [row for row in data if row.get("source") == source]
+    if split:
+        data = [row for row in data if row.get("split") == split]
 
     print(f"Bắt đầu chạy đánh giá toàn bộ luồng Agent trên {len(data)} test cases...")
 
@@ -116,8 +122,16 @@ async def run_eval_full():
     f2 = 5 * precision * recall / (4 * precision + recall) if (4 * precision + recall) > 0 else 0.0
 
     # Tạo nội dung báo cáo
-    report = "# Evaluation Report (Full Pipeline)\n\n"
+    scope = source or "all sources"
+    if split:
+        scope += f" / split={split}"
+    report = f"# Evaluation Report (Full Pipeline)\n\n- **Scope:** `{scope}`\n"
     report += f"- **Tổng số test cases:** {total}\n"
+    if source:
+        dev_count = sum(1 for row in data if row.get("split") == "dev")
+        holdout_count = sum(1 for row in data if row.get("split") == "holdout")
+        report += f"- **Dev cases:** {dev_count}\n"
+        report += f"- **Holdout cases:** {holdout_count}\n"
     report += f"- **Tổng thời gian chạy (chứa sleep):** {total_eval_time:.2f}s\n"
     report += f"- **Độ trễ trung bình/case (chưa tính sleep):** {avg_latency:.4f}s\n"
     report += f"- **Độ chính xác theo Hành động bảo mật (Action Accuracy):** {correct_action/total*100:.2f}%\n"
@@ -168,7 +182,6 @@ async def run_eval_full():
             report += f"| {r['id']} | `{r['field']}` | **{r['expected_action']}** | {r['predicted_action']} | - | {r['tier']} |\n"
 
     os.makedirs('eval/results', exist_ok=True)
-    report_path = 'eval/results/report_full.md'
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(report)
 
@@ -180,5 +193,9 @@ async def run_eval_full():
     print(f"Report saved to {report_path}")
 
 if __name__ == '__main__':
-    asyncio.run(run_eval_full())
-
+    parser = argparse.ArgumentParser(description="Run PIIGuard full-pipeline evaluation")
+    parser.add_argument("--source", choices=["postgres", "mongo"], help="Evaluate one connector only")
+    parser.add_argument("--split", choices=["dev", "holdout"], help="Evaluate one split only")
+    parser.add_argument("--report-path", default="eval/results/report_full.md")
+    args = parser.parse_args()
+    asyncio.run(run_eval_full(args.source, args.split, args.report_path))
