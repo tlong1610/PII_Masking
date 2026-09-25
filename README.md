@@ -5,12 +5,12 @@
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
 **Bản thiết kế:** 21/09/2026 · **MVP:** 14 ngày / 4 người
 
-Đây là bộ tài liệu triển khai đã chốt phạm vi. Chỉ số, API và hạ tầng dưới đây là yêu cầu cần thực hiện; chưa phải kết quả nghiệm thu code.
-
+Đây là bộ tài liệu triển khai đã chốt phạm vi. Chỉ số, API và hạ tầng dưới đây là yêu cầu cần thực hiện; chưa phải kết quả nghiệm thu code.`
+`
 ## Vấn đề (Problem)
 
-DPO và đội dữ liệu mất công rà từng trường trước khi cung cấp dữ liệu cho Analyst. Họ vừa có thể bỏ sót dữ liệu cá nhân, vừa có thể làm hỏng phép liên kết nếu che khóa không nhất quán. Cần một quy trình có căn cứ, người duyệt và kiểm tra tác động trước khi chia sẻ.
-
+DPO và đội dữ liệu mất công rà từng trường trước khi cung cấp dữ liệu cho Analyst. Họ vừa có thể bỏ sót dữ liệu cá nhân, vừa có thể làm hỏng phép liên kết nếu che khóa không nhất quán. Cần một quy trình có căn cứ, người duyệt và kiểm tra tác động trước khi chia sẻ.`
+`
 ## Giải pháp (Solution)
 
 **PostgreSQL hoặc MongoDB → quét → DPO duyệt → tạo snapshot đã xử lý → kiểm tra downstream → DPO phát hành → Analyst dùng.**
@@ -23,15 +23,15 @@ DPO và đội dữ liệu mất công rà từng trường trước khi cung c�
 - UI không hiển thị raw PII value cho bất kỳ vai trò nào, kể cả DPO. DPO duyệt bằng field path, kiểu dữ liệu, pattern/profile đã lọc, căn cứ, action đề xuất và tác động downstream.
 - Báo cáo web/JSON, cảnh báo có lý do, lịch sử review; không tuyên bố tuân thủ tuyệt đối.
 
-Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Mapping, độ phủ và giới hạn: [PRD](docs/prd.md).
-
+Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Mapping, độ phủ và giới hạn: [PRD](docs/prd.md).`
+`
 ## Target User
 
 | Vai trò             | Giá trị nhận được                                                        |
 | ------------------- | ------------------------------------------------------------------------ |
 | DPO / Data reviewer | Review có căn cứ, quyết định rõ và bằng chứng xử lý                      |
-| Analyst             | Dataset được phép dùng, có kiểm tra tác vụ và thời điểm snapshot rõ ràng |
-
+| Analyst             | Dataset được phép dùng, có kiểm tra tác vụ và thời điểm snapshot rõ ràng |`
+`
 ## Phạm vi MVP 14 ngày
 
 | Có trong P0                                                                                              | Để sau MVP                                        |
@@ -43,8 +43,8 @@ Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid
 | Snapshot SQL/NoSQL, 2 tác vụ downstream định trước                                                       | Realtime, truy vấn tùy ý, join xuyên database     |
 | MASK/DROP/HMAC; báo cáo và audit tối thiểu                                                               | Token vault, KMS, vận hành production             |
 
-PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Nếu file nhãn nội bộ cần `sample_value` để eval, các giá trị đó chỉ dùng trong fixture/eval và không được hiển thị trong UI, report, prompt hoặc log. Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).
-
+PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Nếu file nhãn nội bộ cần `sample_value` để eval, các giá trị đó chỉ dùng trong fixture/eval và không được hiển thị trong UI, report, prompt hoặc log. Mục tiêu eval: precision ≥95%, recall ≥90% theo loại công bố hỗ trợ; 2/2 tác vụ downstream đạt; mọi ca chặn bắt buộc được kiểm chứng. Đây là mục tiêu trên fixture, chưa có số đo. Chi tiết: [PRD mục 10](docs/prd.md).`
+`
 ## Tech Stack
 
 | Layer       | Lựa chọn                                                                                                                   |
@@ -56,8 +56,8 @@ PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ l
 | Protection  | MASK/DROP và Python HMAC-SHA-256; không vector store                                                                       |
 | DevOps      | Docker Compose + GitHub Actions; máy demo riêng, database không công khai                                                  |
 
-Model có [structured outputs và snapshot](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Khóa phiên bản dependency/image sau khi chạy smoke test ngày 1. Quyết định và phương án đánh đổi: [MVP decisions](docs/mvp-decisions.md).
-
+Model có [structured outputs và snapshot](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Khóa phiên bản dependency/image sau khi chạy smoke test ngày 1. Quyết định và phương án đánh đổi: [MVP decisions](docs/mvp-decisions.md).`
+`
 ## Quick Start
 
 **Chưa xác minh trong repository thực tế.** Các lệnh kế thừa từ khung dự án là điểm xuất phát để Long kiểm tra ngày 1; không coi bộ tài liệu này là một ứng dụng đã chạy được.
@@ -89,8 +89,8 @@ Quick Start chỉ hoàn tất khi đội bổ sung và chạy thật các bướ
 4. Chạy cả hai luồng, ca API trái quyền, verifier và downstream; lưu bằng chứng.
 5. Kiểm tra AI logging hook của chương trình; log không chứa dữ liệu/secret.
 
-Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential đọc nguồn/ghi đích tách biệt, `HMAC_SECRET`, `HMAC_KEY_VERSION` và secret phiên đăng nhập. Tên biến phải đồng bộ `.env.example` khi code được triển khai.
-
+Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential đọc nguồn/ghi đích tách biệt, `HMAC_SECRET`, `HMAC_KEY_VERSION` và secret phiên đăng nhập. Tên biến phải đồng bộ `.env.example` khi code được triển khai.`
+`
 ## Project Structure
 
 > 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
@@ -107,8 +107,8 @@ Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential �
 | `frontend/`                                    | React dashboard                                                           |
 | `eval/`, `tests/`                              | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                     |
 | `presentation/`                                | Demo script, số liệu thực tế và slide sau nghiệm thu                      |
-| `.github/workflows/`                           | CI theo khung repo chương trình                                           |
-
+| `.github/workflows/`                           | CI theo khung repo chương trình                                           |`
+`
 ## API Endpoints
 
 Contract thiết kế; **chưa xác nhận route đã tồn tại**. Tên path có thể điều chỉnh cùng PR với frontend.
@@ -128,8 +128,8 @@ Contract thiết kế; **chưa xác nhận route đã tồn tại**. Tên path c
 | `GET /datasets/{id}/preview`  | Analyst        | Chỉ preview đầu ra được phép                           |
 | `POST /datasets/{id}/task`    | Analyst        | Chạy tác vụ cố định trên PUBLISHED                     |
 
-Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
-
+Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.`
+`
 ## Deliverables Checklist
 
 Mẫu Gate 1 có **4 deliverable**: brief, PRD, UI Flow và **repo + AI Log setup**. README là một phần của repo setup, không thay thế phần chạy thật.
@@ -148,8 +148,8 @@ Mẫu Gate 1 có **4 deliverable**: brief, PRD, UI Flow và **repo + AI Log setu
 
 Không đánh dấu các mục chưa có bằng chứng. Không sao chép hạn lịch hoặc tên org Cohort 3 trong mẫu sang Cohort 4. Theo mẫu được cung cấp, G2 yêu cầu ít nhất 10 PR có ý nghĩa đã merge; kế hoạch chia việc phải đáp ứng, không tạo PR rỗng chỉ để đủ số.
 
-Làm việc theo `feature/<ten>` → PR có review → `develop` → `main` ổn định. Không push trực tiếp `main`. Thay đổi hành vi phải sửa tài liệu trong cùng PR.
-
+Làm việc theo `feature/<ten>` → PR có review → `develop` → `main` ổn định. Không push trực tiếp `main`. Thay đổi hành vi phải sửa tài liệu trong cùng PR.`
+`
 ## Team
 
 Phân công triển khai được chọn cho kế hoạch; công suất thực tế cần xác minh ngày 1.
@@ -161,8 +161,18 @@ Phân công triển khai được chọn cho kế hoạch; công suất thực t
 | Nguyễn Trung Kiên | MongoDB connector, fixture/nhãn chuẩn, downstream và eval                      |
 | Đoàn Tuấn Long    | Backend, PostgreSQL connector, writer/guardrail, phân quyền và môi trường demo |
 
-Lịch thực hiện, giờ dự kiến và điểm cắt: [mvp-decisions.md](docs/mvp-decisions.md).
-
+Lịch thực hiện, giờ dự kiến và điểm cắt: [mvp-decisions.md](docs/mvp-decisions.md).`
+`
 ## License
-
 MIT
+
+## Đánh giá (Evaluation)
+
+Chỉ số đánh giá (eval) chính thức của dự án được lấy từ báo cáo chi tiết tại file [eval/results/report_full.md](eval/results/report_full.md).
+Xin vui lòng tham khảo file này để xem các kết quả đo lường, precision, recall trên tập dữ liệu chuẩn.
+
+Để chạy lại quá trình đánh giá (eval), bạn có thể sử dụng lệnh sau:
+
+`ash
+PYTHONPATH=. python eval/run_eval_full.py
+`
