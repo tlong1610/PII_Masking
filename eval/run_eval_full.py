@@ -23,7 +23,9 @@ async def process_row(row):
         system_recommendation=system_rec
     )
 
+    import time
     max_retries = 3
+    start_time = time.time()
     for attempt in range(max_retries):
         try:
             # Gọi toàn bộ luồng Agent
@@ -55,6 +57,7 @@ async def process_row(row):
             tier = f"FAILED: {error_msg}"
             break
 
+    latency = time.time() - start_time
     golden_type = row['taxonomy_id']
     expected_action = row.get('expected_action', 'KEEP')
 
@@ -72,7 +75,8 @@ async def process_row(row):
         "expected_action": expected_action_norm,
         "predicted_action": pred_action_norm,
         "tier": tier,
-        "match_action": match_action
+        "match_action": match_action,
+        "latency": latency
     }
 
 async def run_eval_full():
@@ -83,6 +87,8 @@ async def run_eval_full():
 
     results = []
     # Chạy tuần tự để tránh bị Rate Limit của API
+    import time
+    eval_start = time.time()
     for row in tqdm(data, desc="Evaluating"):
         res = await process_row(row)
         results.append(res)
@@ -91,6 +97,10 @@ async def run_eval_full():
             await asyncio.sleep(0.1)  # Nghỉ 4s để đảm bảo < 15 RPM
         else:
             await asyncio.sleep(0.1) # Tầng 1, 2 chạy tĩnh nên cực nhanh
+
+    eval_end = time.time()
+    total_eval_time = eval_end - eval_start
+    avg_latency = sum(r['latency'] for r in results) / len(results) if results else 0
 
     total = len(results)
     correct_action = sum(1 for r in results if r['match_action'])
@@ -108,6 +118,8 @@ async def run_eval_full():
     # Tạo nội dung báo cáo
     report = "# Evaluation Report (Full Pipeline)\n\n"
     report += f"- **Tổng số test cases:** {total}\n"
+    report += f"- **Tổng thời gian chạy (chứa sleep):** {total_eval_time:.2f}s\n"
+    report += f"- **Độ trễ trung bình/case (chưa tính sleep):** {avg_latency:.4f}s\n"
     report += f"- **Độ chính xác theo Hành động bảo mật (Action Accuracy):** {correct_action/total*100:.2f}%\n"
     report += f"- **Precision (Action):** {precision*100:.2f}%\n"
     report += f"- **Recall (Action):** {recall*100:.2f}%\n"
@@ -130,11 +142,14 @@ async def run_eval_full():
         sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
         t_fn = sum(1 for r in t_results if r['expected_action'] != "KEEP" and r['predicted_action'] == "KEEP")
 
+        t_avg_latency = sum(r['latency'] for r in t_results) / t_total
+
         t_prec = t_tp / (t_tp + t_fp) if (t_tp + t_fp) > 0 else 0.0
         t_rec = t_tp / (t_tp + t_fn) if (t_tp + t_fn) > 0 else 0.0
 
         report += f"### {t}\n"
         report += f"- **Số lượng:** {t_total} cases\n"
+        report += f"- **Latency trung bình:** {t_avg_latency:.4f}s\n"
         report += f"- **Action Accuracy:** {t_correct/t_total*100:.2f}%\n"
         report += f"- **Precision:** {t_prec*100:.2f}%\n"
         report += f"- **Recall:** {t_rec*100:.2f}%\n\n"
