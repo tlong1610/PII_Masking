@@ -97,7 +97,7 @@ async def run_eval_full():
             await asyncio.sleep(0.1)  # Nghỉ 4s để đảm bảo < 15 RPM
         else:
             await asyncio.sleep(0.1) # Tầng 1, 2 chạy tĩnh nên cực nhanh
-            
+
     eval_end = time.time()
     total_eval_time = eval_end - eval_start
     avg_latency = sum(r['latency'] for r in results) / len(results) if results else 0
@@ -141,7 +141,7 @@ async def run_eval_full():
         t_fp = sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] != "KEEP")
         sum(1 for r in t_results if r['expected_action'] == "KEEP" and r['predicted_action'] == "KEEP")
         t_fn = sum(1 for r in t_results if r['expected_action'] != "KEEP" and r['predicted_action'] == "KEEP")
-        
+
         t_avg_latency = sum(r['latency'] for r in t_results) / t_total
 
         t_prec = t_tp / (t_tp + t_fp) if (t_tp + t_fp) > 0 else 0.0
