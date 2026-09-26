@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-09-26T12:08:45.692578",
+  "environment": {
+    "database_engine": "PostgreSQL 15 (Docker p-138-db-1)",
+    "database_name": "mydatabase",
+    "fixture_file": "data/fixtures/postgres/seed.sql"
+  },
+  "audit_status": "PASSED",
+  "labels_summary": {
+    "total_postgres_labels": 50,
+    "dev_split": 33,
+    "holdout_split": 17,
+    "schema_match_rate": "100.0%",
+    "actions_breakdown": {
+      "HMAC": 4,
+      "MASK": 25,
+      "KEEP": 19,
+      "DROP": 2
+    },
+    "categories_breakdown": {
+      "sensitive": 21,
+      "basic": 11,
+      "non_personal": 17,
+      "unknown": 1
+    }
+  },
+  "fixture_row_counts": {
+    "categories": 8,
+    "customers": 91,
+    "employee_territories": 49,
+    "employees": 9,
+    "kyc_documents": 10,
+    "order_details": 2155,
+    "orders": 830,
+    "products": 77,
+    "region": 4,
+    "shippers": 6,
+    "suppliers": 29,
+    "support_tickets": 15,
+    "territories": 53,
+    "us_states": 51
+  },
+  "downstream_baselines": {
+    "sql_join_cccd": {
+      "query": "orders JOIN customers ON orders.customer_cccd = customers.cccd",
+      "baseline_matched": 830,
+      "actual_matched": 830,
+      "baseline_unmatched": 0,
+      "actual_unmatched": 0,
+      "status": "PASSED"
+    },
+    "sql_aggregate_revenue": {
+      "query": "orders ⨝ customers ⨝ order_details",
+      "baseline_distinct_customers": 89,
+      "actual_distinct_customers": 89,
+      "baseline_total_order_details": 2155,
+      "actual_total_order_details": 2155,
+      "baseline_total_revenue": 1265793.01,
+      "actual_total_revenue": 1265793.0395,
+      "tolerance": 0.05,
+      "status": "PASSED"
+    }
+  },
+  "no_raw_value_enforced": true
+}

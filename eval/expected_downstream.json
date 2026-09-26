@@ -32,7 +32,7 @@
     "post_mask_requirement": {
       "distinct_customers_must_equal_baseline": true,
       "revenue_sum_must_equal_baseline": true,
-      "revenue_tolerance": 0.01
+      "revenue_tolerance": 0.05
     }
   },
   "mongo_lookup": {

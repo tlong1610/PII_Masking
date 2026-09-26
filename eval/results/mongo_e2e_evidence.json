@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-09-26T11:50:35.184270",
+  "status": "PASSED",
+  "collections": {
+    "customers": {
+      "expected_documents": 91,
+      "actual_documents": 91
+    },
+    "orders": {
+      "expected_documents": 830,
+      "actual_documents": 830
+    }
+  },
+  "verification_metrics": {
+    "raw_database": {
+      "db_name": "mydatabase (RAW)",
+      "total_orders": 830,
+      "total_customers": 91,
+      "customer_id": {
+        "matched": 830,
+        "unmatched": 0
+      },
+      "cccd": {
+        "matched": 830,
+        "unmatched": 0
+      }
+    },
+    "protected_database": {
+      "db_name": "mydatabase_protected (HMAC-SHA256)",
+      "total_orders": 830,
+      "total_customers": 91,
+      "customer_id": {
+        "matched": 830,
+        "unmatched": 0
+      },
+      "cccd": {
+        "matched": 830,
+        "unmatched": 0
+      }
+    }
+  },
+  "sample_verification_no_raw": {
+    "customer_id": "ALFKI",
+    "raw_record": {
+      "cccd_shape": "12 digits [RAW HIDDEN]",
+      "email_domain": "@example.vn",
+      "phone_prefix": "032***"
+    },
+    "protected_record": {
+      "cccd_hmac_sha256": "44c8451c848582b7...",
+      "email_masked": "a***2@example.vn",
+      "phone_masked": "032***0543"
+    }
+  }
+}
