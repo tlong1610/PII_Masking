@@ -101,7 +101,7 @@ def run_checklist_verification():
     group_5_items = [x for x in pg_labels if x.get("taxonomy_id") == "FINANCIAL_AMOUNT" or x.get("field_path") in ["freight", "unit_price", "discount"]]
     print(f"  • Tổng số trường phát hiện: {len(group_5_items)}")
     for item in group_5_items:
-        print(f"    - [{item['id']:<28}] {item['table']:<10}.{item['field_path']:<14} | Tax: {item['taxonomy_id']:<16} | Action: {item['expected_action']:<6} | Sample: {item.get('sample_value')}")
+        print(f"    - [{item['id']:<28}] {item['table']:<10}.{item['field_path']:<14} | Tax: {item['taxonomy_id']:<16} | Action: {item['expected_action']:<6} | Type: {item.get('data_type')} (Non-PII)")
 
     # -------------------------------------------------------------
     # 6. Expected action MASK / HMAC / DROP / KEEP

@@ -1,6 +1,7 @@
 # 🎯 BÁO CÁO ĐỐI SOÁT POSTGRESQL GOLDEN DATASET & SEED.SQL
 
 > **Nhiệm vụ:** Rà soát 50 PostgreSQL labels trong `eval/golden_labels.json`, đối chiếu với `data/fixtures/seed.sql`, bảo đảm 33 case dev và 17 case holdout.
+> **Nguyên tắc an toàn:** 🔒 **No-raw-value UI Safe** — Tuyệt đối không để lộ giá trị PII thô trong báo cáo.
 > **Thời điểm đối soát:** psycopg / Python environment
 > **Trạng thái:** 🟢 **100% RECONCILED (50/50 LABELS MATCH SEED.SQL)**
 
@@ -24,41 +25,41 @@
 
 ## 2. 🧪 Danh Sách 33 Cases Dev (Tập Huấn Luyện & Tinh Chỉnh AI)
 
-| STT | Label ID | Bảng (seed.sql) | Cột / Thuộc tính | Taxonomy ID | Nhóm dữ liệu | Action | Kiểu dữ liệu | Sample Value |
+| STT | Label ID | Bảng (seed.sql) | Cột / Thuộc tính | Taxonomy ID | Nhóm dữ liệu | Action | Kiểu dữ liệu | Định dạng mẫu (No-Raw-Value UI Safe) |
 |:---:|---|---|---|---|---|:---:|---|---|
-| 1 | `pg-cust-cccd-01` | `customers` | `cccd` | `CCCD` | sensitive | `HMAC` | string | `033254456184` |
-| 2 | `pg-cust-email-01` | `customers` | `email` | `EMAIL` | sensitive | `MASK` | string | `alfki.0712@example.vn` |
-| 3 | `pg-cust-mobile-01` | `customers` | `mobile_phone` | `PHONE_VN` | sensitive | `MASK` | string | `0327540543` |
-| 4 | `pg-cust-dob-01` | `customers` | `date_of_birth` | `DATE_OF_BIRTH` | sensitive | `MASK` | date | `1967-11-24` |
-| 5 | `pg-cust-taxcode-01` | `customers` | `tax_code` | `TAX_CODE_PERSONAL` | sensitive | `MASK` | string | `4518834201` |
-| 6 | `pg-cust-notes-01` | `customers` | `personal_notes` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `LH 0327540543; CCCD 03...` |
-| 7 | `pg-cust-name-01` | `customers` | `contact_name` | `FULL_NAME` | basic | `MASK` | string | `Maria Anders` |
-| 8 | `pg-cust-address-01` | `customers` | `address` | `STREET_ADDRESS` | basic | `MASK` | string | `Obere Str. 57` |
+| 1 | `pg-cust-cccd-01` | `customers` | `cccd` | `CCCD` | sensitive | `HMAC` | string | `12 digits [RAW CCCD HIDDEN]` |
+| 2 | `pg-cust-email-01` | `customers` | `email` | `EMAIL` | sensitive | `MASK` | string | `a***@example.vn [RAW HIDDEN]` |
+| 3 | `pg-cust-mobile-01` | `customers` | `mobile_phone` | `PHONE_VN` | sensitive | `MASK` | string | `032*** [RAW PHONE HIDDEN]` |
+| 4 | `pg-cust-dob-01` | `customers` | `date_of_birth` | `DATE_OF_BIRTH` | sensitive | `MASK` | date | `****-**-** [RAW DOB HIDDEN]` |
+| 5 | `pg-cust-taxcode-01` | `customers` | `tax_code` | `TAX_CODE_PERSONAL` | sensitive | `MASK` | string | `451*** [RAW TAX HIDDEN]` |
+| 6 | `pg-cust-notes-01` | `customers` | `personal_notes` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `[FREE TEXT PII HIDDEN]` |
+| 7 | `pg-cust-name-01` | `customers` | `contact_name` | `FULL_NAME` | basic | `MASK` | string | `Maria *** [RAW NAME HIDDEN]` |
+| 8 | `pg-cust-address-01` | `customers` | `address` | `STREET_ADDRESS` | basic | `MASK` | string | `[STREET ADDRESS HIDDEN]` |
 | 9 | `pg-cust-city-01` | `customers` | `city` | `CITY` | basic | `KEEP` | string | `Berlin` |
 | 10 | `pg-cust-country-01` | `customers` | `country` | `COUNTRY` | non_personal | `KEEP` | string | `Germany` |
 | 11 | `pg-cust-id-01` | `customers` | `customer_id` | `SYSTEM_ID` | non_personal | `KEEP` | string | `ALFKI` |
 | 12 | `pg-cust-company-01` | `customers` | `company_name` | `ORGANIZATION_NAME` | non_personal | `KEEP` | string | `Alfreds Futterkiste` |
 | 13 | `pg-cust-title-01` | `customers` | `contact_title` | `JOB_TITLE` | non_personal | `KEEP` | string | `Sales Representative` |
-| 14 | `pg-ord-custcccd-01` | `orders` | `customer_cccd` | `CCCD` | sensitive | `HMAC` | string | `038263451360` |
-| 15 | `pg-ord-shipphone-01` | `orders` | `ship_phone` | `PHONE_VN` | basic | `MASK` | string | `0980431050` |
+| 14 | `pg-ord-custcccd-01` | `orders` | `customer_cccd` | `CCCD` | sensitive | `HMAC` | string | `12 digits [RAW CCCD HIDDEN]` |
+| 15 | `pg-ord-shipphone-01` | `orders` | `ship_phone` | `PHONE_VN` | basic | `MASK` | string | `098*** [RAW PHONE HIDDEN]` |
 | 16 | `pg-ord-tracking-01` | `orders` | `tracking_code` | `TRACKING_NUMBER` | non_personal | `KEEP` | string | `400691172582` |
-| 17 | `pg-ord-notes-01` | `orders` | `order_notes` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `Goi nguoi nhan 0980431...` |
-| 18 | `pg-ord-shipaddr-01` | `orders` | `ship_address` | `STREET_ADDRESS` | basic | `MASK` | string | `59 rue de l'Abbaye` |
+| 17 | `pg-ord-notes-01` | `orders` | `order_notes` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `[FREE TEXT PII HIDDEN]` |
+| 18 | `pg-ord-shipaddr-01` | `orders` | `ship_address` | `STREET_ADDRESS` | basic | `MASK` | string | `[STREET ADDRESS HIDDEN]` |
 | 19 | `pg-ord-id-01` | `orders` | `order_id` | `TRANSACTION_ID` | non_personal | `KEEP` | integer | `10248` |
 | 20 | `pg-ord-freight-01` | `orders` | `freight` | `FINANCIAL_AMOUNT` | non_personal | `KEEP` | float | `32.38` |
 | 21 | `pg-ord-date-01` | `orders` | `order_date` | `TRANSACTION_DATE` | non_personal | `KEEP` | date | `1996-07-04` |
-| 22 | `pg-emp-cccd-01` | `employees` | `cccd` | `CCCD` | sensitive | `HMAC` | string | `001085002134` |
-| 23 | `pg-emp-email-01` | `employees` | `personal_email` | `EMAIL` | sensitive | `MASK` | string | `nancy.davolio@gmail.com` |
-| 24 | `pg-emp-mobile-01` | `employees` | `mobile_phone` | `PHONE_VN` | sensitive | `MASK` | string | `0912345678` |
-| 25 | `pg-emp-taxcode-01` | `employees` | `tax_code` | `TAX_CODE_PERSONAL` | sensitive | `MASK` | string | `8023456789` |
-| 26 | `pg-emp-name-01` | `employees` | `first_name` | `FIRST_NAME` | basic | `MASK` | string | `Nancy` |
-| 27 | `pg-emp-birth-01` | `employees` | `birth_date` | `DATE_OF_BIRTH` | sensitive | `MASK` | date | `1948-12-08` |
-| 28 | `pg-sup-cccd-01` | `suppliers` | `contact_cccd` | `CCCD` | sensitive | `HMAC` | string | `079090123456` |
-| 29 | `pg-sup-email-01` | `suppliers` | `contact_email` | `EMAIL` | basic | `MASK` | string | `supplier.contact@exoti...` |
+| 22 | `pg-emp-cccd-01` | `employees` | `cccd` | `CCCD` | sensitive | `HMAC` | string | `12 digits [RAW CCCD HIDDEN]` |
+| 23 | `pg-emp-email-01` | `employees` | `personal_email` | `EMAIL` | sensitive | `MASK` | string | `n***@gmail.com [RAW HIDDEN]` |
+| 24 | `pg-emp-mobile-01` | `employees` | `mobile_phone` | `PHONE_VN` | sensitive | `MASK` | string | `091*** [RAW PHONE HIDDEN]` |
+| 25 | `pg-emp-taxcode-01` | `employees` | `tax_code` | `TAX_CODE_PERSONAL` | sensitive | `MASK` | string | `802*** [RAW TAX HIDDEN]` |
+| 26 | `pg-emp-name-01` | `employees` | `first_name` | `FIRST_NAME` | basic | `MASK` | string | `Nancy *** [RAW NAME HIDDEN]` |
+| 27 | `pg-emp-birth-01` | `employees` | `birth_date` | `DATE_OF_BIRTH` | sensitive | `MASK` | date | `****-**-** [RAW DOB HIDDEN]` |
+| 28 | `pg-sup-cccd-01` | `suppliers` | `contact_cccd` | `CCCD` | sensitive | `HMAC` | string | `12 digits [RAW CCCD HIDDEN]` |
+| 29 | `pg-sup-email-01` | `suppliers` | `contact_email` | `EMAIL` | basic | `MASK` | string | `s***@exoticliquids.co.uk [RAW HIDDEN]` |
 | 30 | `pg-sup-taxcode-01` | `suppliers` | `tax_code` | `TAX_CODE_ORG` | non_personal | `KEEP` | string | `7654009810` |
-| 31 | `pg-tick-body-01` | `support_tickets` | `body` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `Khach hang yeu cau kie...` |
-| 32 | `pg-kyc-ocr-01` | `kyc_documents` | `ocr_text` | `OCR_IDENTITY_DOC` | sensitive | `DROP` | text | `CONG HOA XA HOI CHU NG...` |
-| 33 | `pg-kyc-filepath-01` | `kyc_documents` | `file_path` | `INTERNAL_FILE_PATH` | sensitive | `DROP` | string | `/var/data/kyc/cust_033...` |
+| 31 | `pg-tick-body-01` | `support_tickets` | `body` | `FREE_TEXT_PII` | sensitive | `MASK` | text | `[FREE TEXT PII HIDDEN]` |
+| 32 | `pg-kyc-ocr-01` | `kyc_documents` | `ocr_text` | `OCR_IDENTITY_DOC` | sensitive | `DROP` | text | `[OCR TEXT DROP/HIDDEN]` |
+| 33 | `pg-kyc-filepath-01` | `kyc_documents` | `file_path` | `INTERNAL_FILE_PATH` | sensitive | `DROP` | string | `[INTERNAL FILE PATH DROP/HIDDEN]` |
 
 ---
 

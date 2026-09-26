@@ -6,6 +6,7 @@ Verifies:
 2. Schema reconciliation: table & column existence in data/fixtures/seed.sql.
 3. Data reconciliation: sample values exist or match data shapes in PostgreSQL.
 4. Downstream join baseline alignment (orders.customer_cccd <-> customers.cccd).
+5. Strictly enforces No-raw-value UI Safe: no raw PII in reports or console logs.
 """
 
 from __future__ import annotations
@@ -15,13 +16,14 @@ import os
 import sys
 from pathlib import Path
 
-# Add project root to sys.path
+
 def _get_project_root() -> Path:
     current = Path(__file__).resolve()
     for parent in current.parents:
         if (parent / ".git").exists() or (parent / "src").exists():
             return parent
     return current.parents[4]
+
 
 PROJECT_ROOT = _get_project_root()
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -30,6 +32,53 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 import psycopg
 from psycopg.rows import dict_row
+
+
+def _format_safe_sample(item: dict) -> str:
+    category = item.get("category", "")
+    tax = item.get("taxonomy_id", "")
+    action = item.get("expected_action", "")
+    val = str(item.get("sample_value", ""))
+
+    # If non_personal or action KEEP for non-sensitive data:
+    if category == "non_personal" or action == "KEEP":
+        if any(k in tax for k in ["CCCD", "PHONE", "EMAIL", "TAX_CODE_PERSONAL"]):
+            return "[PROTECTED VALUE]"
+        if len(val) > 22:
+            return val[:20] + "..."
+        return val
+
+    # Strictly mask all PII values (No-raw-value UI Safe)
+    if "CCCD" in tax:
+        return f"{len(val)} digits [RAW CCCD HIDDEN]"
+    if "EMAIL" in tax:
+        if "@" in val:
+            domain = val.split("@")[-1]
+            return f"{val[0]}***@{domain} [RAW HIDDEN]"
+        return "[RAW EMAIL HIDDEN]"
+    if "PHONE" in tax or "FAX" in tax:
+        if len(val) >= 3:
+            return f"{val[:3]}*** [RAW PHONE HIDDEN]"
+        return "[RAW PHONE HIDDEN]"
+    if "DATE_OF_BIRTH" in tax or "DOB" in tax or "birth_date" in item.get("field_path", ""):
+        return "****-**-** [RAW DOB HIDDEN]"
+    if "TAX_CODE" in tax:
+        return f"{val[:3]}*** [RAW TAX HIDDEN]" if len(val) >= 3 else "[RAW TAX HIDDEN]"
+    if "FREE_TEXT" in tax:
+        return "[FREE TEXT PII HIDDEN]"
+    if "OCR" in tax:
+        return "[OCR TEXT DROP/HIDDEN]"
+    if "NAME" in tax:
+        parts = val.split()
+        return f"{parts[0]} *** [RAW NAME HIDDEN]" if parts else "[RAW NAME HIDDEN]"
+    if "ADDRESS" in tax:
+        return "[STREET ADDRESS HIDDEN]"
+    if "FILE_PATH" in tax:
+        return "[INTERNAL FILE PATH DROP/HIDDEN]"
+    if "BIOGRAPHY" in tax:
+        return "[BIOGRAPHY PII HIDDEN]"
+
+    return "[RAW VALUE HIDDEN]"
 
 
 def audit_postgres_golden_dataset():
@@ -143,7 +192,7 @@ def audit_postgres_golden_dataset():
     else:
         print(f"\n  -> STATUS: PASS (All 50 labels map 100% to valid columns in seed.sql)")
 
-    # 3. Check sample values exist in database
+    # 3. Check sample values exist in database (safe parameterized count, no raw logging)
     print(f"\n[3] DATA VALUE EXISTENCE & CONSISTENCY CHECK:")
     value_checked = 0
     with psycopg.connect(conn_str, row_factory=dict_row) as conn, conn.cursor() as cur:
@@ -152,7 +201,6 @@ def audit_postgres_golden_dataset():
             col = item.get("field_path")
             sample = item.get("sample_value")
             if sample and tbl in schema_map and col in schema_map[tbl]:
-                # Try finding this exact sample value or non-null values
                 try:
                     cur.execute(f"SELECT count(*)::int as cnt FROM public.{tbl} WHERE {col}::text = %s", (str(sample),))
                     cnt = cur.fetchone()["cnt"]
@@ -195,12 +243,13 @@ def audit_postgres_golden_dataset():
     print(f"  * Downstream orders JOIN customers via CCCD:        {matched_cccd}/830 rows matched (100%)")
     print(f"  * Downstream orders JOIN customers via customer_id: {matched_cust_id}/830 rows matched (100%)")
 
-    # Generate Markdown Audit Report
+    # 6. Generate Markdown Audit Report (No-raw-value UI Safe)
     report_file = PROJECT_ROOT / "eval" / "results" / "POSTGRES_GOLDEN_DATASET_AUDIT.md"
     report_lines = [
         "# 🎯 BÁO CÁO ĐỐI SOÁT POSTGRESQL GOLDEN DATASET & SEED.SQL",
         "",
         "> **Nhiệm vụ:** Rà soát 50 PostgreSQL labels trong `eval/golden_labels.json`, đối chiếu với `data/fixtures/seed.sql`, bảo đảm 33 case dev và 17 case holdout.",
+        "> **Nguyên tắc an toàn:** 🔒 **No-raw-value UI Safe** — Tuyệt đối không để lộ giá trị PII thô trong báo cáo.",
         f"> **Thời điểm đối soát:** {psycopg.__name__} / Python environment",
         "> **Trạng thái:** 🟢 **100% RECONCILED (50/50 LABELS MATCH SEED.SQL)**",
         "",
@@ -224,14 +273,12 @@ def audit_postgres_golden_dataset():
         "",
         "## 2. 🧪 Danh Sách 33 Cases Dev (Tập Huấn Luyện & Tinh Chỉnh AI)",
         "",
-        "| STT | Label ID | Bảng (seed.sql) | Cột / Thuộc tính | Taxonomy ID | Nhóm dữ liệu | Action | Kiểu dữ liệu | Sample Value |",
+        "| STT | Label ID | Bảng (seed.sql) | Cột / Thuộc tính | Taxonomy ID | Nhóm dữ liệu | Action | Kiểu dữ liệu | Định dạng mẫu (No-Raw-Value UI Safe) |",
         "|:---:|---|---|---|---|---|:---:|---|---|",
     ]
 
     for i, x in enumerate(dev_pg, 1):
-        s_val = str(x.get("sample_value", "")).replace("|", "\\|")
-        if len(s_val) > 25:
-            s_val = s_val[:22] + "..."
+        s_val = _format_safe_sample(x).replace("|", "\\|")
         report_lines.append(
             f"| {i} | `{x['id']}` | `{x['table']}` | `{x['field_path']}` | `{x['taxonomy_id']}` | {x.get('category')} | `{x.get('expected_action')}` | {x.get('data_type')} | `{s_val}` |"
         )
@@ -278,4 +325,3 @@ def audit_postgres_golden_dataset():
 
 if __name__ == "__main__":
     sys.exit(audit_postgres_golden_dataset())
-
