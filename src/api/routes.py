@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.agents.graph import agent
-from src.api import auth
+from src.api import auth, sources
 from src.api.deps import get_current_user, require_dpo
 from src.api.session_store import SessionUser
 from src.models.schemas import ChatRequest, ChatResponse
 
 router = APIRouter()
 router.include_router(auth.router)
+router.include_router(sources.router)
 
 
 @router.post("/chat", response_model=ChatResponse)

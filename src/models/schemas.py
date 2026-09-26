@@ -32,6 +32,32 @@ class SessionResponse(BaseModel):
     role: UserRole
 
 
+# --- Configured demo sources (no credentials in API responses) ---
+
+
+class SourceType(StrEnum):
+    """Family of datastore — not a specific vendor."""
+
+    SQL = "SQL"
+    NOSQL = "NOSQL"
+
+
+class Source(BaseModel):
+    id: str = Field(..., description="Stable source id for creating runs")
+    name: str = Field(..., description="Display name of the demo source")
+    source_type: SourceType = Field(..., description="SQL or NOSQL family")
+    engine: str = Field(
+        ...,
+        description="Concrete engine/dialect for connectors (e.g. postgresql, mysql, mongodb)",
+    )
+    description: str = ""
+    scope_summary: str = Field(
+        default="",
+        description="High-level scope (tables/collections), never connection secrets",
+    )
+    status: str = Field(default="ready", description="Connection/config status label")
+
+
 # --- Schema cho việc trích xuất Database Profile (PII Detect) ---
 
 class ColumnProfile(BaseModel):
