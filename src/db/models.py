@@ -90,6 +90,24 @@ class Dataset(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     run: Mapped["Run"] = relationship(back_populates="datasets")
+    verifier_results: Mapped[list["VerifierResult"]] = relationship(back_populates="dataset")
+
+
+class VerifierResult(Base):
+    """Downstream / policy check results for a dataset (aggregate values only, no raw PII)."""
+
+    __tablename__ = "verifier_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), nullable=False, index=True)
+    check_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # PASSED | FAILED
+    baseline_value: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    actual_value: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    tolerance: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    details: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    dataset: Mapped["Dataset"] = relationship(back_populates="verifier_results")
 
 
 class AuditEvent(Base):
