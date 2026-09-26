@@ -28,8 +28,14 @@ class Settings(BaseSettings):
     model_name: str = "gpt-oss-120b"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
-    # Database
+    # Database (app metadata)
     database_url: str = "sqlite:///./data/app.db"
+
+    # Postgres source (read-only fixture) vs snapshot target (write protected copy)
+    source_database_url: str = ""
+    snapshot_database_url: str = ""
+    enable_pg_snapshot: bool = False
+    snapshot_schema: str = "piiguard_snapshot"
 
     # HMAC join-key hashing (not encryption)
     hmac_secret: str = "dev-hmac-secret-change-me"

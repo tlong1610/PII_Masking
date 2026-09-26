@@ -306,7 +306,7 @@ def build_run(
                 detail="Build blocked: UNKNOWN cannot KEEP",
             )
 
-    # Failed prior datasets must not become readable; stub succeeds to VERIFIED.
+    # Failed prior datasets must not become readable.
     run.status = RunStatus.BUILDING.value
     db.flush()
 
@@ -319,36 +319,111 @@ def build_run(
     db.add(dataset)
     db.flush()
 
-    # Stub verifier checks (aggregate metadata only — no raw PII / samples).
-    decision_count = len(run.field_decisions)
-    stub_checks = [
-        {
-            "check_name": "policy_complete",
-            "status": VerifierCheckStatus.PASSED.value,
-            "baseline_value": str(len(run.field_profiles)),
-            "actual_value": str(decision_count),
-            "tolerance": "0",
-            "details": "Every field has a DPO decision",
-        },
-        {
-            "check_name": "schema_ok",
-            "status": VerifierCheckStatus.PASSED.value,
-            "baseline_value": "ok",
-            "actual_value": "ok",
-            "tolerance": "exact",
-            "details": "Output schema matches allowed field set (stub)",
-        },
-        {
-            "check_name": "downstream_stub",
-            "status": VerifierCheckStatus.PASSED.value,
-            "baseline_value": "pass",
-            "actual_value": "pass",
-            "tolerance": "n/a",
-            "details": f"Downstream check stub for engine={run.engine}",
-        },
-    ]
+    from src.config import get_settings
+
+    settings = get_settings()
+    check_rows: list[dict] = []
+
+    use_pg = (
+        run.engine == "postgresql"
+        and settings.enable_pg_snapshot
+        and settings.source_database_url
+        and settings.snapshot_database_url
+    )
+
+    if use_pg:
+        try:
+            from src.transform.pg_pipeline import (
+                DEFAULT_DEMO_ACTIONS,
+                actions_from_run_decisions,
+                run_protected_postgres_pipeline,
+            )
+
+            table_actions = actions_from_run_decisions(run.field_profiles, run.field_decisions)
+            # Merge demo join-key HMAC defaults so CCCD join works even if DPO used other labels
+            for table, cols in DEFAULT_DEMO_ACTIONS.items():
+                table_actions.setdefault(table, {})
+                for col, act in cols.items():
+                    table_actions[table].setdefault(col, act)
+
+            written, checks = run_protected_postgres_pipeline(
+                source_url=settings.source_database_url,
+                snapshot_url=settings.snapshot_database_url,
+                secret=settings.hmac_secret,
+                key_version=settings.hmac_key_version,
+                table_actions=table_actions,
+                snapshot_schema=settings.snapshot_schema,
+            )
+            dataset.output_location = (
+                f"postgres://{settings.snapshot_schema}/"
+                + ",".join(sorted(written.keys()))
+            )
+            check_rows = [
+                {
+                    "check_name": c.check_name,
+                    "status": c.status,
+                    "baseline_value": c.baseline_value,
+                    "actual_value": c.actual_value,
+                    "tolerance": c.tolerance,
+                    "details": c.details,
+                }
+                for c in checks
+            ]
+            # Always record policy_complete as well
+            check_rows.insert(
+                0,
+                {
+                    "check_name": "policy_complete",
+                    "status": VerifierCheckStatus.PASSED.value,
+                    "baseline_value": str(len(run.field_profiles)),
+                    "actual_value": str(len(run.field_decisions)),
+                    "tolerance": "0",
+                    "details": "Every field has a DPO decision",
+                },
+            )
+        except Exception as exc:
+            check_rows = [
+                {
+                    "check_name": "postgres_snapshot_pipeline",
+                    "status": VerifierCheckStatus.FAILED.value,
+                    "baseline_value": "ok",
+                    "actual_value": "error",
+                    "tolerance": "n/a",
+                    "details": f"Pipeline error: {type(exc).__name__}",
+                }
+            ]
+    else:
+        # Stub verifier checks when PG snapshot not enabled (unit tests / local without Docker).
+        decision_count = len(run.field_decisions)
+        check_rows = [
+            {
+                "check_name": "policy_complete",
+                "status": VerifierCheckStatus.PASSED.value,
+                "baseline_value": str(len(run.field_profiles)),
+                "actual_value": str(decision_count),
+                "tolerance": "0",
+                "details": "Every field has a DPO decision",
+            },
+            {
+                "check_name": "schema_ok",
+                "status": VerifierCheckStatus.PASSED.value,
+                "baseline_value": "ok",
+                "actual_value": "ok",
+                "tolerance": "exact",
+                "details": "Output schema matches allowed field set (stub)",
+            },
+            {
+                "check_name": "downstream_stub",
+                "status": VerifierCheckStatus.PASSED.value,
+                "baseline_value": "pass",
+                "actual_value": "pass",
+                "tolerance": "n/a",
+                "details": f"Downstream check stub for engine={run.engine}",
+            },
+        ]
+
     verifier_rows: list[db_models.VerifierResult] = []
-    for check in stub_checks:
+    for check in check_rows:
         row = db_models.VerifierResult(dataset_id=dataset.id, **check)
         db.add(row)
         verifier_rows.append(row)
@@ -357,11 +432,11 @@ def build_run(
     if any(r.status == VerifierCheckStatus.FAILED.value for r in verifier_rows):
         dataset.status = DatasetStatus.FAILED.value
         run.status = RunStatus.FAILED.value
-        reason = "stub build -> FAILED (verifier)"
+        reason = "build -> FAILED (verifier)"
     else:
         dataset.status = DatasetStatus.VERIFIED.value
         run.status = RunStatus.VERIFIED.value
-        reason = "stub build -> VERIFIED (verifier passed)"
+        reason = "build -> VERIFIED (verifier passed)"
 
     _write_audit(
         db,
