@@ -112,16 +112,61 @@ def main():
     print(f"  [3] PROTECTED Database customer_id:  {prot_res['customer_id']['matched']} matched, {prot_res['customer_id']['unmatched']} unmatched -> {'OK' if prot_res['customer_id']['matched'] == 830 and prot_res['customer_id']['unmatched'] == 0 else 'FAIL'}")
     print(f"  [4] PROTECTED Database CCCD (HMAC):  {prot_res['cccd']['matched']} matched, {prot_res['cccd']['unmatched']} unmatched -> {'OK' if prot_res['cccd']['matched'] == 830 and prot_res['cccd']['unmatched'] == 0 else 'FAIL'}")
 
-    print("\n" + "=" * 80)
-    if all_passed:
-        print(">>> VERIFICATION SUCCESS: 830 MATCHED, 0 UNMATCHED ACROSS ALL COLLECTIONS <<<")
-    else:
-        print(">>> VERIFICATION FAILED: UNMATCHED DOCUMENTS DETECTED <<<")
-    print("=" * 80)
+    # Save evidence file
+    evidence_dir = PROJECT_ROOT / "eval" / "results"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    evidence_file = evidence_dir / "mongo_e2e_evidence.json"
+
+    # Fetch sample customer and order for UI-safe audit
+    raw_cust = client["mydatabase"].customers.find_one({}, {"identity": 1, "contact": 1, "_id": 1})
+    prot_cust = client["mydatabase_protected"].customers.find_one({}, {"identity": 1, "contact": 1, "_id": 1})
+
+    raw_cccd = (raw_cust.get("identity") or {}).get("cccd", "")
+    raw_email = (raw_cust.get("contact") or {}).get("email", "")
+    raw_phone = (raw_cust.get("contact") or {}).get("phone", "")
+
+    prot_cccd = (prot_cust.get("identity") or {}).get("cccd", "")
+    prot_email = (prot_cust.get("contact") or {}).get("email", "")
+    prot_phone = (prot_cust.get("contact") or {}).get("phone", "")
+
+    sample_evidence = {
+        "customer_id": str(raw_cust.get("_id")),
+        "raw_record": {
+            "cccd_shape": f"{len(raw_cccd)} digits [RAW HIDDEN]",
+            "email_domain": "@" + raw_email.split("@")[-1] if "@" in raw_email else "masked",
+            "phone_prefix": raw_phone[:3] + "***" if len(raw_phone) >= 3 else "090***",
+        },
+        "protected_record": {
+            "cccd_hmac_sha256": prot_cccd[:16] + "..." if prot_cccd else "",
+            "email_masked": prot_email,
+            "phone_masked": prot_phone,
+        },
+    }
+
+    evidence_data = {
+        "generated_at": datetime.now().isoformat(),
+        "status": "PASSED" if all_passed else "FAILED",
+        "collections": {
+            "customers": {"expected_documents": 91, "actual_documents": raw_res["total_customers"]},
+            "orders": {"expected_documents": 830, "actual_documents": raw_res["total_orders"]},
+        },
+        "verification_metrics": {
+            "raw_database": raw_res,
+            "protected_database": prot_res,
+        },
+        "sample_verification_no_raw": sample_evidence,
+    }
+
+    with open(evidence_file, "w", encoding="utf-8") as f:
+        json.dump(evidence_data, f, indent=2, ensure_ascii=False)
+
+    print(f"\nAudit evidence report successfully saved to: {evidence_file}")
 
     client.close()
     return 0 if all_passed else 1
 
 
 if __name__ == "__main__":
+    from datetime import datetime
     sys.exit(main())
+
