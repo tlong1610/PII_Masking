@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-09-26T11:12:15.987021",
+  "status": "PASSED",
+  "tables_profile": [
+    {
+      "table_name": "categories",
+      "columns_count": 4,
+      "primary_keys": [
+        "category_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    },
+    {
+      "table_name": "customers",
+      "columns_count": 17,
+      "primary_keys": [
+        "customer_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    },
+    {
+      "table_name": "employee_territories",
+      "columns_count": 2,
+      "primary_keys": [
+        "employee_id",
+        "territory_id"
+      ],
+      "foreign_keys": [
+        "employee_id",
+        "territory_id"
+      ],
+      "relations_count": 2
+    },
+    {
+      "table_name": "employees",
+      "columns_count": 22,
+      "primary_keys": [
+        "employee_id"
+      ],
+      "foreign_keys": [
+        "reports_to"
+      ],
+      "relations_count": 1
+    },
+    {
+      "table_name": "kyc_documents",
+      "columns_count": 6,
+      "primary_keys": [
+        "doc_id"
+      ],
+      "foreign_keys": [
+        "customer_id"
+      ],
+      "relations_count": 1
+    },
+    {
+      "table_name": "order_details",
+      "columns_count": 5,
+      "primary_keys": [
+        "order_id",
+        "product_id"
+      ],
+      "foreign_keys": [
+        "order_id",
+        "product_id"
+      ],
+      "relations_count": 2
+    },
+    {
+      "table_name": "orders",
+      "columns_count": 18,
+      "primary_keys": [
+        "order_id"
+      ],
+      "foreign_keys": [
+        "customer_id",
+        "employee_id",
+        "ship_via"
+      ],
+      "relations_count": 3
+    },
+    {
+      "table_name": "products",
+      "columns_count": 10,
+      "primary_keys": [
+        "product_id"
+      ],
+      "foreign_keys": [
+        "supplier_id",
+        "category_id"
+      ],
+      "relations_count": 2
+    },
+    {
+      "table_name": "region",
+      "columns_count": 2,
+      "primary_keys": [
+        "region_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    },
+    {
+      "table_name": "shippers",
+      "columns_count": 3,
+      "primary_keys": [
+        "shipper_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    },
+    {
+      "table_name": "suppliers",
+      "columns_count": 15,
+      "primary_keys": [
+        "supplier_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    },
+    {
+      "table_name": "support_tickets",
+      "columns_count": 7,
+      "primary_keys": [
+        "ticket_id"
+      ],
+      "foreign_keys": [
+        "customer_id",
+        "order_id"
+      ],
+      "relations_count": 2
+    },
+    {
+      "table_name": "territories",
+      "columns_count": 3,
+      "primary_keys": [
+        "territory_id"
+      ],
+      "foreign_keys": [
+        "region_id"
+      ],
+      "relations_count": 1
+    },
+    {
+      "table_name": "us_states",
+      "columns_count": 4,
+      "primary_keys": [
+        "state_id"
+      ],
+      "foreign_keys": [],
+      "relations_count": 0
+    }
+  ],
+  "checks": [
+    {
+      "check_name": "sql_join_hmac",
+      "status": "PASSED",
+      "baseline": "matched=830;unmatched=0",
+      "actual": "matched=830;unmatched=0",
+      "tolerance": "0",
+      "details": "JOIN orders.customer_cccd = customers.cccd after consistent HMAC"
+    },
+    {
+      "check_name": "sql_aggregate_revenue",
+      "status": "PASSED",
+      "baseline": "customers=89;revenue=1265793.01",
+      "actual": "customers=89;revenue=1265793.0395",
+      "tolerance": "0.05",
+      "details": "Distinct customers and total revenue after HMAC join"
+    }
+  ],
+  "sample_verification": {
+    "customer_id": "ALFKI",
+    "raw_record": {
+      "cccd_shape": "12 digits [RAW HIDDEN]",
+      "email_domain": "example.vn",
+      "mobile_prefix": "032"
+    },
+    "protected_record": {
+      "cccd_hmac_sha256": "44c8451c848582b7...",
+      "email_masked": "***",
+      "mobile_phone_masked": "***"
+    }
+  }
+}

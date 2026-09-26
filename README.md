@@ -70,9 +70,12 @@ source .venv/bin/activate
 cp .env.example .env
 pip install -r requirements.txt
 
-# Nạp database fixture (CSDL doanh nghiệp mô phỏng đầy đủ + VN PII):
+# Nạp PostgreSQL fixture (chi tiết: data/fixtures/postgres/README.md):
 # docker cp data/fixtures/seed.sql p-138-db-1:/tmp/
 # docker exec -i p-138-db-1 psql -U postgres -d mydatabase -v ON_ERROR_STOP=1 -f /tmp/seed.sql
+
+# Nạp MongoDB fixture (chi tiết: data/fixtures/mongo/README.md):
+# python data/fixtures/mongo/seed_mongo.py
 
 uvicorn src.main:app --reload
 ```
@@ -98,7 +101,8 @@ Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential �
 | Đường dẫn                                      | Nội dung                                                                  |
 | ---------------------------------------------- | ------------------------------------------------------------------------- |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng |
-| `data/fixtures/seed.sql`                       | PostgreSQL fixture synthetic: Northwind + VN PII giả lập cho scan/mask/HMAC |
+| [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture |
+| [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md) | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |
 | `docs/brief.md`, `docs/brief-one-page.pdf`     | Brief theo 6 mục Gate 1; PDF đúng một trang                               |
 | `docs/prd.md`                                  | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu      |
 | `docs/ui-flow.md`                              | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                         |
