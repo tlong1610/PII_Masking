@@ -122,3 +122,84 @@ async def test_unknown_cannot_keep_and_full_build_succeeds(client):
     blob = str(body["verifier_results"]).lower()
     assert "sample" not in blob
     assert "password" not in blob
+
+
+@pytest.mark.asyncio
+async def test_create_run_ai_scan_path(client, monkeypatch):
+    """When ENABLE_AI_SCAN is on, create_run uses scanner (mocked) not stub."""
+    from src.config import get_settings
+
+    monkeypatch.setenv("ENABLE_AI_SCAN", "true")
+    monkeypatch.setenv(
+        "SOURCE_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    get_settings.cache_clear()
+
+    async def fake_scan(_url: str, **_kwargs):
+        return [
+            {
+                "source_path": "customers",
+                "field_path": "phone",
+                "data_type": "varchar",
+                "profile_summary": "mocked scan",
+                "classification": "PERSONAL_BASIC",
+                "taxonomy_id": "PHONE",
+                "detector_source": "rule",
+                "coverage_status": "full",
+                "recommended_action": "MASK",
+            }
+        ]
+
+    monkeypatch.setattr(
+        "src.services.run_scanner.scan_postgres_source",
+        fake_scan,
+    )
+
+    token = await _login(client, "dpo", "dpo123")
+    created = await client.post(
+        "/api/v1/runs",
+        headers=_auth(token),
+        json={"source_id": "sql-demo"},
+    )
+    get_settings.cache_clear()
+    assert created.status_code == 201
+    data = created.json()
+    assert data["status"] == "REVIEW_REQUIRED"
+    assert len(data["field_profiles"]) == 1
+    profile = data["field_profiles"][0]
+    assert profile["coverage_status"] == "full"
+    assert profile["taxonomy_id"] == "PHONE"
+    assert profile["field_path"] == "phone"
+    assert "sample" not in str(data).lower()
+
+
+@pytest.mark.asyncio
+async def test_create_run_ai_scan_failure_marks_failed(client, monkeypatch):
+    from src.config import get_settings
+
+    monkeypatch.setenv("ENABLE_AI_SCAN", "true")
+    monkeypatch.setenv(
+        "SOURCE_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    get_settings.cache_clear()
+
+    async def boom(_url: str, **_kwargs):
+        raise RuntimeError("connector down")
+
+    monkeypatch.setattr(
+        "src.services.run_scanner.scan_postgres_source",
+        boom,
+    )
+
+    token = await _login(client, "dpo", "dpo123")
+    created = await client.post(
+        "/api/v1/runs",
+        headers=_auth(token),
+        json={"source_id": "sql-demo"},
+    )
+    get_settings.cache_clear()
+    assert created.status_code == 201
+    assert created.json()["status"] == "FAILED"
+    assert created.json()["field_profiles"] == []

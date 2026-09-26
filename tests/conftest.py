@@ -8,6 +8,8 @@ from httpx import ASGITransport, AsyncClient
 # Use isolated SQLite DB for tests before app imports engine.
 os.environ["DATABASE_URL"] = "sqlite:///./data/test_verifier.db"
 os.environ["APP_ENV"] = "test"
+os.environ["ENABLE_AI_SCAN"] = "false"
+os.environ["ENABLE_PG_SNAPSHOT"] = "false"
 
 from src.api.session_store import clear_sessions
 from src.config import get_settings
