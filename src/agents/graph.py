@@ -28,7 +28,7 @@ def route_after_tier2(state: AgentState) -> str:
 
 
 def route_after_tier3_hybrid(state: AgentState) -> str:
-    """Nếu điểm Tầng 3.1 > 0.85 hoặc < 0.4 -> chốt kết quả. Nếu ở vùng xám (0.4 - 0.85) -> chuyển qua LLM."""
+    """Nếu điểm Tầng 3.1 > 0.75 hoặc < 0.1 -> chốt kết quả. Nếu ở vùng xám (0.1 - 0.75) -> chuyển qua LLM."""
     if state.get("final_proposal"):
         return "proposal"
     return "tier3_llm"

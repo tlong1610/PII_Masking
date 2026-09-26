@@ -22,11 +22,18 @@ class Settings(BaseSettings):
 
     # LLM
     google_api_key: str = ""
-    model_name: str = "gemini-2.5-pro"
+    groq_api_key: str = ""
+    openrouter_api_key: str = ""
+    cerebras_api_key: str = ""
+    model_name: str = "gpt-oss-120b"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Database
     database_url: str = "sqlite:///./data/app.db"
+
+    # HMAC join-key hashing (not encryption)
+    hmac_secret: str = "dev-hmac-secret-change-me"
+    hmac_key_version: str = "v1"
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
