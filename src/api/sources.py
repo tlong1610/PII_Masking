@@ -37,3 +37,10 @@ _DEMO_SOURCES: list[Source] = [
 def list_sources(_user: SessionUser = Depends(require_dpo)) -> list[Source]:
     """List configured demo sources for DPO. No passwords or connection strings."""
     return list(_DEMO_SOURCES)
+
+
+def get_source_by_id(source_id: str) -> Source | None:
+    for source in _DEMO_SOURCES:
+        if source.id == source_id:
+            return source
+    return None

@@ -6,7 +6,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 # Use isolated SQLite DB for tests before app imports engine.
-os.environ["DATABASE_URL"] = "sqlite:///./data/test_sessions.db"
+os.environ["DATABASE_URL"] = "sqlite:///./data/test_runs.db"
 os.environ["APP_ENV"] = "test"
 
 from src.api.session_store import clear_sessions
