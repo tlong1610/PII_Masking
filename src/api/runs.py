@@ -153,7 +153,7 @@ def _run_to_out(run: db_models.Run) -> RunOut:
 
 
 @router.post("/runs", response_model=RunOut, status_code=status.HTTP_201_CREATED)
-def create_run(
+async def create_run(
     body: RunCreate,
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
@@ -161,6 +161,16 @@ def create_run(
     source = get_source_by_id(body.source_id)
     if source is None:
         raise HTTPException(status_code=404, detail="Unknown source_id")
+
+    from src.config import get_settings
+
+    settings = get_settings()
+    use_ai_scan = (
+        settings.enable_ai_scan
+        and source.source_type == SourceType.SQL
+        and source.engine == "postgresql"
+        and bool(settings.source_database_url)
+    )
 
     run = db_models.Run(
         source_id=source.id,
@@ -173,17 +183,43 @@ def create_run(
     db.add(run)
     db.flush()
 
-    for spec in _stub_field_specs(source.source_type):
-        db.add(db_models.FieldProfile(run_id=run.id, **spec))
+    scan_reason = f"source={source.id}"
+    try:
+        if use_ai_scan:
+            from src.services.run_scanner import scan_postgres_source
 
-    run.status = RunStatus.REVIEW_REQUIRED.value
+            specs = await scan_postgres_source(settings.source_database_url)
+            scan_reason = f"source={source.id}; scan=ai"
+        else:
+            specs = _stub_field_specs(source.source_type)
+            scan_reason = f"source={source.id}; scan=stub"
+
+        for spec in specs:
+            db.add(db_models.FieldProfile(run_id=run.id, **spec))
+        run.status = RunStatus.REVIEW_REQUIRED.value
+    except Exception as exc:
+        run.status = RunStatus.FAILED.value
+        scan_reason = f"source={source.id}; scan=failed:{type(exc).__name__}"
+        _write_audit(
+            db,
+            actor=user,
+            action="create_run",
+            entity_type="run",
+            entity_id=str(run.id),
+            reason=scan_reason,
+        )
+        db.commit()
+        loaded = _load_run(db, run.id)
+        assert loaded is not None
+        return _run_to_out(loaded)
+
     _write_audit(
         db,
         actor=user,
         action="create_run",
         entity_type="run",
         entity_id=str(run.id),
-        reason=f"source={source.id}",
+        reason=scan_reason,
     )
     db.commit()
 

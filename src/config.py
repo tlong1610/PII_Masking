@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     enable_pg_snapshot: bool = False
     snapshot_schema: str = "piiguard_snapshot"
 
+    # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
+    enable_ai_scan: bool = False
+
     # HMAC join-key hashing (not encryption)
     hmac_secret: str = "dev-hmac-secret-change-me"
     hmac_key_version: str = "v1"
