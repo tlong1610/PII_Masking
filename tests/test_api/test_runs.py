@@ -115,3 +115,10 @@ async def test_unknown_cannot_keep_and_full_build_succeeds(client):
     assert body["run"]["status"] == "VERIFIED"
     assert body["dataset"]["status"] == "VERIFIED"
     assert body["dataset"]["output_location"].startswith("staging://")
+    assert len(body["verifier_results"]) >= 3
+    assert all(r["status"] == "PASSED" for r in body["verifier_results"])
+    names = {r["check_name"] for r in body["verifier_results"]}
+    assert "policy_complete" in names
+    blob = str(body["verifier_results"]).lower()
+    assert "sample" not in blob
+    assert "password" not in blob

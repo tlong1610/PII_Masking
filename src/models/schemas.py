@@ -96,6 +96,11 @@ class DatasetStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class VerifierCheckStatus(StrEnum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+
+
 class RunCreate(BaseModel):
     source_id: str = Field(..., min_length=1, max_length=64)
 
@@ -178,9 +183,23 @@ class RunOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VerifierResultOut(BaseModel):
+    id: int
+    dataset_id: int
+    check_name: str
+    status: VerifierCheckStatus
+    baseline_value: str
+    actual_value: str
+    tolerance: str
+    details: str
+
+    model_config = {"from_attributes": True}
+
+
 class BuildResponse(BaseModel):
     run: RunOut
     dataset: DatasetOut
+    verifier_results: list[VerifierResultOut] = Field(default_factory=list)
 
 
 # --- Schema cho việc trích xuất Database Profile (PII Detect) ---
