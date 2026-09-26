@@ -1,3 +1,4 @@
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,26 @@ class ChatResponse(BaseModel):
     analysis: str = Field(default="", description="Phân tích nội bộ")
 
 
+# --- Session / role (server-assigned; client must not choose role) ---
+
+
+class UserRole(StrEnum):
+    DPO = "DPO"
+    ANALYST = "ANALYST"
+
+
+class SessionCreate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class SessionResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+    role: UserRole
+
+
 # --- Schema cho việc trích xuất Database Profile (PII Detect) ---
 
 class ColumnProfile(BaseModel):
@@ -19,7 +40,9 @@ class ColumnProfile(BaseModel):
     is_primary_key: bool = Field(..., description="Có phải khóa chính không")
     is_foreign_key: bool = Field(..., description="Có phải khóa ngoại không")
     samples: list[str] = Field(..., description="3-5 dữ liệu mẫu khác NULL")
-    system_recommendation: str | None = Field(default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)")
+    system_recommendation: str | None = Field(
+        default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)"
+    )
 
 
 class TableRelation(BaseModel):
@@ -43,7 +66,9 @@ class DatabaseProfile(BaseModel):
 
 class FieldScanResult(BaseModel):
     field_name: str = Field(..., description="Tên cột đã phân tích")
-    inferred_pii_type: str = Field(..., description="Loại PII phát hiện (Ví dụ: CCCD, PHONE, EMAIL, UNKNOWN)")
+    inferred_pii_type: str = Field(
+        ..., description="Loại PII phát hiện (Ví dụ: CCCD, PHONE, EMAIL, UNKNOWN)"
+    )
     confidence: float = Field(..., description="Độ tin cậy (0.0 đến 1.0)")
     recommended_action: str = Field(..., description="Hành động gợi ý: MASK, DROP, HMAC, KEEP")
     reasoning: str = Field(..., description="Lý do hoặc căn cứ quyết định")
