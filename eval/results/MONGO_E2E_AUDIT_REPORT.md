@@ -109,22 +109,22 @@ python data/fixtures/mongo/seed_mongo.py
 
 ### Bước 2: Chạy Tạo Bản Snapshot Ẩn Danh (HMAC & Masking)
 ```bash
-python scripts/apply_mongo_hmac.py
+python data/fixtures/mongo/compute/apply_mongo_hmac.py
 ```
 *Kết quả:* Tạo database `mydatabase_protected` với CCCD được băm HMAC-SHA256, email và số điện thoại được che mờ.
 
 ### Bước 3: Chạy Demo Phép Nối $lookup Giữa 2 Collection
 ```bash
 # Demo $lookup qua customer_id:
-python scripts/run_mongo_lookup.py
+python data/fixtures/mongo/compute/run_mongo_lookup.py
 
 # Demo $lookup qua CCCD (Khóa nhạy cảm):
-python scripts/run_mongo_lookup_cccd.py
+python data/fixtures/mongo/compute/run_mongo_lookup_cccd.py
 ```
 
 ### Bước 4: Chạy Đối Soát Số Liệu Chính Thức & Xuất Evidence
 ```bash
-python scripts/verify_mongo_lookup_counts.py
+python data/fixtures/mongo/compute/verify_mongo_lookup_counts.py
 ```
 *Kết quả:* Xác nhận `830 matched, 0 unmatched` và tự động cập nhật file bằng chứng `eval/results/mongo_e2e_evidence.json`.
 

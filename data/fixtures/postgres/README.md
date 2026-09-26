@@ -95,8 +95,11 @@ psql -h localhost -p 5432 -U postgres -d mydatabase -v ON_ERROR_STOP=1 -f data/f
 Sau khi nạp dữ liệu xong, thực hiện chạy script đối soát downstream tự động:
 
 ```bash
-# Chạy bộ đối soát SQL toàn diện
-python scripts/verify_postgres_e2e.py
+# 1. Chạy bộ đối soát SQL toàn diện
+python data/fixtures/postgres/compute/verify_postgres_e2e.py
+
+# 2. Rà soát và đối chiếu Golden Dataset (33 Dev / 17 Holdout)
+python data/fixtures/postgres/compute/audit_postgres_golden_labels.py
 ```
 
 ### Tiêu chuẩn Nghiệm thu Baseline (Expected Downstream):

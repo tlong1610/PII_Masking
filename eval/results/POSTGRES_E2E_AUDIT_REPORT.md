@@ -85,7 +85,7 @@ Tập Ground Truth được thiết kế đa dạng với **72 test cases** bao 
 
 ## 4. 📊 Bằng Chứng Đối Soát SQL JOIN & AGGREGATE Trước và Sau Xử Lý
 
-Đo lường trực tiếp thông qua module [SQLVerifier](file:///c:/Users/kienn/ProjectBuildPhase/P-138/src/verifier/sql_verifier.py) và script [verify_postgres_e2e.py](file:///c:/Users/kienn/ProjectBuildPhase/P-138/scripts/verify_postgres_e2e.py) kết nối cơ sở dữ liệu:
+Đo lường trực tiếp thông qua module [sql_verifier.py](file:///c:/Users/kienn/ProjectBuildPhase/P-138/src/verifier/sql_verifier.py) và script [verify_postgres_e2e.py](file:///c:/Users/kienn/ProjectBuildPhase/P-138/data/fixtures/postgres/compute/verify_postgres_e2e.py) kết nối cơ sở dữ liệu:
 
 ### 4.1. Bảng đối chiếu số liệu nghiệm thu
 

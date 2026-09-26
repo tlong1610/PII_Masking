@@ -92,7 +92,7 @@ Sau khi seed thành công, thực hiện các bước kiểm chứng độc lậ
 ### A. Kiểm tra số lượng và tính toàn vẹn của $lookup
 Chạy script kiểm chứng số lượng liên kết:
 ```bash
-python scripts/verify_mongo_lookup_counts.py
+python data/fixtures/mongo/compute/verify_mongo_lookup_counts.py
 ```
 **Kết quả mong đợi:**
 - `customer_id`: 830 matched, 0 unmatched (100.00%)
@@ -101,15 +101,15 @@ python scripts/verify_mongo_lookup_counts.py
 ### B. Kiểm tra truy vấn $lookup chi tiết (An toàn No-Raw-Value)
 ```bash
 # 1. Lookup theo customer_id
-python scripts/run_mongo_lookup.py
+python data/fixtures/mongo/compute/run_mongo_lookup.py
 
 # 2. Lookup theo CCCD (Join Key Preservation)
-python scripts/run_mongo_lookup_cccd.py
+python data/fixtures/mongo/compute/run_mongo_lookup_cccd.py
 ```
 
 ### C. Áp dụng quy trình băm HMAC-SHA256 sang Snapshot
 ```bash
-python scripts/apply_mongo_hmac.py
+python data/fixtures/mongo/compute/apply_mongo_hmac.py
 ```
 Script sẽ băm `identity.cccd` và `pii_ext.customer_cccd` bằng cùng secret key sang cơ sở dữ liệu `mydatabase_protected` và đối soát tự động đạt 830/830 matched.
 

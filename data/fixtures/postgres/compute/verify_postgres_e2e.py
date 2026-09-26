@@ -15,8 +15,17 @@ from datetime import datetime
 from pathlib import Path
 
 # Add project root to sys.path
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+def _get_project_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / ".git").exists() or (parent / "src").exists():
+            return parent
+    return current.parents[4]
+
+PROJECT_ROOT = _get_project_root()
 sys.path.insert(0, str(PROJECT_ROOT))
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 import psycopg
 from psycopg.rows import dict_row
