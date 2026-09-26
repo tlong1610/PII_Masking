@@ -146,6 +146,21 @@ class DatasetOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DatasetPreviewColumn(BaseModel):
+    name: str
+    data_type: str
+    transform: str = Field(description="MASK | HMAC | KEEP | DROPPED marker")
+
+
+class DatasetPreview(BaseModel):
+    dataset_id: int
+    dataset_name: str
+    status: DatasetStatus
+    columns: list[DatasetPreviewColumn]
+    rows: list[dict]
+    note: str = "Processed output only; raw source values are never included"
+
+
 class RunOut(BaseModel):
     id: int
     source_id: str
