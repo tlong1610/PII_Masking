@@ -58,6 +58,116 @@ class Source(BaseModel):
     status: str = Field(default="ready", description="Connection/config status label")
 
 
+# --- Runs / field review / build ---
+
+
+class RunStatus(StrEnum):
+    NEW = "NEW"
+    SCANNING = "SCANNING"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    READY_TO_BUILD = "READY_TO_BUILD"
+    BUILDING = "BUILDING"
+    VERIFIED = "VERIFIED"
+    PUBLISHED = "PUBLISHED"
+    FAILED = "FAILED"
+    STALE = "STALE"
+    REVOKED = "REVOKED"
+
+
+class PolicyAction(StrEnum):
+    MASK = "MASK"
+    HMAC = "HMAC"
+    DROP = "DROP"
+    KEEP = "KEEP"
+
+
+class DetectorSource(StrEnum):
+    RULE = "rule"
+    AI = "ai"
+    DPO = "dpo"
+    UNKNOWN = "unknown"
+
+
+class DatasetStatus(StrEnum):
+    STAGING = "STAGING"
+    VERIFIED = "VERIFIED"
+    PUBLISHED = "PUBLISHED"
+    REVOKED = "REVOKED"
+    FAILED = "FAILED"
+
+
+class RunCreate(BaseModel):
+    source_id: str = Field(..., min_length=1, max_length=64)
+
+
+class FieldProfileOut(BaseModel):
+    id: int
+    source_path: str
+    field_path: str
+    data_type: str
+    profile_summary: str
+    classification: str
+    taxonomy_id: str | None = None
+    detector_source: DetectorSource
+    coverage_status: str
+    recommended_action: PolicyAction
+
+    model_config = {"from_attributes": True}
+
+
+class FieldDecisionOut(BaseModel):
+    id: int
+    field_profile_id: int
+    action: PolicyAction
+    reason: str
+    decided_by: int
+    decision_version: int
+
+    model_config = {"from_attributes": True}
+
+
+class FieldDecisionItem(BaseModel):
+    field_profile_id: int
+    action: PolicyAction
+    reason: str = ""
+
+
+class FieldDecisionsUpdate(BaseModel):
+    decisions: list[FieldDecisionItem] = Field(..., min_length=1)
+
+
+class DatasetOut(BaseModel):
+    id: int
+    run_id: int
+    dataset_name: str
+    status: DatasetStatus
+    output_location: str
+
+    model_config = {"from_attributes": True}
+
+
+class RunOut(BaseModel):
+    id: int
+    source_id: str
+    source_type: SourceType
+    source_name: str
+    engine: str
+    status: RunStatus
+    created_by: int
+    source_manifest_version: str
+    policy_version: str
+    field_profiles: list[FieldProfileOut] = Field(default_factory=list)
+    field_decisions: list[FieldDecisionOut] = Field(default_factory=list)
+    datasets: list[DatasetOut] = Field(default_factory=list)
+
+    model_config = {"from_attributes": True}
+
+
+class BuildResponse(BaseModel):
+    run: RunOut
+    dataset: DatasetOut
+
+
 # --- Schema cho việc trích xuất Database Profile (PII Detect) ---
 
 class ColumnProfile(BaseModel):
