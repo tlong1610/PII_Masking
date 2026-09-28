@@ -54,6 +54,27 @@ def live_mongo():
 
 
 @pytest.fixture
+def live_postgres():
+    """Skip unless the seeded source DB and a separate snapshot DB (docker compose) are reachable."""
+    import psycopg
+
+    source = os.getenv(
+        "PG_TEST_SOURCE_URL", "postgresql://postgres:postgres@localhost:5432/mydatabase"
+    )
+    snapshot = os.getenv(
+        "PG_TEST_SNAPSHOT_URL", "postgresql://postgres:postgres@localhost:5432/snapshot_out"
+    )
+    try:
+        with psycopg.connect(source, connect_timeout=2) as conn:
+            conn.execute("SELECT customer_cccd FROM orders LIMIT 1")
+        with psycopg.connect(snapshot, connect_timeout=2) as conn:
+            conn.execute("SELECT 1")
+    except Exception as exc:
+        pytest.skip(f"Live PostgreSQL not available: {type(exc).__name__}")
+    return {"source": source, "snapshot": snapshot}
+
+
+@pytest.fixture
 def mock_llm():
     """Mock LLM to avoid calling OpenAI during tests.
 

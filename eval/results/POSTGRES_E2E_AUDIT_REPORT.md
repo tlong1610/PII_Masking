@@ -9,7 +9,7 @@
 
 ## 1. 📋 Kiểm Tra Chi Tiết 12 Bảng Trong `data/fixtures/seed.sql` (+ 2 Bảng PII Mở Rộng)
 
-Cơ sở dữ liệu mô phỏng doanh nghiệp đầy đủ trong file [seed.sql](file:///c:/Users/kienn/ProjectBuildPhase/P-138/data/fixtures/seed.sql) gồm **12 bảng Northwind chuẩn** và **2 bảng mở rộng PII tổng hợp (Part 2)**. Toàn bộ 14 bảng đã được nạp và kiểm tra thực tế trên container PostgreSQL `p-138-db-1`:
+Cơ sở dữ liệu mô phỏng doanh nghiệp đầy đủ trong file [seed.sql](../../data/fixtures/seed.sql) gồm **12 bảng Northwind chuẩn** và **2 bảng mở rộng PII tổng hợp (Part 2)**. Toàn bộ 14 bảng đã được nạp và kiểm tra thực tế trên container PostgreSQL `p-138-db-1`:
 
 | STT | Tên bảng | Nhóm nghiệp vụ | Số cột | Số bản ghi (Rows) | Khóa chính (PK) | Khóa ngoại (FKs) | Quan hệ liên kết |
 |:---:|---|---|:---:|:---:|---|---|:---:|
@@ -85,7 +85,7 @@ Tập Ground Truth được thiết kế đa dạng với **72 test cases** bao 
 
 ## 4. 📊 Bằng Chứng Đối Soát SQL JOIN & AGGREGATE Trước và Sau Xử Lý
 
-Đo lường trực tiếp thông qua module [sql_verifier.py](file:///c:/Users/kienn/ProjectBuildPhase/P-138/src/verifier/sql_verifier.py) và script [verify_postgres_e2e.py](file:///c:/Users/kienn/ProjectBuildPhase/P-138/data/fixtures/postgres/compute/verify_postgres_e2e.py) kết nối cơ sở dữ liệu:
+Đo lường trực tiếp thông qua module [sql_verifier.py](../../src/verifier/sql_verifier.py) và script [verify_postgres_e2e.py](../../data/fixtures/postgres/compute/verify_postgres_e2e.py) kết nối cơ sở dữ liệu:
 
 ### 4.1. Bảng đối chiếu số liệu nghiệm thu
 
@@ -151,6 +151,26 @@ Minh họa trên bản ghi thực tế của khách hàng `ALFKI`:
   - Email (Masked): `a***2@example.vn`
   - Mobile phone (Masked): `032***0543`
   - Personal notes: `[REDACTED]`
+
+### 4.4. Luồng API thật: `POST /runs` → `PUT /decisions` → `POST /build`
+
+Chạy qua API (connector + rule scanner, không dùng stub), DPO chấp nhận đề xuất (UNKNOWN → DROP), snapshot ghi vào DB riêng `snapshot_out` rồi chạy SQL verifier:
+
+```bash
+docker exec p-138-db-1 psql -U postgres -c "CREATE DATABASE snapshot_out"   # chạy 1 lần
+python data/fixtures/postgres/compute/run_postgres_api_e2e.py
+pytest tests/test_api/test_runs_pg_live.py                                   # tự skip nếu không có DB
+```
+
+Kết quả (xem [postgres_api_e2e_evidence.json](postgres_api_e2e_evidence.json), chỉ chứa metadata, không có giá trị thô):
+
+| Hạng mục | Kết quả |
+|---|---|
+| Bảng được quét | 16 / 16 bảng trong schema `public` |
+| Số trường có quyết định | 122 (HMAC 31, MASK 13, DROP 60, KEEP 18) |
+| `sql_join_hmac` | PASSED, matched 830 / unmatched 0 |
+| `sql_aggregate_revenue` | PASSED, 89 khách hàng, doanh thu 1,265,793.04 (tolerance 0.05) |
+| Trạng thái run / dataset | VERIFIED / VERIFIED |
 
 ---
 

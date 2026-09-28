@@ -130,9 +130,14 @@ async def test_create_run_ai_scan_path(client, monkeypatch):
     from src.config import get_settings
 
     monkeypatch.setenv("ENABLE_AI_SCAN", "true")
+    monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv(
         "SOURCE_DATABASE_URL",
         "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    monkeypatch.setenv(
+        "SNAPSHOT_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/snapshot_out",
     )
     get_settings.cache_clear()
 
@@ -179,9 +184,14 @@ async def test_create_run_ai_scan_failure_marks_failed(client, monkeypatch):
     from src.config import get_settings
 
     monkeypatch.setenv("ENABLE_AI_SCAN", "true")
+    monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv(
         "SOURCE_DATABASE_URL",
         "postgresql://postgres:postgres@localhost:5432/mydatabase",
+    )
+    monkeypatch.setenv(
+        "SNAPSHOT_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/snapshot_out",
     )
     get_settings.cache_clear()
 

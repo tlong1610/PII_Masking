@@ -7,6 +7,12 @@ from dataclasses import asdict
 from src.connectors.postgres_snapshot import DEMO_SNAPSHOT_TABLES, build_protected_snapshots
 from src.verifier.sql_verifier import CheckResult, run_postgres_verifiers
 
+# Joins the verifier relies on that are not declared as FOREIGN KEY in the source schema.
+# (from_table, from_column, to_table, to_column)
+LOGICAL_JOIN_KEYS: tuple[tuple[str, str, str, str], ...] = (
+    ("orders", "customer_cccd", "customers", "cccd"),
+)
+
 # Minimal demo policy for join-key preservation (CCCD) + sample MASK fields.
 DEFAULT_DEMO_ACTIONS: dict[str, dict[str, str]] = {
     "customers": {
@@ -24,22 +30,26 @@ DEFAULT_DEMO_ACTIONS: dict[str, dict[str, str]] = {
 }
 
 
+def logical_join_fields() -> set[tuple[str, str]]:
+    fields: set[tuple[str, str]] = set()
+    for from_table, from_col, to_table, to_col in LOGICAL_JOIN_KEYS:
+        fields.add((from_table, from_col))
+        fields.add((to_table, to_col))
+    return fields
+
+
 def actions_from_run_decisions(
     profiles: list,
     decisions: list,
 ) -> dict[str, dict[str, str]]:
     """Build table->column->action map from ORM/profile objects or simple namespaces."""
     by_id = {p.id: p for p in profiles}
-    out: dict[str, dict[str, str]] = {t: {} for t in DEMO_SNAPSHOT_TABLES}
+    out: dict[str, dict[str, str]] = {}
     for d in decisions:
         p = by_id.get(d.field_profile_id)
         if p is None:
             continue
-        table = p.source_path
-        if table not in out:
-            out[table] = {}
-        out[table][p.field_path] = d.action
-    # Ensure join keys always HMAC if present in decisions under those names
+        out.setdefault(p.source_path, {})[p.field_path] = d.action
     return out
 
 
@@ -51,8 +61,12 @@ def run_protected_postgres_pipeline(
     key_version: str,
     table_actions: dict[str, dict[str, str]] | None = None,
     snapshot_schema: str = "piiguard_snapshot",
+    source_schema: str = "public",
+    default_action: str = "KEEP",
 ) -> tuple[dict[str, str], list[CheckResult]]:
+    """table_actions=None runs the demo policy; otherwise only tables in table_actions are built."""
     actions = table_actions or DEFAULT_DEMO_ACTIONS
+    tables = tuple(table_actions) if table_actions else DEMO_SNAPSHOT_TABLES
     written = build_protected_snapshots(
         source_url=source_url,
         snapshot_url=snapshot_url,
@@ -60,6 +74,9 @@ def run_protected_postgres_pipeline(
         secret=secret,
         key_version=key_version,
         snapshot_schema=snapshot_schema,
+        tables=tables,
+        source_schema=source_schema,
+        default_action=default_action,
     )
     checks = run_postgres_verifiers(snapshot_url, snapshot_schema=snapshot_schema)
     return written, checks

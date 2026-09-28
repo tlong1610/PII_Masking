@@ -1,12 +1,21 @@
 """Unit tests for run_scanner mapping helpers (no live LLM / DB)."""
 
-from src.models.schemas import ColumnProfile, FieldScanResult
+import pytest
+
+from src.models.schemas import (
+    ColumnProfile,
+    DatabaseProfile,
+    FieldScanResult,
+    TableProfile,
+    TableRelation,
+)
 from src.services.run_scanner import (
     classification_from_pii_type,
     coverage_from_result,
     detector_from_tier,
     field_profile_spec,
     normalize_action,
+    scan_postgres_source,
 )
 
 
@@ -67,3 +76,96 @@ def test_field_profile_spec_no_samples():
     assert spec["coverage_status"] == "full"
     assert "001" not in str(spec)
     assert "sample" not in str(spec).lower()
+
+
+def _col(name, data_type, samples, *, pk=False, fk=False):
+    return ColumnProfile(
+        column_name=name,
+        data_type=data_type,
+        is_primary_key=pk,
+        is_foreign_key=fk,
+        samples=samples,
+        system_recommendation="HASHING" if pk or fk else None,
+    )
+
+
+FAKE_DB = DatabaseProfile(
+    database_name="mydatabase",
+    tables=[
+        TableProfile(
+            table_name="customers",
+            relations=[],
+            columns=[
+                _col("customer_id", "character varying", ["ALFKI", "ANATR"], pk=True),
+                _col("cccd", "character varying", ["001234567890", "079123456789"]),
+                _col("email", "character varying", ["a@example.com", "b@example.vn"]),
+                _col("notes", "text", ["free text", "other"]),
+            ],
+        ),
+        TableProfile(
+            table_name="orders",
+            relations=[
+                TableRelation(from_column="customer_id", to_table="customers", to_column="customer_id")
+            ],
+            columns=[
+                _col("order_id", "smallint", ["10248"], pk=True),
+                _col("customer_id", "character varying", ["ALFKI"], fk=True),
+                _col("customer_cccd", "character varying", ["001234567890", "079123456789"]),
+                _col("freight", "real", ["32.38", "11.61"]),
+            ],
+        ),
+        TableProfile(table_name="region", relations=[], columns=[_col("region_id", "smallint", ["1"], pk=True)]),
+    ],
+)
+
+
+@pytest.fixture
+def fake_connector(monkeypatch):
+    class FakeConnector:
+        def __init__(self, url):
+            self.url = url
+
+        def extract_database_profile(self, schema_name="public", sample_size=5):
+            assert sample_size == 5
+            return FAKE_DB
+
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector", FakeConnector)
+
+
+@pytest.mark.asyncio
+async def test_scan_postgres_rule_mode_covers_all_tables(fake_connector):
+    specs = await scan_postgres_source("postgresql://fake/db", use_ai=False)
+    by_field = {(s["source_path"], s["field_path"]): s for s in specs}
+
+    assert {t for t, _ in by_field} == {"customers", "orders", "region"}
+    # PK/FK and the logical CCCD join key must both be HMAC so the snapshot join survives.
+    assert by_field[("customers", "customer_id")]["recommended_action"] == "HMAC"
+    assert by_field[("orders", "customer_id")]["recommended_action"] == "HMAC"
+    assert by_field[("customers", "cccd")]["recommended_action"] == "HMAC"
+    assert by_field[("orders", "customer_cccd")]["recommended_action"] == "HMAC"
+    assert by_field[("customers", "cccd")]["taxonomy_id"] == "CCCD"
+
+    assert by_field[("customers", "email")]["recommended_action"] == "MASK"
+    assert by_field[("orders", "freight")]["classification"] == "NON_PERSONAL"
+    assert by_field[("orders", "freight")]["recommended_action"] == "KEEP"
+    assert by_field[("customers", "notes")]["classification"] == "UNKNOWN"
+    assert by_field[("customers", "notes")]["recommended_action"] == "DROP"
+
+    blob = str(specs)
+    assert "001234567890" not in blob
+    assert "a@example.com" not in blob
+    assert all("samples" not in s for s in specs)
+
+
+@pytest.mark.asyncio
+async def test_scan_postgres_table_allowlist(fake_connector):
+    specs = await scan_postgres_source(
+        "postgresql://fake/db", use_ai=False, tables=("customers",)
+    )
+    assert {s["source_path"] for s in specs} == {"customers"}
+
+
+@pytest.mark.asyncio
+async def test_scan_postgres_raises_when_nothing_matches(fake_connector):
+    with pytest.raises(ValueError, match="No columns scanned"):
+        await scan_postgres_source("postgresql://fake/db", use_ai=False, tables=("missing",))

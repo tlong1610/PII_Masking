@@ -1,0 +1,790 @@
+{
+  "generated_at": "2026-09-28T14:59:31.909436",
+  "flow": "POST /runs -> PUT /runs/{id}/decisions -> POST /runs/{id}/build",
+  "scan_mode": "rule",
+  "status": "VERIFIED",
+  "dataset_status": "VERIFIED",
+  "output_location": "postgres://piiguard_snapshot/categories,customer_customer_demo,customer_demographics,customers,employee_territories,employees,kyc_documents,order_details,orders,products,region,shippers,suppliers,support_tickets,territories,us_states",
+  "tables_scanned": [
+    "categories",
+    "customer_customer_demo",
+    "customer_demographics",
+    "customers",
+    "employee_territories",
+    "employees",
+    "kyc_documents",
+    "order_details",
+    "orders",
+    "products",
+    "region",
+    "shippers",
+    "suppliers",
+    "support_tickets",
+    "territories",
+    "us_states"
+  ],
+  "fields_total": 122,
+  "action_counts": {
+    "HMAC": 31,
+    "DROP": 60,
+    "KEEP": 18,
+    "MASK": 13
+  },
+  "fields": [
+    {
+      "table": "territories",
+      "field": "territory_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "territories",
+      "field": "territory_description",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "territories",
+      "field": "region_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "order_details",
+      "field": "order_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "order_details",
+      "field": "product_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "order_details",
+      "field": "unit_price",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "order_details",
+      "field": "quantity",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "order_details",
+      "field": "discount",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "employee_territories",
+      "field": "employee_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "employee_territories",
+      "field": "territory_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "us_states",
+      "field": "state_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "us_states",
+      "field": "state_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "us_states",
+      "field": "state_abbr",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "us_states",
+      "field": "state_region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "shippers",
+      "field": "shipper_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "shippers",
+      "field": "company_name",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "shippers",
+      "field": "phone",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "products",
+      "field": "product_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "products",
+      "field": "product_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "products",
+      "field": "supplier_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "products",
+      "field": "category_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "products",
+      "field": "quantity_per_unit",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "products",
+      "field": "unit_price",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "products",
+      "field": "units_in_stock",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "products",
+      "field": "units_on_order",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "products",
+      "field": "reorder_level",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "products",
+      "field": "discontinued",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "categories",
+      "field": "category_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "categories",
+      "field": "category_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "categories",
+      "field": "description",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "categories",
+      "field": "picture",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "region",
+      "field": "region_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "region",
+      "field": "region_description",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customer_demographics",
+      "field": "customer_type_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "customer_demographics",
+      "field": "customer_desc",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customer_customer_demo",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "customer_customer_demo",
+      "field": "customer_type_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "customers",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "customers",
+      "field": "company_name",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "customers",
+      "field": "contact_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "contact_title",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "address",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "customers",
+      "field": "country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "customers",
+      "field": "fax",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "email",
+      "classification": "PERSONAL_CONTEXT",
+      "action": "MASK"
+    },
+    {
+      "table": "customers",
+      "field": "mobile_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "customers",
+      "field": "cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "HMAC"
+    },
+    {
+      "table": "customers",
+      "field": "date_of_birth",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "customers",
+      "field": "tax_code",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "customers",
+      "field": "personal_notes",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "employee_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "employees",
+      "field": "last_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "first_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "title",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "title_of_courtesy",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "birth_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "hire_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "address",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "employees",
+      "field": "country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "home_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "employees",
+      "field": "extension",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "photo",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "notes",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "reports_to",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "employees",
+      "field": "photo_path",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "employees",
+      "field": "personal_email",
+      "classification": "PERSONAL_CONTEXT",
+      "action": "MASK"
+    },
+    {
+      "table": "employees",
+      "field": "cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "employees",
+      "field": "mobile_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "employees",
+      "field": "tax_code",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "orders",
+      "field": "order_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "orders",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "orders",
+      "field": "employee_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "orders",
+      "field": "order_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "required_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "shipped_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_via",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "orders",
+      "field": "freight",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_address",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "orders",
+      "field": "ship_country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "orders",
+      "field": "customer_cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "HMAC"
+    },
+    {
+      "table": "orders",
+      "field": "ship_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "orders",
+      "field": "tracking_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "orders",
+      "field": "order_notes",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "supplier_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "suppliers",
+      "field": "company_name",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "suppliers",
+      "field": "contact_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "contact_title",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "address",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "suppliers",
+      "field": "country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "phone",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "fax",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "homepage",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "suppliers",
+      "field": "contact_email",
+      "classification": "PERSONAL_CONTEXT",
+      "action": "MASK"
+    },
+    {
+      "table": "suppliers",
+      "field": "tax_code",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "suppliers",
+      "field": "contact_cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "table": "support_tickets",
+      "field": "ticket_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "support_tickets",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "support_tickets",
+      "field": "order_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "support_tickets",
+      "field": "subject",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "support_tickets",
+      "field": "body",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "support_tickets",
+      "field": "status",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "support_tickets",
+      "field": "created_at",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "doc_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "doc_type",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "file_path",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "ocr_text",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "table": "kyc_documents",
+      "field": "uploaded_at",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    }
+  ],
+  "checks": [
+    {
+      "check_name": "policy_complete",
+      "status": "PASSED",
+      "baseline": "122",
+      "actual": "122",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "sql_join_hmac",
+      "status": "PASSED",
+      "baseline": "matched=830;unmatched=0",
+      "actual": "matched=830;unmatched=0",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "sql_aggregate_revenue",
+      "status": "PASSED",
+      "baseline": "customers=89;revenue=1265793.01",
+      "actual": "customers=89;revenue=1265793.0395",
+      "tolerance": "0.05"
+    }
+  ]
+}
