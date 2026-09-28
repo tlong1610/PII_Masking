@@ -4,6 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
 import { BrowserRouter } from 'react-router-dom';
 import { appTheme } from '@/app/theme/theme';
+import { AuthProvider } from '@/features/auth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +20,9 @@ export function AppProviders({ children }: PropsWithChildren): JSX.Element {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={appTheme} defaultMode="light">
         <CssBaseline />
-        <BrowserRouter>{children}</BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>{children}</AuthProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );
