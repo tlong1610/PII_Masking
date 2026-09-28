@@ -14,7 +14,9 @@ import json
 import os
 import sys
 from pathlib import Path
+
 from pymongo import MongoClient
+
 
 # Add project root to sys.path
 def _get_project_root() -> Path:

@@ -2,7 +2,6 @@
 Unit tests for MongoConnector and schema flattening.
 """
 
-import pytest
 
 from src.connectors.mongo_connector import (
     MongoConnector,

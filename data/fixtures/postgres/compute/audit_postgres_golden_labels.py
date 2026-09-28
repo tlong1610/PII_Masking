@@ -33,8 +33,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
-import psycopg
-from psycopg.rows import dict_row
+import psycopg  # noqa: E402
+from psycopg.rows import dict_row  # noqa: E402
 
 
 def _format_safe_sample(item: dict) -> str:
@@ -107,7 +107,7 @@ def audit_postgres_golden_dataset():
         print(f"[ERROR] Seed SQL file not found: {seed_sql_path}")
         return 1
 
-    with open(golden_path, "r", encoding="utf-8") as f:
+    with open(golden_path, encoding="utf-8") as f:
         all_labels = json.load(f)
 
     pg_labels = [x for x in all_labels if x.get("source_engine", x.get("source")) == "postgres"]
@@ -115,7 +115,7 @@ def audit_postgres_golden_dataset():
     dev_pg = [x for x in pg_labels if x.get("split") == "dev"]
     holdout_pg = [x for x in pg_labels if x.get("split") == "holdout"]
 
-    print(f"\n[1] COUNT AUDIT:")
+    print("\n[1] COUNT AUDIT:")
     print(f"  • Total PostgreSQL Labels:  {total_pg:<4} (Target: 50)")
     print(f"  • Dev Split Cases:          {len(dev_pg):<4} (Target: 33)")
     print(f"  • Holdout Split Cases:      {len(holdout_pg):<4} (Target: 17)")
@@ -135,7 +135,7 @@ def audit_postgres_golden_dataset():
     pg_db = os.getenv("POSTGRES_DB", "mydatabase")
     conn_str = f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
 
-    print(f"\n[2] SCHEMA & COLUMN RECONCILIATION WITH seed.sql / PostgreSQL:")
+    print("\n[2] SCHEMA & COLUMN RECONCILIATION WITH seed.sql / PostgreSQL:")
     with psycopg.connect(conn_str, row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -196,10 +196,10 @@ def audit_postgres_golden_dataset():
             print(f"  - [{lid}] {tbl}.{col} -> {err}")
         return 1
     else:
-        print(f"\n  -> STATUS: PASS (All 50 labels map 100% to valid columns in seed.sql)")
+        print("\n  -> STATUS: PASS (All 50 labels map 100% to valid columns in seed.sql)")
 
     # 3. Check sample values exist in database (safe parameterized count, no raw logging)
-    print(f"\n[3] DATA VALUE EXISTENCE & CONSISTENCY CHECK:")
+    print("\n[3] DATA VALUE EXISTENCE & CONSISTENCY CHECK:")
     value_checked = 0
     with psycopg.connect(conn_str, row_factory=dict_row) as conn, conn.cursor() as cur:
         for item in pg_labels:
@@ -218,7 +218,7 @@ def audit_postgres_golden_dataset():
     print(f"  • Verified sample values matching exact instances in DB: {value_checked}/50 exact or pattern matches.")
 
     # 4. Summary of Taxonomy & Actions
-    print(f"\n[4] DISTRIBUTION SUMMARY:")
+    print("\n[4] DISTRIBUTION SUMMARY:")
     print("  • By Category:")
     for cat, c in sorted(category_summary.items()):
         print(f"    - {cat:<20}: {c} labels")
@@ -227,7 +227,7 @@ def audit_postgres_golden_dataset():
         print(f"    - {act:<20}: {c} labels")
 
     # 5. Measure Row Counts for all 14 Tables in Fixture
-    print(f"\n[5] LIVE FIXTURE ROW COUNTS (14 TABLES):")
+    print("\n[5] LIVE FIXTURE ROW COUNTS (14 TABLES):")
     table_counts = {}
     with psycopg.connect(conn_str, row_factory=dict_row) as conn, conn.cursor() as cur:
         for tbl in sorted(schema_map.keys()):
@@ -237,7 +237,7 @@ def audit_postgres_golden_dataset():
             print(f"    • {tbl:<24}: {cnt:>5} rows")
 
     # 6. Check Downstream Join Keys
-    print(f"\n[6] DOWNSTREAM JOIN KEY PRESERVATION AUDIT:")
+    print("\n[6] DOWNSTREAM JOIN KEY PRESERVATION AUDIT:")
     with psycopg.connect(conn_str, row_factory=dict_row) as conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -268,7 +268,7 @@ def audit_postgres_golden_dataset():
 
         cur.execute(
             """
-            SELECT 
+            SELECT
                 count(DISTINCT c.customer_id)::int as distinct_customers,
                 count(*)::int as total_order_details,
                 coalesce(sum(od.unit_price::numeric * od.quantity::numeric * (1 - od.discount::numeric)), 0) as total_revenue

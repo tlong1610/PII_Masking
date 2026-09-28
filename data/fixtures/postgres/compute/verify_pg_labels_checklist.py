@@ -39,7 +39,7 @@ def run_checklist_verification():
     print("=" * 85)
 
     golden_file = PROJECT_ROOT / "eval" / "golden_labels.json"
-    with open(golden_file, "r", encoding="utf-8") as f:
+    with open(golden_file, encoding="utf-8") as f:
         all_data = json.load(f)
 
     pg_labels = [x for x in all_data if x.get("source_engine", x.get("source")) == "postgres"]

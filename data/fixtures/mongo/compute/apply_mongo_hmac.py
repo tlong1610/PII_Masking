@@ -7,11 +7,10 @@ Writes the protected snapshot to 'mydatabase_protected' and creates performance 
 """
 
 import argparse
-import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
 
 # Add project root to sys.path
 def _get_project_root() -> Path:
@@ -26,7 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
-from src.verifier.mongo_verifier import HMACHasher, MaskEngine, MongoVerifier
+from src.verifier.mongo_verifier import HMACHasher, MaskEngine, MongoVerifier  # noqa: E402
 
 
 def main():
@@ -64,7 +63,7 @@ def main():
     snap_res = verifier.build_protected_snapshot(target_db_name=args.target_db)
     print(f"  • Transformed Customers:  {snap_res['customers_count']} documents inserted")
     print(f"  • Transformed Orders:     {snap_res['orders_count']} documents inserted")
-    print(f"  • Indexes Created:        idx_prot_cust_cccd, idx_prot_cust_email, idx_prot_orders_cccd")
+    print("  • Indexes Created:        idx_prot_cust_cccd, idx_prot_cust_email, idx_prot_orders_cccd")
 
     # 3. Post-transformation Validation
     print(f"\n[STEP 3] Running Downstream Post-validation on '{args.target_db}'...")

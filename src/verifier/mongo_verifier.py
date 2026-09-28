@@ -105,7 +105,7 @@ class MongoVerifier:
         eval_path = Path(__file__).resolve().parent.parent.parent / "eval" / "expected_downstream.json"
         if not eval_path.exists():
             raise FileNotFoundError(f"Missing baseline file at {eval_path}")
-        with open(eval_path, "r", encoding="utf-8") as f:
+        with open(eval_path, encoding="utf-8") as f:
             return json.load(f)
 
     def run_pre_processing_baseline(self) -> dict[str, Any]:
