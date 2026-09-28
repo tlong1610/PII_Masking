@@ -133,3 +133,31 @@ python data/fixtures/mongo/compute/verify_mongo_lookup_counts.py
 pytest tests/test_connectors/test_mongo_connector.py tests/test_verifier/test_mongo_verifier.py
 ```
 *Kết quả:* 5/5 tests vượt qua trong 0.23s.
+
+---
+
+## 7. Luồng API thật: `POST /runs` → `PUT /decisions` → `POST /build`
+
+Chạy qua API: `MongoConnector` đọc thật `customers`/`orders` và nested path, rule scanner đề xuất, DPO chấp nhận đề xuất (UNKNOWN → DROP). Snapshot `MONGO_SNAPSHOT_DB` được xóa sạch rồi dựng lại, chỉ chứa các trường đã có quyết định. Sau đó `$lookup` được đo trực tiếp trên cả source lẫn snapshot, không hardcode 830.
+
+```bash
+python data/fixtures/mongo/seed_mongo.py
+python data/fixtures/mongo/compute/run_mongo_api_e2e.py
+pytest tests/test_api/test_runs_mongo_live.py        # tự skip nếu không có Mongo
+```
+
+Kết quả (xem [mongo_api_e2e_evidence.json](mongo_api_e2e_evidence.json), chỉ chứa metadata và số đếm):
+
+| Hạng mục | Kết quả |
+|---|---|
+| Collection được quét | `customers`, `orders` |
+| Số trường có quyết định | 35 (HMAC 5, MASK 5, DROP 20, KEEP 5) |
+| `lookup_matched` / `lookup_unmatched` `orders.customer_id -> customers._id` | source 830/0, snapshot 830/0, PASSED |
+| `lookup_matched` / `lookup_unmatched` `orders.pii_ext.customer_cccd -> customers.identity.cccd` | source 830/0, snapshot 830/0, PASSED |
+| `doc_count` customers / orders | 91 / 830 trên cả source và snapshot |
+| Trạng thái run / dataset | VERIFIED / VERIFIED |
+
+Các bảo đảm đã có test:
+- Run đã quét Mongo thật không bao giờ VERIFIED qua stub. Nếu lúc build tắt `ENABLE_MONGO`, check `mongo_snapshot_pipeline` sẽ FAILED.
+- Trường không có trong profile (xuất hiện sau khi quét, hoặc lồng sâu hơn độ sâu scan) không vào snapshot. Collection cũ trong snapshot DB bị xóa.
+- Response `/build` và `verifier_results` chỉ chứa số đếm, không có CCCD, email hay số điện thoại raw.

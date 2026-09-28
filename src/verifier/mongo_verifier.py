@@ -393,8 +393,29 @@ class MongoVerifier:
             return self.mask_engine.mask_phone(value)
         return MASK_PLACEHOLDER
 
-    def transform_document(self, doc: dict[str, Any], field_actions: dict[str, str]) -> dict[str, Any]:
-        """Apply {dot_path: MASK|HMAC|DROP|KEEP} to one document. Unlisted fields are kept."""
+    def transform_document(
+        self,
+        doc: dict[str, Any],
+        field_actions: dict[str, str],
+        default_action: str = "KEEP",
+    ) -> dict[str, Any]:
+        """Apply {dot_path: MASK|HMAC|DROP|KEEP} to one document.
+
+        default_action="KEEP" keeps unlisted fields; "DROP" keeps only listed, non-DROP paths.
+        """
+        out = self._apply_actions(doc, field_actions)
+        if (default_action or "KEEP").upper() != "DROP":
+            return out
+        projected: dict[str, Any] = {}
+        for path, action in field_actions.items():
+            if (action or "KEEP").upper() == "DROP":
+                continue
+            parent, leaf = _resolve_parent(out, path)
+            if parent is not None and leaf in parent:
+                _set_path(projected, path, parent[leaf])
+        return projected
+
+    def _apply_actions(self, doc: dict[str, Any], field_actions: dict[str, str]) -> dict[str, Any]:
         out = json.loads(json.dumps(doc, default=str))
         for path, action in field_actions.items():
             act = (action or "KEEP").upper()
@@ -415,17 +436,25 @@ class MongoVerifier:
         self,
         table_actions: dict[str, dict[str, str]],
         index_fields: dict[str, list[str]] | None = None,
+        default_action: str = "KEEP",
     ) -> dict[str, int]:
-        """Copy every collection in table_actions into target_db, transformed per DPO decisions."""
+        """Rebuild target_db from scratch: every collection in table_actions, transformed per DPO decisions."""
+        if self.source_db_name == self.target_db_name:
+            raise ValueError("Mongo snapshot database must differ from the source database")
         client = self._get_client()
         try:
             src_db = client[self.source_db_name]
             dst_db = client[self.target_db_name]
+            for stale in dst_db.list_collection_names():
+                if not stale.startswith("system."):
+                    dst_db[stale].drop()
             written: dict[str, int] = {}
             for coll_name in sorted(table_actions):
                 actions = table_actions[coll_name]
-                dst_db[coll_name].drop()
-                docs = [self.transform_document(d, actions) for d in src_db[coll_name].find({})]
+                docs = [
+                    self.transform_document(d, actions, default_action)
+                    for d in src_db[coll_name].find({})
+                ]
                 if docs:
                     dst_db[coll_name].insert_many(docs)
                 for field in (index_fields or {}).get(coll_name, []):
@@ -522,6 +551,18 @@ def _resolve_parent(doc: dict[str, Any], path: str) -> tuple[dict[str, Any] | No
     if not isinstance(node, dict):
         return None, parts[-1]
     return node, parts[-1]
+
+
+def _set_path(doc: dict[str, Any], path: str, value: Any) -> None:
+    parts = path.split(".")
+    node = doc
+    for part in parts[:-1]:
+        child = node.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            node[part] = child
+        node = child
+    node[parts[-1]] = value
 
 
 def _check(name: str, baseline: int, actual: int, details: str) -> dict[str, str]:
