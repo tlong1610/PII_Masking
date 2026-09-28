@@ -26,8 +26,10 @@ import {
   useDataSources,
   useCreateScanRun,
   useRun,
+  useUpdateFieldDecisions,
   useApproveRun,
   useBuildDataset,
+  usePublishDataset,
 } from '../hooks/usePiiReview';
 
 type Step = 'select-source' | 'scan-running' | 'review' | 'build' | 'done';
@@ -44,8 +46,10 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   
   // Mutations
   const createScan = useCreateScanRun();
+  const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
   const approveRun = useApproveRun(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
+  const publishDataset = usePublishDataset();
 
   // Handlers
   const handleSelectSource = (sourceId: string) => {
@@ -75,6 +79,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     if (!currentRunId) return;
     
     try {
+      if (!currentRun) return;
+      await updateDecisions.mutateAsync(
+        currentRun.field_profiles.map((field) => ({
+          field_profile_id: field.id,
+          action: field.recommended_action,
+          reason: `DPO approved recommended action for ${field.field_path}`,
+        })),
+      );
       await approveRun.mutateAsync();
       setStep('build');
     } catch (error) {
@@ -88,11 +100,21 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     
     try {
       const result = await buildDataset.mutateAsync();
-      setDatasetId(result.dataset_id);
+      setDatasetId(result.dataset.id);
       setStep('done');
     } catch (error) {
       console.error('Build failed:', error);
       alert('Lỗi khi xây dựng dataset');
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!datasetId) return;
+    try {
+      await publishDataset.mutateAsync(datasetId);
+    } catch (error) {
+      console.error('Publish failed:', error);
+      alert('Lỗi khi publish dataset');
     }
   };
 
@@ -162,7 +184,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
               variant="contained"
               size="large"
               startIcon={<PlayArrowIcon />}
-              onClick={handleStartScan}
+              onClick={() => void handleStartScan()}
               disabled={createScan.isPending}
             >
               Bắt Đầu Quét PII
@@ -197,7 +219,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         </Typography>
         
         <Alert severity="info" sx={{ mb: 3 }}>
-          Tìm thấy <strong>{currentRun.fields.length} trường</strong> cần xử lý. 
+          Tìm thấy <strong>{currentRun.field_profiles.length} trường</strong> cần xử lý.
           Kiểm tra và duyệt hành động bảo vệ.
         </Alert>
 
@@ -213,11 +235,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
               </TableRow>
             </TableHead>
             <TableBody>
-              {currentRun.fields.map((field) => (
+              {currentRun.field_profiles.map((field) => (
                 <TableRow key={field.id}>
                   <TableCell>
                     <Typography variant="body2" fontFamily="monospace">
-                      {field.path}
+                      {field.source_path}.{field.field_path}
                     </Typography>
                   </TableCell>
                   <TableCell>{field.data_type}</TableCell>
@@ -230,18 +252,18 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={field.suggested_action}
+                      label={field.recommended_action}
                       size="small"
                       color={
-                        field.suggested_action === 'DROP' ? 'error' :
-                        field.suggested_action === 'MASK' ? 'warning' :
-                        field.suggested_action === 'HMAC' ? 'info' : 'success'
+                        field.recommended_action === 'DROP' ? 'error' :
+                        field.recommended_action === 'MASK' ? 'warning' :
+                        field.recommended_action === 'HMAC' ? 'info' : 'success'
                       }
                     />
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">
-                      {field.reason}
+                      {field.profile_summary}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -256,8 +278,8 @@ export function DpoReviewExperienceMVP(): JSX.Element {
             color="success"
             size="large"
             startIcon={<CheckCircleIcon />}
-            onClick={handleApprove}
-            disabled={approveRun.isPending}
+            onClick={() => void handleApprove()}
+            disabled={approveRun.isPending || updateDecisions.isPending}
           >
             Duyệt & Tiếp Tục
           </Button>
@@ -280,7 +302,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         <Button
           variant="contained"
           size="large"
-          onClick={handleBuild}
+          onClick={() => void handleBuild()}
           disabled={buildDataset.isPending}
         >
           {buildDataset.isPending ? 'Đang xây dựng...' : 'Xây Dựng Dataset'}
@@ -316,10 +338,22 @@ export function DpoReviewExperienceMVP(): JSX.Element {
           >
             Quét Nguồn Mới
           </Button>
-          <Button variant="contained">
-            Publish Dataset
+          <Button
+            variant="contained"
+            onClick={() => void handlePublish()}
+            disabled={publishDataset.isPending}
+          >
+            {publishDataset.isPending ? 'Đang publish...' : 'Publish Dataset'}
           </Button>
         </Stack>
+      </Box>
+    );
+  }
+
+  if (runLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
       </Box>
     );
   }
@@ -330,4 +364,3 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     </Box>
   );
 }
-

@@ -21,14 +21,71 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DatasetIcon from '@mui/icons-material/Dataset';
+import {
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlow,
+  type Edge,
+  type Node,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
+import type { DatasetRelationship } from '../api/realPiiReviewApi';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
+
+function RelationshipDiagram({ relationships }: { relationships: DatasetRelationship[] }): JSX.Element {
+  const tables = Array.from(
+    new Set(
+      relationships.flatMap((relation) => [relation.source_table, relation.target_table]),
+    ),
+  );
+  const tableId = (table: string) => `table-${table.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const nodes: Node[] = tables.map((table, index) => ({
+    id: tableId(table),
+    position: {
+      x: (index % 3) * 270,
+      y: Math.floor(index / 3) * 110,
+    },
+    data: { label: table },
+    style: {
+      border: '1px solid #1976d2',
+      borderRadius: 10,
+      background: '#eef6ff',
+      color: '#123b63',
+      fontWeight: 700,
+      padding: '12px 18px',
+      minWidth: 180,
+      textAlign: 'center',
+    },
+  }));
+  const edges: Edge[] = relationships.map((relation, index) => ({
+    id: `relation-${index}`,
+    source: tableId(relation.source_table),
+    target: tableId(relation.target_table),
+    label: `${relation.source_column} → ${relation.target_column}`,
+    animated: false,
+    style: { stroke: '#1976d2', strokeWidth: 1.5 },
+    labelStyle: { fill: '#315a7d', fontSize: 11, fontWeight: 600 },
+    labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+  }));
+
+  return (
+    <Box sx={{ height: 560, borderRadius: 2, overflow: 'hidden', border: 1, borderColor: 'divider' }}>
+      <ReactFlow nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.2 }}>
+        <MiniMap nodeColor="#1976d2" pannable zoomable />
+        <Controls />
+        <Background gap={20} size={1} color="#d7e3ef" />
+      </ReactFlow>
+    </Box>
+  );
+}
 
 export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const { data: datasets, isLoading } = useDatasets('published');
+  const { data: datasets, isLoading } = useDatasets('PUBLISHED');
   const { data: preview, isLoading: previewLoading } = useDatasetPreview(
     showPreview ? selectedDatasetId : null
   );
@@ -66,6 +123,14 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   }
 
   // Preview mode
+  if (showPreview && previewLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   if (showPreview && preview) {
     return (
       <Box>
@@ -83,8 +148,24 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
         </Alert>
 
         <Paper sx={{ mb: 3, p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            🔗 Sơ đồ quan hệ dữ liệu
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Quan hệ được đọc từ khóa ngoại của schema PostgreSQL; sơ đồ chỉ hiển thị metadata.
+          </Typography>
+          {preview.relationships.length === 0 ? (
+            <Typography color="text.secondary">
+              Nguồn chưa cung cấp metadata khóa ngoại.
+            </Typography>
+          ) : (
+            <RelationshipDiagram relationships={preview.relationships} />
+          )}
+        </Paper>
+
+        <Paper sx={{ mb: 3, p: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            <strong>Tổng số dòng:</strong> {preview.row_count}
+            <strong>Dòng minh họa an toàn:</strong> {preview.rows.length}
           </Typography>
         </Paper>
 
@@ -93,7 +174,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             <TableHead>
               <TableRow>
                 <TableCell><strong>Tên cột</strong></TableCell>
-                <TableCell><strong>Giá trị mẫu (đã che)</strong></TableCell>
+                <TableCell><strong>Giá trị sau xử lý</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -106,7 +187,8 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {col.sample_masked_value || '(null)'}
+                      {preview.rows[0]?.[col.name] ||
+                        (col.transform === 'DROPPED' ? 'Đã loại bỏ' : '(không hiển thị)')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -194,4 +276,3 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     </Box>
   );
 }
-

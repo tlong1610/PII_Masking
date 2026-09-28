@@ -52,7 +52,7 @@ export function useCreateScanRun() {
   return useMutation({
     mutationFn: (sourceId: string) => api.createScanRun(sourceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
     },
   });
 }
@@ -61,10 +61,10 @@ export function useUpdateFieldDecisions(runId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (decisions: Array<{ field_id: string; action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP' }>) =>
+    mutationFn: (decisions: Array<{ field_profile_id: number; action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP'; reason?: string }>) =>
       api.updateFieldDecisions(runId, decisions),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
     },
   });
 }
@@ -75,8 +75,8 @@ export function useApproveRun(runId: number) {
   return useMutation({
     mutationFn: () => api.approveRun(runId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
     },
   });
 }
@@ -87,7 +87,8 @@ export function useBuildDataset(runId: number) {
   return useMutation({
     mutationFn: () => api.buildDataset(runId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
     },
   });
 }
@@ -96,7 +97,7 @@ export function useBuildDataset(runId: number) {
 // DATASETS
 // ============================================================================
 
-export function useDatasets(status?: 'draft' | 'published' | 'revoked') {
+export function useDatasets(status?: 'STAGING' | 'VERIFIED' | 'PUBLISHED' | 'REVOKED' | 'FAILED') {
   return useQuery({
     queryKey: piiReviewQueryKeys.datasets(status),
     queryFn: () => api.listDatasets(status),
@@ -110,7 +111,18 @@ export function usePublishDataset() {
   return useMutation({
     mutationFn: (datasetId: number) => api.publishDataset(datasetId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+    },
+  });
+}
+
+export function useRevokeDataset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (datasetId: number) => api.revokeDataset(datasetId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
     },
   });
 }
@@ -122,4 +134,3 @@ export function useDatasetPreview(datasetId: number | null) {
     enabled: datasetId !== null,
   });
 }
-

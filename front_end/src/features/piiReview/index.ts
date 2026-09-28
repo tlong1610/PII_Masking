@@ -1,5 +1,5 @@
-export { DpoReviewExperience } from './components/DpoReviewExperience';
-export { AnalystDatasetExperience } from './components/AnalystDatasetExperience';
+// export { DpoReviewExperience } from './components/DpoReviewExperience';
+// export { AnalystDatasetExperience } from './components/AnalystDatasetExperience';
 
 // MVP versions (simplified for demo)
 export { DpoReviewExperienceMVP } from './components/DpoReviewExperienceMVP';
