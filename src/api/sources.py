@@ -33,14 +33,28 @@ _DEMO_SOURCES: list[Source] = [
 ]
 
 
+def mongo_live_enabled() -> bool:
+    from src.config import get_settings
+
+    settings = get_settings()
+    return bool(settings.enable_mongo and settings.mongo_uri)
+
+
+def _with_live_status(source: Source) -> Source:
+    if source.engine != "mongodb":
+        return source
+    status = "ready" if mongo_live_enabled() else "demo_stub"
+    return source.model_copy(update={"status": status})
+
+
 @router.get("/sources", response_model=list[Source])
 def list_sources(_user: SessionUser = Depends(require_dpo)) -> list[Source]:
     """List configured demo sources for DPO. No passwords or connection strings."""
-    return list(_DEMO_SOURCES)
+    return [_with_live_status(s) for s in _DEMO_SOURCES]
 
 
 def get_source_by_id(source_id: str) -> Source | None:
     for source in _DEMO_SOURCES:
         if source.id == source_id:
-            return source
+            return _with_live_status(source)
     return None

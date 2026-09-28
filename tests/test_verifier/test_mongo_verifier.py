@@ -7,7 +7,7 @@ import pytest
 from src.verifier.mongo_verifier import MongoVerifier
 
 
-def test_mongo_verifier_end_to_end():
+def test_mongo_verifier_end_to_end(live_mongo):
     verifier = MongoVerifier()
     res = verifier.verify_end_to_end()
 

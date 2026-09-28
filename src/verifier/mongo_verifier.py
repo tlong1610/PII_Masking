@@ -16,6 +16,7 @@ except ImportError:
     MongoClient = None
 
 from src.transform.hmac_hasher import hash_value
+from src.transform.mask_engine import MASK_PLACEHOLDER
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,7 @@ class MongoVerifier:
         target_db_name: str | None = None,
         hasher: HMACHasher | None = None,
         mask_engine: MaskEngine | None = None,
+        client: Any | None = None,
     ):
         self.connection_string = connection_string or os.getenv(
             "MONGO_URI", "mongodb://admin:admin@localhost:27017/?authSource=admin"
@@ -84,11 +86,19 @@ class MongoVerifier:
         self.target_db_name = target_db_name or os.getenv("MONGO_TARGET_DB", "mydatabase_protected")
         self.hasher = hasher or HMACHasher()
         self.mask_engine = mask_engine or MaskEngine(self.hasher)
+        # Caller-owned client (shared or mongomock); never closed by the verifier.
+        self._client = client
 
     def _get_client(self) -> MongoClient:
+        if self._client is not None:
+            return self._client
         if MongoClient is None:
             raise RuntimeError("Thư viện pymongo chưa được cài đặt. Không thể kết nối MongoDB.")
         return MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+
+    def _release_client(self, client: Any) -> None:
+        if client is not self._client:
+            client.close()
 
     def load_expected_downstream(self) -> dict[str, Any]:
         """Loads baseline expectations from eval/expected_downstream.json."""
@@ -146,7 +156,7 @@ class MongoVerifier:
                 "unmatched_by_cccd": total_orders - matched_by_cccd,
             }
         finally:
-            client.close()
+            self._release_client(client)
 
     def build_protected_snapshot(self, target_db_name: str | None = None) -> dict[str, int]:
         """
@@ -232,7 +242,7 @@ class MongoVerifier:
                 "orders_count": len(transformed_orders),
             }
         finally:
-            client.close()
+            self._release_client(client)
 
     def run_post_processing_validation(self, target_db_name: str | None = None) -> dict[str, Any]:
         """Runs downstream $lookup queries on the protected snapshot database."""
@@ -283,7 +293,7 @@ class MongoVerifier:
                 "unmatched_by_cccd": total_orders - matched_by_cccd,
             }
         finally:
-            client.close()
+            self._release_client(client)
 
     def verify_end_to_end(self) -> dict[str, Any]:
         """
@@ -367,4 +377,159 @@ class MongoVerifier:
                 },
             }
         finally:
-            client.close()
+            self._release_client(client)
+
+    # ------------------------------------------------------------------
+    # Decision-driven snapshot + relation-driven verification (API path)
+    # ------------------------------------------------------------------
+
+    def _mask_value(self, leaf: str, value: Any) -> Any:
+        if value is None:
+            return None
+        name = leaf.lower()
+        if "email" in name:
+            return self.mask_engine.mask_email(value)
+        if "phone" in name or "fax" in name:
+            return self.mask_engine.mask_phone(value)
+        return MASK_PLACEHOLDER
+
+    def transform_document(self, doc: dict[str, Any], field_actions: dict[str, str]) -> dict[str, Any]:
+        """Apply {dot_path: MASK|HMAC|DROP|KEEP} to one document. Unlisted fields are kept."""
+        out = json.loads(json.dumps(doc, default=str))
+        for path, action in field_actions.items():
+            act = (action or "KEEP").upper()
+            if act == "KEEP":
+                continue
+            parent, leaf = _resolve_parent(out, path)
+            if parent is None or leaf not in parent:
+                continue
+            if act == "DROP":
+                del parent[leaf]
+            elif act == "HMAC":
+                parent[leaf] = self.hasher.hash(parent[leaf])
+            elif act == "MASK":
+                parent[leaf] = self._mask_value(leaf, parent[leaf])
+        return out
+
+    def build_snapshot_from_actions(
+        self,
+        table_actions: dict[str, dict[str, str]],
+        index_fields: dict[str, list[str]] | None = None,
+    ) -> dict[str, int]:
+        """Copy every collection in table_actions into target_db, transformed per DPO decisions."""
+        client = self._get_client()
+        try:
+            src_db = client[self.source_db_name]
+            dst_db = client[self.target_db_name]
+            written: dict[str, int] = {}
+            for coll_name in sorted(table_actions):
+                actions = table_actions[coll_name]
+                dst_db[coll_name].drop()
+                docs = [self.transform_document(d, actions) for d in src_db[coll_name].find({})]
+                if docs:
+                    dst_db[coll_name].insert_many(docs)
+                for field in (index_fields or {}).get(coll_name, []):
+                    dst_db[coll_name].create_index([(field, ASCENDING)])
+                written[coll_name] = len(docs)
+            return written
+        finally:
+            self._release_client(client)
+
+    def measure_lookups(
+        self,
+        db_name: str,
+        collections: list[str],
+        relations: list[tuple[str, str, str, str]],
+    ) -> dict[str, Any]:
+        """Document counts + $lookup matched/unmatched per relation, measured live on db_name."""
+        client = self._get_client()
+        try:
+            db = client[db_name]
+            counts = {c: db[c].count_documents({}) for c in collections}
+            lookups: dict[str, dict[str, int]] = {}
+            for from_coll, from_field, to_coll, to_field in relations:
+                pipeline = [
+                    {
+                        "$lookup": {
+                            "from": to_coll,
+                            "localField": from_field,
+                            "foreignField": to_field,
+                            "as": "_piiguard_match",
+                        }
+                    },
+                    {"$match": {"_piiguard_match": {"$ne": []}}},
+                    {"$count": "matched"},
+                ]
+                res = list(db[from_coll].aggregate(pipeline))
+                matched = res[0]["matched"] if res else 0
+                total = db[from_coll].count_documents({})
+                lookups[relation_label((from_coll, from_field, to_coll, to_field))] = {
+                    "total": total,
+                    "matched": matched,
+                    "unmatched": total - matched,
+                }
+            return {"counts": counts, "lookups": lookups}
+        finally:
+            self._release_client(client)
+
+    def verify_snapshot(
+        self,
+        collections: list[str],
+        relations: list[tuple[str, str, str, str]],
+    ) -> list[dict[str, str]]:
+        """Compare snapshot against the source measured right now. PASS only when post == pre."""
+        pre = self.measure_lookups(self.source_db_name, collections, relations)
+        post = self.measure_lookups(self.target_db_name, collections, relations)
+        checks: list[dict[str, str]] = []
+        for coll in collections:
+            before, after = pre["counts"][coll], post["counts"][coll]
+            checks.append(
+                _check(f"doc_count:{coll}", before, after, f"Documents in {coll}: source vs snapshot")
+            )
+        for label, before in pre["lookups"].items():
+            after = post["lookups"][label]
+            checks.append(
+                _check(
+                    f"lookup_matched:{label}",
+                    before["matched"],
+                    after["matched"],
+                    f"$lookup matched documents (of {before['total']}) must be preserved",
+                )
+            )
+            checks.append(
+                _check(
+                    f"lookup_unmatched:{label}",
+                    before["unmatched"],
+                    after["unmatched"],
+                    "$lookup unmatched documents must not increase or decrease",
+                )
+            )
+        return checks
+
+
+def relation_label(relation: tuple[str, str, str, str]) -> str:
+    from_coll, from_field, to_coll, to_field = relation
+    return f"{from_coll}.{from_field}->{to_coll}.{to_field}"
+
+
+def _resolve_parent(doc: dict[str, Any], path: str) -> tuple[dict[str, Any] | None, str]:
+    parts = path.split(".")
+    node: Any = doc
+    for part in parts[:-1]:
+        if not isinstance(node, dict) or part not in node:
+            return None, parts[-1]
+        node = node[part]
+    if not isinstance(node, dict):
+        return None, parts[-1]
+    return node, parts[-1]
+
+
+def _check(name: str, baseline: int, actual: int, details: str) -> dict[str, str]:
+    return {
+        "check_name": name,
+        "status": "PASSED" if baseline == actual else "FAILED",
+        "baseline_value": str(baseline),
+        "actual_value": str(actual),
+        "tolerance": "0",
+        "details": details,
+    }
