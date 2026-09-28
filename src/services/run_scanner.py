@@ -12,7 +12,9 @@ from src.models.schemas import ColumnProfile, FieldScanResult, PolicyAction
 
 logger = logging.getLogger(__name__)
 
-DEMO_SCAN_TABLES = ("customers", "orders", "order_details")
+_NUMERIC_TYPES = frozenset(
+    {"smallint", "integer", "bigint", "real", "double precision", "numeric", "decimal"}
+)
 
 _PERSONAL_BASIC_TYPES = frozenset(
     {"CCCD", "PHONE", "ADDRESS", "DOB", "TAX_CODE", "FULL_NAME", "NAME"}
@@ -117,46 +119,80 @@ async def scan_column(column: ColumnProfile) -> FieldScanResult | None:
     return None
 
 
+def _numeric_measure_spec(table: str, column: ColumnProfile) -> dict[str, Any]:
+    return {
+        "source_path": table,
+        "field_path": column.column_name,
+        "data_type": column.data_type,
+        "profile_summary": "Numeric measure; no PII keyword or pattern matched",
+        "classification": "NON_PERSONAL",
+        "taxonomy_id": "NOT_PERSONAL_DATA",
+        "detector_source": "rule",
+        "coverage_status": "partial",
+        "recommended_action": PolicyAction.KEEP.value,
+    }
+
+
 async def scan_postgres_source(
     connection_url: str,
     *,
+    use_ai: bool = True,
     schema_name: str = "public",
-    tables: tuple[str, ...] = DEMO_SCAN_TABLES,
+    tables: tuple[str, ...] | None = None,
 ) -> list[dict[str, Any]]:
-    """Extract demo tables and scan each column. Raises on connector failure."""
+    """Profile the source schema and scan each column. Raises on connector failure.
+
+    tables=None scans every base table. Without AI, only the rule/regex tier runs;
+    unmatched numeric columns are proposed as non-personal measures, anything else UNKNOWN.
+    PK/FK columns and logical join keys are proposed as HMAC so joins survive the snapshot.
+    """
     from src.connectors.postgres_connector import PostgresConnector
+    from src.detection.rule_engine import RuleBasedScanner
+    from src.transform.pg_pipeline import logical_join_fields
 
     connector = PostgresConnector(connection_url)
     db_profile = connector.extract_database_profile(
         schema_name=schema_name, sample_size=5
     )
-    wanted = set(tables)
-    specs: list[dict[str, Any]] = []
-
+    wanted = set(tables) if tables else None
+    rule_scanner = RuleBasedScanner()
+    join_fields = logical_join_fields()
     for table in db_profile.tables:
-        if table.table_name not in wanted:
+        for rel in table.relations:
+            join_fields.add((table.table_name, rel.from_column))
+            join_fields.add((rel.to_table, rel.to_column))
+
+    specs: list[dict[str, Any]] = []
+    for table in db_profile.tables:
+        if wanted is not None and table.table_name not in wanted:
             continue
         for column in table.columns:
+            if column.system_recommendation == "HASHING":
+                specs.append(_join_key_spec(table.table_name, column))
+                continue
             try:
-                result = await scan_column(column)
+                if use_ai:
+                    result = await scan_column(column)
+                else:
+                    result = rule_scanner.tier1_static_filter(column)
             except Exception:
                 logger.exception(
                     "Scan failed for %s.%s", table.table_name, column.column_name
                 )
-                specs.append(_fallback_spec(table.table_name, column))
-                continue
-            if result is None:
-                specs.append(_fallback_spec(table.table_name, column))
+                result = None
+            if result is not None:
+                spec = field_profile_spec(table=table.table_name, column=column, result=result)
+            elif not use_ai and column.data_type in _NUMERIC_TYPES:
+                spec = _numeric_measure_spec(table.table_name, column)
             else:
-                specs.append(
-                    field_profile_spec(
-                        table=table.table_name, column=column, result=result
-                    )
-                )
+                spec = _fallback_spec(table.table_name, column)
+            if (table.table_name, column.column_name) in join_fields:
+                spec["recommended_action"] = PolicyAction.HMAC.value
+            specs.append(spec)
 
     if not specs:
         raise ValueError(
-            f"No columns scanned (wanted tables={sorted(wanted)}; "
+            f"No columns scanned (wanted tables={sorted(wanted) if wanted else 'all'}; "
             f"found={[t.table_name for t in db_profile.tables]})"
         )
     return specs

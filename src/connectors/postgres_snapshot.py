@@ -56,6 +56,16 @@ def ensure_snapshot_schema(conn, snapshot_schema: str = "piiguard_snapshot") -> 
     conn.commit()
 
 
+def reset_snapshot_schema(conn, snapshot_schema: str = "piiguard_snapshot") -> None:
+    """Recreate the snapshot schema so tables from an earlier build cannot be verified."""
+    with conn.cursor() as cur:
+        cur.execute(
+            sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(snapshot_schema))
+        )
+    conn.commit()
+    ensure_snapshot_schema(conn, snapshot_schema)
+
+
 def write_snapshot_table(
     conn,
     *,
@@ -107,11 +117,14 @@ def build_protected_snapshots(
     key_version: str,
     snapshot_schema: str = "piiguard_snapshot",
     tables: tuple[str, ...] = DEMO_SNAPSHOT_TABLES,
+    source_schema: str = "public",
+    default_action: str = "KEEP",
 ) -> dict[str, str]:
     """
     Read listed tables from source, apply per-table column actions, write to snapshot DB.
 
     table_actions: { table_name: { column_name: MASK|HMAC|DROP|KEEP } }
+    default_action applies to source columns missing from table_actions.
     Returns map table -> qualified snapshot table name.
     """
     from src.transform.mask_engine import filter_columns, transform_rows
@@ -120,13 +133,15 @@ def build_protected_snapshots(
 
     written: dict[str, str] = {}
     with _connect(source_url) as src, _connect(snapshot_url) as dst:
-        ensure_snapshot_schema(dst, snapshot_schema)
+        reset_snapshot_schema(dst, snapshot_schema)
         for table in tables:
-            columns, rows = fetch_table_rows(src, table)
+            columns, rows = fetch_table_rows(src, table, schema=source_schema)
             actions = table_actions.get(table, {})
-            # Unspecified columns default KEEP
-            kept_cols = filter_columns(columns, {c: actions.get(c, "KEEP") for c in columns})
-            col_actions = {c: actions.get(c, "KEEP") for c in columns}
+            col_actions = {c: actions.get(c, default_action) for c in columns}
+            kept_cols = filter_columns(columns, col_actions)
+            if not kept_cols:
+                logger.info("Skipping snapshot table %s (every column DROP)", table)
+                continue
             transformed = transform_rows(
                 rows, col_actions, secret=secret, key_version=key_version
             )

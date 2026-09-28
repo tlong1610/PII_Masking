@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     snapshot_database_url: str = ""
     enable_pg_snapshot: bool = False
     snapshot_schema: str = "piiguard_snapshot"
+    pg_schema: str = "public"
+    # Comma-separated table allowlist for scan + snapshot; empty = every table in pg_schema
+    pg_scan_tables: str = ""
 
     # MongoDB source (read-only) and protected snapshot database on the same cluster
     mongo_uri: str = ""

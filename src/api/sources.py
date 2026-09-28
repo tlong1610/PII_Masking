@@ -40,10 +40,25 @@ def mongo_live_enabled() -> bool:
     return bool(settings.enable_mongo and settings.mongo_uri)
 
 
+def pg_live_enabled() -> bool:
+    from src.config import get_settings
+
+    settings = get_settings()
+    return bool(
+        settings.enable_pg_snapshot
+        and settings.source_database_url
+        and settings.snapshot_database_url
+    )
+
+
 def _with_live_status(source: Source) -> Source:
-    if source.engine != "mongodb":
+    if source.engine == "mongodb":
+        live = mongo_live_enabled()
+    elif source.engine == "postgresql":
+        live = pg_live_enabled()
+    else:
         return source
-    status = "ready" if mongo_live_enabled() else "demo_stub"
+    status = "ready" if live else "demo_stub"
     return source.model_copy(update={"status": status})
 
 

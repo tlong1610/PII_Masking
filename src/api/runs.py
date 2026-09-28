@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
-from src.api.sources import get_source_by_id, mongo_live_enabled
+from src.api.sources import get_source_by_id, mongo_live_enabled, pg_live_enabled
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
@@ -34,6 +34,11 @@ router = APIRouter(tags=["runs"])
 def mongo_client():
     """Shared Mongo client override; None lets connectors open their own from settings."""
     return None
+
+
+def _pg_scan_tables(raw: str) -> tuple[str, ...] | None:
+    tables = tuple(t.strip() for t in raw.split(",") if t.strip())
+    return tables or None
 
 
 def _stub_field_specs(source_type: SourceType) -> list[dict]:
@@ -170,12 +175,7 @@ async def create_run(
     from src.config import get_settings
 
     settings = get_settings()
-    use_ai_scan = (
-        settings.enable_ai_scan
-        and source.source_type == SourceType.SQL
-        and source.engine == "postgresql"
-        and bool(settings.source_database_url)
-    )
+    use_pg = source.engine == "postgresql" and pg_live_enabled()
     use_mongo = source.engine == "mongodb" and mongo_live_enabled()
 
     run = db_models.Run(
@@ -191,11 +191,17 @@ async def create_run(
 
     scan_reason = f"source={source.id}"
     try:
-        if use_ai_scan:
+        if use_pg:
             from src.services.run_scanner import scan_postgres_source
 
-            specs = await scan_postgres_source(settings.source_database_url)
-            scan_reason = f"source={source.id}; scan=ai"
+            specs = await scan_postgres_source(
+                settings.source_database_url,
+                use_ai=settings.enable_ai_scan,
+                schema_name=settings.pg_schema,
+                tables=_pg_scan_tables(settings.pg_scan_tables),
+            )
+            mode = "ai" if settings.enable_ai_scan else "rule"
+            scan_reason = f"source={source.id}; scan=pg-{mode}"
         elif use_mongo:
             from src.services.run_scanner import scan_mongo_source
 
@@ -407,28 +413,19 @@ def build_run(
 
     check_rows: list[dict] = []
 
-    use_pg = (
-        run.engine == "postgresql"
-        and settings.enable_pg_snapshot
-        and settings.source_database_url
-        and settings.snapshot_database_url
+    # Runs profiled from the live source must be verified on a real snapshot, never the stub.
+    pg_scanned = run.engine == "postgresql" and any(
+        p.coverage_status != "stub" for p in run.field_profiles
     )
 
-    if use_pg:
+    if pg_scanned and pg_live_enabled():
         try:
             from src.transform.pg_pipeline import (
-                DEFAULT_DEMO_ACTIONS,
                 actions_from_run_decisions,
                 run_protected_postgres_pipeline,
             )
 
             table_actions = actions_from_run_decisions(run.field_profiles, run.field_decisions)
-            # Merge demo join-key HMAC defaults so CCCD join works even if DPO used other labels
-            for table, cols in DEFAULT_DEMO_ACTIONS.items():
-                table_actions.setdefault(table, {})
-                for col, act in cols.items():
-                    table_actions[table].setdefault(col, act)
-
             written, checks = run_protected_postgres_pipeline(
                 source_url=settings.source_database_url,
                 snapshot_url=settings.snapshot_database_url,
@@ -436,6 +433,8 @@ def build_run(
                 key_version=settings.hmac_key_version,
                 table_actions=table_actions,
                 snapshot_schema=settings.snapshot_schema,
+                source_schema=settings.pg_schema,
+                default_action=PolicyAction.DROP.value,
             )
             dataset.output_location = (
                 f"postgres://{settings.snapshot_schema}/"
@@ -475,6 +474,18 @@ def build_run(
                     "details": f"Pipeline error: {type(exc).__name__}",
                 }
             ]
+    elif pg_scanned:
+        check_rows = [
+            {
+                "check_name": "postgres_snapshot_pipeline",
+                "status": VerifierCheckStatus.FAILED.value,
+                "baseline_value": "configured",
+                "actual_value": "not_configured",
+                "tolerance": "n/a",
+                "details": "Snapshot target not configured "
+                "(ENABLE_PG_SNAPSHOT, SOURCE_DATABASE_URL, SNAPSHOT_DATABASE_URL)",
+            }
+        ]
     elif use_mongo:
         try:
             if mongo_connect_error is not None:
@@ -517,7 +528,7 @@ def build_run(
                 }
             ]
     else:
-        # Stub verifier checks when PG snapshot not enabled (unit tests / local without Docker).
+        # Only runs profiled from a demo_stub source reach here (no live connector configured).
         decision_count = len(run.field_decisions)
         check_rows = [
             {
@@ -537,12 +548,12 @@ def build_run(
                 "details": "Output schema matches allowed field set (stub)",
             },
             {
-                "check_name": "downstream_stub",
+                "check_name": "demo_stub_downstream",
                 "status": VerifierCheckStatus.PASSED.value,
                 "baseline_value": "pass",
                 "actual_value": "pass",
                 "tolerance": "n/a",
-                "details": f"Downstream check stub for engine={run.engine}",
+                "details": f"Demo source (no live connector) for engine={run.engine}",
             },
         ]
 
