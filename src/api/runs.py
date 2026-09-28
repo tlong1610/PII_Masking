@@ -369,7 +369,14 @@ def build_run(
 
     settings = get_settings()
 
-    use_mongo = run.engine == "mongodb" and mongo_live_enabled()
+    # Runs profiled from a live source must be verified on a real snapshot, never the stub.
+    pg_scanned = run.engine == "postgresql" and any(
+        p.coverage_status != "stub" for p in run.field_profiles
+    )
+    mongo_scanned = run.engine == "mongodb" and any(
+        p.coverage_status != "stub" for p in run.field_profiles
+    )
+    use_mongo = mongo_scanned and mongo_live_enabled()
     mongo_actions: dict[str, dict[str, str]] = {}
     mongo_relations: list[tuple[str, str, str, str]] = []
     mongo_connect_error: Exception | None = None
@@ -412,11 +419,6 @@ def build_run(
     db.flush()
 
     check_rows: list[dict] = []
-
-    # Runs profiled from the live source must be verified on a real snapshot, never the stub.
-    pg_scanned = run.engine == "postgresql" and any(
-        p.coverage_status != "stub" for p in run.field_profiles
-    )
 
     if pg_scanned and pg_live_enabled():
         try:
@@ -501,6 +503,7 @@ def build_run(
                 table_actions=mongo_actions,
                 relations=mongo_relations,
                 client=mongo_client(),
+                default_action=PolicyAction.DROP.value,
             )
             dataset.output_location = (
                 f"mongodb://{settings.mongo_snapshot_db}/" + ",".join(sorted(written))
@@ -527,6 +530,17 @@ def build_run(
                     "details": f"Pipeline error: {type(exc).__name__}",
                 }
             ]
+    elif mongo_scanned:
+        check_rows = [
+            {
+                "check_name": "mongo_snapshot_pipeline",
+                "status": VerifierCheckStatus.FAILED.value,
+                "baseline_value": "configured",
+                "actual_value": "not_configured",
+                "tolerance": "n/a",
+                "details": "Mongo source not configured (ENABLE_MONGO, MONGO_URI)",
+            }
+        ]
     else:
         # Only runs profiled from a demo_stub source reach here (no live connector configured).
         decision_count = len(run.field_decisions)

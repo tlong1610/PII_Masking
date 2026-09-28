@@ -166,6 +166,40 @@ async def test_scan_postgres_table_allowlist(fake_connector):
 
 
 @pytest.mark.asyncio
+async def test_scan_mongo_drops_objects_beyond_scan_depth(monkeypatch):
+    from src.services.run_scanner import scan_mongo_source
+
+    profile = DatabaseProfile(
+        database_name="mydatabase",
+        tables=[
+            TableProfile(
+                table_name="customers",
+                relations=[],
+                columns=[
+                    _col("identity.cccd", "string", ["001234567890", "079123456789"]),
+                    _col("kyc.scan.ocr", "object", ["{'text': 'CCCD 001234567890'}"]),
+                ],
+            )
+        ],
+    )
+
+    class FakeMongo:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def extract_database_profile(self, sample_size=5):
+            return profile
+
+    monkeypatch.setattr("src.connectors.mongo_connector.MongoConnector", FakeMongo)
+    specs = await scan_mongo_source("mongodb://fake", "db", use_ai=False)
+    by_path = {s["field_path"]: s for s in specs}
+    assert by_path["kyc.scan.ocr"]["classification"] == "UNKNOWN"
+    assert by_path["kyc.scan.ocr"]["recommended_action"] == "DROP"
+    assert by_path["identity.cccd"]["taxonomy_id"] == "CCCD"
+    assert "001234567890" not in str(specs)
+
+
+@pytest.mark.asyncio
 async def test_scan_postgres_raises_when_nothing_matches(fake_connector):
     with pytest.raises(ValueError, match="No columns scanned"):
         await scan_postgres_source("postgresql://fake/db", use_ai=False, tables=("missing",))

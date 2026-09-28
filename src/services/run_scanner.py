@@ -240,12 +240,25 @@ async def scan_mongo_source(
     for table in db_profile.tables:
         for column in table.columns:
             is_join_key = (table.table_name, column.column_name) in join_fields
-            if column.system_recommendation == "HASHING":
-                specs.append(_join_key_spec(table.table_name, column))
-                continue
             scanner_col = column.model_copy(
                 update={"column_name": column.column_name.replace(".", "_")}
             )
+            if column.system_recommendation == "HASHING":
+                # Keys stay HMAC, but a key carrying PII (e.g. CCCD) must still be labelled as PII.
+                result = rule_scanner.tier1_static_filter(scanner_col)
+                if result is None or classification_from_pii_type(result.inferred_pii_type) == "UNKNOWN":
+                    spec = _join_key_spec(table.table_name, column)
+                else:
+                    spec = field_profile_spec(table=table.table_name, column=column, result=result)
+                    spec["field_path"] = column.column_name
+                    spec["recommended_action"] = PolicyAction.HMAC.value
+                specs.append(spec)
+                continue
+            if column.data_type == "object":
+                spec = _fallback_spec(table.table_name, column)
+                spec["profile_summary"] = "Nested object beyond scan depth; contents not profiled"
+                specs.append(spec)
+                continue
             try:
                 if use_ai:
                     result = await scan_column(scanner_col)

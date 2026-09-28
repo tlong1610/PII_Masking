@@ -51,8 +51,12 @@ def run_protected_mongo_pipeline(
     table_actions: dict[str, dict[str, str]],
     relations: list[tuple[str, str, str, str]],
     client: Any | None = None,
+    default_action: str = "KEEP",
 ) -> tuple[dict[str, int], list[dict[str, str]]]:
-    """Build snapshot_db from source_db per table_actions, then compare $lookup counts."""
+    """Build snapshot_db from source_db per table_actions, then compare $lookup counts.
+
+    default_action applies to document fields missing from table_actions.
+    """
     from src.verifier.mongo_verifier import HMACHasher, MongoVerifier
 
     if source_db == snapshot_db:
@@ -71,6 +75,8 @@ def run_protected_mongo_pipeline(
         if to_field != "_id":
             index_fields.setdefault(to_coll, []).append(to_field)
 
-    written = verifier.build_snapshot_from_actions(table_actions, index_fields=index_fields)
+    written = verifier.build_snapshot_from_actions(
+        table_actions, index_fields=index_fields, default_action=default_action
+    )
     checks = verifier.verify_snapshot(sorted(written), relations)
     return written, checks

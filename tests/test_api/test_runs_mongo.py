@@ -108,6 +108,11 @@ async def test_fixture_flow_verifies_830_matched_and_publishes(client, mongo):
     assert raw_cccd not in json.dumps(run)
     by_path = {(p["source_path"], p["field_path"]): p for p in run["field_profiles"]}
     assert by_path[("customers", "identity.cccd")]["recommended_action"] == "HMAC"
+    order_cccd = by_path[("orders", "pii_ext.customer_cccd")]
+    assert (order_cccd["recommended_action"], order_cccd["classification"]) == (
+        "HMAC",
+        by_path[("customers", "identity.cccd")]["classification"],
+    )
     assert by_path[("customers", "contact.email")]["recommended_action"] == "MASK"
 
     await _save(client, token, run["id"], _accept_recommendations(run))
@@ -243,6 +248,80 @@ async def test_failed_verification_blocks_publish(client, mongo, monkeypatch):
         f"/api/v1/datasets/{body['dataset']['id']}/publish", headers=_auth(token)
     )
     assert published.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_scanned_run_never_verifies_via_stub(client, mongo, monkeypatch):
+    _seed(mongo, _load_fixture("seed_customers.json"), _load_fixture("seed_orders.json"))
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_run(client, token)
+    await _save(client, token, run["id"], _accept_recommendations(run))
+
+    monkeypatch.setenv("ENABLE_MONGO", "false")
+    get_settings.cache_clear()
+    built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
+    body = built.json()
+    checks = _checks(body)
+    assert body["run"]["status"] == "FAILED"
+    assert body["dataset"]["status"] == "FAILED"
+    assert "demo_stub_downstream" not in checks
+    assert checks["mongo_snapshot_pipeline"]["actual_value"] == "not_configured"
+
+
+@pytest.mark.asyncio
+async def test_unprofiled_fields_never_reach_snapshot(client, mongo):
+    customers = _load_fixture("seed_customers.json")
+    orders = _load_fixture("seed_orders.json")
+    _seed(mongo, customers, orders)
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_run(client, token)
+    await _save(client, token, run["id"], _accept_recommendations(run))
+
+    # Fields that appear after the scan (or outside the sampled documents) have no decision.
+    raw_phone = "0987654321"
+    mongo[SOURCE_DB].customers.update_many(
+        {}, {"$set": {"late_pii": raw_phone, "kyc": {"scan": {"ocr": {"text": raw_phone}}}}}
+    )
+    mongo[SNAPSHOT_DB].leftover.insert_one({"raw": raw_phone})
+
+    built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
+    body = built.json()
+    assert body["dataset"]["status"] == "VERIFIED", _checks(body)
+
+    snap = mongo[SNAPSHOT_DB]
+    assert sorted(snap.list_collection_names()) == ["customers", "orders"]
+    assert snap.customers.count_documents({"late_pii": {"$exists": True}}) == 0
+    assert snap.customers.count_documents({"kyc": {"$exists": True}}) == 0
+    decided = {
+        p["field_path"] for p in run["field_profiles"] if p["source_path"] == "customers"
+    }
+    for doc in snap.customers.find({}).limit(5):
+        top_level = {k for k in doc if k != "_id"}
+        assert top_level <= {path.split(".")[0] for path in decided}
+
+
+@pytest.mark.asyncio
+async def test_build_response_has_counts_only_no_raw_values(client, mongo):
+    customers = _load_fixture("seed_customers.json")
+    orders = _load_fixture("seed_orders.json")
+    _seed(mongo, customers, orders)
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_run(client, token)
+    await _save(client, token, run["id"], _accept_recommendations(run))
+    built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
+    body = built.json()
+
+    raw_values = set()
+    for c in customers[:20]:
+        raw_values |= {c["identity"]["cccd"], c["contact"]["email"], c["contact"]["phone"]}
+    for o in orders[:20]:
+        raw_values |= {o["pii_ext"]["customer_cccd"], o["pii_ext"]["ship_phone"]}
+    blob = json.dumps(body) + json.dumps(run)
+    assert not [v for v in raw_values if v and v in blob]
+    for check in body["verifier_results"]:
+        if check["check_name"].startswith(("lookup_", "doc_count:")):
+            assert check["baseline_value"].isdigit()
+            assert check["actual_value"].isdigit()
 
 
 @pytest.mark.asyncio
