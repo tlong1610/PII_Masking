@@ -2,7 +2,6 @@
 Unit tests for MongoVerifier downstream integrity validation.
 """
 
-import pytest
 
 from src.verifier.mongo_verifier import MongoVerifier
 

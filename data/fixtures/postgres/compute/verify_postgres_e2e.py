@@ -14,6 +14,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+
 # Add project root to sys.path
 def _get_project_root() -> Path:
     current = Path(__file__).resolve()
@@ -27,17 +28,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
-import psycopg
-from psycopg.rows import dict_row
+import psycopg  # noqa: E402
+from psycopg.rows import dict_row  # noqa: E402
 
-from src.connectors.postgres_connector import PostgresConnector
-from src.transform.hmac_hasher import hash_value
-from src.transform.mask_engine import apply_action
-from src.verifier.sql_verifier import (
+from src.connectors.postgres_connector import PostgresConnector  # noqa: E402
+from src.transform.mask_engine import apply_action  # noqa: E402
+from src.verifier.sql_verifier import (  # noqa: E402
     load_expected,
     verify_aggregate_revenue,
     verify_join_hmac,
-)
+)  # noqa: E402
 
 
 def run_full_postgres_audit():
@@ -80,7 +80,7 @@ def run_full_postgres_audit():
     # 2. Check Golden Labels & Holdout Split
     print("\n[PHASE 2] Inspecting Golden Labels & Holdout Dataset...")
     golden_path = PROJECT_ROOT / "eval" / "golden_labels.json"
-    with open(golden_path, "r", encoding="utf-8") as f:
+    with open(golden_path, encoding="utf-8") as f:
         golden_data = json.load(f)
 
     total_golden = len(golden_data)

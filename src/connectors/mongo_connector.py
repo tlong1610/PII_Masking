@@ -4,10 +4,9 @@ Extracts schema metadata, flattens nested document fields, extracts safe samples
 and constructs DatabaseProfile for AI scanning and verification.
 """
 
-from datetime import date, datetime
-import json
 import logging
 import os
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -50,12 +49,12 @@ def _flatten_document(
 ) -> dict[str, Any]:
     """
     Recursively flattens a nested MongoDB document into dot-notation paths up to max_depth.
-    
+
     Level breakdown:
     - Root / scalar (cấp 0): e.g., '_id', 'customer_id'
     - 1-level nesting (cấp 1): e.g., 'identity.cccd', 'contact.email'
     - 2-level nesting (cấp 2): e.g., 'identity.kyc.doc_number'
-    
+
     If current_depth reaches max_depth, nested dicts are kept as objects and not expanded further.
     """
     items: list[tuple[str, Any]] = []
@@ -338,4 +337,3 @@ class MongoConnector:
         out_file.parent.mkdir(parents=True, exist_ok=True)
         out_file.write_text(json_data, encoding="utf-8")
         logger.info(f"Đã lưu cấu trúc MongoDB Profile ra file: {output_path}")
-

@@ -4,11 +4,12 @@ Run MongoDB $lookup query: orders -> customers via customer_id.
 Outputs execution metrics and sample joined records.
 """
 
-import json
 import os
 import sys
 from pathlib import Path
+
 from pymongo import MongoClient
+
 
 # Add project root to sys.path
 def _get_project_root() -> Path:
@@ -107,23 +108,23 @@ def run_lookup():
     ]
     top_customers = list(db.orders.aggregate(pipeline_group))
 
-    print(f"\n[METRICS SUMMARY]")
+    print("\n[METRICS SUMMARY]")
     print(f"  • Total Orders in database:        {total_orders}")
     print(f"  • Total Customers in database:     {total_customers}")
     print(f"  • Matched Orders via customer_id:  {matched_orders} / {total_orders} (100.00%)")
     print(f"  • Unmatched Orders:                {unmatched_orders}")
     print(f"  • Status:                          {'PASS (100% Match)' if unmatched_orders == 0 else 'FAIL'}")
 
-    print(f"\n[TOP 5 CUSTOMERS BY ORDER COUNT]")
+    print("\n[TOP 5 CUSTOMERS BY ORDER COUNT]")
     for c in top_customers:
         print(f"  • [{c['_id']}] {c['company_name']:<35} : {c['total_orders']} orders")
 
-    print(f"\n[SAMPLE JOINED DOCUMENTS]")
+    print("\n[SAMPLE JOINED DOCUMENTS]")
     for i, s in enumerate(samples, 1):
         print(f"  --- Order #{s['_id']} (Customer: {s['customer_id']}) ---")
         print(f"      Order Date:       {s['order_date']}")
         print(f"      Company Name:     {s['customer_company']}")
-        print(f"      Contact Person:   [PII PERSON NAME HIDDEN]")
+        print("      Contact Person:   [PII PERSON NAME HIDDEN]")
         print(f"      Destination:      {s['shipment_city']}, {s['shipment_country']}")
         print(f"      Lookup Matched:   {s['is_matched']}")
 

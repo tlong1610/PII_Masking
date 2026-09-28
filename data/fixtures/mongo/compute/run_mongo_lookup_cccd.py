@@ -5,11 +5,12 @@ orders.pii_ext.customer_cccd <-> customers.identity.cccd (Join Key Preservation)
 Outputs execution metrics and sample joined records.
 """
 
-import json
 import os
 import sys
 from pathlib import Path
+
 from pymongo import MongoClient
+
 
 # Add project root to sys.path
 def _get_project_root() -> Path:
@@ -109,14 +110,14 @@ def run_lookup_cccd():
     ]
     top_cccd = list(db.orders.aggregate(pipeline_group))
 
-    print(f"\n[METRICS SUMMARY (LOOKUP BY CCCD)]")
+    print("\n[METRICS SUMMARY (LOOKUP BY CCCD)]")
     print(f"  • Total Orders in database:        {total_orders}")
     print(f"  • Total Customers in database:     {total_customers}")
     print(f"  • Matched Orders via CCCD:         {matched_orders} / {total_orders} (100.00%)")
     print(f"  • Unmatched Orders:                {unmatched_orders}")
     print(f"  • Status:                          {'PASS (100% Match)' if unmatched_orders == 0 else 'FAIL'}")
 
-    print(f"\n[TOP 5 CUSTOMERS BY CCCD ORDER VOLUME]")
+    print("\n[TOP 5 CUSTOMERS BY CCCD ORDER VOLUME]")
     for c in top_cccd:
         if len(str(c['_id'])) == 64:
             cccd_display = f"{c['_id'][:8]}...{c['_id'][-8:]} (HMAC)"
@@ -124,7 +125,7 @@ def run_lookup_cccd():
             cccd_display = "[RAW CCCD HIDDEN]"
         print(f"  • [{c['customer_id']}] CCCD: {cccd_display:<28} | {c['company_name']:<30} : {c['total_orders']} orders")
 
-    print(f"\n[SAMPLE JOINED DOCUMENTS BY CCCD]")
+    print("\n[SAMPLE JOINED DOCUMENTS BY CCCD]")
     for s in samples:
         ord_raw = str(s.get('order_cccd', ''))
         cust_raw = str(s.get('customer_cccd', ''))
