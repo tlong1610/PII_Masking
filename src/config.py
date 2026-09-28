@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     enable_pg_snapshot: bool = False
     snapshot_schema: str = "piiguard_snapshot"
 
+    # MongoDB source (read-only) and protected snapshot database on the same cluster
+    mongo_uri: str = ""
+    mongo_db: str = "mydatabase"
+    mongo_snapshot_db: str = "mydatabase_protected"
+    enable_mongo: bool = False
+
     # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
     enable_ai_scan: bool = False
 

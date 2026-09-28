@@ -62,7 +62,7 @@ def test_infer_data_type():
     assert _infer_data_type({"k": "v"}) == "object"
 
 
-def test_mongo_connector_profile_extraction():
+def test_mongo_connector_profile_extraction(live_mongo):
     """
     Connects to the MongoDB container and validates extracted profile structure.
     """
@@ -99,7 +99,7 @@ def test_mongo_connector_profile_extraction():
     assert ("pii_ext.customer_cccd", "customers", "identity.cccd") in rel_targets
 
 
-def test_mongo_scanner_contract():
+def test_mongo_scanner_contract(live_mongo):
     """
     Validates inspect_scope, profile_fields, and to_scanner_contract methods,
     and proves seamless consumption by RuleBasedScanner.

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
-from src.api.sources import get_source_by_id
+from src.api.sources import get_source_by_id, mongo_live_enabled
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
@@ -29,6 +29,11 @@ from src.models.schemas import (
 )
 
 router = APIRouter(tags=["runs"])
+
+
+def mongo_client():
+    """Shared Mongo client override; None lets connectors open their own from settings."""
+    return None
 
 
 def _stub_field_specs(source_type: SourceType) -> list[dict]:
@@ -171,6 +176,7 @@ async def create_run(
         and source.engine == "postgresql"
         and bool(settings.source_database_url)
     )
+    use_mongo = source.engine == "mongodb" and mongo_live_enabled()
 
     run = db_models.Run(
         source_id=source.id,
@@ -190,6 +196,17 @@ async def create_run(
 
             specs = await scan_postgres_source(settings.source_database_url)
             scan_reason = f"source={source.id}; scan=ai"
+        elif use_mongo:
+            from src.services.run_scanner import scan_mongo_source
+
+            specs = await scan_mongo_source(
+                settings.mongo_uri,
+                settings.mongo_db,
+                use_ai=settings.enable_ai_scan,
+                client=mongo_client(),
+            )
+            mode = "ai" if settings.enable_ai_scan else "rule"
+            scan_reason = f"source={source.id}; scan=mongo-{mode}"
         else:
             specs = _stub_field_specs(source.source_type)
             scan_reason = f"source={source.id}; scan=stub"
@@ -342,6 +359,39 @@ def build_run(
                 detail="Build blocked: UNKNOWN cannot KEEP",
             )
 
+    from src.config import get_settings
+
+    settings = get_settings()
+
+    use_mongo = run.engine == "mongodb" and mongo_live_enabled()
+    mongo_actions: dict[str, dict[str, str]] = {}
+    mongo_relations: list[tuple[str, str, str, str]] = []
+    mongo_connect_error: Exception | None = None
+    if use_mongo:
+        from src.connectors.mongo_connector import MongoConnector
+        from src.transform.mongo_pipeline import (
+            actions_from_run_decisions as mongo_actions_from_decisions,
+        )
+        from src.transform.mongo_pipeline import join_key_violations
+
+        mongo_actions = mongo_actions_from_decisions(run.field_profiles, run.field_decisions)
+        try:
+            mongo_relations = MongoConnector(
+                settings.mongo_uri, settings.mongo_db, client=mongo_client()
+            ).list_relations()
+        except Exception as exc:
+            mongo_connect_error = exc
+        violations = join_key_violations(mongo_actions, mongo_relations)
+        if violations:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Build blocked: both ends of a join key must use the same "
+                    "action (KEEP or HMAC), otherwise $lookup breaks",
+                    "join_key_violations": violations,
+                },
+            )
+
     # Failed prior datasets must not become readable.
     run.status = RunStatus.BUILDING.value
     db.flush()
@@ -355,9 +405,6 @@ def build_run(
     db.add(dataset)
     db.flush()
 
-    from src.config import get_settings
-
-    settings = get_settings()
     check_rows: list[dict] = []
 
     use_pg = (
@@ -421,6 +468,47 @@ def build_run(
             check_rows = [
                 {
                     "check_name": "postgres_snapshot_pipeline",
+                    "status": VerifierCheckStatus.FAILED.value,
+                    "baseline_value": "ok",
+                    "actual_value": "error",
+                    "tolerance": "n/a",
+                    "details": f"Pipeline error: {type(exc).__name__}",
+                }
+            ]
+    elif use_mongo:
+        try:
+            if mongo_connect_error is not None:
+                raise mongo_connect_error
+            from src.transform.mongo_pipeline import run_protected_mongo_pipeline
+
+            written, checks = run_protected_mongo_pipeline(
+                uri=settings.mongo_uri,
+                source_db=settings.mongo_db,
+                snapshot_db=settings.mongo_snapshot_db,
+                secret=settings.hmac_secret,
+                key_version=settings.hmac_key_version,
+                table_actions=mongo_actions,
+                relations=mongo_relations,
+                client=mongo_client(),
+            )
+            dataset.output_location = (
+                f"mongodb://{settings.mongo_snapshot_db}/" + ",".join(sorted(written))
+            )
+            check_rows = [
+                {
+                    "check_name": "policy_complete",
+                    "status": VerifierCheckStatus.PASSED.value,
+                    "baseline_value": str(len(run.field_profiles)),
+                    "actual_value": str(len(run.field_decisions)),
+                    "tolerance": "0",
+                    "details": "Every field has a DPO decision",
+                },
+                *checks,
+            ]
+        except Exception as exc:
+            check_rows = [
+                {
+                    "check_name": "mongo_snapshot_pipeline",
                     "status": VerifierCheckStatus.FAILED.value,
                     "baseline_value": "ok",
                     "actual_value": "error",

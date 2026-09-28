@@ -38,6 +38,22 @@ async def client():
 
 
 @pytest.fixture
+def live_mongo():
+    """Skip unless the seeded MongoDB from MONGO_URI (docker compose) is reachable."""
+    from pymongo import MongoClient
+
+    uri = os.getenv("MONGO_URI", "mongodb://admin:admin@localhost:27017/?authSource=admin")
+    client = MongoClient(uri, serverSelectionTimeoutMS=2000)
+    try:
+        client.admin.command("ping")
+        client[os.getenv("MONGO_DB", "mydatabase")].list_collection_names()
+    except Exception as exc:
+        pytest.skip(f"Live MongoDB not available: {type(exc).__name__}")
+    finally:
+        client.close()
+
+
+@pytest.fixture
 def mock_llm():
     """Mock LLM to avoid calling OpenAI during tests.
 

@@ -83,11 +83,31 @@ class MongoConnector:
     and extract non-null sample values for the PII detection pipeline.
     """
 
-    def __init__(self, connection_string: str | None = None, database_name: str | None = None):
+    def __init__(
+        self,
+        connection_string: str | None = None,
+        database_name: str | None = None,
+        client: Any | None = None,
+    ):
         self.connection_string = connection_string or os.getenv(
             "MONGO_URI", "mongodb://admin:admin@localhost:27017/?authSource=admin"
         )
         self.database_name = database_name or self._extract_database_name()
+        # Caller-owned client (shared or mongomock); never closed by the connector.
+        self._client = client
+
+    def _open_client(self) -> Any:
+        if self._client is not None:
+            return self._client
+        if MongoClient is None:
+            raise RuntimeError("Thư viện pymongo chưa được cài đặt. Không thể kết nối MongoDB.")
+        client = MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+        client.admin.command("ping")
+        return client
+
+    def _release_client(self, client: Any) -> None:
+        if client is not self._client:
+            client.close()
 
     def _extract_database_name(self) -> str:
         """Extracts database name from connection string path or fallback to env/default."""
@@ -130,6 +150,20 @@ class MongoConnector:
 
         return relations
 
+    def list_relations(self) -> list[tuple[str, str, str, str]]:
+        """(from_collection, from_field, to_collection, to_field) for every inferred join."""
+        client = self._open_client()
+        try:
+            db = client[self.database_name]
+            names = [c for c in db.list_collection_names() if not c.startswith("system.")]
+            return [
+                (coll, rel.from_column, rel.to_table, rel.to_column)
+                for coll in sorted(names)
+                for rel in self._infer_collection_relations(coll, names)
+            ]
+        finally:
+            self._release_client(client)
+
     def extract_database_profile(
         self,
         sample_size: int = 5,
@@ -148,13 +182,8 @@ class MongoConnector:
         Returns:
             DatabaseProfile: Standardized database schema representation for AI scanning.
         """
-        if MongoClient is None:
-            raise RuntimeError("Thư viện pymongo chưa được cài đặt. Không thể kết nối MongoDB.")
-
-        client = MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+        client = self._open_client()
         try:
-            # Check connection
-            client.admin.command("ping")
             db = client[self.database_name]
             all_collections = [c for c in db.list_collection_names() if not c.startswith("system.")]
 
@@ -214,19 +243,15 @@ class MongoConnector:
                 tables=tables_profile,
             )
         finally:
-            client.close()
+            self._release_client(client)
 
     def inspect_scope(self) -> list[dict[str, Any]]:
         """
         Inspects available collections, document counts, and field scope.
         Conforms to PRD connector contract (inspect_scope).
         """
-        if MongoClient is None:
-            raise RuntimeError("Thư viện pymongo chưa được cài đặt. Không thể kết nối MongoDB.")
-
-        client = MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+        client = self._open_client()
         try:
-            client.admin.command("ping")
             db = client[self.database_name]
             all_collections = [c for c in db.list_collection_names() if not c.startswith("system.")]
             scopes = []
@@ -247,7 +272,7 @@ class MongoConnector:
                 })
             return scopes
         finally:
-            client.close()
+            self._release_client(client)
 
     def profile_fields(
         self,

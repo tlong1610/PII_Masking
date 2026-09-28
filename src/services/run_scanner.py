@@ -160,3 +160,73 @@ async def scan_postgres_source(
             f"found={[t.table_name for t in db_profile.tables]})"
         )
     return specs
+
+
+def _join_key_spec(collection: str, column: ColumnProfile) -> dict[str, Any]:
+    return {
+        "source_path": collection,
+        "field_path": column.column_name,
+        "data_type": column.data_type,
+        "profile_summary": "Join key (document id / reference); keep joinable via HMAC",
+        "classification": "NON_PERSONAL",
+        "taxonomy_id": None,
+        "detector_source": "rule",
+        "coverage_status": "full",
+        "recommended_action": PolicyAction.HMAC.value,
+    }
+
+
+async def scan_mongo_source(
+    uri: str,
+    database_name: str,
+    *,
+    use_ai: bool,
+    client: Any | None = None,
+) -> list[dict[str, Any]]:
+    """Profile every collection with MongoConnector and scan each flattened field.
+
+    field_path keeps the real dot path (e.g. identity.cccd); the scanner sees a snake_case copy.
+    Without AI, only the deterministic rule/regex tier runs (no LLM call).
+    """
+    from src.connectors.mongo_connector import MongoConnector
+    from src.detection.rule_engine import RuleBasedScanner
+
+    connector = MongoConnector(uri, database_name, client=client)
+    db_profile = connector.extract_database_profile(sample_size=5)
+    rule_scanner = RuleBasedScanner()
+    specs: list[dict[str, Any]] = []
+    join_fields: set[tuple[str, str]] = set()
+    for table in db_profile.tables:
+        for rel in table.relations:
+            join_fields.add((table.table_name, rel.from_column))
+            join_fields.add((rel.to_table, rel.to_column))
+
+    for table in db_profile.tables:
+        for column in table.columns:
+            is_join_key = (table.table_name, column.column_name) in join_fields
+            if column.system_recommendation == "HASHING":
+                specs.append(_join_key_spec(table.table_name, column))
+                continue
+            scanner_col = column.model_copy(
+                update={"column_name": column.column_name.replace(".", "_")}
+            )
+            try:
+                if use_ai:
+                    result = await scan_column(scanner_col)
+                else:
+                    result = rule_scanner.tier1_static_filter(scanner_col)
+            except Exception:
+                logger.exception("Scan failed for %s.%s", table.table_name, column.column_name)
+                result = None
+            if result is None:
+                spec = _fallback_spec(table.table_name, column)
+            else:
+                spec = field_profile_spec(table=table.table_name, column=column, result=result)
+            spec["field_path"] = column.column_name
+            if is_join_key:
+                spec["recommended_action"] = PolicyAction.HMAC.value
+            specs.append(spec)
+
+    if not specs:
+        raise ValueError(f"No fields found in MongoDB database {database_name!r}")
+    return specs
