@@ -94,6 +94,25 @@ Quick Start chỉ hoàn tất khi đội bổ sung và chạy thật các bướ
 
 Các biến cấu hình dự kiến: `OPENAI_API_KEY`, `LLM_MODEL`, credential đọc nguồn/ghi đích tách biệt, `HMAC_SECRET`, `HMAC_KEY_VERSION` và secret phiên đăng nhập. Tên biến phải đồng bộ `.env.example` khi code được triển khai.`
 `
+## GitHub Actions self-hosted runner (máy Phúc)
+
+Runner `team-138-rin1652` được đăng ký cho repo P-138 với nhãn `team-138`. Thư mục `actions-runner/` là runtime của GitHub Runner, chỉ tồn tại local và không được commit.
+
+Khi mở Mac và muốn CI nhận job, chạy trong terminal:
+
+```bash
+cd /Users/phucnguyen/Desktop/AI/team_build_phase/P-138/actions-runner
+./run.sh
+```
+
+Giữ terminal này mở và để Mac thức, có mạng. Kiểm tra runner:
+
+```bash
+./svc.sh status
+```
+
+Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hiện tại. Nếu gập máy làm Mac sleep, runner sẽ offline; job dùng `runs-on: self-hosted` sẽ chờ hoặc có thể fail nếu đang chạy.
+
 ## Project Structure
 
 > 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
