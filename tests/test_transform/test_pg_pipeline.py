@@ -4,13 +4,11 @@ from types import SimpleNamespace
 
 from src.transform import pg_pipeline
 from src.transform.pg_pipeline import (
-    LOGICAL_JOIN_KEYS,
     actions_from_run_decisions,
     logical_join_fields,
     pg_join_key_violations,
     run_protected_postgres_pipeline,
 )
-
 
 # ---------------------------------------------------------------------------
 # pg_join_key_violations
