@@ -27,7 +27,6 @@ import {
   useCreateScanRun,
   useRun,
   useUpdateFieldDecisions,
-  useApproveRun,
   useBuildDataset,
   usePublishDataset,
 } from '../hooks/usePiiReview';
@@ -47,7 +46,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   // Mutations
   const createScan = useCreateScanRun();
   const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
-  const approveRun = useApproveRun(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
 
@@ -87,7 +85,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
           reason: `DPO approved recommended action for ${field.field_path}`,
         })),
       );
-      await approveRun.mutateAsync();
       setStep('build');
     } catch (error) {
       console.error('Approve failed:', error);
@@ -279,7 +276,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
             size="large"
             startIcon={<CheckCircleIcon />}
             onClick={() => void handleApprove()}
-            disabled={approveRun.isPending || updateDecisions.isPending}
+            disabled={updateDecisions.isPending}
           >
             Duyệt & Tiếp Tục
           </Button>
