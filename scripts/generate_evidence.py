@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -98,11 +98,11 @@ def _check_output_for_leaks(output: str) -> tuple[list[str], list[str]]:
     assertion source code, comments, or test helper strings.
     """
     # Lines that are part of assertion code, not response payloads
-    _SKIP_PREFIXES = (
+    skip_prefixes = (
         "assert ", "#", "    assert ", "        assert ",
         "| `", "|---", "># ", "> ", "...",
     )
-    _SKIP_SUBSTRINGS = (
+    skip_substrings = (
         "not in blob", "not in str(", "not in json", "not in listed",
         "not in checks", "not in {item", "password not in",
         "password\" not in", "assert\"", "# test",
@@ -117,9 +117,9 @@ def _check_output_for_leaks(output: str) -> tuple[list[str], list[str]]:
                 continue
             # Skip lines that are clearly assertion code or documentation
             stripped = line.strip()
-            if stripped.startswith(_SKIP_PREFIXES):
+            if stripped.startswith(skip_prefixes):
                 continue
-            if any(skip in line for skip in _SKIP_SUBSTRINGS):
+            if any(skip in line for skip in skip_substrings):
                 continue
             # Skip pytest PASSED/FAILED status lines (they don't contain payloads)
             if " PASSED" in line or " FAILED" in line or " ERROR" in line:
@@ -131,7 +131,7 @@ def _check_output_for_leaks(output: str) -> tuple[list[str], list[str]]:
         [STUB_SENTINEL]
         if STUB_SENTINEL in output and "not in" not in output.splitlines()[
             next(
-                (i for i, l in enumerate(output.splitlines()) if STUB_SENTINEL in l),
+                (i for i, line in enumerate(output.splitlines()) if STUB_SENTINEL in line),
                 0,
             )
         ]
@@ -289,7 +289,7 @@ def _build_report(
 
 def main() -> int:
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    run_at = datetime.now(timezone.utc)
+    run_at = datetime.now(UTC)
     date_str = run_at.strftime("%Y-%m-%d")
     out_path = EVIDENCE_DIR / f"smoke_test_{date_str}.md"
 
