@@ -4,6 +4,7 @@ export const API_BASE_URL = (
 
 const AUTH_STORAGE_KEY = 'piiguard_auth_session';
 const LEGACY_TOKEN_KEY = 'auth_token';
+export const UNAUTHORIZED_EVENT = 'piiguard:unauthorized';
 
 type StoredSession = {
   token?: unknown;
@@ -78,6 +79,9 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const errorBody: unknown = await response.json().catch(() => null);
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    }
     throw new ApiError(
       getErrorMessage(errorBody, response.statusText),
       response.status,

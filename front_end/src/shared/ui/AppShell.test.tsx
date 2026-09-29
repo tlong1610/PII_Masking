@@ -54,4 +54,17 @@ describe('AppShell', () => {
 
     expect(onLogoutMock).toHaveBeenCalledTimes(1);
   });
+
+  it('hides DPO navigation for Analyst users', () => {
+    render(
+      <MemoryRouter>
+        <AppShell activeRole="Analyst" currentUser={{ username: 'analyst', role: 'Analyst' }}>
+          <div>Analyst Content</div>
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: 'DPO' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Analyst' })).toBeInTheDocument();
+  });
 });

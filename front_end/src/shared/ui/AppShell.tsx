@@ -33,6 +33,8 @@ type AppShellProps = PropsWithChildren<{
 
 export function AppShell({ activeRole, currentUser, onLogout, children }: AppShellProps): JSX.Element {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const canOpenDpo = !currentUser || currentUser.role === 'DPO';
+  const canOpenAnalyst = !currentUser || currentUser.role === 'Analyst';
 
   const handleConfirmLogout = (): void => {
     setLogoutDialogOpen(false);
@@ -72,20 +74,24 @@ export function AppShell({ activeRole, currentUser, onLogout, children }: AppShe
             sx={{ display: { xs: 'none', sm: 'flex' } }}
             aria-label="Điều hướng vai trò"
           >
-            <Button
-              component={NavLink}
-              to={routes.dpo}
-              variant={activeRole === 'DPO' ? 'contained' : 'text'}
-            >
-              DPO
-            </Button>
-            <Button
-              component={NavLink}
-              to={routes.analyst}
-              variant={activeRole === 'Analyst' ? 'contained' : 'text'}
-            >
-              Analyst
-            </Button>
+            {canOpenDpo ? (
+              <Button
+                component={NavLink}
+                to={routes.dpo}
+                variant={activeRole === 'DPO' ? 'contained' : 'text'}
+              >
+                DPO
+              </Button>
+            ) : null}
+            {canOpenAnalyst ? (
+              <Button
+                component={NavLink}
+                to={routes.analyst}
+                variant={activeRole === 'Analyst' ? 'contained' : 'text'}
+              >
+                Analyst
+              </Button>
+            ) : null}
           </Stack>
 
           <Chip
