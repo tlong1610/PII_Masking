@@ -71,13 +71,14 @@ export const datasetPreviewSchema = z.object({
     data_type: z.string(),
     transform: z.enum(['MASK', 'HMAC', 'KEEP', 'DROPPED']),
   })),
-  rows: z.array(z.record(z.string())),
+  rows: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))),
+  note: z.string().optional(),
   relationships: z.array(z.object({
     source_table: z.string(),
     source_column: z.string(),
     target_table: z.string(),
     target_column: z.string(),
-  })),
+  })).default([]),
 });
 
 export const verifierResultSchema = z.object({
@@ -147,12 +148,6 @@ export async function updateFieldDecisions(
     body: JSON.stringify({ decisions }),
   });
   return runSchema.parse(data);
-}
-
-export async function approveRun(runId: number): Promise<void> {
-  await apiRequest(`/runs/${runId}/approve`, {
-    method: 'POST',
-  });
 }
 
 export async function buildDataset(runId: number): Promise<BuildResponse> {

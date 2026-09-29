@@ -50,4 +50,19 @@ describe('authStorage', () => {
     localStorage.setItem('piiguard_auth_session', 'not-valid-json');
     expect(getStoredSession()).toBeNull();
   });
+
+  it('rejects stored sessions with an invalid role', () => {
+    localStorage.setItem(
+      'piiguard_auth_session',
+      JSON.stringify({
+        token: 'jwt-test-token',
+        user: {
+          username: 'admin',
+          role: 'Admin',
+        },
+      }),
+    );
+
+    expect(getStoredSession()).toBeNull();
+  });
 });

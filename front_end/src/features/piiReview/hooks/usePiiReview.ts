@@ -69,18 +69,6 @@ export function useUpdateFieldDecisions(runId: number) {
   });
 }
 
-export function useApproveRun(runId: number) {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: () => api.approveRun(runId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
-      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
-    },
-  });
-}
-
 export function useBuildDataset(runId: number) {
   const queryClient = useQueryClient();
   

@@ -5,6 +5,7 @@ export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isSessionReady: boolean;
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<AuthSession>;

@@ -81,6 +81,13 @@ function RelationshipDiagram({ relationships }: { relationships: DatasetRelation
   );
 }
 
+function formatPreviewValue(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined || value === '') {
+    return '(không hiển thị)';
+  }
+  return String(value);
+}
+
 export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -187,8 +194,9 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {preview.rows[0]?.[col.name] ||
-                        (col.transform === 'DROPPED' ? 'Đã loại bỏ' : '(không hiển thị)')}
+                      {col.transform === 'DROPPED'
+                        ? 'Đã loại bỏ'
+                        : formatPreviewValue(preview.rows[0]?.[col.name])}
                     </Typography>
                   </TableCell>
                 </TableRow>

@@ -1,4 +1,5 @@
 export { LoginExperience } from './components/LoginExperience';
+export { RequireRole } from './components/RequireRole';
 export { AuthProvider } from './context/AuthProvider';
 export { useAuth } from './hooks/useAuth';
 export { loginSchema, type LoginFormValues } from './model/loginSchema';
