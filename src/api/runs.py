@@ -376,6 +376,24 @@ def build_run(
     mongo_scanned = run.engine == "mongodb" and any(
         p.coverage_status != "stub" for p in run.field_profiles
     )
+    if pg_scanned:
+        from src.transform.pg_pipeline import (
+            actions_from_run_decisions as pg_actions_from_decisions,
+        )
+        from src.transform.pg_pipeline import pg_join_key_violations
+
+        pg_table_actions = pg_actions_from_decisions(run.field_profiles, run.field_decisions)
+        pg_violations = pg_join_key_violations(pg_table_actions)
+        if pg_violations:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Build blocked: both ends of a join key must use the same "
+                    "action (KEEP or HMAC), otherwise JOIN breaks",
+                    "join_key_violations": pg_violations,
+                },
+            )
+
     use_mongo = mongo_scanned and mongo_live_enabled()
     mongo_actions: dict[str, dict[str, str]] = {}
     mongo_relations: list[tuple[str, str, str, str]] = []

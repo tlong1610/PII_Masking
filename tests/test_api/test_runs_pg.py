@@ -237,3 +237,45 @@ async def test_scanned_run_never_verifies_via_stub(client, pg_live, monkeypatch)
     checks = _checks(body)
     assert "demo_stub_downstream" not in checks
     assert checks["postgres_snapshot_pipeline"]["actual_value"] == "not_configured"
+
+
+@pytest.mark.asyncio
+async def test_pg_build_blocked_when_join_key_action_mismatch(client, pg_live, monkeypatch):
+    """Build must return 422 when one end of a PG join-key uses a different action."""
+    token = await _login(client, "dpo", "dpo123")
+
+    # Scan produces FAKE_SPECS: customers.cccd=HMAC, orders.customer_cccd=HMAC
+    created = await client.post(
+        "/api/v1/runs", headers=_auth(token), json={"source_id": "sql-demo"}
+    )
+    assert created.status_code == 201
+    run = created.json()
+
+    # DPO reviews: set customers.cccd to MASK while orders.customer_cccd stays HMAC
+    decisions = []
+    for p in run["field_profiles"]:
+        action = p["recommended_action"]
+        if p["source_path"] == "customers" and p["field_path"] == "cccd":
+            action = "MASK"  # deliberate mismatch with orders.customer_cccd=HMAC
+        decisions.append({"field_profile_id": p["id"], "action": action, "reason": "reviewed"})
+
+    saved = await client.put(
+        f"/api/v1/runs/{run['id']}/decisions",
+        headers=_auth(token),
+        json={"decisions": decisions},
+    )
+    assert saved.status_code == 200
+
+    built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
+    assert built.status_code == 422
+    detail = built.json()["detail"]
+    assert "join_key_violations" in detail
+    violations = detail["join_key_violations"]
+    assert any(
+        v["from"] == "orders.customer_cccd" and v["to"] == "customers.cccd"
+        for v in violations
+    )
+    # No dataset should have been created
+    run_after = await client.get(f"/api/v1/runs/{run['id']}", headers=_auth(token))
+    assert run_after.json()["datasets"] == []
+

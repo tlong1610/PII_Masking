@@ -13,6 +13,36 @@ LOGICAL_JOIN_KEYS: tuple[tuple[str, str, str, str], ...] = (
     ("orders", "customer_cccd", "customers", "cccd"),
 )
 
+JOIN_SAFE_ACTIONS = frozenset({"KEEP", "HMAC"})
+
+
+def pg_join_key_violations(
+    table_actions: dict[str, dict[str, str]],
+    relations: tuple[tuple[str, str, str, str], ...] = LOGICAL_JOIN_KEYS,
+) -> list[dict[str, str]]:
+    """Both ends of every logical join key must share a JOIN_SAFE_ACTIONS action.
+
+    If one side is HMAC and the other is KEEP (or vice-versa) the join is broken
+    because HMAC values will never match plain values.  Raises nothing — returns
+    a list of violation dicts that the caller can embed in a 422 response.
+    """
+    violations: list[dict[str, str]] = []
+    for from_table, from_col, to_table, to_col in relations:
+        from_action = table_actions.get(from_table, {}).get(from_col, "KEEP").upper()
+        to_action = table_actions.get(to_table, {}).get(to_col, "KEEP").upper()
+        if from_action == to_action and from_action in JOIN_SAFE_ACTIONS:
+            continue
+        violations.append(
+            {
+                "from": f"{from_table}.{from_col}",
+                "from_action": from_action,
+                "to": f"{to_table}.{to_col}",
+                "to_action": to_action,
+            }
+        )
+    return violations
+
+
 # Minimal demo policy for join-key preservation (CCCD) + sample MASK fields.
 DEFAULT_DEMO_ACTIONS: dict[str, dict[str, str]] = {
     "customers": {
