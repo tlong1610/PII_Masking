@@ -10,6 +10,7 @@ HIGH_CONFIDENCE_COLUMNS = {
     PIIType.EMAIL.value: ["email", "mail_address"],
     PIIType.PHONE.value: ["phone", "sdt", "so_dien_thoai", "mobile"],
     PIIType.TAX_CODE.value: ["tax_code", "mst", "ma_so_thue"],
+    PIIType.DOB.value: ["date_of_birth", "birth_date", "dob", "ngay_sinh"],
     # Lưu ý: CREDIT_CARD và BIOMETRIC_FILE không có trong taxonomy tối thiểu
     # nhưng có thể giữ lại dưới dạng string nếu cần cho tương lai,
     # hoặc ánh xạ về SENSITIVE. Tạm dùng string.

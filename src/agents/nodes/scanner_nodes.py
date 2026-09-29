@@ -67,26 +67,26 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
             hybrid_score = (bm25_score * 0.4) + (semantic_score * 0.6)
 
     # Quy tắc phân luồng Tầng 3.1
-    if hybrid_score > 0.75:
+    if hybrid_score > 0.85:
         action = col_profile.system_recommendation if col_profile.system_recommendation else "MASK"
         res = FieldScanResult(
             field_name=col_profile.column_name,
             inferred_pii_type=PIIType.UNKNOWN.value, # Cần LLM hoặc mapping lại để biết type chính xác, tạm để UNKNOWN
             confidence=hybrid_score,
             recommended_action=action,
-            reasoning=f"Hybrid Score ({hybrid_score:.2f}) > 0.75. Khẳng định là PII.",
+            reasoning=f"Vector Semantic Score: {hybrid_score:.2f} > Threshold 0.85",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
         return {"hybrid_score": hybrid_score, "final_proposal": res}
 
-    if hybrid_score < 0.1:
+    if hybrid_score < 0.15:
         res = FieldScanResult(
             field_name=col_profile.column_name,
             inferred_pii_type="NOT_PERSONAL_DATA",
             confidence=1.0 - hybrid_score,
             recommended_action="KEEP",
-            reasoning=f"Hybrid Score ({hybrid_score:.2f}) < 0.1. Khẳng định không phải PII.",
+            reasoning=f"Vector Semantic Score: {hybrid_score:.2f} < Threshold 0.15",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
@@ -123,7 +123,9 @@ Nhiệm vụ của bạn là phân tích cấu trúc của một cột trong Dat
 Các loại PII (inferred_pii_type) có thể là: CCCD, PHONE, EMAIL, ADDRESS, DOB, TAX_CODE, UNKNOWN, NOT_PERSONAL_DATA...
 Hành động khuyến nghị (recommended_action): HMAC (nếu là Khóa chính/Khóa ngoại - PK/FK), MASK (nếu là PII thông thường), KEEP (nếu không phải).
 
-{format_instructions}"""),
+{format_instructions}
+
+QUAN TRỌNG: Trường 'reasoning' TRONG JSON PHẢI CỰC KỲ NGẮN GỌN (TỐI ĐA 15 TỪ). Tuyệt đối không giải thích dài dòng."""),
         ("human", """ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
 {few_shot_examples}
 
@@ -136,18 +138,23 @@ THÔNG TIN CỘT CẦN PHÂN TÍCH:
 Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu (không thêm bất kỳ văn bản giải thích nào khác).""")
     ])
 
-    chain = prompt | llm | parser
-
-    # Gọi API thật. Nếu có lỗi (Rate Limit), Exception sẽ được ném lên trên
-    # để script đánh giá (run_eval_full.py) bắt lấy và kích hoạt cơ chế Retry.
-    result: FieldScanResult = chain.invoke({
+    # Gọi API thật. Bắt kết quả thô để lấy response_metadata
+    raw_response = llm.invoke(prompt.format_prompt(**{
         "few_shot_examples": few_shot_str,
         "column_name": col_profile.column_name,
         "data_type": col_profile.data_type,
         "system_rec": col_profile.system_recommendation or "Không",
         "data_shapes": json.dumps(data_shape),
         "format_instructions": parser.get_format_instructions()
-    })
+    }).to_messages())
+
+    content = raw_response.content
+    if isinstance(content, list):
+        content = " ".join(block.get("text", "") if isinstance(block, dict) else str(block) for block in content)
+
+    result: FieldScanResult = parser.parse(content)
+    result.provider_meta = getattr(raw_response, "response_metadata", None)
+
     # Ghi đè tier logic
     result.tier = "TIER_3_LLM"
     return {"tier3_result": result}

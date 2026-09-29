@@ -46,7 +46,7 @@ class BM25Engine:
         # Fit mô hình BM25
         self.bm25 = BM25Okapi(self.tokenized_corpus)
 
-    def calculate_lexical_score(self, col_profile: ColumnProfile, threshold: float = 0.85) -> tuple[float, FieldScanResult | None]:
+    def calculate_lexical_score(self, col_profile: ColumnProfile, threshold: float = 0.95) -> tuple[float, FieldScanResult | None]:
         """
         Đánh giá cột bằng BM25.
         Returns:
@@ -80,7 +80,7 @@ class BM25Engine:
                 inferred_pii_type=PIIType.UNKNOWN.value,  # LLM/DPO có thể phân loại chi tiết sau, tạm thời đánh dấu là PII
                 confidence=1.0,
                 recommended_action=action,
-                reasoning=f"BM25 Score ({max_score:.2f}) vượt ngưỡng ({threshold}). Khẳng định là PII tại Tầng 2.",
+                reasoning=f"BM25 Score: {max_score:.2f} > Threshold {threshold} cho loại {PIIType.UNKNOWN.value}",
                 tier="TIER_2",
                 bm25_score=max_score
             )
