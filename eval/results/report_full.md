@@ -1,8 +1,9 @@
 # Evaluation Report (Full Pipeline)
 
+- **Scope:** `all sources`
 - **Tổng số test cases:** 72
-- **Tổng thời gian chạy (chứa sleep):** 131.79s
-- **Độ trễ trung bình/case (chưa tính sleep):** 1.7234s
+- **Tổng thời gian chạy (chứa sleep):** 102.10s
+- **Độ trễ trung bình/case (chưa tính sleep):** 1.3095s
 - **Độ chính xác theo Hành động bảo mật (Action Accuracy):** 94.44%
 - **Precision (Action):** 95.65%
 - **Recall (Action):** 100.00%
@@ -12,28 +13,28 @@
 
 ### TIER_1
 - **Số lượng:** 40 cases
-- **Latency trung bình:** 0.0109s
+- **Latency trung bình:** 0.0117s
 - **Action Accuracy:** 95.00%
 - **Precision:** 91.30%
 - **Recall:** 100.00%
 
 ### TIER_2
 - **Số lượng:** 20 cases
-- **Latency trung bình:** 0.0084s
+- **Latency trung bình:** 0.0122s
 - **Action Accuracy:** 90.00%
 - **Precision:** 100.00%
 - **Recall:** 100.00%
 
 ### TIER_3_HYBRID
-- **Số lượng:** 3 cases
-- **Latency trung bình:** 0.0228s
+- **Số lượng:** 4 cases
+- **Latency trung bình:** 0.0307s
 - **Action Accuracy:** 100.00%
 - **Precision:** 0.00%
 - **Recall:** 0.00%
 
 ### TIER_3_LLM
-- **Số lượng:** 9 cases
-- **Latency trung bình:** 13.7120s
+- **Số lượng:** 8 cases
+- **Latency trung bình:** 11.6811s
 - **Action Accuracy:** 100.00%
 - **Precision:** 100.00%
 - **Recall:** 100.00%

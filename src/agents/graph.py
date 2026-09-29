@@ -1,5 +1,6 @@
 from langgraph.graph import END, StateGraph
 
+from src.agents.nodes.field_profile_nodes import FieldProfileState, fp_llm_node, fp_proposal_node, fp_rules_node
 from src.agents.nodes.scanner_nodes import (
     dpo_review_node,
     proposal_node,
@@ -90,3 +91,41 @@ def build_graph() -> StateGraph:
 
 agent = build_graph()
 
+
+
+# ==============================================================================
+# --- Graph mới cho luồng FieldProfile (Enterprise/Gate 2) ---
+# ==============================================================================
+
+
+def fp_route_after_rules(state: FieldProfileState) -> str:
+    rules_proposal = state.get("rules_proposal")
+    # Nếu rules đã chắc chắn (confidence >= 0.9), đi thẳng tới tổng hợp
+    if rules_proposal and rules_proposal.confidence >= 0.9:
+        return "fp_proposal"
+    return "fp_llm"
+
+def build_field_profile_graph():
+    graph = StateGraph(FieldProfileState)
+
+    # Khai báo node
+    graph.add_node("fp_rules", fp_rules_node)
+    graph.add_node("fp_llm", fp_llm_node)
+    graph.add_node("fp_proposal", fp_proposal_node)
+
+    # Routing
+    graph.set_entry_point("fp_rules")
+
+    graph.add_conditional_edges(
+        "fp_rules",
+        fp_route_after_rules,
+        {"fp_proposal": "fp_proposal", "fp_llm": "fp_llm"}
+    )
+
+    graph.add_edge("fp_llm", "fp_proposal")
+    graph.add_edge("fp_proposal", END)
+
+    return graph.compile()
+
+# Agent chính cho luồng FieldProfile (Gate 2)
+field_profile_agent = build_field_profile_graph()
