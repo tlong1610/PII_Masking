@@ -218,6 +218,7 @@ API chính theo flow:
 |---|---|---|
 | Session | POST /sessions | Đăng nhập demo, role do server gán |
 | Source | GET /sources | DPO xem source metadata an toàn |
+| Source động | POST /sources, POST /sources/{id}/test-connection, GET /sources/{id}/scope | P0 tiếp theo cho luồng doanh nghiệp nhập DB/table; không trả credential |
 | Run | POST /runs, GET /runs/{id} | DPO tạo/xem run |
 | Review | PUT /runs/{id}/decisions, POST /runs/{id}/approve | DPO duyệt policy |
 | Build | POST /runs/{id}/build | DPO tạo snapshot và verifier |
@@ -344,5 +345,3 @@ Mọi mở rộng phải giữ nguyên nguyên tắc: source chỉ đọc, snaps
 - Màn hình và user flow: [docs/ui-flow.md](ui-flow.md)
 - Kiến trúc tổng quát: [ARCHITECTURE.md](../ARCHITECTURE.md)
 - Cấu trúc repo: [PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md)
-- Hướng dẫn tích hợp frontend/backend: [docs/FRONTEND_BACKEND_INTEGRATION.md](FRONTEND_BACKEND_INTEGRATION.md)
-

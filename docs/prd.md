@@ -75,7 +75,7 @@ Thêm MySQL hoặc một connector có nhu cầu thực tế; hỗ trợ mảng 
 
 ### P2 — mục tiêu sản phẩm dài hạn
 
-Tích hợp pipeline/BI, giám sát thay đổi, triển khai VPC/on-premise, quản trị khóa và phân quyền đầy đủ, kiểm tra bảo mật độc lập. Lộ trình và điều kiện đầu tư tiếp ở [MVP decisions](mvp-decisions.md).
+Tích hợp pipeline/BI, giám sát thay đổi, triển khai VPC/on-premise, quản trị khóa và phân quyền đầy đủ, kiểm tra bảo mật độc lập. Lộ trình và điều kiện đầu tư tiếp theo được ghi trong [kiến trúc hệ thống](../ARCHITECTURE.md), [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) và Trello của team.
 
 ## 4. Luồng chính (happy path)
 
@@ -282,4 +282,4 @@ Nếu golden label hoặc benchmark nội bộ cần chứa `sample_value` để
 
 Khi ground truth là cá nhân, ABSTAIN/UNKNOWN hoặc DROP chưa phân loại **không được tính là phát hiện đúng**; tính vào FN của loại tương ứng. DPO sửa đúng không làm tăng điểm AI trước review. Báo ma trận phân loại, độ phủ và kết quả sau review riêng. Không suy rộng số đo fixture sang dữ liệu doanh nghiệp.
 
-Chỉ nghiệm thu đầy đủ khi cả hai nguồn có bằng chứng P0, đạt ngưỡng đã công bố và không còn lỗi guardrail nghiêm trọng. Nếu demo luồng chạy nhưng eval chưa đạt, ghi “demo quy trình — chưa đạt nghiệm thu chất lượng”. Kế hoạch 14 ngày, chủ việc và mục tiêu dài hạn: [mvp-decisions.md](mvp-decisions.md).
+Chỉ nghiệm thu đầy đủ khi cả hai nguồn có bằng chứng P0, đạt ngưỡng đã công bố và không còn lỗi guardrail nghiêm trọng. Nếu demo luồng chạy nhưng eval chưa đạt, ghi “demo quy trình — chưa đạt nghiệm thu chất lượng”. Kế hoạch 14 ngày, chủ việc và mục tiêu dài hạn hiện được quản lý qua Trello của team.

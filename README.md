@@ -56,7 +56,7 @@ PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ l
 | Protection  | MASK/DROP và Python HMAC-SHA-256; không vector store                                                                       |
 | DevOps      | Docker Compose + GitHub Actions; máy demo riêng, database không công khai                                                  |
 
-Model có [structured outputs và snapshot](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Khóa phiên bản dependency/image sau khi chạy smoke test ngày 1. Quyết định và phương án đánh đổi: [MVP decisions](docs/mvp-decisions.md).`
+Model có [structured outputs và snapshot](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Khóa phiên bản dependency/image sau khi chạy smoke test ngày 1. Quyết định kiến trúc và phương án đánh đổi: [ARCHITECTURE.md](ARCHITECTURE.md) và [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).`
 `
 ## Quick Start
 
@@ -120,12 +120,12 @@ Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hi
 | Đường dẫn                                      | Nội dung                                                                  |
 | ---------------------------------------------- | ------------------------------------------------------------------------- |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Kiến trúc hệ thống, security boundary và deploy model |
 | [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture |
 | [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md) | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |
 | `docs/brief.md`, `docs/brief-one-page.pdf`     | Brief theo 6 mục Gate 1; PDF đúng một trang                               |
 | `docs/prd.md`                                  | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu      |
 | `docs/ui-flow.md`                              | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                         |
-| `docs/mvp-decisions.md`                        | Vì sao chọn MVP, lịch 14 ngày, phân công, mục tiêu lâu dài và Q&A         |
 | `src/`                                         | API, workflow, connectors, protection, verifier và metadata               |
 | `frontend/`                                    | React dashboard                                                           |
 | `eval/`, `tests/`                              | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                     |
@@ -184,7 +184,7 @@ Phân công triển khai được chọn cho kế hoạch; công suất thực t
 | Nguyễn Trung Kiên | MongoDB connector, fixture/nhãn chuẩn, downstream và eval                      |
 | Đoàn Tuấn Long    | Backend, PostgreSQL connector, writer/guardrail, phân quyền và môi trường demo |
 
-Lịch thực hiện, giờ dự kiến và điểm cắt: [mvp-decisions.md](docs/mvp-decisions.md).`
+Lịch thực hiện, giờ dự kiến và điểm cắt hiện theo Trello của team.`
 `
 ## License
 MIT

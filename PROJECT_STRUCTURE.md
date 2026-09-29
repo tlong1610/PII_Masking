@@ -228,12 +228,17 @@ P-138/
 - **Ví dụ:** Khi quét xong một trường, AI trả về gì?
   ```python
   class FieldScanResult(BaseModel):
-      field_name: str
-      inferred_pii_type: str  # "CCCD", "PHONE", "EMAIL", "UNKNOWN"...
-      confidence: float       # 0.0 - 1.0
-      recommended_action: str # "MASK", "DROP", "HMAC", "KEEP"
-      reasoning: str          # Căn cứ pháp lý hoặc lý do LLM giải thích
+      engine: str              # "POSTGRESQL" hoặc "MONGODB"
+      table_or_collection: str
+      path: str                # ví dụ "customers.phone" hoặc "identity.cccd"
+      data_type: str
+      classification: str      # "PERSONAL_BASIC", "PERSONAL_SENSITIVE", "NON_PERSONAL", "UNKNOWN"
+      action_proposal: str     # "MASK", "DROP", "HMAC", "KEEP"
+      reason: str              # Căn cứ hoặc lý do đề xuất
+      decision_tier: str       # "regex", "retrieval", "llm", "human_review"
+      evidence_scores: dict    # score đã lọc nếu có; không bắt buộc confidence chung
   ```
+  Detector nội bộ có thể dùng `sample_values` để regex/rule/BM25 chạy chính xác, nhưng API/UI/app DB/LLM prompt chỉ nhận bản đã lọc, không có raw `sample_value`.
   Khi Tùng và Long thống nhất schema này, Tùng cứ việc cho Agent trả ra đúng định dạng, Long cứ việc dựa vào định dạng này để lưu DB và trả về cho Frontend Phúc hiển thị.
 
 ### 2. Không sửa chéo folder của nhau

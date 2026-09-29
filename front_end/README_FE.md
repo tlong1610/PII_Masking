@@ -56,6 +56,12 @@ Auth demo accounts:
 - DPO: `dpo` / `dpo123`
 - Analyst: `analyst` / `analyst123`
 
+Auth flow:
+
+```text
+POST /sessions -> store token -> send Authorization: Bearer <token> on API calls
+```
+
 The login screen keeps a local demo fallback only when the backend is unreachable. API integration is not considered complete until the backend E2E flow passes.
 
 ## Architecture
