@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -7,8 +7,14 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -18,51 +24,129 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DatasetIcon from '@mui/icons-material/Dataset';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PolicyIcon from '@mui/icons-material/Policy';
+import ShieldIcon from '@mui/icons-material/Shield';
 
 import {
-  useDataSources,
+  useBuildDataset,
   useCreateScanRun,
+  useDataSources,
+  usePublishDataset,
   useRun,
   useUpdateFieldDecisions,
-  useBuildDataset,
-  usePublishDataset,
 } from '../hooks/usePiiReview';
 
 type Step = 'select-source' | 'scan-running' | 'review' | 'build' | 'done';
+type FieldAction = 'MASK' | 'HMAC' | 'DROP' | 'KEEP';
+type ActionFilter = FieldAction | 'ALL';
+
+const FIELD_ACTIONS: FieldAction[] = ['MASK', 'HMAC', 'DROP', 'KEEP'];
+
+function getActionColor(action: FieldAction): 'error' | 'info' | 'success' | 'warning' {
+  if (action === 'DROP') return 'error';
+  if (action === 'MASK') return 'warning';
+  if (action === 'HMAC') return 'info';
+  return 'success';
+}
+
+function getRiskTone(classification: string): 'error' | 'warning' | 'default' {
+  if (classification.includes('NON_PERSONAL')) return 'default';
+  if (classification.includes('SENSITIVE')) return 'error';
+  if (classification.includes('PERSONAL')) return 'warning';
+  return 'default';
+}
+
+function getRiskLabel(classification: string): string {
+  if (classification.includes('NON_PERSONAL')) return 'Low risk';
+  if (classification.includes('SENSITIVE')) return 'High risk';
+  if (classification.includes('PERSONAL')) return 'PII';
+  if (classification.includes('UNKNOWN')) return 'Needs review';
+  return 'Low risk';
+}
 
 export function DpoReviewExperienceMVP(): JSX.Element {
   const [step, setStep] = useState<Step>('select-source');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [datasetId, setDatasetId] = useState<number | null>(null);
+  const [actionFilter, setActionFilter] = useState<ActionFilter>('ALL');
+  const [decisionOverrides, setDecisionOverrides] = useState<Record<number, FieldAction>>({});
 
-  // Queries
   const { data: sources, isLoading: sourcesLoading } = useDataSources();
   const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
-  
-  // Mutations
+
   const createScan = useCreateScanRun();
   const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
 
-  // Handlers
+  const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
+
+  const getFieldAction = useCallback(
+    (fieldId: number, recommendedAction: FieldAction): FieldAction =>
+      decisionOverrides[fieldId] ?? recommendedAction,
+    [decisionOverrides],
+  );
+
+  const actionCounts = useMemo(
+    () =>
+      fields.reduce<Record<FieldAction, number>>(
+        (counts, field) => {
+          const action = getFieldAction(field.id, field.recommended_action);
+          return { ...counts, [action]: counts[action] + 1 };
+        },
+        { MASK: 0, HMAC: 0, DROP: 0, KEEP: 0 },
+      ),
+    [fields, getFieldAction],
+  );
+
+  const highRiskCount = useMemo(
+    () => fields.filter((field) => field.classification.includes('SENSITIVE')).length,
+    [fields],
+  );
+
+  const reviewRequiredCount = useMemo(
+    () =>
+      fields.filter(
+        (field) =>
+          field.classification.includes('UNKNOWN') || field.coverage_status === 'REVIEW_REQUIRED',
+      ).length,
+    [fields],
+  );
+
+  const displayedFields = useMemo(
+    () =>
+      fields.filter((field) => {
+        const action = getFieldAction(field.id, field.recommended_action);
+        return actionFilter === 'ALL' || action === actionFilter;
+      }),
+    [actionFilter, fields, getFieldAction],
+  );
+
+  const completionPercent = fields.length > 0 ? 100 : 0;
+  const editedCount = Object.keys(decisionOverrides).length;
+
   const handleSelectSource = (sourceId: string) => {
     setSelectedSourceId(sourceId);
   };
 
   const handleStartScan = async () => {
     if (!selectedSourceId) return;
-    
+
     setStep('scan-running');
+    setDecisionOverrides({});
+    setActionFilter('ALL');
+
     try {
       const run = await createScan.mutateAsync(selectedSourceId);
       setCurrentRunId(run.id);
-      
-      // Simulate scan completion (in real app, poll for status)
+
       setTimeout(() => {
         setStep('review');
       }, 2000);
@@ -73,17 +157,35 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }
   };
 
+  const handleFieldActionChange = (fieldId: number, action: FieldAction) => {
+    setDecisionOverrides((current) => ({ ...current, [fieldId]: action }));
+  };
+
+  const handleBulkAction = (action: FieldAction) => {
+    setDecisionOverrides((current) =>
+      displayedFields.reduce<Record<number, FieldAction>>(
+        (next, field) => ({ ...next, [field.id]: action }),
+        current,
+      ),
+    );
+  };
+
   const handleApprove = async () => {
-    if (!currentRunId) return;
-    
+    if (!currentRunId || !currentRun) return;
+
     try {
-      if (!currentRun) return;
       await updateDecisions.mutateAsync(
-        currentRun.field_profiles.map((field) => ({
-          field_profile_id: field.id,
-          action: field.recommended_action,
-          reason: `DPO approved recommended action for ${field.field_path}`,
-        })),
+        fields.map((field) => {
+          const action = getFieldAction(field.id, field.recommended_action);
+          return {
+            field_profile_id: field.id,
+            action,
+            reason:
+              action === field.recommended_action
+                ? `DPO accepted suggested ${action} policy for ${field.field_path}`
+                : `DPO changed policy to ${action} for ${field.field_path}`,
+          };
+        }),
       );
       setStep('build');
     } catch (error) {
@@ -94,7 +196,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
   const handleBuild = async () => {
     if (!currentRunId) return;
-    
+
     try {
       const result = await buildDataset.mutateAsync();
       setDatasetId(result.dataset.id);
@@ -115,7 +217,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }
   };
 
-  // Loading state
   if (sourcesLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -124,15 +225,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     );
   }
 
-  // Step 1: Select Source
   if (step === 'select-source') {
     return (
       <Box>
         <Typography variant="h4" gutterBottom>
-          📊 Chọn Nguồn Dữ Liệu
+          Chọn nguồn dữ liệu
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Chọn nguồn dữ liệu để quét và phát hiện PII
+          Chọn nguồn dữ liệu để quét và phát hiện PII.
         </Typography>
 
         <Grid container spacing={3}>
@@ -153,15 +253,15 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                       <Typography variant="h6">{source.name}</Typography>
                       <Chip label={source.source_type} size="small" />
                     </Box>
-                    
+
                     <Typography variant="body2" color="text.secondary">
                       {source.description}
                     </Typography>
-                    
+
                     <Typography variant="caption" color="text.secondary">
                       {source.scope_summary}
                     </Typography>
-                    
+
                     <Chip
                       label={source.status === 'ready' ? 'Sẵn sàng' : source.status}
                       color={source.status === 'ready' ? 'success' : 'default'}
@@ -184,7 +284,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
               onClick={() => void handleStartScan()}
               disabled={createScan.isPending}
             >
-              Bắt Đầu Quét PII
+              Bắt đầu quét PII
             </Button>
           </Box>
         )}
@@ -192,7 +292,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     );
   }
 
-  // Step 2: Scanning
   if (step === 'scan-running') {
     return (
       <Box textAlign="center" py={8}>
@@ -201,120 +300,295 @@ export function DpoReviewExperienceMVP(): JSX.Element {
           Đang quét dữ liệu...
         </Typography>
         <Typography color="text.secondary">
-          Hệ thống đang phát hiện các trường PII trong nguồn dữ liệu
+          Hệ thống đang phát hiện field nhạy cảm và chuẩn bị gợi ý policy.
         </Typography>
       </Box>
     );
   }
 
-  // Step 3: Review
   if (step === 'review' && currentRun) {
     return (
       <Box>
-        <Typography variant="h4" gutterBottom>
-          📋 Duyệt Kết Quả Quét PII
-        </Typography>
-        
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Tìm thấy <strong>{currentRun.field_profiles.length} trường</strong> cần xử lý.
-          Kiểm tra và duyệt hành động bảo vệ.
-        </Alert>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          sx={{ mb: 3 }}
+        >
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              DPO policy workspace
+            </Typography>
+            <Typography color="text.secondary">
+              Review theo nhóm rủi ro, chỉnh action hàng loạt hoặc từng field.
+            </Typography>
+          </Box>
+          <Chip icon={<PolicyIcon />} label={`Policy ${currentRun.policy_version}`} color="primary" />
+        </Stack>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>Đường dẫn</strong></TableCell>
-                <TableCell><strong>Loại dữ liệu</strong></TableCell>
-                <TableCell><strong>Phân loại</strong></TableCell>
-                <TableCell><strong>Hành động</strong></TableCell>
-                <TableCell><strong>Lý do</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {currentRun.field_profiles.map((field) => (
-                <TableRow key={field.id}>
-                  <TableCell>
-                    <Typography variant="body2" fontFamily="monospace">
-                      {field.source_path}.{field.field_path}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{field.data_type}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={field.classification}
-                      size="small"
-                      color={field.classification.includes('PERSONAL') ? 'warning' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={field.recommended_action}
-                      size="small"
-                      color={
-                        field.recommended_action === 'DROP' ? 'error' :
-                        field.recommended_action === 'MASK' ? 'warning' :
-                        field.recommended_action === 'HMAC' ? 'info' : 'success'
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {field.profile_summary}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} lg={3}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Stack spacing={1}>
+                <ShieldIcon color="primary" />
+                <Typography variant="h5">{fields.length}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Fields detected
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Stack spacing={1}>
+                <FactCheckIcon color="error" />
+                <Typography variant="h5">{highRiskCount}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  High-risk fields
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Stack spacing={1}>
+                <FilterListIcon color="warning" />
+                <Typography variant="h5">{reviewRequiredCount}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Need DPO attention
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} lg={3}>
+            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+              <Stack spacing={1}>
+                <AutoFixHighIcon color="success" />
+                <Typography variant="h5">{editedCount}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Manual overrides
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+        </Grid>
 
-        <Box mt={3}>
-          <Button
-            variant="contained"
-            color="success"
-            size="large"
-            startIcon={<CheckCircleIcon />}
-            onClick={() => void handleApprove()}
-            disabled={updateDecisions.isPending}
-          >
-            Duyệt & Tiếp Tục
-          </Button>
-        </Box>
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={8}>
+            <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
+              <Box sx={{ p: 2 }}>
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  justifyContent="space-between"
+                >
+                  <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 220 } }}>
+                    <InputLabel id="action-filter-label">Filter action</InputLabel>
+                    <Select
+                      labelId="action-filter-label"
+                      value={actionFilter}
+                      label="Filter action"
+                      onChange={(event) => setActionFilter(event.target.value as ActionFilter)}
+                    >
+                      <MenuItem value="ALL">All actions</MenuItem>
+                      {FIELD_ACTIONS.map((action) => (
+                        <MenuItem value={action} key={action}>
+                          {action}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {FIELD_ACTIONS.map((action) => (
+                      <Button
+                        key={action}
+                        size="small"
+                        variant="outlined"
+                        color={getActionColor(action)}
+                        onClick={() => handleBulkAction(action)}
+                      >
+                        Apply {action}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Stack>
+              </Box>
+
+              <Divider />
+
+              <TableContainer sx={{ maxHeight: 560 }}>
+                <Table stickyHeader size="small" aria-label="DPO field policy decisions">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Field</TableCell>
+                      <TableCell>Risk</TableCell>
+                      <TableCell>Profile</TableCell>
+                      <TableCell width={160}>Decision</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {displayedFields.map((field) => {
+                      const action = getFieldAction(field.id, field.recommended_action);
+                      const wasEdited = action !== field.recommended_action;
+
+                      return (
+                        <TableRow key={field.id} hover>
+                          <TableCell>
+                            <Stack spacing={0.5}>
+                              <Typography variant="body2" fontFamily="monospace">
+                                {field.source_path}.{field.field_path}
+                              </Typography>
+                              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                <Chip label={field.data_type} size="small" variant="outlined" />
+                                <Chip
+                                  label={field.detector_source}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                                {wasEdited && <Chip label="edited" size="small" color="primary" />}
+                              </Stack>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Stack spacing={0.75}>
+                              <Chip
+                                label={getRiskLabel(field.classification)}
+                                size="small"
+                                color={getRiskTone(field.classification)}
+                                sx={{ width: 'fit-content' }}
+                              />
+                              <Typography variant="caption" color="text.secondary">
+                                {field.classification}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              {field.profile_summary}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <FormControl size="small" fullWidth>
+                              <Select
+                                value={action}
+                                onChange={(event) =>
+                                  handleFieldActionChange(
+                                    field.id,
+                                    event.target.value as FieldAction,
+                                  )
+                                }
+                                aria-label={`Decision for ${field.field_path}`}
+                              >
+                                {FIELD_ACTIONS.map((option) => (
+                                  <MenuItem value={option} key={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} lg={4}>
+            <Paper variant="outlined" sx={{ p: 2, position: { lg: 'sticky' }, top: { lg: 16 } }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Build readiness
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    All detected fields have a policy decision. Raw PII values are not shown here.
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography variant="body2">Decision coverage</Typography>
+                    <Typography variant="body2" fontWeight={700}>
+                      {completionPercent}%
+                    </Typography>
+                  </Stack>
+                  <LinearProgress variant="determinate" value={completionPercent} />
+                </Box>
+
+                <Divider />
+
+                <Stack spacing={1}>
+                  {FIELD_ACTIONS.map((action) => (
+                    <Stack direction="row" justifyContent="space-between" key={action}>
+                      <Chip
+                        label={action}
+                        color={getActionColor(action)}
+                        size="small"
+                        sx={{ width: 84 }}
+                      />
+                      <Typography fontWeight={700}>{actionCounts[action]}</Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+
+                <Alert severity={reviewRequiredCount > 0 ? 'warning' : 'success'}>
+                  {reviewRequiredCount > 0
+                    ? `${reviewRequiredCount} field cần DPO kiểm tra kỹ trước khi build.`
+                    : 'Không còn field cần review thủ công.'}
+                </Alert>
+
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  startIcon={<CheckCircleIcon />}
+                  onClick={() => void handleApprove()}
+                  disabled={updateDecisions.isPending || fields.length === 0}
+                  fullWidth
+                >
+                  {updateDecisions.isPending ? 'Đang lưu quyết định...' : 'Approve decisions'}
+                </Button>
+              </Stack>
+            </Paper>
+          </Grid>
+        </Grid>
       </Box>
     );
   }
 
-  // Step 4: Build Dataset
   if (step === 'build') {
     return (
       <Box textAlign="center" py={8}>
         <Typography variant="h5" gutterBottom>
-          ✅ Đã Duyệt Thành Công
+          Đã duyệt thành công
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Bây giờ bạn có thể xây dựng dataset được bảo vệ
+          Bây giờ bạn có thể xây dựng dataset được bảo vệ.
         </Typography>
-        
+
         <Button
           variant="contained"
           size="large"
           onClick={() => void handleBuild()}
           disabled={buildDataset.isPending}
         >
-          {buildDataset.isPending ? 'Đang xây dựng...' : 'Xây Dựng Dataset'}
+          {buildDataset.isPending ? 'Đang xây dựng...' : 'Xây dựng dataset'}
         </Button>
       </Box>
     );
   }
 
-  // Step 5: Done
   if (step === 'done' && datasetId) {
     return (
       <Box textAlign="center" py={8}>
         <CheckCircleIcon color="success" sx={{ fontSize: 80, mb: 2 }} />
         <Typography variant="h4" gutterBottom>
-          🎉 Hoàn Thành!
+          Hoàn thành
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
           Dataset ID: {datasetId}
@@ -322,7 +596,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         <Typography color="text.secondary" sx={{ mb: 4 }}>
           Dataset đã được tạo thành công. Bây giờ bạn có thể publish để Analyst sử dụng.
         </Typography>
-        
+
         <Stack direction="row" spacing={2} justifyContent="center">
           <Button
             variant="outlined"
@@ -331,16 +605,18 @@ export function DpoReviewExperienceMVP(): JSX.Element {
               setSelectedSourceId(null);
               setCurrentRunId(null);
               setDatasetId(null);
+              setDecisionOverrides({});
+              setActionFilter('ALL');
             }}
           >
-            Quét Nguồn Mới
+            Quét nguồn mới
           </Button>
           <Button
             variant="contained"
             onClick={() => void handlePublish()}
             disabled={publishDataset.isPending}
           >
-            {publishDataset.isPending ? 'Đang publish...' : 'Publish Dataset'}
+            {publishDataset.isPending ? 'Đang publish...' : 'Publish dataset'}
           </Button>
         </Stack>
       </Box>
