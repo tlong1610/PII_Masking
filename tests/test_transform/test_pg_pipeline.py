@@ -4,10 +4,81 @@ from types import SimpleNamespace
 
 from src.transform import pg_pipeline
 from src.transform.pg_pipeline import (
+    LOGICAL_JOIN_KEYS,
     actions_from_run_decisions,
     logical_join_fields,
+    pg_join_key_violations,
     run_protected_postgres_pipeline,
 )
+
+
+# ---------------------------------------------------------------------------
+# pg_join_key_violations
+# ---------------------------------------------------------------------------
+
+
+def test_pg_join_key_no_violations_when_both_hmac():
+    """Both cccd columns HMAC → consistent, no violation."""
+    actions = {
+        "customers": {"cccd": "HMAC"},
+        "orders": {"customer_cccd": "HMAC"},
+    }
+    assert pg_join_key_violations(actions) == []
+
+
+def test_pg_join_key_no_violations_when_both_keep():
+    """Both cccd columns KEEP → consistent, no violation."""
+    actions = {
+        "customers": {"cccd": "KEEP"},
+        "orders": {"customer_cccd": "KEEP"},
+    }
+    assert pg_join_key_violations(actions) == []
+
+
+def test_pg_join_key_violation_hmac_vs_mask():
+    """One side HMAC, other MASK → violation reported."""
+    actions = {
+        "customers": {"cccd": "MASK"},
+        "orders": {"customer_cccd": "HMAC"},
+    }
+    violations = pg_join_key_violations(actions)
+    assert len(violations) == 1
+    v = violations[0]
+    assert v["from"] == "orders.customer_cccd"
+    assert v["from_action"] == "HMAC"
+    assert v["to"] == "customers.cccd"
+    assert v["to_action"] == "MASK"
+
+
+def test_pg_join_key_violation_one_side_drop():
+    """DROP on a join key is always a violation."""
+    actions = {
+        "customers": {"cccd": "DROP"},
+        "orders": {"customer_cccd": "HMAC"},
+    }
+    violations = pg_join_key_violations(actions)
+    assert len(violations) == 1
+    assert violations[0]["to_action"] == "DROP"
+
+
+def test_pg_join_key_missing_table_defaults_to_keep():
+    """Field absent from table_actions defaults to KEEP; KEEP vs HMAC is a violation."""
+    # Only orders side declared; customers.cccd missing → defaults to KEEP
+    actions = {"orders": {"customer_cccd": "HMAC"}}
+    violations = pg_join_key_violations(actions)
+    assert len(violations) == 1
+    assert violations[0]["to_action"] == "KEEP"
+    assert violations[0]["from_action"] == "HMAC"
+
+
+def test_pg_join_key_custom_relations():
+    """Caller can pass arbitrary relations instead of the default LOGICAL_JOIN_KEYS."""
+    custom = (("tableA", "col1", "tableB", "col2"),)
+    assert pg_join_key_violations({"tableA": {"col1": "HMAC"}, "tableB": {"col2": "HMAC"}}, custom) == []
+    violations = pg_join_key_violations({"tableA": {"col1": "HMAC"}, "tableB": {"col2": "MASK"}}, custom)
+    assert len(violations) == 1
+
+
 
 
 def test_actions_from_run_decisions_groups_every_table():
