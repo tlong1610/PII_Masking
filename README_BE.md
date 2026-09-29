@@ -148,6 +148,18 @@ APP_ENV=test ENABLE_AI_SCAN=false pytest tests/ -v
 
 Test dùng SQLite riêng tại `data/test_verifier.db` và không cần database Docker hay API key.
 
+## Deployment notes
+
+Gate 2 chạy theo hướng demo local bằng Docker Compose trên máy demo, dùng fixture synthetic. Không dùng dữ liệu thật và không public PostgreSQL/MongoDB ra internet.
+
+Hướng triển khai cho người dùng doanh nghiệp là on-premise hoặc private cloud/VPC của chính doanh nghiệp:
+
+- PIIGuard chạy gần database nguồn.
+- Source database dùng tài khoản read-only.
+- Snapshot/protected output ghi sang database/schema riêng.
+- Credential, HMAC secret và LLM key nằm trong env/secret store server-side.
+- API không trả URI/password/secret/raw PII cho frontend.
+
 ## Cấu trúc backend
 
 ```text
