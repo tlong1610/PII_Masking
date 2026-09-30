@@ -185,6 +185,7 @@ def preview_dataset(
                 columns.append(
                     DatasetPreviewColumn(
                         name=profile.field_path,
+                        source_path=profile.source_path,
                         data_type=profile.data_type,
                         transform="DROPPED",
                     )
@@ -193,13 +194,23 @@ def preview_dataset(
             if action == PolicyAction.MASK.value:
                 col_name = profile.field_path
                 columns.append(
-                    DatasetPreviewColumn(name=col_name, data_type="string", transform="MASK")
+                    DatasetPreviewColumn(
+                        name=col_name,
+                        source_path=profile.source_path,
+                        data_type="string",
+                        transform="MASK",
+                    )
                 )
                 row[col_name] = "[REDACTED]"
             elif action == PolicyAction.HMAC.value:
                 col_name = f"{profile.field_path}_hmac"
                 columns.append(
-                    DatasetPreviewColumn(name=col_name, data_type="string", transform="HMAC")
+                    DatasetPreviewColumn(
+                        name=col_name,
+                        source_path=profile.source_path,
+                        data_type="string",
+                        transform="HMAC",
+                    )
                 )
                 # Deterministic fake digest placeholder — not a raw source value.
                 row[col_name] = f"hmac_stub_{profile.field_path}"
@@ -207,7 +218,10 @@ def preview_dataset(
                 col_name = profile.field_path
                 columns.append(
                     DatasetPreviewColumn(
-                        name=col_name, data_type=profile.data_type, transform="KEEP"
+                        name=col_name,
+                        source_path=profile.source_path,
+                        data_type=profile.data_type,
+                        transform="KEEP",
                     )
                 )
                 row[col_name] = f"<{profile.data_type}>"

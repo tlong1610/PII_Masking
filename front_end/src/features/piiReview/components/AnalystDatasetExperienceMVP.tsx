@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -33,6 +33,17 @@ import '@xyflow/react/dist/style.css';
 
 import type { DatasetRelationship } from '../api/realPiiReviewApi';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
+import { CollapsibleTableGroup } from './CollapsibleTableGroup';
+import {
+  DatasetStatusChip,
+  TransformChip,
+} from './PolicyChips';
+import {
+  TRANSFORMS,
+  type TransformKind,
+  getTransformColor,
+  getTransformLabel,
+} from '../model/policyLabels';
 
 function RelationshipDiagram({ relationships }: { relationships: DatasetRelationship[] }): JSX.Element {
   const tables = Array.from(
@@ -91,20 +102,46 @@ function formatPreviewValue(value: string | number | boolean | null | undefined)
 export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [collapsedPreviewSources, setCollapsedPreviewSources] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const { data: datasets, isLoading } = useDatasets('PUBLISHED');
   const { data: preview, isLoading: previewLoading } = useDatasetPreview(
     showPreview ? selectedDatasetId : null
   );
 
+  const previewColumnGroups = useMemo(() => {
+    const grouped = new Map<string, NonNullable<typeof preview>['columns']>();
+    preview?.columns.forEach((column) => {
+      const sourcePath = column.source_path || 'unknown';
+      const current = grouped.get(sourcePath) ?? [];
+      grouped.set(sourcePath, [...current, column]);
+    });
+    return Array.from(grouped.entries()).map(([sourcePath, columns]) => ({
+      sourcePath,
+      columns,
+      droppedCount: columns.filter((column) => column.transform === 'DROPPED').length,
+    }));
+  }, [preview]);
+
   const handlePreview = (datasetId: number) => {
     setSelectedDatasetId(datasetId);
     setShowPreview(true);
+    setCollapsedPreviewSources({});
   };
 
   const handleClosePreview = () => {
     setShowPreview(false);
     setSelectedDatasetId(null);
+    setCollapsedPreviewSources({});
+  };
+
+  const handleTogglePreviewSource = (sourcePath: string) => {
+    setCollapsedPreviewSources((current) => ({
+      ...current,
+      [sourcePath]: !current[sourcePath],
+    }));
   };
 
   if (isLoading) {
@@ -139,20 +176,40 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   }
 
   if (showPreview && preview) {
+    const transformCounts = preview.columns.reduce<Record<TransformKind, number>>(
+      (counts, column) => ({ ...counts, [column.transform]: counts[column.transform] + 1 }),
+      { MASK: 0, HMAC: 0, KEEP: 0, DROPPED: 0 },
+    );
+
     return (
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">
-            📊 Preview: {preview.dataset_name}
+            Xem trước: {preview.dataset_name}
           </Typography>
           <Button variant="outlined" onClick={handleClosePreview}>
-            Đóng Preview
+            Đóng xem trước
           </Button>
         </Box>
 
         <Alert severity="success" sx={{ mb: 3 }}>
-          Dataset đã được bảo vệ. Tất cả dữ liệu PII đã được che hoặc mã hóa.
+          Dataset đã được bảo vệ. Dữ liệu PII đã được che, băm HMAC hoặc loại bỏ trước khi Analyst xem.
         </Alert>
+
+        <Paper sx={{ mb: 3, p: 2 }}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <DatasetStatusChip status={preview.status} />
+            {TRANSFORMS.map((transform) => (
+              <Chip
+                key={transform}
+                label={`${getTransformLabel(transform)}: ${transformCounts[transform]}`}
+                color={getTransformColor(transform)}
+                size="small"
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        </Paper>
 
         <Paper sx={{ mb: 3, p: 2 }}>
           <Typography variant="h6" gutterBottom>
@@ -181,25 +238,51 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             <TableHead>
               <TableRow>
                 <TableCell><strong>Tên cột</strong></TableCell>
+                <TableCell><strong>Cách xử lý</strong></TableCell>
                 <TableCell><strong>Giá trị sau xử lý</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {preview.columns.map((col) => (
-                <TableRow key={col.name}>
-                  <TableCell>
-                    <Typography variant="body2" fontFamily="monospace">
-                      {col.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {col.transform === 'DROPPED'
-                        ? 'Đã loại bỏ'
-                        : formatPreviewValue(preview.rows[0]?.[col.name])}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+              {previewColumnGroups.map((group) => (
+                <CollapsibleTableGroup
+                  key={group.sourcePath}
+                  collapsed={Boolean(collapsedPreviewSources[group.sourcePath])}
+                  colSpan={3}
+                  countLabel={`${group.columns.length} cột`}
+                  onToggle={() => handleTogglePreviewSource(group.sourcePath)}
+                  sourcePath={group.sourcePath}
+                  summary={
+                    group.droppedCount > 0 ? (
+                      <Chip
+                        label={`${group.droppedCount} đã loại bỏ`}
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    ) : undefined
+                  }
+                  tone="primary"
+                >
+                  {group.columns.map((col) => (
+                    <TableRow key={`${group.sourcePath}.${col.name}`}>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {col.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <TransformChip transform={col.transform} />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {col.transform === 'DROPPED'
+                            ? 'Đã loại bỏ'
+                            : formatPreviewValue(preview.rows[0]?.[col.name])}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </CollapsibleTableGroup>
               ))}
             </TableBody>
           </Table>
@@ -211,7 +294,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             startIcon={<DownloadIcon />}
             disabled
           >
-            Download Dataset (Coming Soon)
+            Tải dataset (sắp có)
           </Button>
         </Box>
       </Box>
@@ -222,7 +305,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        📦 Dataset Đã Publish
+        Dataset đã phát hành
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         Các dataset đã được DPO duyệt và bảo vệ PII
@@ -240,11 +323,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                   </Box>
 
                   <Box>
-                    <Chip
-                      label={dataset.status.toUpperCase()}
-                      color="success"
-                      size="small"
-                    />
+                    <DatasetStatusChip status={dataset.status} />
                   </Box>
 
                   <Typography variant="caption" color="text.secondary">
@@ -264,7 +343,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                       startIcon={<VisibilityIcon />}
                       onClick={() => handlePreview(dataset.id)}
                     >
-                      Xem Preview
+                      Xem trước
                     </Button>
                     <Button
                       variant="contained"
@@ -272,7 +351,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                       startIcon={<DownloadIcon />}
                       disabled
                     >
-                      Download
+                      Tải xuống
                     </Button>
                   </Stack>
                 </Stack>

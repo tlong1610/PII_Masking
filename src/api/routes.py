@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.agents.graph import agent
 from src.api import auth, datasets, runs, sources
 from src.api.deps import get_current_user, require_dpo
 from src.api.session_store import SessionUser
@@ -30,6 +29,8 @@ def dpo_only_check(user: SessionUser = Depends(require_dpo)) -> dict:
 async def chat(request: ChatRequest) -> ChatResponse:
     """Legacy chat endpoint (not part of PIIGuard primary flow)."""
     try:
+        from src.agents.graph import agent
+
         result = await agent.ainvoke({"query": request.message})
         return ChatResponse(
             response=result.get("response", ""),
