@@ -153,6 +153,7 @@ class DatasetOut(BaseModel):
 
 class DatasetPreviewColumn(BaseModel):
     name: str
+    source_path: str = Field(default="", description="Source table/collection for grouping")
     data_type: str
     transform: str = Field(description="MASK | HMAC | KEEP | DROPPED marker")
 

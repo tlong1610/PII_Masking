@@ -33,6 +33,21 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PolicyIcon from '@mui/icons-material/Policy';
 import ShieldIcon from '@mui/icons-material/Shield';
 
+import { ApiError } from '@/shared/api/client';
+
+import { CollapsibleTableGroup } from './CollapsibleTableGroup';
+import { ActionChip } from './PolicyChips';
+import {
+  POLICY_ACTIONS,
+  type PolicyAction,
+  getActionColor,
+  getActionLabel,
+  getClassificationLabel,
+  getCoverageStatusLabel,
+  getDetectorSourceLabel,
+  getRiskLabel,
+  getRiskTone,
+} from '../model/policyLabels';
 import {
   useBuildDataset,
   useCreateScanRun,
@@ -43,31 +58,23 @@ import {
 } from '../hooks/usePiiReview';
 
 type Step = 'select-source' | 'scan-running' | 'review' | 'build' | 'done';
-type FieldAction = 'MASK' | 'HMAC' | 'DROP' | 'KEEP';
-type ActionFilter = FieldAction | 'ALL';
+type ActionFilter = PolicyAction | 'ALL';
+type GroupTone = 'primary' | 'secondary' | 'info' | 'success' | 'warning';
 
-const FIELD_ACTIONS: FieldAction[] = ['MASK', 'HMAC', 'DROP', 'KEEP'];
+const GROUP_TONES: GroupTone[] = ['primary', 'secondary', 'info', 'success', 'warning'];
 
-function getActionColor(action: FieldAction): 'error' | 'info' | 'success' | 'warning' {
-  if (action === 'DROP') return 'error';
-  if (action === 'MASK') return 'warning';
-  if (action === 'HMAC') return 'info';
-  return 'success';
+function getDecisionErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return 'Không thể lưu quyết định. Vui lòng thử lại.';
 }
 
-function getRiskTone(classification: string): 'error' | 'warning' | 'default' {
-  if (classification.includes('NON_PERSONAL')) return 'default';
-  if (classification.includes('SENSITIVE')) return 'error';
-  if (classification.includes('PERSONAL')) return 'warning';
-  return 'default';
+function isUnknownField(classification: string): boolean {
+  return classification.includes('UNKNOWN');
 }
 
-function getRiskLabel(classification: string): string {
-  if (classification.includes('NON_PERSONAL')) return 'Low risk';
-  if (classification.includes('SENSITIVE')) return 'High risk';
-  if (classification.includes('PERSONAL')) return 'PII';
-  if (classification.includes('UNKNOWN')) return 'Needs review';
-  return 'Low risk';
+function getGroupTone(index: number): GroupTone {
+  return GROUP_TONES[index % GROUP_TONES.length] ?? 'primary';
 }
 
 export function DpoReviewExperienceMVP(): JSX.Element {
@@ -76,7 +83,9 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [datasetId, setDatasetId] = useState<number | null>(null);
   const [actionFilter, setActionFilter] = useState<ActionFilter>('ALL');
-  const [decisionOverrides, setDecisionOverrides] = useState<Record<number, FieldAction>>({});
+  const [decisionOverrides, setDecisionOverrides] = useState<Record<number, PolicyAction>>({});
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
 
   const { data: sources, isLoading: sourcesLoading } = useDataSources();
   const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
@@ -89,14 +98,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
 
   const getFieldAction = useCallback(
-    (fieldId: number, recommendedAction: FieldAction): FieldAction =>
+    (fieldId: number, recommendedAction: PolicyAction): PolicyAction =>
       decisionOverrides[fieldId] ?? recommendedAction,
     [decisionOverrides],
   );
 
   const actionCounts = useMemo(
     () =>
-      fields.reduce<Record<FieldAction, number>>(
+      fields.reduce<Record<PolicyAction, number>>(
         (counts, field) => {
           const action = getFieldAction(field.id, field.recommended_action);
           return { ...counts, [action]: counts[action] + 1 };
@@ -129,6 +138,30 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     [actionFilter, fields, getFieldAction],
   );
 
+  const displayedFieldGroups = useMemo(() => {
+    const grouped = new Map<string, typeof displayedFields>();
+
+    displayedFields.forEach((field) => {
+      const current = grouped.get(field.source_path) ?? [];
+      grouped.set(field.source_path, [...current, field]);
+    });
+
+    return Array.from(grouped.entries()).map(([sourcePath, groupFields], index) => ({
+      sourcePath,
+      fields: groupFields,
+      tone: getGroupTone(index),
+      attentionCount: groupFields.filter(
+        (field) =>
+          field.classification.includes('UNKNOWN') || field.coverage_status === 'REVIEW_REQUIRED',
+      ).length,
+    }));
+  }, [displayedFields]);
+
+  const sourceCount = useMemo(
+    () => new Set(fields.map((field) => field.source_path)).size,
+    [fields],
+  );
+
   const completionPercent = fields.length > 0 ? 100 : 0;
   const editedCount = Object.keys(decisionOverrides).length;
 
@@ -157,15 +190,37 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }
   };
 
-  const handleFieldActionChange = (fieldId: number, action: FieldAction) => {
+  const handleFieldActionChange = (fieldId: number, action: PolicyAction) => {
+    setDecisionError(null);
     setDecisionOverrides((current) => ({ ...current, [fieldId]: action }));
   };
 
-  const handleBulkAction = (action: FieldAction) => {
+  const handleBulkAction = (action: PolicyAction) => {
+    setDecisionError(null);
     setDecisionOverrides((current) =>
-      displayedFields.reduce<Record<number, FieldAction>>(
-        (next, field) => ({ ...next, [field.id]: action }),
+      displayedFields.reduce<Record<number, PolicyAction>>(
+        (next, field) => {
+          const nextAction =
+            action === 'KEEP' && isUnknownField(field.classification) ? 'DROP' : action;
+          return { ...next, [field.id]: nextAction };
+        },
         current,
+      ),
+    );
+  };
+
+  const handleToggleSource = (sourcePath: string) => {
+    setCollapsedSources((current) => ({
+      ...current,
+      [sourcePath]: !current[sourcePath],
+    }));
+  };
+
+  const handleSetAllSourcesCollapsed = (collapsed: boolean) => {
+    setCollapsedSources(
+      displayedFieldGroups.reduce<Record<string, boolean>>(
+        (next, group) => ({ ...next, [group.sourcePath]: collapsed }),
+        {},
       ),
     );
   };
@@ -174,6 +229,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     if (!currentRunId || !currentRun) return;
 
     try {
+      setDecisionError(null);
       await updateDecisions.mutateAsync(
         fields.map((field) => {
           const action = getFieldAction(field.id, field.recommended_action);
@@ -190,7 +246,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       setStep('build');
     } catch (error) {
       console.error('Approve failed:', error);
-      alert('Lỗi khi duyệt');
+      setDecisionError(getDecisionErrorMessage(error));
     }
   };
 
@@ -334,7 +390,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <ShieldIcon color="primary" />
                 <Typography variant="h5">{fields.length}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Fields detected
+                  Fields detected in {sourceCount} tables
                 </Typography>
               </Stack>
             </Paper>
@@ -384,24 +440,38 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   justifyContent="space-between"
                 >
                   <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 220 } }}>
-                    <InputLabel id="action-filter-label">Filter action</InputLabel>
+                    <InputLabel id="action-filter-label">Lọc hành động</InputLabel>
                     <Select
                       labelId="action-filter-label"
                       value={actionFilter}
-                      label="Filter action"
+                      label="Lọc hành động"
                       onChange={(event) => setActionFilter(event.target.value as ActionFilter)}
                     >
-                      <MenuItem value="ALL">All actions</MenuItem>
-                      {FIELD_ACTIONS.map((action) => (
+                      <MenuItem value="ALL">Tất cả hành động</MenuItem>
+                      {POLICY_ACTIONS.map((action) => (
                         <MenuItem value={action} key={action}>
-                          {action}
+                          {getActionLabel(action)}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {FIELD_ACTIONS.map((action) => (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => handleSetAllSourcesCollapsed(false)}
+                    >
+                      Mở tất cả
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => handleSetAllSourcesCollapsed(true)}
+                    >
+                      Thu gọn tất cả
+                    </Button>
+                    {POLICY_ACTIONS.map((action) => (
                       <Button
                         key={action}
                         size="small"
@@ -409,7 +479,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                         color={getActionColor(action)}
                         onClick={() => handleBulkAction(action)}
                       >
-                        Apply {action}
+                        Áp dụng {getActionLabel(action)}
                       </Button>
                     ))}
                   </Stack>
@@ -422,76 +492,113 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <Table stickyHeader size="small" aria-label="DPO field policy decisions">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Field</TableCell>
-                      <TableCell>Risk</TableCell>
-                      <TableCell>Profile</TableCell>
-                      <TableCell width={160}>Decision</TableCell>
+                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Field</TableCell>
+                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Risk</TableCell>
+                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Profile</TableCell>
+                      <TableCell width={160} sx={{ bgcolor: 'background.paper', zIndex: 2 }}>
+                        Decision
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {displayedFields.map((field) => {
-                      const action = getFieldAction(field.id, field.recommended_action);
-                      const wasEdited = action !== field.recommended_action;
+                    {displayedFieldGroups.map((group) => (
+                      <CollapsibleTableGroup
+                        key={group.sourcePath}
+                        collapsed={Boolean(collapsedSources[group.sourcePath])}
+                        colSpan={4}
+                        countLabel={`${group.fields.length} fields`}
+                        onToggle={() => handleToggleSource(group.sourcePath)}
+                        sourcePath={group.sourcePath}
+                        tone={group.tone}
+                        summary={
+                          group.attentionCount > 0 ? (
+                            <Chip
+                              label={`${group.attentionCount} cần kiểm tra`}
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                            />
+                          ) : undefined
+                        }
+                      >
+                        {group.fields.map((field) => {
+                          const action = getFieldAction(field.id, field.recommended_action);
+                          const wasEdited = action !== field.recommended_action;
+                          const keepDisabled = isUnknownField(field.classification);
 
-                      return (
-                        <TableRow key={field.id} hover>
-                          <TableCell>
-                            <Stack spacing={0.5}>
-                              <Typography variant="body2" fontFamily="monospace">
-                                {field.source_path}.{field.field_path}
-                              </Typography>
-                              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                <Chip label={field.data_type} size="small" variant="outlined" />
-                                <Chip
-                                  label={field.detector_source}
-                                  size="small"
-                                  variant="outlined"
-                                />
-                                {wasEdited && <Chip label="edited" size="small" color="primary" />}
-                              </Stack>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Stack spacing={0.75}>
-                              <Chip
-                                label={getRiskLabel(field.classification)}
-                                size="small"
-                                color={getRiskTone(field.classification)}
-                                sx={{ width: 'fit-content' }}
-                              />
-                              <Typography variant="caption" color="text.secondary">
-                                {field.classification}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              {field.profile_summary}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <FormControl size="small" fullWidth>
-                              <Select
-                                value={action}
-                                onChange={(event) =>
-                                  handleFieldActionChange(
-                                    field.id,
-                                    event.target.value as FieldAction,
-                                  )
-                                }
-                                aria-label={`Decision for ${field.field_path}`}
-                              >
-                                {FIELD_ACTIONS.map((option) => (
-                                  <MenuItem value={option} key={option}>
-                                    {option}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                          return (
+                            <TableRow key={field.id} hover>
+                              <TableCell>
+                                <Stack spacing={0.5}>
+                                  <Typography variant="body2" fontFamily="monospace">
+                                    {field.field_path}
+                                  </Typography>
+                                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                    <Chip label={field.data_type} size="small" variant="outlined" />
+                                    <Chip
+                                      label={getDetectorSourceLabel(field.detector_source)}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                    <Chip
+                                      label={getCoverageStatusLabel(field.coverage_status)}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                    {wasEdited && (
+                                      <Chip label="edited" size="small" color="primary" />
+                                    )}
+                                  </Stack>
+                                </Stack>
+                              </TableCell>
+                              <TableCell>
+                                <Stack spacing={0.75}>
+                                  <Chip
+                                    label={getRiskLabel(field.classification)}
+                                    size="small"
+                                    color={getRiskTone(field.classification)}
+                                    sx={{ width: 'fit-content' }}
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    {getClassificationLabel(field.classification)}
+                                  </Typography>
+                                </Stack>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" color="text.secondary">
+                                  {field.profile_summary}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <FormControl size="small" fullWidth>
+                                  <Select
+                                    value={action}
+                                    onChange={(event) =>
+                                      handleFieldActionChange(
+                                        field.id,
+                                        event.target.value as PolicyAction,
+                                      )
+                                    }
+                                    aria-label={`Decision for ${group.sourcePath}.${field.field_path}`}
+                                  >
+                                    {POLICY_ACTIONS.map((option) => (
+                                      <MenuItem
+                                        value={option}
+                                        key={option}
+                                        disabled={option === 'KEEP' && keepDisabled}
+                                      >
+                                        {getActionLabel(option)}
+                                        {option === 'KEEP' && keepDisabled ? ' (bị chặn)' : ''}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </CollapsibleTableGroup>
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -523,14 +630,9 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <Divider />
 
                 <Stack spacing={1}>
-                  {FIELD_ACTIONS.map((action) => (
+                  {POLICY_ACTIONS.map((action) => (
                     <Stack direction="row" justifyContent="space-between" key={action}>
-                      <Chip
-                        label={action}
-                        color={getActionColor(action)}
-                        size="small"
-                        sx={{ width: 84 }}
-                      />
+                      <ActionChip action={action} />
                       <Typography fontWeight={700}>{actionCounts[action]}</Typography>
                     </Stack>
                   ))}
@@ -541,6 +643,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     ? `${reviewRequiredCount} field cần DPO kiểm tra kỹ trước khi build.`
                     : 'Không còn field cần review thủ công.'}
                 </Alert>
+
+                {decisionError && (
+                  <Alert severity="error">
+                    {decisionError}
+                  </Alert>
+                )}
 
                 <Button
                   variant="contained"

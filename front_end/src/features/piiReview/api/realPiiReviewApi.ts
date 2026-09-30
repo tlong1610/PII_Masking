@@ -68,6 +68,7 @@ export const datasetPreviewSchema = z.object({
   status: z.enum(['STAGING', 'VERIFIED', 'PUBLISHED', 'REVOKED', 'FAILED']),
   columns: z.array(z.object({
     name: z.string(),
+    source_path: z.string().default('unknown'),
     data_type: z.string(),
     transform: z.enum(['MASK', 'HMAC', 'KEEP', 'DROPPED']),
   })),
