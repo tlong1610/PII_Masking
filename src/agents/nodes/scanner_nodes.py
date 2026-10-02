@@ -15,9 +15,24 @@ try:
 except FileNotFoundError:
     bm25_engine = None # Sẽ handle trong node nếu file chưa có
 
-# Khởi tạo VectorDB (cần chắc chắn đã chạy script initialize_db trước đó)
-kb = PIIKnowledgeBase()
-retriever = kb.get_retriever(top_k=3)
+# Lazy loading cho VectorDB - chỉ khởi tạo khi thực sự cần
+_kb = None
+_retriever = None
+
+def get_kb():
+    """Lazy load knowledge base only when needed"""
+    global _kb
+    if _kb is None:
+        _kb = PIIKnowledgeBase()
+    return _kb
+
+def get_retriever(top_k: int = 3):
+    """Lazy load retriever only when needed"""
+    global _retriever
+    if _retriever is None:
+        kb = get_kb()
+        _retriever = kb.get_retriever(top_k=top_k)
+    return _retriever
 
 def tier1_static_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 1: Lọc tĩnh (Rule-Based & Regex)."""
@@ -48,12 +63,14 @@ def tier2_bm25_node(state: AgentState) -> dict[str, Any]:
 def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 3.1: Chấm điểm hỗn hợp (BM25 + Vector Semantic)."""
     col_profile = state.get("column_profile")
-    bm25_score = state.get("bm25_score", 0.0)
-
-    query = col_profile.column_name.replace("_", " ")
-
-    # Tính Vector Similarity (Mô phỏng lấy điểm từ retriever của Chroma)
-    # Vì Langchain Retriever chuẩn không trả về kèm điểm số một cách dễ dàng,
+    bm25_score = state.get("bm25_score", 0.5)
+    
+    # Construct query from column profile
+    query = f"{col_profile.column_name} {col_profile.data_type}"
+    
+    # Lazy load kb only when needed
+    kb = get_kb()
+    
     # chúng ta query trực tiếp từ vector_store để lấy distance/score.
     hybrid_score = 0.5 # Giá trị mặc định nếu lỗi
     if kb.vector_store:

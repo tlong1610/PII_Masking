@@ -17,10 +17,18 @@ class PIIKnowledgeBase:
 
     def __init__(self, db_directory: str = "data/chroma_db"):
         self.db_directory = db_directory
-        # Sử dụng mô hình Local chạy thẳng trên máy (Không tốn phí, không lộ dữ liệu)
-        # Có thể đổi thành "keepitreal/vietnamese-sbert" nếu cần tiếng Việt chuyên sâu
-        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        # Lazy loading: chỉ khởi tạo embeddings khi thực sự cần
+        self._embeddings = None
         self.vector_store = None
+
+    @property
+    def embeddings(self):
+        """Lazy load embeddings model only when needed"""
+        if self._embeddings is None:
+            # Sử dụng mô hình Local chạy thẳng trên máy (Không tốn phí, không lộ dữ liệu)
+            # Có thể đổi thành "keepitreal/vietnamese-sbert" nếu cần tiếng Việt chuyên sâu
+            self._embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        return self._embeddings
 
     def initialize_db(self, corpus_path: str = "src/detection/pii_rag_corpus.json"):
         """

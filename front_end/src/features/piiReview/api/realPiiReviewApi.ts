@@ -21,6 +21,19 @@ export const sourceTestResultSchema = z.object({
   message: z.string(),
 });
 
+export const sourceScopeSchema = z.object({
+  source_id: z.string(),
+  source_type: z.enum(['SQL', 'NOSQL']),
+  engine: z.string(),
+  items: z.array(z.object({
+    name: z.string(),
+    kind: z.string(),
+    field_count: z.number(),
+    row_count: z.number().nullable().optional(),
+    document_count: z.number().nullable().optional(),
+  })),
+});
+
 export const fieldProfileSchema = z.object({
   id: z.number(),
   source_path: z.string(),
@@ -114,6 +127,8 @@ export interface SourceInput {
   namespace: string;
   tables: string[];
 }
+
+export type SourceScope = z.infer<typeof sourceScopeSchema>;
 export type FieldProfile = z.infer<typeof fieldProfileSchema>;
 export type Run = z.infer<typeof runSchema>;
 export type Dataset = z.infer<typeof datasetSchema>;
@@ -151,14 +166,19 @@ export async function deleteDataSource(sourceId: string): Promise<void> {
   await apiRequest<void>(`/sources/${encodeURIComponent(sourceId)}`, { method: 'DELETE' });
 }
 
+export async function fetchSourceScope(sourceId: string): Promise<SourceScope> {
+  const data = await apiRequest<SourceScope>(`/sources/${sourceId}/scope`);
+  return sourceScopeSchema.parse(data);
+}
+
 // ============================================================================
 // RUNS API
 // ============================================================================
 
-export async function createScanRun(sourceId: string): Promise<Run> {
+export async function createScanRun(sourceId: string, selectedScope: string[]): Promise<Run> {
   const data = await apiRequest<Run>('/runs', {
     method: 'POST',
-    body: JSON.stringify({ source_id: sourceId }),
+    body: JSON.stringify({ source_id: sourceId, selected_scope: selectedScope }),
   });
   return runSchema.parse(data);
 }

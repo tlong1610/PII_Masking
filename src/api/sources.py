@@ -16,7 +16,7 @@ from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
 from src.db import models as db_models
 from src.db.session import get_db
-from src.models.schemas import Source, SourceCreate, SourceTestResult, SourceType
+from src.models.schemas import Source, SourceCreate, SourceTestResult, SourceType, SourceScope, SourceScopeItem
 from src.services import secret_box
 from src.services.source_validation import (
     ParsedSource,
@@ -59,18 +59,39 @@ def mongo_live_enabled() -> bool:
     from src.config import get_settings
 
     settings = get_settings()
-    return bool(settings.enable_mongo and settings.mongo_uri)
+    if not (settings.enable_mongo and settings.mongo_uri):
+        return False
+    try:
+        from pymongo import MongoClient
+
+        client = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=1000)
+        client.admin.command("ping")
+        client.close()
+    except Exception:
+        return False
+    return True
 
 
 def pg_live_enabled() -> bool:
     from src.config import get_settings
 
     settings = get_settings()
-    return bool(
+    if not (
         settings.enable_pg_snapshot
         and settings.source_database_url
         and settings.snapshot_database_url
-    )
+    ):
+        return False
+    try:
+        import psycopg
+
+        with psycopg.connect(settings.source_database_url, connect_timeout=1) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+    except Exception:
+        return False
+    return True
 
 
 def _with_live_status(source: Source) -> Source:
@@ -97,6 +118,77 @@ def _user_source_out(row: db_models.DataSource) -> Source:
         description="User-registered source (read-only)",
         scope_summary=scope,
         status="ready",
+    )
+
+
+@router.get("/sources/{source_id}/scope", response_model=SourceScope)
+def get_source_scope(
+    source_id: str,
+    _user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> SourceScope:
+    """Read safe table/collection metadata for DPO scope selection."""
+    source = get_source_by_id(source_id, db)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Unknown source_id")
+
+    conn = resolve_connection(source, db)
+
+    if source.engine == "postgresql" and conn.live:
+        from src.connectors.postgres_connector import PostgresConnector
+
+        profile = PostgresConnector(conn.url).extract_database_profile(
+            schema_name=conn.namespace,
+            sample_size=1,
+        )
+        return SourceScope(
+            source_id=source.id,
+            source_type=source.source_type,
+            engine=source.engine,
+            items=[
+                SourceScopeItem(
+                    name=table.table_name,
+                    kind="table",
+                    field_count=len(table.columns),
+                )
+                for table in profile.tables
+            ],
+        )
+
+    if source.engine == "mongodb" and conn.live:
+        from src.connectors.mongo_connector import MongoConnector
+
+        scopes = MongoConnector(conn.url, conn.namespace).inspect_scope()
+        return SourceScope(
+            source_id=source.id,
+            source_type=source.source_type,
+            engine=source.engine,
+            items=[
+                SourceScopeItem(
+                    name=item["collection_name"],
+                    kind="collection",
+                    field_count=item["field_count"],
+                    document_count=item["document_count"],
+                )
+                for item in scopes
+            ],
+        )
+
+    if source.source_type == SourceType.SQL:
+        items = [
+            SourceScopeItem(name="customers", kind="table", field_count=5),
+            SourceScopeItem(name="orders", kind="table", field_count=5),
+        ]
+    else:
+        items = [
+            SourceScopeItem(name="customers", kind="collection", field_count=5),
+            SourceScopeItem(name="orders", kind="collection", field_count=5),
+        ]
+    return SourceScope(
+        source_id=source.id,
+        source_type=source.source_type,
+        engine=source.engine,
+        items=items,
     )
 
 

@@ -47,10 +47,10 @@ def _connection_for(source, db: Session) -> SourceConnection:
         raise HTTPException(status_code=422, detail=str(exc)) from None
 
 
-def _stub_field_specs(source_type: SourceType) -> list[dict]:
+def _stub_field_specs(source_type: SourceType, selected_scope: tuple[str, ...]) -> list[dict]:
     """Metadata-only stub profiles (no sample/raw values)."""
     if source_type == SourceType.SQL:
-        path = "customers"
+        paths = selected_scope or ("customers",)
         fields = [
             ("customer_id", "varchar", "NON_PERSONAL", "rule", PolicyAction.HMAC, "Join key"),
             ("full_name", "varchar", "PERSONAL_BASIC", "rule", PolicyAction.MASK, "Name-like"),
@@ -59,7 +59,7 @@ def _stub_field_specs(source_type: SourceType) -> list[dict]:
             ("notes", "text", "UNKNOWN", "unknown", PolicyAction.DROP, "Ambiguous free text"),
         ]
     else:
-        path = "customers"
+        paths = selected_scope or ("customers",)
         fields = [
             ("_id", "objectId", "NON_PERSONAL", "rule", PolicyAction.KEEP, "Document id"),
             ("customer_id", "string", "NON_PERSONAL", "rule", PolicyAction.HMAC, "Join key"),
@@ -68,20 +68,21 @@ def _stub_field_specs(source_type: SourceType) -> list[dict]:
             ("notes", "string", "UNKNOWN", "unknown", PolicyAction.DROP, "Ambiguous free text"),
         ]
     specs = []
-    for field_path, data_type, classification, detector, action, summary in fields:
-        specs.append(
-            {
-                "source_path": path,
-                "field_path": field_path,
-                "data_type": data_type,
-                "profile_summary": summary,
-                "classification": classification,
-                "taxonomy_id": None if classification == "UNKNOWN" else classification,
-                "detector_source": detector,
-                "coverage_status": "stub",
-                "recommended_action": action.value,
-            }
-        )
+    for path in paths:
+        for field_path, data_type, classification, detector, action, summary in fields:
+            specs.append(
+                {
+                    "source_path": path,
+                    "field_path": field_path,
+                    "data_type": data_type,
+                    "profile_summary": summary,
+                    "classification": classification,
+                    "taxonomy_id": None if classification == "UNKNOWN" else classification,
+                    "detector_source": detector,
+                    "coverage_status": "stub",
+                    "recommended_action": action.value,
+                }
+            )
     return specs
 
 
@@ -184,6 +185,12 @@ async def create_run(
     conn = _connection_for(source, db)
     use_pg = source.engine == "postgresql" and conn.live
     use_mongo = source.engine == "mongodb" and conn.live
+    selected_scope = tuple(dict.fromkeys(item.strip() for item in body.selected_scope if item.strip()))
+    if not selected_scope:
+        raise HTTPException(
+            status_code=422,
+            detail="Create run blocked: select at least one table/collection",
+        )
 
     run = db_models.Run(
         source_id=source.id,
@@ -205,10 +212,10 @@ async def create_run(
                 conn.url,
                 use_ai=settings.enable_ai_scan,
                 schema_name=conn.namespace,
-                tables=conn.tables,
+                tables=selected_scope,
             )
             mode = "ai" if settings.enable_ai_scan else "rule"
-            scan_reason = f"source={source.id}; scan=pg-{mode}"
+            scan_reason = f"source={source.id}; scope={','.join(selected_scope)}; scan=pg-{mode}"
         elif use_mongo:
             from src.services.run_scanner import scan_mongo_source
 
@@ -216,13 +223,14 @@ async def create_run(
                 conn.url,
                 conn.namespace,
                 use_ai=settings.enable_ai_scan,
+                collections=selected_scope,
                 client=mongo_client(),
             )
             mode = "ai" if settings.enable_ai_scan else "rule"
-            scan_reason = f"source={source.id}; scan=mongo-{mode}"
+            scan_reason = f"source={source.id}; scope={','.join(selected_scope)}; scan=mongo-{mode}"
         else:
-            specs = _stub_field_specs(source.source_type)
-            scan_reason = f"source={source.id}; scan=stub"
+            specs = _stub_field_specs(source.source_type, selected_scope)
+            scan_reason = f"source={source.id}; scope={','.join(selected_scope)}; scan=stub"
 
         for spec in specs:
             db.add(db_models.FieldProfile(run_id=run.id, **spec))

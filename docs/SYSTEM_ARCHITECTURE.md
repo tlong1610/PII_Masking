@@ -1,347 +1,237 @@
 # PIIGuard VN - System Architecture
 
-> Tài liệu này mô tả **luồng MVP đã chốt trong PRD** và cách các thành phần nối với nhau. MVP hỗ trợ chạy thật trên **PostgreSQL** và **MongoDB**. Kiến trúc dùng connector để có thể mở rộng thêm database sau này, nhưng không tuyên bố mọi database đều được hỗ trợ ngay.
+Tài liệu này mô tả luồng MVP của PIIGuard VN. MVP chỉ hỗ trợ **PostgreSQL** và **MongoDB**. Các database khác để sau khi demo end-to-end đã ổn định.
 
-## 1. Bài toán trong một câu
+## 1. Ý tưởng chính
 
-PIIGuard quét một database nguồn chỉ đọc, phát hiện các field có thể là PII, đưa profile đã lọc cho DPO duyệt, tạo một snapshot đã bảo vệ ở database đích, chạy hậu kiểm downstream rồi mới cho Analyst đọc bản đã phát hành.
+PIIGuard nhận một database nguồn, quét field có khả năng chứa PII, để DPO duyệt cách xử lý, rồi tạo một database/snapshot mới đã được bảo vệ cho Analyst dùng.
 
-## 2. Luồng chính
+```text
+Input  = database gốc của doanh nghiệp
+Output = protected database/snapshot đã MASK/HMAC/DROP/KEEP
+```
 
-~~~mermaid
+Ví dụ:
+
+```text
+PostgreSQL input  : mydatabase.public.customers
+PostgreSQL output : snapshot_out.piiguard_snapshot.customers
+
+MongoDB input     : mydatabase.customers
+MongoDB output    : mydatabase_protected.customers
+```
+
+## 2. Cách cắm database
+
+MVP không ưu tiên upload file database. Cách đúng là dùng **connection string** để backend kết nối vào database đang chạy.
+
+PostgreSQL:
+
+```env
+SOURCE_DATABASE_URL=postgresql://user:password@host:5432/source_db
+SNAPSHOT_DATABASE_URL=postgresql://user:password@host:5432/snapshot_db
+ENABLE_PG_SNAPSHOT=true
+```
+
+MongoDB:
+
+```env
+MONGO_URI=mongodb://user:password@host:27017/?authSource=admin
+MONGO_DB=source_db
+MONGO_SNAPSHOT_DB=source_db_protected
+ENABLE_MONGO=true
+```
+
+Ý nghĩa:
+
+| Biến | Vai trò |
+|---|---|
+| `SOURCE_DATABASE_URL` | PostgreSQL nguồn, chỉ đọc |
+| `SNAPSHOT_DATABASE_URL` | PostgreSQL đích để ghi bản đã xử lý |
+| `MONGO_URI` | URI kết nối MongoDB |
+| `MONGO_DB` | MongoDB nguồn |
+| `MONGO_SNAPSHOT_DB` | MongoDB đích để ghi bản đã xử lý |
+
+API không được trả password, URI có credential, raw PII hoặc HMAC secret ra frontend.
+
+## 3. Luồng MVP
+
+```mermaid
 flowchart LR
-    DPO[DPO] --> S1[Chọn source]
-    S1 --> S2[Scan schema và field profile]
-    S2 --> S3[DPO review decision]
-    S3 --> S4[Build protected snapshot]
-    S4 --> S5[Verifier hậu kiểm]
-    S5 -->|PASS| S6[DPO publish]
-    S5 -->|FAIL| E[FAILED - sửa decision hoặc tạo run mới]
-    S6 --> A[Analyst preview và chạy tác vụ mẫu]
+    A[DPO selects source] --> B[Test connection + read scope]
+    B --> C[DPO selects tables/collections]
+    C --> D[Scan selected scope]
+    D --> E[Rules/AI proposes actions]
+    E --> F[DPO reviews decisions]
+    F --> G[Build protected snapshot]
+    G --> H[Verifier checks downstream]
+    H -->|PASS| I[DPO publishes dataset]
+    H -->|FAIL| J[Fix decisions or rerun]
+    I --> K[Analyst previews published dataset]
 
-    SRC[(Database nguồn<br/>read-only)] --> S2
-    S4 --> DST[(Snapshot database<br/>đích riêng)]
-~~~
+    SRC[(Source DB<br/>read-only)] --> B
+    D --> SRC
+    G --> OUT[(Protected DB<br/>snapshot output)]
+```
 
-### Ý nghĩa từng bước
+Không quét toàn bộ schema mặc định. DPO phải chọn bảng/collection trong scope đã đọc được, sau đó backend chỉ scan phạm vi đã chọn. Không có đường tắt từ scan sang publish. Dataset chỉ được publish khi verifier pass.
 
-| Bước | Ai thực hiện | Kết quả |
-|---|---|---|
-| Chọn source | DPO | Chọn sql-demo hoặc nosql-demo |
-| Scan | Backend | Field profile, classification và action đề xuất; không trả raw value |
-| Review | DPO | Mỗi field có một quyết định MASK, HMAC, DROP hoặc KEEP |
-| Build | Backend | Tạo snapshot mới, không ghi đè source |
-| Verify | Backend | Kiểm tra policy, JOIN/$lookup, aggregate và schema output |
-| Publish | DPO | Chỉ dataset VERIFIED mới được phát hành |
-| Consume | Analyst | Chỉ đọc dataset PUBLISHED, không đọc source/staging |
+## 4. Thành phần hệ thống
 
-Không có đường tắt từ scan hoặc build sang publish. Nếu verifier fail, dataset là FAILED và backend chặn publish.
-
-## 3. Kiến trúc thành phần
-
-~~~mermaid
+```mermaid
 flowchart TB
-    subgraph Client[Client layer]
-        FE[React + TypeScript UI]
-        DPO_UI[DPO screens<br/>source / review / result]
-        ANA_UI[Analyst screens<br/>dataset / preview / task]
-        FE --> DPO_UI
-        FE --> ANA_UI
-    end
+    FE[React Frontend] --> API[FastAPI Backend]
 
-    subgraph API[Application layer - FastAPI]
-        AUTH[Session và role guard]
-        SOURCES[Sources API]
-        RUNS[Runs API]
-        DATASETS[Datasets API]
-        SCAN[Scanner orchestration]
-        TRANSFORM[Transform pipeline]
-        VERIFY[Verifier]
-        AUDIT[Audit events]
-    end
+    API --> AUTH[Role/state guard]
+    API --> SOURCES[Sources API]
+    API --> RUNS[Runs API]
+    API --> DATASETS[Datasets API]
+    API --> APPDB[(App DB metadata)]
 
-    subgraph AppDB[Application state]
-        META[(PostgreSQL app schema)]
-    end
+    RUNS --> SCAN[Scanner]
+    SCAN --> RULES[Rules/regex/BM25]
+    SCAN --> LLM[Optional LLM<br/>sanitized profile only]
 
-    subgraph Adapters[Source adapters]
-        PG[PostgresConnector]
-        MG[MongoConnector]
-    end
+    SOURCES --> PG[(PostgreSQL source)]
+    SOURCES --> MG[(MongoDB source)]
 
-    subgraph Sources[Demo source databases]
-        PG_SRC[(PostgreSQL source<br/>read-only)]
-        MG_SRC[(MongoDB source<br/>read-only)]
-    end
+    RUNS --> TRANSFORM[Transform pipeline]
+    TRANSFORM --> PGOUT[(PostgreSQL snapshot)]
+    TRANSFORM --> MGOUT[(MongoDB protected DB)]
 
-    subgraph Outputs[Protected outputs]
-        PG_SNAP[(PostgreSQL snapshot<br/>separate schema/database)]
-        MG_SNAP[(MongoDB snapshot<br/>separate database)]
-    end
-
-    FE -->|HTTPS / REST| AUTH
-    AUTH --> SOURCES
-    AUTH --> RUNS
-    AUTH --> DATASETS
-    SOURCES --> META
-    RUNS --> SCAN
-    RUNS --> TRANSFORM
-    RUNS --> VERIFY
-    RUNS --> AUDIT
-    DATASETS --> META
-    SCAN --> PG
-    SCAN --> MG
-    PG --> PG_SRC
-    MG --> MG_SRC
-    TRANSFORM --> PG_SNAP
-    TRANSFORM --> MG_SNAP
-    VERIFY --> PG_SNAP
-    VERIFY --> MG_SNAP
-    RUNS --> META
-~~~
-
-### Thành phần và trách nhiệm
+    PGOUT --> VERIFY[Verifier]
+    MGOUT --> VERIFY
+    VERIFY --> DATASETS
+```
 
 | Thành phần | Trách nhiệm |
 |---|---|
-| Frontend | Hiển thị đúng vai trò và trạng thái; không tự quyết định quyền |
-| Auth/session | Gán role ở server và kiểm tra DPO/Analyst ở backend |
-| Sources API | Liệt kê source đã cấu hình, chỉ trả metadata an toàn |
-| Runs API | Tạo run, lưu profile, lưu decision, approve và build |
-| Scanner | Đọc metadata/profile qua connector; rules-first, AI là bước tùy chọn |
-| Transform | Áp dụng action đã được DPO duyệt vào snapshot đích |
-| Verifier | So sánh source và snapshot; quyết định VERIFIED hoặc FAILED |
-| Datasets API | Preview, publish và revoke theo state guardrail |
-| App database | Lưu user/session, run, field profile, decision, dataset, verifier result và audit |
+| Frontend | Hiển thị source, review, build, publish, preview |
+| Sources API | Liệt kê source an toàn, test connection, đọc scope, không trả credential |
+| Runs API | Tạo run trên table/collection đã chọn, lưu profile, decision, build |
+| Scanner | Tạo field profile và action proposal |
+| Transform | Áp dụng MASK/HMAC/DROP/KEEP vào output |
+| Verifier | Kiểm tra JOIN, aggregate hoặc `$lookup` |
+| Datasets API | Publish, revoke, list, preview |
+| App DB | Lưu metadata, không lưu raw source value |
 
-MVP không dùng ChromaDB/vector store. Taxonomy và legal reference nhỏ, có cấu trúc; nếu sau này thêm RAG phải cập nhật PRD và đánh giá riêng.
+## 5. PostgreSQL branch
 
-## 4. Hai nhánh xử lý dữ liệu
-
-### 4.1 PostgreSQL - SQL
-
-~~~mermaid
+```mermaid
 flowchart TD
-    A[Postgres source] --> B[Đọc schema, PK/FK và field metadata]
-    B --> C[Profile field và scan rules]
-    C --> D[DPO quyết định]
-    D --> E[Copy sang snapshot schema/database]
-    E --> F[Áp dụng MASK/DROP/HMAC/KEEP]
-    F --> G[SQL JOIN và aggregate verifier]
-    G --> H{Kết quả đạt?}
-    H -->|Có| I[VERIFIED]
-    H -->|Không| J[FAILED]
-~~~
+    A[PostgreSQL source] --> B[Read schema / tables / PK / FK]
+    B --> C[DPO selects tables]
+    C --> D[Profile selected fields]
+    D --> E[DPO decisions]
+    E --> F[Write snapshot schema/database]
+    F --> G[Apply MASK/HMAC/DROP/KEEP]
+    G --> H[SQL JOIN + aggregate verifier]
+    H --> I{PASS?}
+    I -->|yes| J[VERIFIED]
+    I -->|no| K[FAILED]
+```
 
-SQL P0 dùng fixture nhiều bảng, trong đó demo trọng tâm là customers và orders. Snapshot phải nằm ở vùng đích riêng; tài khoản đọc source không được có quyền ghi source.
+P0 dùng fixture tại `data/fixtures/seed.sql`. Source phải là read-only. Snapshot nằm ở database/schema đích riêng. Backend không scan toàn bộ PostgreSQL schema nếu DPO chỉ chọn một số bảng.
 
-### 4.2 MongoDB - NoSQL
+## 6. MongoDB branch
 
-~~~mermaid
+```mermaid
 flowchart TD
-    A[MongoDB source] --> B[Đọc collections và flatten nested path]
-    B --> C[Profile customers/orders]
-    C --> D[DPO quyết định]
-    D --> E[Copy sang protected database riêng]
-    E --> F[Áp dụng MASK/DROP/HMAC/KEEP]
-    F --> G[$lookup source và snapshot]
-    G --> H{matched/unmatched giữ đúng?}
-    H -->|Có| I[VERIFIED]
-    H -->|Không| J[FAILED]
-~~~
+    A[MongoDB source] --> B[Read collections]
+    B --> C[DPO selects collections]
+    C --> D[Profile selected nested paths]
+    D --> E[DPO decisions]
+    E --> F[Write protected database]
+    F --> G[Apply MASK/HMAC/DROP/KEEP]
+    G --> H[$lookup verifier]
+    H --> I{PASS?}
+    I -->|yes| J[VERIFIED]
+    I -->|no| K[FAILED]
+```
 
-Mongo P0 dùng hai collection customers và orders. Field lồng nhau giữ đường dẫn dạng dấu chấm, ví dụ identity.cccd và pii_ext.customer_cccd.
+P0 dùng `customers` và `orders`. Field lồng nhau giữ path dạng dấu chấm:
 
-Các cặp join chính phải xử lý nhất quán ở hai đầu:
+```text
+identity.cccd
+contact.phone
+pii_ext.customer_cccd
+```
 
-~~~text
-customers._id                  <-> orders.customer_id
-customers.identity.cccd        <-> orders.pii_ext.customer_cccd
-~~~
+Các khóa join/lookup phải xử lý cùng action ở hai đầu:
 
-Verifier tự đếm kết quả thực tế; không hardcode 830. Với fixture hiện tại, expected baseline là 830 matched và 0 unmatched.
+```text
+customers._id           <-> orders.customer_id
+customers.identity.cccd <-> orders.pii_ext.customer_cccd
+```
 
-## 5. Scan và quyết định policy
+Nếu DPO chọn lệch action ở hai đầu khóa, build phải trả lỗi `422`.
 
-~~~mermaid
-flowchart LR
-    P[Field profile đã lọc] --> R[Rules và regex]
-    R --> Q{Đủ chắc chắn?}
-    Q -->|Có| X[Classification + action proposal]
-    Q -->|Chưa chắc| AI[AI tùy chọn<br/>chỉ nhận field name/type/statistics]
-    AI --> X
-    X --> DPO[DPO review]
-    DPO --> DEC[Decision lưu vào app DB]
-~~~
+## 7. Policy actions
 
-Scanner có thể dùng sample nội bộ để tính thống kê, nhưng các giá trị nguồn không được đi vào:
-
-- API response;
-- UI, preview, audit, report hoặc console log;
-- prompt LLM;
-- exception message hoặc evidence commit.
-
-DPO cũng không xem raw PII. DPO chỉ thấy field path, type, pattern đã lọc, classification, lý do, quan hệ khóa và action đề xuất. Với UNKNOWN, DPO phải chọn action có căn cứ; không được dùng KEEP để bỏ qua cảnh báo.
-
-### Policy actions
-
-| Action | Dùng khi | Kết quả |
+| Action | Dùng khi | Output |
 |---|---|---|
-| MASK | Cần giữ hình dạng một phần nhưng không cần lookup | Che một phần/toàn bộ giá trị |
-| HMAC | Field dùng để JOIN, lookup, mapping hoặc aggregate | Digest xác định bằng HMAC-SHA-256, có key_version, không khôi phục được |
-| DROP | Không cần field hoặc field chưa xác định | Bỏ field khỏi snapshot |
-| KEEP | Đã xác nhận non-personal hoặc cần cho nghiệp vụ | Giữ nguyên theo policy đã duyệt |
+| `MASK` | Cần che giá trị, không cần join | `[REDACTED]` hoặc che một phần |
+| `HMAC` | Field cần lookup/join/mapping ổn định | HMAC-SHA-256 một chiều, có `key_version` |
+| `DROP` | Không cần field hoặc quá rủi ro | Không ghi field vào snapshot |
+| `KEEP` | Đã xác nhận non-personal/cần nghiệp vụ | Giữ trong output |
 
-HMAC là pseudonymization một chiều, không gọi là encryption. Hai đầu khóa liên kết phải dùng cùng key version và cùng action; nếu không, build trả lỗi 422.
-
-## 6. State machine và API flow
-
-~~~mermaid
-stateDiagram-v2
-    [*] --> SCANNING: POST /runs
-    SCANNING --> REVIEW_REQUIRED: scan đủ
-    SCANNING --> FAILED: scan lỗi
-    REVIEW_REQUIRED --> READY_TO_BUILD: đủ decisions
-    REVIEW_REQUIRED --> FAILED: policy/scan không hợp lệ
-    READY_TO_BUILD --> BUILDING: POST /runs/{id}/build
-    BUILDING --> VERIFIED: transform + verifier pass
-    BUILDING --> FAILED: verifier fail
-    VERIFIED --> PUBLISHED: POST /datasets/{id}/publish
-    PUBLISHED --> REVOKED: POST /datasets/{id}/revoke
-    FAILED --> [*]
-    REVOKED --> [*]
-~~~
-
-API chính theo flow:
-
-| Nhóm | Endpoint | Vai trò |
-|---|---|---|
-| Session | POST /sessions | Đăng nhập demo, role do server gán |
-| Source | GET /sources | DPO xem source metadata an toàn |
-| Source động | POST /sources, POST /sources/{id}/test-connection, GET /sources/{id}/scope | P0 tiếp theo cho luồng doanh nghiệp nhập DB/table; không trả credential |
-| Run | POST /runs, GET /runs/{id} | DPO tạo/xem run |
-| Review | PUT /runs/{id}/decisions, POST /runs/{id}/approve | DPO duyệt policy |
-| Build | POST /runs/{id}/build | DPO tạo snapshot và verifier |
-| Dataset | GET /datasets, GET /datasets/{id}/preview | Analyst chỉ xem output được phép |
-| Release | POST /datasets/{id}/publish, POST /datasets/{id}/revoke | DPO phát hành/thu hồi |
-
-Frontend chỉ ẩn/hiện nút theo role để dễ dùng; backend vẫn phải kiểm tra role và state cho từng endpoint.
-
-## 7. Dữ liệu lưu ở đâu?
-
-~~~text
-Database nguồn                 Snapshot đích                 App database
-------------------             ------------------             ------------------
-PostgreSQL/Mongo                PostgreSQL/Mongo               PostgreSQL schema app
-read-only                       protected output               metadata only
-PII gốc                         MASK/HMAC/DROP/KEEP            run/decision/audit
-~~~
-
-App database lưu metadata, không lưu raw source value:
-
-- users/sessions và role;
-- sources và manifest version;
-- runs và trạng thái;
-- field profiles;
-- DPO decisions;
-- datasets;
-- verifier results;
-- audit events.
-
-Source và snapshot là hai vùng riêng. Build không ghi đè source. Mỗi run gắn với manifest/policy version; nếu source hoặc policy đổi thì phải tạo run mới hoặc chuyển run thành STALE.
+HMAC không phải encryption. Không gọi là mã hóa hai chiều vì không khôi phục được raw value.
 
 ## 8. Quyền truy cập
 
-~~~mermaid
-flowchart TD
-    DPO[DPO] -->|scan / review / build / publish / revoke| API[FastAPI authorization]
-    ANA[Analyst] -->|list / preview PUBLISHED / sample task| API
-    API -->|DPO only| META[(App metadata)]
-    API -->|Analyst read-only| PUB[(PUBLISHED snapshot)]
-    API -. blocked .-> SRC[(Raw source)]
-    API -. blocked .-> STG[(STAGING snapshot)]
-~~~
-
 | Actor | Được phép | Không được phép |
 |---|---|---|
-| DPO | Scan, review, quyết định, build, xem verifier, publish, revoke | Xem raw PII |
-| Analyst | List dataset PUBLISHED, preview output đã xử lý, chạy tác vụ mẫu | Đọc source/staging, sửa policy, publish, xem raw PII |
+| DPO | Scan, review, build, verifier, publish, revoke | Xem raw PII |
+| Analyst | List/preview dataset `PUBLISHED` | Xem source, staging, policy, raw PII |
 
-Credential database chỉ nằm ở server environment/secret store. API không trả URI, password, HMAC secret hoặc raw value.
+Backend phải kiểm tra quyền và trạng thái, không chỉ ẩn nút ở frontend.
 
-## 9. Connector contract và mở rộng database
+## 9. API flow
 
-Hai adapter P0 cùng trả về contract chung:
+| Bước | Endpoint | Vai trò |
+|---|---|---|
+| Login | `POST /sessions` | DPO/Analyst |
+| List source | `GET /sources` | DPO |
+| Read scope | `GET /sources/{id}/scope` | DPO |
+| Create run | `POST /runs` | DPO chọn table/collection rồi mới scan |
+| Review run | `GET /runs/{id}` | DPO |
+| Save decisions | `PUT /runs/{id}/decisions` | DPO |
+| Build snapshot | `POST /runs/{id}/build` | DPO |
+| Publish | `POST /datasets/{id}/publish` | DPO |
+| Revoke | `POST /datasets/{id}/revoke` | DPO |
+| List datasets | `GET /datasets` | DPO/Analyst |
+| Preview output | `GET /datasets/{id}/preview` | DPO/Analyst |
 
-~~~text
-inspect_scope()   -> tables/collections, counts, supported scope
-profile_fields()  -> field path, type, relation, safe statistics
-read_batches()    -> batch dữ liệu nội bộ cho transform
-~~~
+P0 hiện có `sql-demo` và `nosql-demo`. Source động cho doanh nghiệp là bước tiếp theo: user nhập connection string, backend test connection, đọc scope, rồi chạy cùng flow trên.
 
-Phần writer/snapshot và verifier tách khỏi reader. Vì vậy kiến trúc có thể thêm MySQL hoặc database khác bằng connector mới, nhưng mỗi engine vẫn phải có:
+## 10. Trạng thái cần nhớ
 
-1. adapter đọc schema/profile;
-2. transform writer an toàn;
-3. verifier downstream riêng;
-4. fixture, golden labels và test;
-5. cập nhật tài liệu và evidence.
+Đã có nền:
 
-**P0:** PostgreSQL + MongoDB. **P1/P2:** database engine khác, connection UI động, local LLM, dữ liệu phi cấu trúc và các policy nâng cao.
+- PostgreSQL/MongoDB demo source;
+- scanner/rules/eval;
+- DPO decision;
+- build snapshot pipeline;
+- verifier;
+- dataset publish/revoke/list/preview guardrail.
 
-## 10. Mapping với code hiện tại
+Cần kiểm tra kỹ trước demo:
 
-| Vùng code | Vai trò |
+- `GET /datasets/{id}/preview` phải đọc output thật từ protected snapshot, không dùng placeholder;
+- source động chưa được coi là xong nếu vẫn chỉ dùng `_DEMO_SOURCES`;
+- mọi evidence/report/log không được chứa raw PII, credential hoặc API key.
+
+## 11. File code liên quan
+
+| File | Vai trò |
 |---|---|
-| src/api/auth.py | Session và role |
-| src/api/sources.py | Source registry/API |
-| src/api/runs.py | Run, decision, approve, build và state guardrail |
-| src/api/datasets.py | Dataset list/preview/publish/revoke |
-| src/connectors/postgres_connector.py | PostgreSQL reader |
-| src/connectors/mongo_connector.py | MongoDB reader, nested path và relations |
-| src/transform/pg_pipeline.py | PostgreSQL snapshot/transform |
-| src/transform/hmac_hasher.py | HMAC-SHA-256 và key version |
-| src/verifier/sql_verifier.py | SQL JOIN/aggregate verifier |
-| src/verifier/mongo_verifier.py | MongoDB $lookup verifier |
-| src/detection/ | Taxonomy, regex, rules và eval support |
-| src/db/models.py | App metadata models |
-| tests/ | Unit/API/connector/verifier tests |
-
-### Trạng thái triển khai cần nhớ
-
-Đây là kiến trúc mục tiêu của MVP. Khi code chưa nối được connector thật, không được ghi là đã hoàn thành chỉ vì API trả response. Dấu hiệu cần xử lý trước demo là:
-
-- POST /runs còn fallback field profile stub;
-- POST /runs/{id}/build còn nhánh verifier stub;
-- Mongo connector/verifier chưa được gọi xuyên suốt API flow;
-- chưa có test/evidence cho cả SQL và Mongo end-to-end.
-
-Khi các điểm trên được nối thật và test pass, flow trên mới được xem là MVP end-to-end.
-
-## 11. P0, P1 và nguyên tắc mở rộng
-
-### P0 - Demo end-to-end
-
-- PostgreSQL source read-only, snapshot riêng, transform và SQL verifier;
-- MongoDB customers/orders, nested path, snapshot riêng và $lookup verifier;
-- DPO/Analyst role guardrail;
-- no-raw-value trong UI, API, log, report và LLM prompt;
-- publish chỉ sau VERIFIED;
-- fixture, golden labels, holdout và downstream expected results.
-
-### P1/P2 - Mở rộng sau khi P0 ổn định
-
-- thêm connector SQL/NoSQL khác;
-- UI cấu hình database động nhưng credential vẫn ở server-side;
-- local LLM/on-prem cho doanh nghiệp;
-- dữ liệu phi cấu trúc như document, image, voice và OCR;
-- policy SYNTHESIZE nếu có yêu cầu và eval riêng.
-
-Mọi mở rộng phải giữ nguyên nguyên tắc: source chỉ đọc, snapshot tách riêng, action do DPO duyệt, verifier trước publish và không đưa raw PII ra ngoài boundary được phép.
-
-## 12. Liên kết tài liệu
-
-- Product scope và acceptance criteria: [docs/prd.md](prd.md)
-- Màn hình và user flow: [docs/ui-flow.md](ui-flow.md)
-- Kiến trúc tổng quát: [ARCHITECTURE.md](../ARCHITECTURE.md)
-- Cấu trúc repo: [PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md)
+| `src/api/sources.py` | Source registry/API |
+| `src/api/runs.py` | Run, decisions, build |
+| `src/api/datasets.py` | Dataset publish/revoke/list/preview |
+| `src/connectors/postgres_connector.py` | PostgreSQL reader |
+| `src/connectors/mongo_connector.py` | MongoDB reader |
+| `src/transform/pg_pipeline.py` | PostgreSQL snapshot |
+| `src/transform/mongo_pipeline.py` | MongoDB protected snapshot |
+| `src/verifier/sql_verifier.py` | SQL downstream verifier |
+| `src/verifier/mongo_verifier.py` | Mongo `$lookup` verifier |
+| `src/detection/` | Rules/taxonomy/eval support |

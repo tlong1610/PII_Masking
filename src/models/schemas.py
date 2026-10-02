@@ -77,6 +77,21 @@ class SourceTestResult(BaseModel):
     message: str = ""
 
 
+class SourceScopeItem(BaseModel):
+    name: str = Field(..., description="Table or collection name")
+    kind: str = Field(..., description="table or collection")
+    field_count: int = 0
+    row_count: int | None = None
+    document_count: int | None = None
+
+
+class SourceScope(BaseModel):
+    source_id: str
+    source_type: SourceType
+    engine: str
+    items: list[SourceScopeItem]
+
+
 # --- Runs / field review / build ---
 
 
@@ -122,6 +137,10 @@ class VerifierCheckStatus(StrEnum):
 
 class RunCreate(BaseModel):
     source_id: str = Field(..., min_length=1, max_length=64)
+    selected_scope: list[str] = Field(
+        default_factory=list,
+        description="Selected table/collection names to scan",
+    )
 
 
 class FieldProfileOut(BaseModel):

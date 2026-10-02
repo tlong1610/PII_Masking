@@ -18,9 +18,11 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, ge=1, le=65535)
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
-    # LLM
+    # LLM Configuration
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
     google_api_key: str = ""
     groq_api_key: str = ""
     openrouter_api_key: str = ""
@@ -39,6 +41,8 @@ class Settings(BaseSettings):
     pg_schema: str = "public"
     # Comma-separated table allowlist for scan + snapshot; empty = every table in pg_schema
     pg_scan_tables: str = ""
+    # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
+    enable_ai_scan: bool = False
 
     # MongoDB source (read-only) and protected snapshot database on the same cluster
     mongo_uri: str = ""
@@ -46,20 +50,23 @@ class Settings(BaseSettings):
     mongo_snapshot_db: str = "mydatabase_protected"
     enable_mongo: bool = False
 
-    # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
-    enable_ai_scan: bool = False
-
     # User-supplied source connection strings are stored encrypted (Fernet key, urlsafe base64)
     source_encryption_key: str = ""
     # Dev default: allow loopback/private hosts; set false in production to block SSRF-style targets
     allow_private_source_hosts: bool = True
-
     # HMAC join-key hashing (not encryption)
     hmac_secret: str = "dev-hmac-secret-change-me"
     hmac_key_version: str = "v1"
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
+    pinecone_api_key: str = ""
+    pinecone_environment: str = ""
+
+    # LangSmith (AI Logs)
+    langchain_api_key: str = ""
+    langchain_project: str = "ai20k-agent"
+    langchain_tracing_v2: str = "false"
 
 
 @lru_cache
