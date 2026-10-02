@@ -15,6 +15,7 @@ langgraph>=0.2.0
 # Database
 psycopg[binary]>=3.2.0
 pymongo>=4.8.0
+cryptography>=43.0.0
 sqlalchemy>=2.0.0
 # alembic>=1.14.0
 # psycopg2-binary>=2.9.0

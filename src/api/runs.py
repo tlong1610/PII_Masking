@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
-from src.api.sources import get_source_by_id, mongo_live_enabled, pg_live_enabled
+from src.api.sources import SourceConnection, get_source_by_id, resolve_connection
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
@@ -27,6 +27,7 @@ from src.models.schemas import (
     VerifierCheckStatus,
     VerifierResultOut,
 )
+from src.services.secret_box import SecretBoxError
 
 router = APIRouter(tags=["runs"])
 
@@ -36,9 +37,14 @@ def mongo_client():
     return None
 
 
-def _pg_scan_tables(raw: str) -> tuple[str, ...] | None:
-    tables = tuple(t.strip() for t in raw.split(",") if t.strip())
-    return tables or None
+def _connection_for(source, db: Session) -> SourceConnection:
+    """Resolve secret-bearing connection details; errors carry no URL or password."""
+    try:
+        return resolve_connection(source, db)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Source no longer exists") from None
+    except SecretBoxError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
 
 
 def _stub_field_specs(source_type: SourceType) -> list[dict]:
@@ -168,15 +174,16 @@ async def create_run(
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
 ) -> RunOut:
-    source = get_source_by_id(body.source_id)
+    source = get_source_by_id(body.source_id, db)
     if source is None:
         raise HTTPException(status_code=404, detail="Unknown source_id")
 
     from src.config import get_settings
 
     settings = get_settings()
-    use_pg = source.engine == "postgresql" and pg_live_enabled()
-    use_mongo = source.engine == "mongodb" and mongo_live_enabled()
+    conn = _connection_for(source, db)
+    use_pg = source.engine == "postgresql" and conn.live
+    use_mongo = source.engine == "mongodb" and conn.live
 
     run = db_models.Run(
         source_id=source.id,
@@ -195,10 +202,10 @@ async def create_run(
             from src.services.run_scanner import scan_postgres_source
 
             specs = await scan_postgres_source(
-                settings.source_database_url,
+                conn.url,
                 use_ai=settings.enable_ai_scan,
-                schema_name=settings.pg_schema,
-                tables=_pg_scan_tables(settings.pg_scan_tables),
+                schema_name=conn.namespace,
+                tables=conn.tables,
             )
             mode = "ai" if settings.enable_ai_scan else "rule"
             scan_reason = f"source={source.id}; scan=pg-{mode}"
@@ -206,8 +213,8 @@ async def create_run(
             from src.services.run_scanner import scan_mongo_source
 
             specs = await scan_mongo_source(
-                settings.mongo_uri,
-                settings.mongo_db,
+                conn.url,
+                conn.namespace,
                 use_ai=settings.enable_ai_scan,
                 client=mongo_client(),
             )
@@ -368,6 +375,10 @@ def build_run(
     from src.config import get_settings
 
     settings = get_settings()
+    source = get_source_by_id(run.source_id, db)
+    if source is None:
+        raise HTTPException(status_code=409, detail="Source no longer exists")
+    conn = _connection_for(source, db)
 
     # Runs profiled from a live source must be verified on a real snapshot, never the stub.
     pg_scanned = run.engine == "postgresql" and any(
@@ -394,7 +405,7 @@ def build_run(
                 },
             )
 
-    use_mongo = mongo_scanned and mongo_live_enabled()
+    use_mongo = mongo_scanned and conn.live
     mongo_actions: dict[str, dict[str, str]] = {}
     mongo_relations: list[tuple[str, str, str, str]] = []
     mongo_connect_error: Exception | None = None
@@ -408,7 +419,7 @@ def build_run(
         mongo_actions = mongo_actions_from_decisions(run.field_profiles, run.field_decisions)
         try:
             mongo_relations = MongoConnector(
-                settings.mongo_uri, settings.mongo_db, client=mongo_client()
+                conn.url, conn.namespace, client=mongo_client()
             ).list_relations()
         except Exception as exc:
             mongo_connect_error = exc
@@ -438,7 +449,7 @@ def build_run(
 
     check_rows: list[dict] = []
 
-    if pg_scanned and pg_live_enabled():
+    if pg_scanned and conn.live and settings.snapshot_database_url:
         try:
             from src.transform.pg_pipeline import (
                 actions_from_run_decisions,
@@ -447,17 +458,18 @@ def build_run(
 
             table_actions = actions_from_run_decisions(run.field_profiles, run.field_decisions)
             written, checks = run_protected_postgres_pipeline(
-                source_url=settings.source_database_url,
+                source_url=conn.url,
                 snapshot_url=settings.snapshot_database_url,
                 secret=settings.hmac_secret,
                 key_version=settings.hmac_key_version,
                 table_actions=table_actions,
-                snapshot_schema=settings.snapshot_schema,
-                source_schema=settings.pg_schema,
+                snapshot_schema=conn.pg_snapshot_schema(run.id),
+                source_schema=conn.namespace,
                 default_action=PolicyAction.DROP.value,
+                generic_verify=conn.user_supplied,
             )
             dataset.output_location = (
-                f"postgres://{settings.snapshot_schema}/"
+                f"postgres://{conn.pg_snapshot_schema(run.id)}/"
                 + ",".join(sorted(written.keys()))
             )
             check_rows = [
@@ -503,7 +515,7 @@ def build_run(
                 "actual_value": "not_configured",
                 "tolerance": "n/a",
                 "details": "Snapshot target not configured "
-                "(ENABLE_PG_SNAPSHOT, SOURCE_DATABASE_URL, SNAPSHOT_DATABASE_URL)",
+                "(SNAPSHOT_DATABASE_URL; demo sources also need ENABLE_PG_SNAPSHOT, SOURCE_DATABASE_URL)",
             }
         ]
     elif use_mongo:
@@ -513,9 +525,9 @@ def build_run(
             from src.transform.mongo_pipeline import run_protected_mongo_pipeline
 
             written, checks = run_protected_mongo_pipeline(
-                uri=settings.mongo_uri,
-                source_db=settings.mongo_db,
-                snapshot_db=settings.mongo_snapshot_db,
+                uri=conn.url,
+                source_db=conn.namespace,
+                snapshot_db=conn.mongo_snapshot_db(run.id),
                 secret=settings.hmac_secret,
                 key_version=settings.hmac_key_version,
                 table_actions=mongo_actions,
@@ -524,7 +536,7 @@ def build_run(
                 default_action=PolicyAction.DROP.value,
             )
             dataset.output_location = (
-                f"mongodb://{settings.mongo_snapshot_db}/" + ",".join(sorted(written))
+                f"mongodb://{conn.mongo_snapshot_db(run.id)}/" + ",".join(sorted(written))
             )
             check_rows = [
                 {

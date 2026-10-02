@@ -58,6 +58,25 @@ class Source(BaseModel):
     status: str = Field(default="ready", description="Connection/config status label")
 
 
+class SourceCreate(BaseModel):
+    """Register a customer database by connection URL (write-only; never echoed back)."""
+
+    name: str = Field(..., min_length=1, max_length=128)
+    url: str = Field(..., min_length=8, max_length=2048, repr=False)
+    namespace: str = Field(
+        default="",
+        max_length=128,
+        description="Postgres schema (default public) or Mongo database (default: from URL path)",
+    )
+    tables: list[str] = Field(default_factory=list, description="Optional table/collection allowlist")
+
+
+class SourceTestResult(BaseModel):
+    ok: bool
+    engine: str = ""
+    message: str = ""
+
+
 # --- Runs / field review / build ---
 
 

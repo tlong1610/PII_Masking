@@ -20,6 +20,24 @@ class DemoUser(Base):
     role: Mapped[str] = mapped_column(String(16), nullable=False)  # DPO | ANALYST
 
 
+class DataSource(Base):
+    """User-registered source database. The connection URL is stored only encrypted."""
+
+    __tablename__ = "data_sources"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(16), nullable=False)  # SQL | NOSQL
+    engine: Mapped[str] = mapped_column(String(64), nullable=False)  # postgresql | mongodb
+    encrypted_url: Mapped[str] = mapped_column(Text, nullable=False)
+    # Postgres schema or Mongo database name
+    namespace: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    scan_tables: Mapped[str] = mapped_column(Text, nullable=False, default="")  # comma-separated allowlist
+    host_hint: Mapped[str] = mapped_column(String(256), nullable=False, default="")  # masked, no credentials
+    created_by: Mapped[int] = mapped_column(ForeignKey("demo_users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Run(Base):
     __tablename__ = "runs"
 

@@ -127,3 +127,38 @@ def run_postgres_verifiers(
             snapshot_url, snapshot_schema=snapshot_schema, expected=expected
         ),
     ]
+
+
+def verify_row_counts(
+    source_url: str,
+    snapshot_url: str,
+    *,
+    source_schema: str,
+    snapshot_schema: str,
+    tables: list[str],
+) -> list[CheckResult]:
+    """Generic parity check for arbitrary schemas: every built table keeps its row count."""
+    from psycopg import sql
+
+    results: list[CheckResult] = []
+    with _connect(source_url) as src, _connect(snapshot_url) as dst:
+        for table in tables:
+            counts = []
+            for conn, schema in ((src, source_schema), (dst, snapshot_schema)):
+                with conn.cursor() as cur:
+                    cur.execute(
+                        sql.SQL("SELECT count(*)::int AS n FROM {}").format(sql.Identifier(schema, table))
+                    )
+                    counts.append(int(cur.fetchone()["n"]))
+            expected, actual = counts
+            results.append(
+                CheckResult(
+                    check_name=f"row_count_{table}",
+                    status="PASSED" if expected == actual else "FAILED",
+                    baseline_value=str(expected),
+                    actual_value=str(actual),
+                    tolerance="0",
+                    details="Snapshot row count matches source",
+                )
+            )
+    return results
