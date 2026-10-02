@@ -10,6 +10,7 @@ import {
   Divider,
   FormControl,
   Grid,
+  IconButton,
   InputLabel,
   LinearProgress,
   MenuItem,
@@ -24,8 +25,10 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -35,6 +38,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 
 import { ApiError } from '@/shared/api/client';
 
+import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
 import { ActionChip } from './PolicyChips';
 import {
@@ -48,10 +52,12 @@ import {
   getRiskLabel,
   getRiskTone,
 } from '../model/policyLabels';
+import { isUserSource } from '../model/sourceForm';
 import {
   useBuildDataset,
   useCreateScanRun,
   useDataSources,
+  useDeleteDataSource,
   usePublishDataset,
   useRun,
   useUpdateFieldDecisions,
@@ -86,11 +92,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const [decisionOverrides, setDecisionOverrides] = useState<Record<number, PolicyAction>>({});
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   const { data: sources, isLoading: sourcesLoading } = useDataSources();
   const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
 
   const createScan = useCreateScanRun();
+  const deleteSource = useDeleteDataSource();
   const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
@@ -273,6 +282,16 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }
   };
 
+  const handleDeleteSource = async (sourceId: string): Promise<void> => {
+    setSourceError(null);
+    try {
+      await deleteSource.mutateAsync(sourceId);
+      if (selectedSourceId === sourceId) setSelectedSourceId(null);
+    } catch (error) {
+      setSourceError(error instanceof ApiError ? error.message : 'Không thể xóa nguồn dữ liệu.');
+    }
+  };
+
   if (sourcesLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -284,12 +303,31 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   if (step === 'select-source') {
     return (
       <Box>
-        <Typography variant="h4" gutterBottom>
-          Chọn nguồn dữ liệu
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Chọn nguồn dữ liệu để quét và phát hiện PII.
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={2} flexWrap="wrap">
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Chọn nguồn dữ liệu
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Chọn nguồn dữ liệu để quét và phát hiện PII, hoặc thêm cơ sở dữ liệu của bạn bằng connection URL.
+            </Typography>
+          </Box>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddSourceOpen(true)}>
+            Thêm nguồn
+          </Button>
+        </Box>
+
+        {sourceError && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSourceError(null)}>
+            {sourceError}
+          </Alert>
+        )}
+
+        <AddSourceDialog
+          open={addSourceOpen}
+          onClose={() => setAddSourceOpen(false)}
+          onCreated={(sourceId) => handleSelectSource(sourceId)}
+        />
 
         <Grid container spacing={3}>
           {sources?.map((source) => (
@@ -308,6 +346,20 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                       <DatasetIcon color="primary" />
                       <Typography variant="h6">{source.name}</Typography>
                       <Chip label={source.source_type} size="small" />
+                      {isUserSource(source.id) && (
+                        <IconButton
+                          size="small"
+                          aria-label={`Xóa nguồn ${source.name}`}
+                          sx={{ ml: 'auto' }}
+                          disabled={deleteSource.isPending}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDeleteSource(source.id);
+                          }}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     </Box>
 
                     <Typography variant="body2" color="text.secondary">

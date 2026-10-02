@@ -25,6 +25,34 @@ export function useDataSources() {
   });
 }
 
+export function useTestDataSource() {
+  return useMutation({
+    mutationFn: (input: api.SourceInput) => api.testDataSource(input),
+  });
+}
+
+export function useCreateDataSource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: api.SourceInput) => api.createDataSource(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.sources });
+    },
+  });
+}
+
+export function useDeleteDataSource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sourceId: string) => api.deleteDataSource(sourceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.sources });
+    },
+  });
+}
+
 // ============================================================================
 // RUNS
 // ============================================================================
