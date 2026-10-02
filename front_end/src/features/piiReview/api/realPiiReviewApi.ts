@@ -15,6 +15,12 @@ export const sourceSchema = z.object({
   status: z.string(),
 });
 
+export const sourceTestResultSchema = z.object({
+  ok: z.boolean(),
+  engine: z.string(),
+  message: z.string(),
+});
+
 export const fieldProfileSchema = z.object({
   id: z.number(),
   source_path: z.string(),
@@ -100,6 +106,14 @@ export const buildResponseSchema = z.object({
 });
 
 export type Source = z.infer<typeof sourceSchema>;
+export type SourceTestResult = z.infer<typeof sourceTestResultSchema>;
+
+export interface SourceInput {
+  name: string;
+  url: string;
+  namespace: string;
+  tables: string[];
+}
 export type FieldProfile = z.infer<typeof fieldProfileSchema>;
 export type Run = z.infer<typeof runSchema>;
 export type Dataset = z.infer<typeof datasetSchema>;
@@ -115,6 +129,26 @@ export type BuildResponse = z.infer<typeof buildResponseSchema>;
 export async function fetchDataSources(): Promise<Source[]> {
   const data = await apiRequest<Source[]>('/sources');
   return z.array(sourceSchema).parse(data);
+}
+
+export async function testDataSource(input: SourceInput): Promise<SourceTestResult> {
+  const data = await apiRequest<SourceTestResult>('/sources/test', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return sourceTestResultSchema.parse(data);
+}
+
+export async function createDataSource(input: SourceInput): Promise<Source> {
+  const data = await apiRequest<Source>('/sources', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return sourceSchema.parse(data);
+}
+
+export async function deleteDataSource(sourceId: string): Promise<void> {
+  await apiRequest<void>(`/sources/${encodeURIComponent(sourceId)}`, { method: 'DELETE' });
 }
 
 // ============================================================================

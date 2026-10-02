@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from src.connectors.postgres_snapshot import DEMO_SNAPSHOT_TABLES, build_protected_snapshots
-from src.verifier.sql_verifier import CheckResult, run_postgres_verifiers
+from src.verifier.sql_verifier import CheckResult, run_postgres_verifiers, verify_row_counts
 
 # Joins the verifier relies on that are not declared as FOREIGN KEY in the source schema.
 # (from_table, from_column, to_table, to_column)
@@ -93,8 +93,13 @@ def run_protected_postgres_pipeline(
     snapshot_schema: str = "piiguard_snapshot",
     source_schema: str = "public",
     default_action: str = "KEEP",
+    generic_verify: bool = False,
 ) -> tuple[dict[str, str], list[CheckResult]]:
-    """table_actions=None runs the demo policy; otherwise only tables in table_actions are built."""
+    """table_actions=None runs the demo policy; otherwise only tables in table_actions are built.
+
+    generic_verify=True (user-supplied sources) checks row-count parity instead of the
+    demo-only customers/orders join baseline.
+    """
     actions = table_actions or DEFAULT_DEMO_ACTIONS
     tables = tuple(table_actions) if table_actions else DEMO_SNAPSHOT_TABLES
     written = build_protected_snapshots(
@@ -108,7 +113,16 @@ def run_protected_postgres_pipeline(
         source_schema=source_schema,
         default_action=default_action,
     )
-    checks = run_postgres_verifiers(snapshot_url, snapshot_schema=snapshot_schema)
+    if generic_verify:
+        checks = verify_row_counts(
+            source_url,
+            snapshot_url,
+            source_schema=source_schema,
+            snapshot_schema=snapshot_schema,
+            tables=sorted(written),
+        )
+    else:
+        checks = run_postgres_verifiers(snapshot_url, snapshot_schema=snapshot_schema)
     return written, checks
 
 

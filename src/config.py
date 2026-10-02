@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
     enable_ai_scan: bool = False
 
+    # User-supplied source connection strings are stored encrypted (Fernet key, urlsafe base64)
+    source_encryption_key: str = ""
+    # Dev default: allow loopback/private hosts; set false in production to block SSRF-style targets
+    allow_private_source_hosts: bool = True
+
     # HMAC join-key hashing (not encryption)
     hmac_secret: str = "dev-hmac-secret-change-me"
     hmac_key_version: str = "v1"
