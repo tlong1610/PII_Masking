@@ -21,7 +21,8 @@ import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { Controller, useForm } from 'react-hook-form';
@@ -46,7 +47,7 @@ const DEMO_PRESETS: DemoAccountPreset[] = [
     password: 'dpo123',
     title: 'DPO / Data Reviewer',
     description: 'Quét nguồn dữ liệu, review phân loại PII, tạo snapshot, phê duyệt phát hành.',
-    icon: <AdminPanelSettingsOutlinedIcon color="primary" fontSize="medium" />,
+    icon: <AdminPanelSettingsOutlinedIcon sx={{ fontSize: 20, color: '#1B51A4' }} />,
   },
   {
     role: 'Analyst',
@@ -54,7 +55,7 @@ const DEMO_PRESETS: DemoAccountPreset[] = [
     password: 'analyst123',
     title: 'Data Analyst',
     description: 'Chỉ đọc snapshot đã phát hành (PUBLISHED), truy vấn tác vụ đã được duyệt.',
-    icon: <AnalyticsOutlinedIcon color="secondary" fontSize="medium" />,
+    icon: <AnalyticsOutlinedIcon sx={{ fontSize: 20, color: '#0E7490' }} />,
   },
 ];
 
@@ -62,6 +63,7 @@ export function LoginExperience(): JSX.Element {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError, user, logout } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedPresetRole, setSelectedPresetRole] = useState<'DPO' | 'Analyst' | null>(null);
 
   const {
     control,
@@ -77,6 +79,7 @@ export function LoginExperience(): JSX.Element {
   });
 
   const handleSelectPreset = (preset: DemoAccountPreset): void => {
+    setSelectedPresetRole(preset.role);
     setValue('username', preset.username, { shouldValidate: true });
     setValue('password', preset.password, { shouldValidate: true });
     clearError();
@@ -94,256 +97,334 @@ export function LoginExperience(): JSX.Element {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'grid', alignItems: 'center', py: { xs: 4, md: 6 } }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={4} alignItems="center">
-          {/* Left Hero Column */}
-          <Grid item xs={12} md={5}>
-            <Stack spacing={3}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <ShieldOutlinedIcon color="primary" sx={{ fontSize: 40 }} />
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: '#F8F9FA',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: { xs: 4, md: 8 },
+        px: 2,
+      }}
+    >
+      {/* Databricks Branding Header */}
+      <Stack alignItems="center" spacing={1} sx={{ mb: 4 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: '8px',
+            bgcolor: '#1B51A4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            boxShadow: '0 2px 8px rgba(27, 81, 164, 0.25)',
+          }}
+        >
+          <LayersOutlinedIcon sx={{ fontSize: 28 }} />
+        </Box>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>
+          PIIGuard VN
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#4B5563', fontSize: '0.85rem' }}>
+          On-Premise Data Intelligence & PII Governance Platform
+        </Typography>
+      </Stack>
+
+      <Container maxWidth="md">
+        <Card
+          sx={{
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E5E7EB',
+            borderRadius: '12px',
+            boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+            overflow: 'hidden',
+          }}
+        >
+          <Grid container>
+            {/* Left Context Column */}
+            <Grid
+              item
+              xs={12}
+              md={5}
+              sx={{
+                p: { xs: 3, md: 4 },
+                bgcolor: '#F9FAFB',
+                borderRight: { md: '1px solid #E5E7EB' },
+                borderBottom: { xs: '1px solid #E5E7EB', md: 'none' },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Stack spacing={2.5}>
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                    PIIGuard VN
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }}>
+                    Phân quyền nghiêm ngặt
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Bảo vệ dữ liệu cá nhân & Tuân thủ Nghị định 13
+                  <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5, lineHeight: 1.6 }}>
+                    Hệ thống tuân thủ Nghị định 13/2023/NĐ-CP với kiến trúc on-premise an toàn tuyệt đối. Cả DPO và Analyst
+                    đều được quản trị qua ranh giới no-raw-value.
                   </Typography>
                 </Box>
+
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: '8px',
+                    bgcolor: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E3A8A', display: 'block', mb: 0.5 }}>
+                    Zero Raw-PII Leak UI
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#1E40AF', display: 'block', lineHeight: 1.5 }}>
+                    Không lưu trữ hoặc truyền dữ liệu PII nguồn thô qua giao diện người dùng. Mọi truy cập được xác minh qua
+                    sổ cái Hash-Chain.
+                  </Typography>
+                </Box>
+
+                {user && (
+                  <Box sx={{ p: 2, borderRadius: '8px', border: '1px solid #E5E7EB', bgcolor: '#FFFFFF' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Phiên đăng nhập hiện tại:
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, mb: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {user.username}
+                      </Typography>
+                      <Chip
+                        label={user.role}
+                        size="small"
+                        color={user.role === 'DPO' ? 'primary' : 'secondary'}
+                        sx={{ height: 20, fontSize: '0.68rem' }}
+                      />
+                    </Stack>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => navigate(user.role === 'DPO' ? routes.dpo : routes.analyst)}
+                      >
+                        Vào workspace {user.role}
+                      </Button>
+                      <Button variant="outlined" size="small" color="inherit" onClick={logout}>
+                        Đăng xuất
+                      </Button>
+                    </Stack>
+                  </Box>
+                )}
               </Stack>
 
-              <Box>
-                <Typography variant="h2" sx={{ mb: 1.5, fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
-                  Cổng đăng nhập hệ thống
-                </Typography>
-                <Typography color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                  Hệ thống phân quyền nghiêm ngặt theo vai trò DPO (Data Protection Officer) và Analyst.
-                  Xác thực phân quyền từ máy chủ với giao diện chuẩn no-raw-value.
-                </Typography>
-              </Box>
+              <Typography variant="caption" sx={{ color: '#9CA3AF', mt: 3, display: 'block' }}>
+                Phiên bản v0.2 On-Premise Enterprise
+              </Typography>
+            </Grid>
 
-              <Alert severity="info" variant="outlined">
-                <strong>No-raw-value UI:</strong> Cả DPO và Analyst đều không nhìn thấy dữ liệu PII nguồn thô.
-              </Alert>
-
-              {user ? (
-                <Card variant="outlined" sx={{ p: 2, bgcolor: 'background.paper' }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Phiên làm việc hiện tại:
+            {/* Right Form Column */}
+            <Grid item xs={12} md={7} sx={{ p: { xs: 3, md: 4 } }}>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827' }}>
+                    Đăng nhập tài khoản
                   </Typography>
-                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                      {user.username}
-                    </Typography>
-                    <Chip
-                      label={user.role}
-                      size="small"
-                      color={user.role === 'DPO' ? 'primary' : 'secondary'}
-                    />
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => navigate(user.role === 'DPO' ? routes.dpo : routes.analyst)}
-                    >
-                      Vào workspace {user.role}
-                    </Button>
-                    <Button variant="outlined" size="small" color="inherit" onClick={logout}>
-                      Đăng xuất
-                    </Button>
-                  </Stack>
-                </Card>
-              ) : null}
-            </Stack>
-          </Grid>
+                  <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5 }}>
+                    Chọn vai trò mẫu hoặc nhập thông tin ủy quyền của bạn
+                  </Typography>
+                </Box>
 
-          {/* Right Form Column */}
-          <Grid item xs={12} md={7}>
-            <Card sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 2 }}>
-              <CardContent sx={{ p: 0 }}>
-                <Stack spacing={3.5}>
-                  <Box>
-                    <Typography variant="h3" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                      Đăng nhập tài khoản
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Nhập tài khoản và mật khẩu được cấp, hoặc chọn nhanh tài khoản demo bên dưới.
-                    </Typography>
-                  </Box>
-
-                  {/* Demo presets quick-fill */}
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ textTransform: 'uppercase', fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}
-                    >
-                      Chọn nhanh tài khoản mẫu:
-                    </Typography>
-                    <Grid container spacing={1.5}>
-                      {DEMO_PRESETS.map((preset) => (
+                {/* Preset Role Cards */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                      color: '#6B7280',
+                      letterSpacing: '0.04em',
+                      display: 'block',
+                      mb: 1,
+                    }}
+                  >
+                    Chọn nhanh tài khoản mẫu:
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    {DEMO_PRESETS.map((preset) => {
+                      const isSelected = selectedPresetRole === preset.role;
+                      return (
                         <Grid item xs={12} sm={6} key={preset.username}>
                           <Card
                             variant="outlined"
                             sx={{
                               height: '100%',
-                              transition: 'all 0.2s ease',
+                              borderRadius: '8px',
+                              borderColor: isSelected ? '#1B51A4' : '#E5E7EB',
+                              bgcolor: isSelected ? '#F0F7FF' : '#FFFFFF',
+                              boxShadow: isSelected ? '0 0 0 1px #1B51A4' : 'none',
+                              transition: 'all 0.15s ease',
                               '&:hover': {
-                                borderColor: 'primary.main',
-                                bgcolor: 'rgba(26, 115, 232, 0.04)',
+                                borderColor: '#1B51A4',
+                                bgcolor: '#F8FAFC',
                               },
                             }}
                           >
                             <CardActionArea
                               onClick={() => handleSelectPreset(preset)}
-                              sx={{ p: 1.5, height: '100%' }}
+                              sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
                             >
-                              <Stack spacing={1}>
+                              <Stack spacing={0.75} sx={{ width: '100%' }}>
                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                                   <Stack direction="row" spacing={1} alignItems="center">
                                     {preset.icon}
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
                                       {preset.title}
                                     </Typography>
                                   </Stack>
-                                  <Chip
-                                    label={preset.role}
-                                    size="small"
-                                    color={preset.role === 'DPO' ? 'primary' : 'secondary'}
-                                    variant="outlined"
-                                  />
+                                  {isSelected && <CheckCircleRoundedIcon sx={{ fontSize: 16, color: '#1B51A4' }} />}
                                 </Stack>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" sx={{ color: '#4B5563', fontSize: '0.72rem', lineHeight: 1.4 }}>
                                   {preset.description}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    fontFamily: 'monospace',
-                                    fontWeight: 700,
-                                    color: 'text.primary',
-                                    bgcolor: 'action.hover',
-                                    p: 0.5,
-                                    borderRadius: 1,
-                                    display: 'inline-block',
-                                  }}
-                                >
-                                  {preset.username} / {preset.password}
-                                </Typography>
+                                <Box sx={{ pt: 0.5 }}>
+                                  <Chip
+                                    label={`${preset.username} / ${preset.password}`}
+                                    size="small"
+                                    sx={{
+                                      height: 20,
+                                      fontSize: '0.68rem',
+                                      fontFamily: 'monospace',
+                                      fontWeight: 600,
+                                      bgcolor: '#F3F4F6',
+                                      color: '#374151',
+                                      border: '1px solid #E5E7EB',
+                                    }}
+                                  />
+                                </Box>
                               </Stack>
                             </CardActionArea>
                           </Card>
                         </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
+                      );
+                    })}
+                  </Grid>
+                </Box>
 
-                  <Divider sx={{ my: 0.5 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      HOẶC NHẬP THÔNG TIN
-                    </Typography>
-                  </Divider>
+                <Divider sx={{ my: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.7rem', fontWeight: 600 }}>
+                    HOẶC NHẬP THÔNG TIN
+                  </Typography>
+                </Divider>
 
-                  {/* Form */}
-                  <Box
-                    component="form"
-                    onSubmit={(e) => {
-                      void handleSubmit(onSubmit)(e);
-                    }}
-                    noValidate
-                  >
-                    <Stack spacing={2.5}>
-                      {error ? (
-                        <Alert severity="error" onClose={clearError}>
-                          {error}
-                        </Alert>
-                      ) : null}
+                {/* Form */}
+                <Box
+                  component="form"
+                  onSubmit={(e) => {
+                    void handleSubmit(onSubmit)(e);
+                  }}
+                  noValidate
+                >
+                  <Stack spacing={2}>
+                    {error ? (
+                      <Alert severity="error" onClose={clearError} sx={{ fontSize: '0.8rem' }}>
+                        {error}
+                      </Alert>
+                    ) : null}
 
-                      {/* Tài khoản (Username) */}
-                      <Controller
-                        name="username"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            id="login-username"
-                            label="Tài khoản"
-                            placeholder="Nhập tên tài khoản (VD: dpo hoặc analyst)"
-                            fullWidth
-                            autoComplete="username"
-                            error={Boolean(errors.username)}
-                            helperText={errors.username?.message}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <PersonOutlineOutlinedIcon color="action" />
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        )}
-                      />
+                    {/* Username */}
+                    <Controller
+                      name="username"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          id="login-username"
+                          label="Tài khoản"
+                          placeholder="Nhập tên tài khoản (VD: dpo hoặc analyst)"
+                          fullWidth
+                          size="small"
+                          autoComplete="username"
+                          error={Boolean(errors.username)}
+                          helperText={errors.username?.message}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PersonOutlineOutlinedIcon sx={{ fontSize: 18, color: '#9CA3AF' }} />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
 
-                      {/* Mật khẩu (Password) */}
-                      <Controller
-                        name="password"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            id="login-password"
-                            label="Mật khẩu"
-                            placeholder="Nhập mật khẩu"
-                            type={showPassword ? 'text' : 'password'}
-                            fullWidth
-                            autoComplete="current-password"
-                            error={Boolean(errors.password)}
-                            helperText={errors.password?.message}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <LockOutlinedIcon color="action" />
-                                </InputAdornment>
-                              ),
-                              endAdornment: (
-                                <InputAdornment position="end">
-                                  <IconButton
-                                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
-                                    onClick={() => setShowPassword((prev) => !prev)}
-                                    edge="end"
-                                  >
-                                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                                  </IconButton>
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        )}
-                      />
+                    {/* Password */}
+                    <Controller
+                      name="password"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          id="login-password"
+                          label="Mật khẩu"
+                          placeholder="Nhập mật khẩu"
+                          size="small"
+                          type={showPassword ? 'text' : 'password'}
+                          fullWidth
+                          autoComplete="current-password"
+                          error={Boolean(errors.password)}
+                          helperText={errors.password?.message}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <LockOutlinedIcon sx={{ fontSize: 18, color: '#9CA3AF' }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                                  onClick={() => setShowPassword((prev) => !prev)}
+                                  edge="end"
+                                  size="small"
+                                >
+                                  {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
 
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        disabled={isLoading}
-                        startIcon={
-                          isLoading ? (
-                            <CircularProgress size={20} color="inherit" />
-                          ) : (
-                            <LoginOutlinedIcon />
-                          )
-                        }
-                        sx={{ mt: 1, py: 1.5 }}
-                      >
-                        {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={isLoading}
+                      startIcon={
+                        isLoading ? <CircularProgress size={16} color="inherit" /> : <LoginOutlinedIcon sx={{ fontSize: 18 }} />
+                      }
+                      sx={{
+                        mt: 1,
+                        py: 1,
+                        bgcolor: '#1B51A4',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        borderRadius: '6px',
+                        '&:hover': { bgcolor: '#154185' },
+                      }}
+                    >
+                      {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            </Grid>
           </Grid>
-        </Grid>
+        </Card>
       </Container>
     </Box>
   );

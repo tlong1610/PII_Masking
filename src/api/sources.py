@@ -63,18 +63,34 @@ _DEMO_SOURCES: list[Source] = [
 ]
 
 
-def mongo_live_enabled() -> bool:
+def mongo_live_enabled(client=None) -> bool:
     from src.config import get_settings
 
     settings = get_settings()
     if not (settings.enable_mongo and settings.mongo_uri):
         return False
+    if client is not None:
+        try:
+            client.admin.command("ping")
+            return True
+        except Exception:
+            return False
+    try:
+        import sys
+        runs_mod = sys.modules.get("src.api.runs")
+        if runs_mod is not None and hasattr(runs_mod, "mongo_client"):
+            override = runs_mod.mongo_client()
+            if override is not None:
+                override.admin.command("ping")
+                return True
+    except Exception:
+        pass
     try:
         from pymongo import MongoClient
 
-        client = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=1000)
-        client.admin.command("ping")
-        client.close()
+        c = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=1000)
+        c.admin.command("ping")
+        c.close()
     except Exception:
         return False
     return True
@@ -297,6 +313,7 @@ class SourceConnection:
         return get_settings().mongo_snapshot_db
 
 
+
 def _tables_tuple(raw: str) -> tuple[str, ...] | None:
     tables = tuple(t.strip() for t in raw.split(",") if t.strip())
     return tables or None
@@ -337,15 +354,15 @@ def resolve_connection(source: Source, db: Session) -> SourceConnection:
 
 
 def _audit(db: Session, user: SessionUser, action: str, entity_id: str, reason: str = "") -> None:
-    db.add(
-        db_models.AuditEvent(
-            actor_id=user.id,
-            role=user.role,
-            action=action,
-            entity_type="source",
-            entity_id=entity_id,
-            reason=reason,
-        )
+    from src.audit import record_audit_event
+
+    record_audit_event(
+        db,
+        actor=user,
+        action=action,
+        entity_type="source",
+        entity_id=entity_id,
+        reason=reason,
     )
 
 
@@ -418,6 +435,7 @@ def create_source(
 @router.delete("/sources/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_source(
     source_id: str,
+    force: bool = False,
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
 ) -> None:
@@ -426,7 +444,19 @@ def delete_source(
         raise HTTPException(status_code=404, detail="Source not found")
     in_use = db.scalar(select(db_models.Run.id).where(db_models.Run.source_id == source_id).limit(1))
     if in_use is not None:
-        raise HTTPException(status_code=409, detail="Source has runs and cannot be deleted")
+        if not force:
+            raise HTTPException(status_code=409, detail="Source has runs and cannot be deleted")
+        # Cascade cleanup runs and all associated metadata
+        run_ids = db.scalars(select(db_models.Run.id).where(db_models.Run.source_id == source_id)).all()
+        for rid in run_ids:
+            dataset_ids = db.scalars(select(db_models.Dataset.id).where(db_models.Dataset.run_id == rid)).all()
+            if dataset_ids:
+                db.query(db_models.VerifierResult).filter(db_models.VerifierResult.dataset_id.in_(dataset_ids)).delete(synchronize_session=False)
+                db.query(db_models.Dataset).filter(db_models.Dataset.id.in_(dataset_ids)).delete(synchronize_session=False)
+            db.query(db_models.FieldDecisionHistory).filter(db_models.FieldDecisionHistory.run_id == rid).delete(synchronize_session=False)
+            db.query(db_models.FieldDecision).filter(db_models.FieldDecision.run_id == rid).delete(synchronize_session=False)
+            db.query(db_models.FieldProfile).filter(db_models.FieldProfile.run_id == rid).delete(synchronize_session=False)
+            db.query(db_models.Run).filter(db_models.Run.id == rid).delete(synchronize_session=False)
     db.delete(row)
     _audit(db, user, "delete_source", source_id)
     db.commit()

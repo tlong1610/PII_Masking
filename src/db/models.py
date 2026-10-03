@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
@@ -57,6 +57,9 @@ class Run(Base):
 
     field_profiles: Mapped[list["FieldProfile"]] = relationship(back_populates="run")
     field_decisions: Mapped[list["FieldDecision"]] = relationship(back_populates="run")
+    decision_history: Mapped[list["FieldDecisionHistory"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan", order_by="FieldDecisionHistory.id"
+    )
     datasets: Mapped[list["Dataset"]] = relationship(back_populates="run")
 
 
@@ -90,9 +93,33 @@ class FieldDecision(Base):
     decided_by: Mapped[int] = mapped_column(ForeignKey("demo_users.id"), nullable=False)
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     decision_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    is_exception: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    exception_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     run: Mapped["Run"] = relationship(back_populates="field_decisions")
     field_profile: Mapped["FieldProfile"] = relationship(back_populates="decisions")
+
+
+class FieldDecisionHistory(Base):
+    """Immutable audit trail of field decision versions and changes (before / after)."""
+
+    __tablename__ = "field_decision_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"), nullable=False, index=True)
+    field_profile_id: Mapped[int] = mapped_column(ForeignKey("field_profiles.id"), nullable=False, index=True)
+    from_action: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    to_action: Mapped[str] = mapped_column(String(16), nullable=False)
+    from_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    to_reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    decided_by: Mapped[int] = mapped_column(ForeignKey("demo_users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    is_exception: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    exception_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    run: Mapped["Run"] = relationship(back_populates="decision_history")
+    field_profile: Mapped["FieldProfile"] = relationship()
 
 
 class Dataset(Base):
@@ -139,3 +166,40 @@ class AuditEvent(Base):
     entity_id: Mapped[str] = mapped_column(String(64), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    prev_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="0" * 64)
+    entry_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    request_id: Mapped[str | None] = mapped_column(String(64), nullable=True, default=None)
+    client_ip: Mapped[str | None] = mapped_column(String(64), nullable=True, default=None)
+
+
+class VaultToken(Base):
+    """Encrypted token vault storage using AES-256-GCM (§9.5, FR-13)."""
+
+    __tablename__ = "vault_tokens"
+    __table_args__ = (UniqueConstraint("blind_index", "entity_type", name="uq_vault_tokens_blind_entity"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    encrypted_value: Mapped[str] = mapped_column(Text, nullable=False)
+    blind_index: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    key_version: Mapped[str] = mapped_column(String(32), nullable=False, default="v1")
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False, default="PII")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class DatasetGrant(Base):
+    """User entitlement grant for a published dataset (§3, §14.2)."""
+
+    __tablename__ = "dataset_grants"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("demo_users.id"), nullable=False, index=True)
+    granted_by: Mapped[int] = mapped_column(ForeignKey("demo_users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    dataset: Mapped["Dataset"] = relationship(backref="grants")
+    user: Mapped["DemoUser"] = relationship(foreign_keys=[user_id])
+    grantor: Mapped["DemoUser"] = relationship(foreign_keys=[granted_by])
+

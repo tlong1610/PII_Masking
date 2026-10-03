@@ -91,3 +91,31 @@ async def test_client_cannot_choose_role_via_body(client):
     )
     assert response.status_code == 200
     assert response.json()["role"] == "ANALYST"
+
+
+@pytest.mark.asyncio
+async def test_login_rate_limiting(client):
+    """Exceeding auth rate limit returns HTTP 429."""
+    from src.api.auth import get_auth_rate_limiter, reset_auth_rate_limiter
+
+    reset_auth_rate_limiter()
+    limiter = get_auth_rate_limiter()
+    old_max = limiter.max_requests
+    try:
+        limiter.max_requests = 3
+        # Send 3 attempts
+        for _ in range(3):
+            await client.post(
+                "/api/v1/sessions",
+                json={"username": "attacker", "password": "bad_password"},
+            )
+        # 4th attempt should be blocked with 429
+        blocked = await client.post(
+            "/api/v1/sessions",
+            json={"username": "attacker", "password": "bad_password"},
+        )
+        assert blocked.status_code == 429
+        assert "Quá nhiều yêu cầu đăng nhập" in blocked.json()["detail"]
+    finally:
+        limiter.max_requests = old_max
+        reset_auth_rate_limiter()

@@ -3898,7 +3898,9 @@ ALTER TABLE customers
     ADD COLUMN IF NOT EXISTS cccd character varying(12),
     ADD COLUMN IF NOT EXISTS date_of_birth date,
     ADD COLUMN IF NOT EXISTS tax_code character varying(13),
-    ADD COLUMN IF NOT EXISTS personal_notes text;
+    ADD COLUMN IF NOT EXISTS personal_notes text,
+    ADD COLUMN IF NOT EXISTS c1 character varying(20),
+    ADD COLUMN IF NOT EXISTS c2 character varying(12);
 
 ALTER TABLE employees
     ADD COLUMN IF NOT EXISTS personal_email character varying(80),
@@ -4031,6 +4033,8 @@ UPDATE customers SET email='welli.1213@example.vn', mobile_phone='0375142504', c
 UPDATE customers SET email='whitc.3376@example.vn', mobile_phone='0942247253', cccd='048231011831', date_of_birth=DATE '1993-11-07', tax_code='1602400536', personal_notes='LH 0942247253; CCCD 048231011831. Don hang cu #459882411041 da giao. Email backup: whitc.3376@example.vn', phone='0942247253' WHERE customer_id='WHITC';
 UPDATE customers SET email='wilmk.4701@example.vn', mobile_phone='0933073545', cccd='033260203083', date_of_birth=DATE '1972-08-25', tax_code='0145126533', personal_notes='LH 0933073545; CCCD 033260203083. Don hang cu #923350865084 da giao. Email backup: wilmk.4701@example.vn', phone='0933073545' WHERE customer_id='WILMK';
 UPDATE customers SET email='wolza.4456@example.vn', mobile_phone='0398999120', cccd='092210212206', date_of_birth=DATE '1969-02-23', tax_code='1398319207', personal_notes='LH 0398999120; CCCD 092210212206. Don hang cu #942209180864 da giao. Email backup: wolza.4456@example.vn', phone='0398999120' WHERE customer_id='WOLZA';
+
+UPDATE customers SET c1 = mobile_phone, c2 = cccd;
 
 -- ----- Enrich employees -----
 UPDATE employees SET personal_email='nancy.3633@example.vn', cccd='038362218063', mobile_phone='0987170449', tax_code='5607603774', home_phone='0987170449', notes = COALESCE(notes, '') || ' Lien he ca nhan: 0987170449 / nancy.3633@example.vn; CCCD 038362218063.' WHERE employee_id=1;

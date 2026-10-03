@@ -1,0 +1,75 @@
+table,column,entity,sensitivity,category,expected_action,is_edge_case,split,source,id,legal_basis
+customers,cccd,CCCD,L3,sensitive,HMAC,False,dev,postgres,pg-cust-cccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+customers,email,EMAIL,L2,sensitive,MASK,False,dev,postgres,pg-cust-email-01,Luật 91/2025/QH15 Điều 9 Khoản 1; NĐ 356/2025/NĐ-CP Điều 4
+customers,mobile_phone,PHONE_VN,L2,sensitive,MASK,False,dev,postgres,pg-cust-mobile-01,Luật 91/2025/QH15 Điều 9 Khoản 1; NĐ 356/2025/NĐ-CP Điều 4
+customers,date_of_birth,DATE_OF_BIRTH,L1,sensitive,MASK,False,dev,postgres,pg-cust-dob-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,tax_code,TAX_CODE_PERSONAL,L2,sensitive,MASK,False,dev,postgres,pg-cust-taxcode-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+customers,personal_notes,FREE_TEXT_PII,L3,sensitive,MASK,False,dev,postgres,pg-cust-notes-01,Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
+customers,contact_name,FULL_NAME,L2,basic,MASK,False,dev,postgres,pg-cust-name-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,phone,PHONE_VN,L2,basic,MASK,False,holdout,postgres,pg-cust-phone-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,fax,PHONE_FAX,L2,basic,MASK,False,holdout,postgres,pg-cust-fax-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,address,STREET_ADDRESS,L2,basic,MASK,False,dev,postgres,pg-cust-address-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,city,CITY,L1,basic,KEEP,False,dev,postgres,pg-cust-city-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,country,COUNTRY,L0,non_personal,KEEP,False,dev,postgres,pg-cust-country-01,Luật 91/2025/QH15 Điều 2 (Loại trừ)
+customers,customer_id,SYSTEM_ID,L0,non_personal,KEEP,True,dev,postgres,pg-cust-id-01,Luật 91/2025/QH15 Điều 2 (Mã hệ thống nội bộ)
+customers,company_name,ORGANIZATION_NAME,L0,non_personal,KEEP,False,dev,postgres,pg-cust-company-01,Luật 91/2025/QH15 Điều 2 (Dữ liệu pháp nhân)
+customers,contact_title,JOB_TITLE,L0,non_personal,KEEP,False,dev,postgres,pg-cust-title-01,Luật 91/2025/QH15 Điều 2
+orders,customer_cccd,CCCD,L3,sensitive,HMAC,False,dev,postgres,pg-ord-custcccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+orders,ship_phone,PHONE_VN,L2,basic,MASK,False,dev,postgres,pg-ord-shipphone-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,tracking_code,TRACKING_NUMBER,L0,non_personal,KEEP,True,dev,postgres,pg-ord-tracking-01,Luật 91/2025/QH15 Điều 2 (Mã logistics nghiệp vụ)
+orders,order_notes,FREE_TEXT_PII,L3,sensitive,MASK,False,dev,postgres,pg-ord-notes-01,Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
+orders,ship_name,RECIPIENT_NAME,L2,basic,MASK,False,holdout,postgres,pg-ord-shipname-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,ship_address,STREET_ADDRESS,L2,basic,MASK,False,dev,postgres,pg-ord-shipaddr-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,order_id,TRANSACTION_ID,L0,non_personal,KEEP,True,dev,postgres,pg-ord-id-01,Luật 91/2025/QH15 Điều 2 (Khóa nghiệp vụ giao dịch)
+orders,freight,FINANCIAL_AMOUNT,L0,non_personal,KEEP,True,dev,postgres,pg-ord-freight-01,Luật 91/2025/QH15 Điều 2 (Số tiền cước phí)
+orders,order_date,TRANSACTION_DATE,L0,non_personal,KEEP,False,dev,postgres,pg-ord-date-01,Luật 91/2025/QH15 Điều 2
+employees,cccd,CCCD,L3,sensitive,HMAC,False,dev,postgres,pg-emp-cccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+employees,personal_email,EMAIL,L2,sensitive,MASK,False,dev,postgres,pg-emp-email-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+employees,mobile_phone,PHONE_VN,L2,sensitive,MASK,False,dev,postgres,pg-emp-mobile-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+employees,tax_code,TAX_CODE_PERSONAL,L2,sensitive,MASK,False,dev,postgres,pg-emp-taxcode-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+employees,first_name,FIRST_NAME,L2,basic,MASK,False,dev,postgres,pg-emp-name-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+employees,birth_date,DATE_OF_BIRTH,L1,sensitive,MASK,False,dev,postgres,pg-emp-birth-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+suppliers,contact_cccd,CCCD,L3,sensitive,HMAC,False,dev,postgres,pg-sup-cccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+suppliers,contact_email,EMAIL,L2,basic,MASK,False,dev,postgres,pg-sup-email-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+suppliers,tax_code,TAX_CODE_ORG,L0,non_personal,KEEP,True,dev,postgres,pg-sup-taxcode-01,Luật 91/2025/QH15 Điều 2 (Dữ liệu doanh nghiệp)
+support_tickets,body,FREE_TEXT_PII,L3,sensitive,MASK,False,dev,postgres,pg-tick-body-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+kyc_documents,ocr_text,OCR_IDENTITY_DOC,L3,sensitive,DROP,False,dev,postgres,pg-kyc-ocr-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+kyc_documents,file_path,INTERNAL_FILE_PATH,L3,sensitive,DROP,False,dev,postgres,pg-kyc-filepath-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+customers,_id,SYSTEM_ID,L0,non_personal,KEEP,False,dev,mongo,mg-cust-id-01,Luật 91/2025/QH15 Điều 2
+customers,company.name,ORGANIZATION_NAME,L0,non_personal,KEEP,False,dev,mongo,mg-cust-compname-01,Luật 91/2025/QH15 Điều 2
+customers,company.contact_name,FULL_NAME,L2,basic,MASK,False,dev,mongo,mg-cust-contactname-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,contact.email,EMAIL,L2,sensitive,MASK,False,dev,mongo,mg-cust-email-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,contact.mobile_phone,PHONE_VN,L2,sensitive,MASK,False,dev,mongo,mg-cust-mobile-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,identity.cccd,CCCD,L3,sensitive,HMAC,False,dev,mongo,mg-cust-cccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+customers,identity.date_of_birth,DATE_OF_BIRTH,L1,sensitive,MASK,False,dev,mongo,mg-cust-dob-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,identity.tax_code,TAX_CODE_PERSONAL,L2,sensitive,MASK,False,dev,mongo,mg-cust-taxcode-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+customers,notes,FREE_TEXT_PII,L3,sensitive,MASK,False,holdout,mongo,mg-cust-notes-01,Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
+orders,_id,TRANSACTION_ID,L0,non_personal,KEEP,False,dev,mongo,mg-ord-id-01,Luật 91/2025/QH15 Điều 2
+orders,customer_id,SYSTEM_ID,L0,non_personal,KEEP,False,dev,mongo,mg-ord-custid-01,Luật 91/2025/QH15 Điều 2
+orders,shipment.freight,FINANCIAL_AMOUNT,L0,non_personal,KEEP,False,dev,mongo,mg-ord-freight-01,Luật 91/2025/QH15 Điều 2
+orders,shipment.name,RECIPIENT_NAME,L2,basic,MASK,False,dev,mongo,mg-ord-shipname-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,shipment.address,STREET_ADDRESS,L2,basic,MASK,False,dev,mongo,mg-ord-shipaddr-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,pii_ext.customer_cccd,CCCD,L3,sensitive,HMAC,False,dev,mongo,mg-ord-piicccd-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+orders,pii_ext.ship_phone,PHONE_VN,L2,basic,MASK,False,dev,mongo,mg-ord-piiphone-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,pii_ext.tracking_code,TRACKING_NUMBER,L0,non_personal,KEEP,True,dev,mongo,mg-ord-piitracking-01,Luật 91/2025/QH15 Điều 2
+orders,pii_ext.order_notes,FREE_TEXT_PII,L3,sensitive,MASK,False,dev,mongo,mg-ord-piinotes-01,Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
+orders,tracking_code,TRACKING_NUMBER,L0,non_personal,KEEP,True,holdout,postgres,holdout-edge-tracking-01,Luật 91/2025/QH15 Điều 2 (Ngoại lệ chuỗi 12 chữ số logistics)
+orders,order_notes,FREE_TEXT_PII,L3,sensitive,MASK,True,holdout,postgres,holdout-edge-tracking-notes-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
+suppliers,tax_code,TAX_CODE_ORG,L0,non_personal,KEEP,True,holdout,postgres,holdout-edge-org-taxcode-01,Luật 91/2025/QH15 Điều 2 (Pháp nhân không thuộc phạm vi bảo vệ dữ liệu cá nhân)
+customers,tax_code,TAX_CODE_PERSONAL,L2,sensitive,MASK,True,holdout,postgres,holdout-edge-personal-taxcode-01,Luật 91/2025/QH15 Điều 9 Khoản 2
+orders,freight,FINANCIAL_AMOUNT,L0,non_personal,KEEP,True,holdout,postgres,holdout-edge-freight-num-01,Luật 91/2025/QH15 Điều 2
+customers,customer_id,SYSTEM_ID,L0,non_personal,KEEP,True,holdout,postgres,holdout-edge-custid-str-01,Luật 91/2025/QH15 Điều 2
+orders,order_id,TRANSACTION_ID,L0,non_personal,KEEP,True,holdout,postgres,holdout-edge-orderid-seq-01,Luật 91/2025/QH15 Điều 2
+customers,email,EMAIL,L2,sensitive,MASK,True,holdout,postgres,holdout-edge-org-email-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,personal_notes,FREE_TEXT_PII,L3,sensitive,MASK,True,holdout,postgres,holdout-edge-anon-seq-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+orders,pii_ext.tracking_code,TRACKING_NUMBER,L0,non_personal,KEEP,True,holdout,mongo,holdout-mg-edge-tracking-01,Luật 91/2025/QH15 Điều 2
+orders,pii_ext.order_notes,FREE_TEXT_PII,L3,sensitive,MASK,True,holdout,mongo,holdout-mg-edge-ordnotes-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,address.postal_code,POSTAL_CODE,L0,basic,KEEP,True,holdout,mongo,holdout-mg-edge-address-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+customers,address.region,GEOGRAPHIC_REGION,L0,non_personal,KEEP,True,holdout,mongo,holdout-mg-edge-region-01,Luật 91/2025/QH15 Điều 2
+employees,notes,BIOGRAPHY,L2,basic,MASK,True,holdout,postgres,holdout-pg-emp-notes-01,Luật 91/2025/QH15 Điều 9 Khoản 1
+kyc_documents,doc_type,METADATA_DOC_TYPE,L0,non_personal,KEEP,True,holdout,postgres,holdout-pg-kyc-doctype-01,Luật 91/2025/QH15 Điều 2
+support_tickets,subject,TICKET_SUBJECT,L0,non_personal,KEEP,True,holdout,postgres,holdout-pg-ticket-subj-01,Luật 91/2025/QH15 Điều 2
+orders,ship_via,FOREIGN_KEY,L0,non_personal,KEEP,True,holdout,postgres,holdout-pg-ord-shipper-01,Luật 91/2025/QH15 Điều 2
+customers,postal_code,UNKNOWN_OR_MIXED,L0,unknown,KEEP,True,holdout,postgres,holdout-pg-unknown-field-01,Luật 91/2025/QH15 Điều 4 (Nguyên tắc đánh giá rủi ro theo ngữ cảnh)
+customers,c1,PHONE_VN,L2,basic,MASK,True,holdout,postgres,pg-cust-c1-01,Luật 91/2025/QH15 Điều 9 Khoản 1; NĐ 356/2025/NĐ-CP Điều 4
+customers,c2,CCCD,L3,sensitive,HMAC,True,holdout,postgres,pg-cust-c2-01,Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4

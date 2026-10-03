@@ -47,7 +47,12 @@ export function useDeleteDataSource() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sourceId: string) => api.deleteDataSource(sourceId),
+    mutationFn: (param: string | { sourceId: string; force?: boolean }) => {
+      if (typeof param === 'string') {
+        return api.deleteDataSource(param, false);
+      }
+      return api.deleteDataSource(param.sourceId, param.force ?? false);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.sources });
     },
@@ -100,8 +105,15 @@ export function useUpdateFieldDecisions(runId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (decisions: Array<{ field_profile_id: number; action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP'; reason?: string }>) =>
-      api.updateFieldDecisions(runId, decisions),
+    mutationFn: (
+      decisions: Array<{
+        field_profile_id: number;
+        action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
+        reason?: string;
+        is_exception?: boolean;
+        exception_until?: string | null;
+      }>
+    ) => api.updateFieldDecisions(runId, decisions),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
     },
@@ -161,3 +173,13 @@ export function useDatasetPreview(datasetId: number | null) {
     enabled: datasetId !== null,
   });
 }
+
+export function useRiskScore(runId: number | null) {
+  return useQuery({
+    queryKey: ['pii-review', 'risk-score', runId] as const,
+    queryFn: () => api.fetchRiskScore(runId!),
+    enabled: runId !== null,
+    staleTime: 5000,
+  });
+}
+

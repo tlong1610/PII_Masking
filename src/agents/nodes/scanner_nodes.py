@@ -41,7 +41,15 @@ def tier1_static_node(state: AgentState) -> dict[str, Any]:
         return {"error": "Missing column_profile in state"}
 
     scan_result = scanner.tier1_static_filter(col_profile)
-    return {"tier1_result": scan_result}
+    # Zero Raw-PII at-rest (§6.3): Sanitize samples into data shape immediately
+    data_shape = RuleBasedScanner.transform_to_data_shape(col_profile.samples)
+    sanitized_profile = col_profile.model_copy(update={"samples": data_shape})
+    return {
+        "tier1_result": scan_result,
+        "column_profile": sanitized_profile,
+        "data_shape": data_shape,
+    }
+
 
 
 def tier2_bm25_node(state: AgentState) -> dict[str, Any]:
@@ -130,11 +138,12 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     few_shot_examples = get_few_shot_examples(limit=3)
     few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
 
-    llm = get_llm()
-    parser = PydanticOutputParser(pydantic_object=FieldScanResult)
+    try:
+        llm = get_llm()
+        parser = PydanticOutputParser(pydantic_object=FieldScanResult)
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
 Nhiệm vụ của bạn là phân tích cấu trúc của một cột trong Database và quyết định xem nó có chứa dữ liệu cá nhân (PII) hay không, dựa trên tên cột và hình dáng dữ liệu (Data Shape) đã được ẩn danh.
 
 Các loại PII (inferred_pii_type) có thể là: CCCD, PHONE, EMAIL, ADDRESS, DOB, TAX_CODE, UNKNOWN, NOT_PERSONAL_DATA...
@@ -143,7 +152,7 @@ Hành động khuyến nghị (recommended_action): HMAC (nếu là Khóa chính
 {format_instructions}
 
 QUAN TRỌNG: Trường 'reasoning' TRONG JSON PHẢI CỰC KỲ NGẮN GỌN (TỐI ĐA 15 TỪ). Tuyệt đối không giải thích dài dòng."""),
-        ("human", """ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
+            ("human", """ĐÂY LÀ KINH NGHIỆM TỪ CÁC CHUYÊN GIA DPO TRƯỚC ĐÓ (FEW-SHOT EXAMPLES):
 {few_shot_examples}
 
 THÔNG TIN CỘT CẦN PHÂN TÍCH:
@@ -153,28 +162,43 @@ THÔNG TIN CỘT CẦN PHÂN TÍCH:
 - Data Shapes (Mẫu dữ liệu đã được biến đổi thành dạng ký tự X và C): {data_shapes}
 
 Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu (không thêm bất kỳ văn bản giải thích nào khác).""")
-    ])
+        ])
 
-    # Gọi API thật. Bắt kết quả thô để lấy response_metadata
-    raw_response = llm.invoke(prompt.format_prompt(**{
-        "few_shot_examples": few_shot_str,
-        "column_name": col_profile.column_name,
-        "data_type": col_profile.data_type,
-        "system_rec": col_profile.system_recommendation or "Không",
-        "data_shapes": json.dumps(data_shape),
-        "format_instructions": parser.get_format_instructions()
-    }).to_messages())
+        # Gọi API thật. Bắt kết quả thô để lấy response_metadata
+        raw_response = llm.invoke(prompt.format_prompt(**{
+            "few_shot_examples": few_shot_str,
+            "column_name": col_profile.column_name,
+            "data_type": col_profile.data_type,
+            "system_rec": col_profile.system_recommendation or "Không",
+            "data_shapes": json.dumps(data_shape),
+            "format_instructions": parser.get_format_instructions()
+        }).to_messages())
 
-    content = raw_response.content
-    if isinstance(content, list):
-        content = " ".join(block.get("text", "") if isinstance(block, dict) else str(block) for block in content)
+        content = raw_response.content
+        if isinstance(content, list):
+            content = " ".join(block.get("text", "") if isinstance(block, dict) else str(block) for block in content)
 
-    result: FieldScanResult = parser.parse(content)
-    result.provider_meta = getattr(raw_response, "response_metadata", None)
+        result: FieldScanResult = parser.parse(content)
+        result.provider_meta = getattr(raw_response, "response_metadata", None)
 
-    # Ghi đè tier logic
-    result.tier = "TIER_3_LLM"
-    return {"tier3_result": result}
+        # Ghi đè tier logic
+        result.tier = "TIER_3_LLM"
+        return {"tier3_result": result}
+    except Exception as e:
+        import logging
+
+        from src.models.schemas import PolicyAction
+        col_name = getattr(col_profile, "column_name", "unknown")
+        logging.getLogger(__name__).warning("LLM reasoning fallback for %s: %s", col_name, e)
+        fallback_result = FieldScanResult(
+            field_name=col_name,
+            inferred_pii_type=PIIType.UNKNOWN.value,
+            recommended_action=PolicyAction.KEEP.value,
+            confidence=0.0,
+            reasoning=f"LLM unavailable: {e}",
+            tier="TIER_3_LLM"
+        )
+        return {"tier3_result": fallback_result}
 
 
 def proposal_node(state: AgentState) -> dict[str, Any]:

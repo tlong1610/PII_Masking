@@ -430,6 +430,31 @@ class MongoVerifier:
                 parent[leaf] = self.hasher.hash(parent[leaf])
             elif act == "MASK":
                 parent[leaf] = self._mask_value(leaf, parent[leaf])
+            elif act == "TOKENIZE":
+                val = parent[leaf]
+                if val is not None:
+                    try:
+                        from src.db.session import get_session_factory
+                        from src.vault.service import tokenize_value
+
+                        session_factory = get_session_factory()
+                        with session_factory() as db:
+                            tok = tokenize_value(db, str(val), entity_type="PII")
+                            parent[leaf] = tok.token
+                    except Exception:
+                        parent[leaf] = f"tok_{self.hasher.hash(str(val))[:16]}"
+            elif act == "PARTIAL":
+                from src.transform.mask_engine import partial_mask
+
+                parent[leaf] = partial_mask(parent[leaf])
+            elif act == "GENERALIZE":
+                from src.transform.mask_engine import generalize_value
+
+                parent[leaf] = generalize_value(parent[leaf])
+            elif act == "REDACT":
+                parent[leaf] = "[REDACTED]" if parent[leaf] is not None else None
+            elif act == "NULLIFY":
+                parent[leaf] = None
         return out
 
     def build_snapshot_from_actions(

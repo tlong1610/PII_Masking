@@ -75,8 +75,31 @@ class FieldProfileScanner:
         Trả về None nếu mập mờ hoặc không có rule tĩnh nào xử lý được.
         """
         path_snake = self.flatten_path(profile.path)
+        tbl_name = (profile.table_or_collection or "").lower()
 
-        # Bước 0: Bắt các ca ÂM (Tracking, Order, Amount) - Chắc chắn 100% không phải PII
+        # Bước 0.1: Kiểm tra bảng nhà cung cấp / tổ chức: tax_code là MST doanh nghiệp -> KEEP
+        if tbl_name in ["suppliers", "vendor", "partners", "company"] and any(kw in path_snake.lower() for kw in ["tax_code", "mst", "ma_so_thue"]):
+            return FieldScanProposal(
+                field_path=profile.path,
+                classification="NON_PERSONAL",
+                action=PolicyAction.KEEP,
+                reason="Mã số thuế doanh nghiệp/tổ chức (công khai, không phải PII cá nhân).",
+                confidence=1.0,
+                tier="TIER_1_RULES"
+            )
+
+        # Bước 0.2: KYC Documents: ocr_text và file_path là tài liệu lưu trữ nhạy cảm -> DROP
+        if tbl_name == "kyc_documents" and path_snake.lower() in ["ocr_text", "file_path"]:
+            return FieldScanProposal(
+                field_path=profile.path,
+                classification="PERSONAL_SENSITIVE",
+                action=PolicyAction.DROP,
+                reason="Tài liệu/OCR giấy tờ tùy thân nhạy cảm trong bảng kyc_documents, loại bỏ khỏi view phân tích (DROP).",
+                confidence=1.0,
+                tier="TIER_1_RULES"
+            )
+
+        # Bước 0.3: Bắt các ca ÂM (Tracking, Order, Amount) - Chắc chắn 100% không phải PII
         negative_type = self._check_column_name(path_snake, NEGATIVE_COLUMNS)
         if negative_type:
             cls, act = self.get_classification_and_action(negative_type)

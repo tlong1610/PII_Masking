@@ -213,3 +213,62 @@ async def test_create_run_ai_scan_failure_marks_failed(client, monkeypatch):
     assert created.status_code == 201
     assert created.json()["status"] == "FAILED"
     assert created.json()["field_profiles"] == []
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_run_endpoint_rbac_and_execution(client):
+    dpo_token = await _login(client, "dpo", "dpo123")
+    analyst_token = await _login(client, "analyst", "analyst123")
+
+    # 1. Create run
+    created = await client.post(
+        "/api/v1/runs",
+        headers=_auth(dpo_token),
+        json={"source_id": "sql-demo"},
+    )
+    assert created.status_code == 201
+    run_id = created.json()["id"]
+
+    # 2. Unauthenticated -> 401
+    res_no_auth = await client.post(f"/api/v1/runs/{run_id}/orchestrate")
+    assert res_no_auth.status_code == 401
+
+    # 3. Analyst -> 403 (DPO only)
+    res_analyst = await client.post(
+        f"/api/v1/runs/{run_id}/orchestrate",
+        headers=_auth(analyst_token),
+    )
+    assert res_analyst.status_code == 403
+
+    # 4. Save compliant decisions for run
+    profiles = created.json()["field_profiles"]
+    decisions = []
+    for p in profiles:
+        act = "DROP" if p["classification"] == "UNKNOWN" else ("HMAC" if "id" in p["field_path"] else "MASK")
+        decisions.append({
+            "field_profile_id": p["id"],
+            "action": act,
+            "reason": "Standard DPO approved policy",
+            "is_exception": False,
+        })
+    put_res = await client.put(
+        f"/api/v1/runs/{run_id}/decisions",
+        headers=_auth(dpo_token),
+        json={"decisions": decisions},
+    )
+    assert put_res.status_code == 200
+
+    # 5. DPO calls orchestrator -> 200, executes 8-node pipeline
+    res_orch = await client.post(
+        f"/api/v1/runs/{run_id}/orchestrate",
+        headers=_auth(dpo_token),
+    )
+    assert res_orch.status_code == 200
+    orch_data = res_orch.json()
+    assert orch_data["run_id"] == run_id
+    assert orch_data["status"] == "COMPLETED"
+    assert orch_data["verification"]["passed"] is True
+    assert orch_data["verification"]["zero_raw_pii_leaks"] is True
+    assert orch_data["risk"]["score"] is not None
+    assert orch_data["applied_count"] == len(profiles)
+
