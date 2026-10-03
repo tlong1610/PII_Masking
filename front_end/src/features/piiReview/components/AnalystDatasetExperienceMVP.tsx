@@ -31,7 +31,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import type { DatasetRelationship } from '../api/realPiiReviewApi';
+import {
+  previewDataset,
+  type DatasetPreview,
+  type DatasetRelationship,
+} from '../api/realPiiReviewApi';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
 import {
@@ -99,12 +103,52 @@ function formatPreviewValue(value: string | number | boolean | null | undefined)
   return String(value);
 }
 
+function getDatasetFileName(datasetName: string): string {
+  const safeName = datasetName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${safeName || 'protected-dataset'}.csv`;
+}
+
+function formatCsvCell(value: string | number | boolean | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  if (!/[",\n\r]/.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildProtectedCsv(preview: DatasetPreview): string {
+  const exportColumns = preview.columns.filter((column) => column.transform !== 'DROPPED');
+  const header = exportColumns.map((column) => formatCsvCell(column.name)).join(',');
+  const rows = preview.rows.map((row) =>
+    exportColumns.map((column) => formatCsvCell(row[column.name])).join(','),
+  );
+  return [header, ...rows].join('\n');
+}
+
+function downloadCsv(preview: DatasetPreview): void {
+  const csv = buildProtectedCsv(preview);
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = getDatasetFileName(preview.dataset_name);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [collapsedPreviewSources, setCollapsedPreviewSources] = useState<Record<string, boolean>>(
     {},
   );
+  const [downloadingDatasetId, setDownloadingDatasetId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const { data: datasets, isLoading } = useDatasets('PUBLISHED');
   const { data: preview, isLoading: previewLoading } = useDatasetPreview(
@@ -129,12 +173,14 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     setSelectedDatasetId(datasetId);
     setShowPreview(true);
     setCollapsedPreviewSources({});
+    setDownloadError(null);
   };
 
   const handleClosePreview = () => {
     setShowPreview(false);
     setSelectedDatasetId(null);
     setCollapsedPreviewSources({});
+    setDownloadError(null);
   };
 
   const handleTogglePreviewSource = (sourcePath: string) => {
@@ -142,6 +188,25 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
       ...current,
       [sourcePath]: !current[sourcePath],
     }));
+  };
+
+  const handleDownloadPreview = (datasetPreview: DatasetPreview) => {
+    setDownloadError(null);
+    downloadCsv(datasetPreview);
+  };
+
+  const handleDownloadDataset = async (datasetId: number) => {
+    try {
+      setDownloadError(null);
+      setDownloadingDatasetId(datasetId);
+      const datasetPreview = await previewDataset(datasetId);
+      downloadCsv(datasetPreview);
+    } catch (error) {
+      console.error('Download failed:', error);
+      setDownloadError('Không thể tải dataset. Vui lòng mở xem trước rồi thử lại.');
+    } finally {
+      setDownloadingDatasetId(null);
+    }
   };
 
   if (isLoading) {
@@ -195,6 +260,12 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
         <Alert severity="success" sx={{ mb: 3 }}>
           Dataset đã được bảo vệ. Dữ liệu PII đã được che, băm HMAC hoặc loại bỏ trước khi Analyst xem.
         </Alert>
+
+        {downloadError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {downloadError}
+          </Alert>
+        )}
 
         <Paper sx={{ mb: 3, p: 2 }}>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -292,9 +363,10 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           <Button
             variant="contained"
             startIcon={<DownloadIcon />}
-            disabled
+            onClick={() => handleDownloadPreview(preview)}
+            disabled={preview.columns.every((column) => column.transform === 'DROPPED')}
           >
-            Tải dataset (sắp có)
+            Tải CSV an toàn
           </Button>
         </Box>
       </Box>
@@ -310,6 +382,12 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         Các dataset đã được DPO duyệt và bảo vệ PII
       </Typography>
+
+      {downloadError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {downloadError}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {datasets.map((dataset) => (
@@ -349,9 +427,10 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                       variant="contained"
                       size="small"
                       startIcon={<DownloadIcon />}
-                      disabled
+                      onClick={() => void handleDownloadDataset(dataset.id)}
+                      disabled={downloadingDatasetId === dataset.id}
                     >
-                      Tải xuống
+                      {downloadingDatasetId === dataset.id ? 'Đang tải...' : 'Tải CSV'}
                     </Button>
                   </Stack>
                 </Stack>

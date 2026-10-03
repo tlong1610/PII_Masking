@@ -217,6 +217,7 @@ async def scan_mongo_source(
     database_name: str,
     *,
     use_ai: bool,
+    collections: tuple[str, ...] | None = None,
     client: Any | None = None,
 ) -> list[dict[str, Any]]:
     """Profile every collection with MongoConnector and scan each flattened field.
@@ -229,15 +230,20 @@ async def scan_mongo_source(
 
     connector = MongoConnector(uri, database_name, client=client)
     db_profile = connector.extract_database_profile(sample_size=5)
+    wanted = set(collections) if collections else None
     rule_scanner = RuleBasedScanner()
     specs: list[dict[str, Any]] = []
     join_fields: set[tuple[str, str]] = set()
     for table in db_profile.tables:
+        if wanted is not None and table.table_name not in wanted:
+            continue
         for rel in table.relations:
             join_fields.add((table.table_name, rel.from_column))
             join_fields.add((rel.to_table, rel.to_column))
 
     for table in db_profile.tables:
+        if wanted is not None and table.table_name not in wanted:
+            continue
         for column in table.columns:
             is_join_key = (table.table_name, column.column_name) in join_fields
             scanner_col = column.model_copy(
@@ -277,5 +283,8 @@ async def scan_mongo_source(
             specs.append(spec)
 
     if not specs:
-        raise ValueError(f"No fields found in MongoDB database {database_name!r}")
+        raise ValueError(
+            f"No fields scanned (wanted collections={sorted(wanted) if wanted else 'all'}; "
+            f"found={[t.table_name for t in db_profile.tables]})"
+        )
     return specs

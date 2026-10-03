@@ -7,6 +7,7 @@ import * as api from '../api/realPiiReviewApi';
 
 export const piiReviewQueryKeys = {
   sources: ['pii-review', 'sources'] as const,
+  sourceScope: (sourceId: string) => ['pii-review', 'source-scope', sourceId] as const,
   runs: ['pii-review', 'runs'] as const,
   run: (runId: number) => ['pii-review', 'run', runId] as const,
   datasets: (status?: string) => ['pii-review', 'datasets', status] as const,
@@ -53,6 +54,15 @@ export function useDeleteDataSource() {
   });
 }
 
+export function useSourceScope(sourceId: string | null) {
+  return useQuery({
+    queryKey: piiReviewQueryKeys.sourceScope(sourceId!),
+    queryFn: () => api.fetchSourceScope(sourceId!),
+    enabled: sourceId !== null,
+    staleTime: 30000,
+  });
+}
+
 // ============================================================================
 // RUNS
 // ============================================================================
@@ -78,7 +88,8 @@ export function useCreateScanRun() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (sourceId: string) => api.createScanRun(sourceId),
+    mutationFn: ({ sourceId, selectedScope }: { sourceId: string; selectedScope: string[] }) =>
+      api.createScanRun(sourceId, selectedScope),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
     },

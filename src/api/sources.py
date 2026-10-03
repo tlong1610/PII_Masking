@@ -16,7 +16,15 @@ from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
 from src.db import models as db_models
 from src.db.session import get_db
-from src.models.schemas import Source, SourceCreate, SourceTestResult, SourceType
+from src.models.schemas import (
+    Source,
+    SourceCreate,
+    SourceScope,
+    SourceScopeField,
+    SourceScopeItem,
+    SourceTestResult,
+    SourceType,
+)
 from src.services import secret_box
 from src.services.source_validation import (
     ParsedSource,
@@ -59,18 +67,39 @@ def mongo_live_enabled() -> bool:
     from src.config import get_settings
 
     settings = get_settings()
-    return bool(settings.enable_mongo and settings.mongo_uri)
+    if not (settings.enable_mongo and settings.mongo_uri):
+        return False
+    try:
+        from pymongo import MongoClient
+
+        client = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=1000)
+        client.admin.command("ping")
+        client.close()
+    except Exception:
+        return False
+    return True
 
 
 def pg_live_enabled() -> bool:
     from src.config import get_settings
 
     settings = get_settings()
-    return bool(
+    if not (
         settings.enable_pg_snapshot
         and settings.source_database_url
         and settings.snapshot_database_url
-    )
+    ):
+        return False
+    try:
+        import psycopg
+
+        with psycopg.connect(settings.source_database_url, connect_timeout=1) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+    except Exception:
+        return False
+    return True
 
 
 def _with_live_status(source: Source) -> Source:
@@ -97,6 +126,138 @@ def _user_source_out(row: db_models.DataSource) -> Source:
         description="User-registered source (read-only)",
         scope_summary=scope,
         status="ready",
+    )
+
+
+@router.get("/sources/{source_id}/scope", response_model=SourceScope)
+def get_source_scope(
+    source_id: str,
+    _user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> SourceScope:
+    """Read safe table/collection metadata for DPO scope selection."""
+    source = get_source_by_id(source_id, db)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Unknown source_id")
+
+    conn = resolve_connection(source, db)
+
+    if source.engine == "postgresql" and conn.live:
+        from src.connectors.postgres_connector import PostgresConnector
+
+        profile = PostgresConnector(conn.url).extract_database_profile(
+            schema_name=conn.namespace,
+            sample_size=1,
+        )
+        return SourceScope(
+            source_id=source.id,
+            source_type=source.source_type,
+            engine=source.engine,
+            items=[
+                SourceScopeItem(
+                    name=table.table_name,
+                    kind="table",
+                    field_count=len(table.columns),
+                    fields=[
+                        SourceScopeField(
+                            name=column.column_name,
+                            data_type=column.data_type,
+                            is_primary_key=column.is_primary_key,
+                            is_foreign_key=column.is_foreign_key,
+                        )
+                        for column in table.columns
+                    ],
+                )
+                for table in profile.tables
+            ],
+        )
+
+    if source.engine == "mongodb" and conn.live:
+        from src.connectors.mongo_connector import MongoConnector
+
+        profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
+        return SourceScope(
+            source_id=source.id,
+            source_type=source.source_type,
+            engine=source.engine,
+            items=[
+                SourceScopeItem(
+                    name=collection.table_name,
+                    kind="collection",
+                    field_count=len(collection.columns),
+                    fields=[
+                        SourceScopeField(
+                            name=column.column_name,
+                            data_type=column.data_type,
+                            is_primary_key=column.is_primary_key,
+                            is_foreign_key=column.is_foreign_key,
+                        )
+                        for column in collection.columns
+                    ],
+                )
+                for collection in profile.tables
+            ],
+        )
+
+    if source.source_type == SourceType.SQL:
+        items = [
+            SourceScopeItem(
+                name="customers",
+                kind="table",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="customer_id", data_type="varchar", is_primary_key=True),
+                    SourceScopeField(name="full_name", data_type="varchar"),
+                    SourceScopeField(name="phone", data_type="varchar"),
+                    SourceScopeField(name="email", data_type="varchar"),
+                    SourceScopeField(name="notes", data_type="text"),
+                ],
+            ),
+            SourceScopeItem(
+                name="orders",
+                kind="table",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="order_id", data_type="varchar", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="varchar", is_foreign_key=True),
+                    SourceScopeField(name="order_date", data_type="date"),
+                    SourceScopeField(name="amount", data_type="numeric"),
+                    SourceScopeField(name="tracking_code", data_type="varchar"),
+                ],
+            ),
+        ]
+    else:
+        items = [
+            SourceScopeItem(
+                name="customers",
+                kind="collection",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="_id", data_type="objectId", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="string"),
+                    SourceScopeField(name="full_name", data_type="string"),
+                    SourceScopeField(name="phone", data_type="string"),
+                    SourceScopeField(name="notes", data_type="string"),
+                ],
+            ),
+            SourceScopeItem(
+                name="orders",
+                kind="collection",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="_id", data_type="objectId", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="string", is_foreign_key=True),
+                    SourceScopeField(name="order_date", data_type="date"),
+                    SourceScopeField(name="amount", data_type="float"),
+                    SourceScopeField(name="pii_ext.customer_cccd", data_type="string"),
+                ],
+            ),
+        ]
+    return SourceScope(
+        source_id=source.id,
+        source_type=source.source_type,
+        engine=source.engine,
+        items=items,
     )
 
 

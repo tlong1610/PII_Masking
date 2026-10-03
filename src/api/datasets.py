@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -71,6 +72,67 @@ def _analyst_may_read(ds: db_models.Dataset) -> bool:
     return ds.status == DatasetStatus.PUBLISHED.value
 
 
+def _preview_columns_from_run(run: db_models.Run) -> list[DatasetPreviewColumn]:
+    decisions = {d.field_profile_id: d for d in run.field_decisions}
+    columns: list[DatasetPreviewColumn] = []
+    for profile in run.field_profiles:
+        decision = decisions.get(profile.id)
+        action = decision.action if decision else profile.recommended_action
+        transform = "DROPPED" if action == PolicyAction.DROP.value else action
+        columns.append(
+            DatasetPreviewColumn(
+                name=profile.field_path,
+                source_path=profile.source_path,
+                data_type="string" if action in (PolicyAction.MASK.value, PolicyAction.HMAC.value) else profile.data_type,
+                transform=transform,
+            )
+        )
+    return columns
+
+
+def _preview_from_postgres_snapshot(
+    *,
+    output_location: str,
+    columns: list[DatasetPreviewColumn],
+) -> list[dict[str, Any]] | None:
+    if not output_location.startswith("postgres://"):
+        return None
+    from psycopg import sql
+    from psycopg.rows import dict_row
+
+    from src.config import get_settings
+
+    settings = get_settings()
+    location = output_location.removeprefix("postgres://")
+    schema, table_csv = location.split("/", 1)
+    tables = [item for item in table_csv.split(",") if item]
+    first_table = tables[0] if tables else None
+    if not first_table:
+        return []
+
+    table_columns = [
+        column.name
+        for column in columns
+        if column.source_path == first_table and column.transform != "DROPPED"
+    ]
+    if not table_columns:
+        return []
+
+    with __import__("psycopg").connect(
+        settings.snapshot_database_url,
+        row_factory=dict_row,
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("SELECT {} FROM {} LIMIT 1").format(
+                    sql.SQL(", ").join(sql.Identifier(column) for column in table_columns),
+                    sql.Identifier(schema, first_table),
+                )
+            )
+            row = cur.fetchone()
+    return [dict(row)] if row else []
+
+
 @router.get("/datasets", response_model=list[DatasetOut])
 def list_datasets(
     user: SessionUser = Depends(get_current_user),
@@ -105,7 +167,8 @@ def publish_dataset(
     ds.published_at = datetime.now(UTC)
     if ds.run is not None:
         ds.run.status = RunStatus.PUBLISHED.value
-    ds.output_location = f"published://run/{ds.run_id}/snapshot"
+    if ds.output_location.startswith("staging://"):
+        ds.output_location = f"published://run/{ds.run_id}/snapshot"
     _write_audit(
         db,
         actor=user,
@@ -175,61 +238,32 @@ def preview_dataset(
 
     run = ds.run
     columns: list[DatasetPreviewColumn] = []
-    row: dict = {}
+    rows: list[dict[str, Any]] = []
     if run is not None:
-        decisions = {d.field_profile_id: d for d in run.field_decisions}
-        for profile in run.field_profiles:
-            decision = decisions.get(profile.id)
-            action = decision.action if decision else profile.recommended_action
-            if action == PolicyAction.DROP.value:
-                columns.append(
-                    DatasetPreviewColumn(
-                        name=profile.field_path,
-                        source_path=profile.source_path,
-                        data_type=profile.data_type,
-                        transform="DROPPED",
-                    )
-                )
-                continue
-            if action == PolicyAction.MASK.value:
-                col_name = profile.field_path
-                columns.append(
-                    DatasetPreviewColumn(
-                        name=col_name,
-                        source_path=profile.source_path,
-                        data_type="string",
-                        transform="MASK",
-                    )
-                )
-                row[col_name] = "[REDACTED]"
-            elif action == PolicyAction.HMAC.value:
-                col_name = f"{profile.field_path}_hmac"
-                columns.append(
-                    DatasetPreviewColumn(
-                        name=col_name,
-                        source_path=profile.source_path,
-                        data_type="string",
-                        transform="HMAC",
-                    )
-                )
-                # Deterministic fake digest placeholder — not a raw source value.
-                row[col_name] = f"hmac_stub_{profile.field_path}"
-            else:
-                col_name = profile.field_path
-                columns.append(
-                    DatasetPreviewColumn(
-                        name=col_name,
-                        source_path=profile.source_path,
-                        data_type=profile.data_type,
-                        transform="KEEP",
-                    )
-                )
-                row[col_name] = f"<{profile.data_type}>"
+        columns = _preview_columns_from_run(run)
+        snapshot_rows = _preview_from_postgres_snapshot(
+            output_location=ds.output_location,
+            columns=columns,
+        )
+        if snapshot_rows is not None:
+            rows = snapshot_rows
+        else:
+            fallback_row: dict[str, Any] = {}
+            for column in columns:
+                if column.transform == "DROPPED":
+                    continue
+                if column.transform == PolicyAction.MASK.value:
+                    fallback_row[column.name] = "[REDACTED]"
+                elif column.transform == PolicyAction.HMAC.value:
+                    fallback_row[column.name] = f"hmac_stub_{column.name}"
+                else:
+                    fallback_row[column.name] = f"<{column.data_type}>"
+            rows = [fallback_row] if fallback_row else []
 
     return DatasetPreview(
         dataset_id=ds.id,
         dataset_name=ds.dataset_name,
         status=DatasetStatus(ds.status),
         columns=columns,
-        rows=[row] if row else [],
+        rows=rows,
     )

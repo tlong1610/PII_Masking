@@ -1,6 +1,6 @@
 # PIIGuard VN - Architecture Diagram
 
-File nay la ban diagram rut gon de nhin nhanh. Ban giai thich chi tiet nam o [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) va [../ARCHITECTURE.md](../ARCHITECTURE.md).
+File này là bản diagram rút gọn để nhìn nhanh. Bản giải thích chi tiết nằm ở [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) và [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Overview
 
@@ -36,8 +36,8 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    A[Connect/list source] --> B[Choose table/collection]
-    B --> C[Scan field profiles]
+    A[Connect/list source<br/>connection string] --> B[Choose table/collection]
+    B --> C[Scan selected scope]
     C --> D[Rules/AI proposes action]
     D --> E[DPO reviews]
     E --> F[Build protected snapshot]
@@ -47,28 +47,39 @@ flowchart LR
     H --> J[Analyst preview]
 ```
 
+Input/output của MVP:
+
+```text
+Input  = PostgreSQL/MongoDB source database
+Output = protected PostgreSQL/MongoDB snapshot database
+```
+
 ## PostgreSQL Branch
 
 ```mermaid
 flowchart TD
-    A[PostgreSQL source] --> B[PostgresConnector]
-    B --> C[Field profiles]
-    C --> D[DPO decisions]
-    D --> E[pg_pipeline]
-    E --> F[Snapshot schema/database]
-    F --> G[SQL JOIN + aggregate verifier]
+    A[SOURCE_DATABASE_URL] --> B[PostgresConnector]
+    B --> C[Read tables]
+    C --> D[DPO selects tables]
+    D --> E[Field profiles for selected tables]
+    E --> F[DPO decisions]
+    F --> G[pg_pipeline]
+    G --> H[SNAPSHOT_DATABASE_URL<br/>snapshot schema/database]
+    H --> I[SQL JOIN + aggregate verifier]
 ```
 
 ## MongoDB Branch
 
 ```mermaid
 flowchart TD
-    A[MongoDB source] --> B[MongoConnector]
-    B --> C[Nested path profiles]
-    C --> D[DPO decisions]
-    D --> E[mongo_pipeline]
-    E --> F[Protected database]
-    F --> G[$lookup verifier]
+    A[MONGO_URI + MONGO_DB] --> B[MongoConnector]
+    B --> C[Read collections]
+    C --> D[DPO selects collections]
+    D --> E[Nested path profiles for selected collections]
+    E --> F[DPO decisions]
+    F --> G[mongo_pipeline]
+    G --> H[MONGO_SNAPSHOT_DB<br/>protected database]
+    H --> I[$lookup verifier]
 ```
 
 ## Security Boundary
@@ -85,4 +96,4 @@ flowchart LR
     RAW -.blocked.-> LLM
 ```
 
-Raw sample co the dung noi bo de regex/rule/BM25 chay tot, nhung khong duoc dua ra UI, API, log, report hoac prompt LLM.
+Raw sample có thể dùng nội bộ để regex/rule/BM25 chạy tốt, nhưng không được đưa ra UI, API, log, report hoặc prompt LLM.

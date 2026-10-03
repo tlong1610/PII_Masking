@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -41,6 +41,7 @@ import { ApiError } from '@/shared/api/client';
 import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
 import { ActionChip } from './PolicyChips';
+import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
 import {
   POLICY_ACTIONS,
   type PolicyAction,
@@ -60,6 +61,7 @@ import {
   useDeleteDataSource,
   usePublishDataset,
   useRun,
+  useSourceScope,
   useUpdateFieldDecisions,
 } from '../hooks/usePiiReview';
 
@@ -79,6 +81,10 @@ function isUnknownField(classification: string): boolean {
   return classification.includes('UNKNOWN');
 }
 
+function isHmacLockedField(field: { recommended_action: PolicyAction }): boolean {
+  return field.recommended_action === 'HMAC';
+}
+
 function getGroupTone(index: number): GroupTone {
   return GROUP_TONES[index % GROUP_TONES.length] ?? 'primary';
 }
@@ -86,16 +92,19 @@ function getGroupTone(index: number): GroupTone {
 export function DpoReviewExperienceMVP(): JSX.Element {
   const [step, setStep] = useState<Step>('select-source');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedScope, setSelectedScope] = useState<string[]>([]);
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [datasetId, setDatasetId] = useState<number | null>(null);
   const [actionFilter, setActionFilter] = useState<ActionFilter>('ALL');
   const [decisionOverrides, setDecisionOverrides] = useState<Record<number, PolicyAction>>({});
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [buildError, setBuildError] = useState<string | null>(null);
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
 
   const { data: sources, isLoading: sourcesLoading } = useDataSources();
+  const { data: sourceScope, isLoading: scopeLoading } = useSourceScope(selectedSourceId);
   const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
 
   const createScan = useCreateScanRun();
@@ -170,6 +179,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     () => new Set(fields.map((field) => field.source_path)).size,
     [fields],
   );
+  const scopeNames = useMemo(() => sourceScope?.items.map((item) => item.name) ?? [], [sourceScope?.items]);
 
   const completionPercent = fields.length > 0 ? 100 : 0;
   const editedCount = Object.keys(decisionOverrides).length;
@@ -178,15 +188,33 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     setSelectedSourceId(sourceId);
   };
 
+  useEffect(() => {
+    setSelectedScope(scopeNames);
+  }, [scopeNames]);
+
+  const handleToggleScopeItem = (name: string) => {
+    setSelectedScope((current) =>
+      current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
+    );
+  };
+
+  const handleSelectAllScope = () => {
+    setSelectedScope((current) => (current.length === scopeNames.length ? [] : scopeNames));
+  };
+
   const handleStartScan = async () => {
-    if (!selectedSourceId) return;
+    if (!selectedSourceId || selectedScope.length === 0) return;
 
     setStep('scan-running');
     setDecisionOverrides({});
     setActionFilter('ALL');
+    setBuildError(null);
 
     try {
-      const run = await createScan.mutateAsync(selectedSourceId);
+      const run = await createScan.mutateAsync({
+        sourceId: selectedSourceId,
+        selectedScope,
+      });
       setCurrentRunId(run.id);
 
       setTimeout(() => {
@@ -201,16 +229,20 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
   const handleFieldActionChange = (fieldId: number, action: PolicyAction) => {
     setDecisionError(null);
+    setBuildError(null);
     setDecisionOverrides((current) => ({ ...current, [fieldId]: action }));
   };
 
   const handleBulkAction = (action: PolicyAction) => {
     setDecisionError(null);
+    setBuildError(null);
     setDecisionOverrides((current) =>
       displayedFields.reduce<Record<number, PolicyAction>>(
         (next, field) => {
           const nextAction =
-            action === 'KEEP' && isUnknownField(field.classification) ? 'DROP' : action;
+            isHmacLockedField(field) || (action === 'KEEP' && isUnknownField(field.classification))
+              ? field.recommended_action
+              : action;
           return { ...next, [field.id]: nextAction };
         },
         current,
@@ -239,6 +271,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
     try {
       setDecisionError(null);
+      setBuildError(null);
       await updateDecisions.mutateAsync(
         fields.map((field) => {
           const action = getFieldAction(field.id, field.recommended_action);
@@ -263,12 +296,13 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     if (!currentRunId) return;
 
     try {
+      setBuildError(null);
       const result = await buildDataset.mutateAsync();
       setDatasetId(result.dataset.id);
       setStep('done');
     } catch (error) {
       console.error('Build failed:', error);
-      alert('Lỗi khi xây dựng dataset');
+      setBuildError(getDecisionErrorMessage(error));
     }
   };
 
@@ -384,17 +418,55 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         </Grid>
 
         {selectedSourceId && (
-          <Box mt={3}>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<PlayArrowIcon />}
-              onClick={() => void handleStartScan()}
-              disabled={createScan.isPending}
-            >
-              Bắt đầu quét PII
-            </Button>
-          </Box>
+          <Paper variant="outlined" sx={{ mt: 3, p: 2.5 }}>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Chọn phạm vi quét
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tick bảng/collection để chọn phạm vi scan. Diagram bên cạnh highlight scope đang chọn và hiển thị field metadata an toàn, không có raw value.
+                </Typography>
+              </Box>
+
+              {scopeLoading ? (
+                <Box display="flex" alignItems="center" gap={1}>
+                  <CircularProgress size={18} />
+                  <Typography variant="body2" color="text.secondary">
+                    Đang đọc scope...
+                  </Typography>
+                </Box>
+              ) : sourceScope ? (
+                <SourceScopePickerDiagram
+                  items={sourceScope.items}
+                  onSelectAll={handleSelectAllScope}
+                  onToggle={handleToggleScopeItem}
+                  selectedNames={selectedScope}
+                  sourceType={sourceScope.source_type}
+                />
+              ) : (
+                <Alert severity="info">Chọn source để đọc phạm vi quét.</Alert>
+              )}
+
+              {sourceScope && sourceScope.items.length === 0 && (
+                <Alert severity="warning">
+                  Source này chưa đọc được bảng/collection để quét.
+                </Alert>
+              )}
+
+              <Box>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => void handleStartScan()}
+                  disabled={createScan.isPending || scopeLoading || selectedScope.length === 0}
+                >
+                  Bắt đầu quét scope đã chọn
+                </Button>
+              </Box>
+            </Stack>
+          </Paper>
         )}
       </Box>
     );
@@ -577,6 +649,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                           const action = getFieldAction(field.id, field.recommended_action);
                           const wasEdited = action !== field.recommended_action;
                           const keepDisabled = isUnknownField(field.classification);
+                          const hmacLocked = isHmacLockedField(field);
 
                           return (
                             <TableRow key={field.id} hover>
@@ -637,10 +710,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                                       <MenuItem
                                         value={option}
                                         key={option}
-                                        disabled={option === 'KEEP' && keepDisabled}
+                                        disabled={
+                                          (option === 'KEEP' && keepDisabled) ||
+                                          (hmacLocked && option !== 'HMAC')
+                                        }
                                       >
                                         {getActionLabel(option)}
                                         {option === 'KEEP' && keepDisabled ? ' (bị chặn)' : ''}
+                                        {hmacLocked && option !== 'HMAC' ? ' (khóa HMAC)' : ''}
                                       </MenuItem>
                                     ))}
                                   </Select>
@@ -730,6 +807,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         <Typography color="text.secondary" sx={{ mb: 3 }}>
           Bây giờ bạn có thể xây dựng dataset được bảo vệ.
         </Typography>
+
+        {buildError && (
+          <Alert severity="error" sx={{ maxWidth: 720, mx: 'auto', mb: 3, textAlign: 'left' }}>
+            {buildError}
+          </Alert>
+        )}
 
         <Button
           variant="contained"
