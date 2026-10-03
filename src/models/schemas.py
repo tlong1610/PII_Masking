@@ -1,4 +1,12 @@
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+
+    class StrEnum(str, Enum):  # noqa: UP042
+        pass
+
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -114,6 +122,7 @@ class RunStatus(StrEnum):
     FAILED = "FAILED"
     STALE = "STALE"
     REVOKED = "REVOKED"
+    CANCELLED = "CANCELLED"
 
 
 class PolicyAction(StrEnum):
@@ -121,6 +130,12 @@ class PolicyAction(StrEnum):
     HMAC = "HMAC"
     DROP = "DROP"
     KEEP = "KEEP"
+    TOKENIZE = "TOKENIZE"
+    PARTIAL = "PARTIAL"
+    GENERALIZE = "GENERALIZE"
+    REDACT = "REDACT"
+    NULLIFY = "NULLIFY"
+
 
 
 class DetectorSource(StrEnum):
@@ -173,6 +188,25 @@ class FieldDecisionOut(BaseModel):
     reason: str
     decided_by: int
     decision_version: int
+    is_exception: bool = False
+    exception_until: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class FieldDecisionHistoryOut(BaseModel):
+    id: int
+    run_id: int
+    field_profile_id: int
+    from_action: PolicyAction | None = None
+    to_action: PolicyAction
+    from_reason: str | None = None
+    to_reason: str = ""
+    version: int
+    decided_by: int
+    created_at: datetime
+    is_exception: bool = False
+    exception_until: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -181,6 +215,8 @@ class FieldDecisionItem(BaseModel):
     field_profile_id: int
     action: PolicyAction
     reason: str = ""
+    is_exception: bool = False
+    exception_until: datetime | None = None
 
 
 class FieldDecisionsUpdate(BaseModel):
@@ -204,6 +240,13 @@ class DatasetPreviewColumn(BaseModel):
     transform: str = Field(description="MASK | HMAC | KEEP | DROPPED marker")
 
 
+class DatasetRelationship(BaseModel):
+    source_table: str
+    source_column: str
+    target_table: str
+    target_column: str
+
+
 class DatasetPreview(BaseModel):
     dataset_id: int
     dataset_name: str
@@ -211,6 +254,7 @@ class DatasetPreview(BaseModel):
     columns: list[DatasetPreviewColumn]
     rows: list[dict]
     note: str = "Processed output only; raw source values are never included"
+    relationships: list[DatasetRelationship] = Field(default_factory=list)
 
 
 class RunOut(BaseModel):
@@ -225,6 +269,7 @@ class RunOut(BaseModel):
     policy_version: str
     field_profiles: list[FieldProfileOut] = Field(default_factory=list)
     field_decisions: list[FieldDecisionOut] = Field(default_factory=list)
+    decision_history: list[FieldDecisionHistoryOut] = Field(default_factory=list)
     datasets: list[DatasetOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -252,11 +297,15 @@ class BuildResponse(BaseModel):
 # --- Schema cho việc trích xuất Database Profile (PII Detect) ---
 
 class ColumnProfile(BaseModel):
+    table_name: str | None = Field(default=None, description="Tên bảng hoặc collection")
     column_name: str = Field(..., description="Tên cột")
     data_type: str = Field(..., description="Kiểu dữ liệu SQL")
     is_primary_key: bool = Field(..., description="Có phải khóa chính không")
     is_foreign_key: bool = Field(..., description="Có phải khóa ngoại không")
-    samples: list[str] = Field(..., description="3-5 dữ liệu mẫu khác NULL")
+    samples: list[str] = Field(
+        ...,
+        description="Dữ liệu mẫu ngắn hạn chỉ xử lý trong bộ nhớ (In-memory ephemeral samples)",
+    )
     system_recommendation: str | None = Field(
         default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)"
     )
@@ -309,7 +358,10 @@ class FieldProfile(BaseModel):
         default_factory=dict,
         description="Thống kê đã làm sạch (VD: {'min_len': 12, 'max_len': 12, 'pattern': 'XXX'})"
     )
-    samples: list[str] = Field(default_factory=list, description="Raw samples")
+    samples: list[str] = Field(
+        default_factory=list,
+        description="Dữ liệu mẫu đã che/khử nhận dạng (Masked/Sanitized samples - KHÔNG chứa raw PII)",
+    )
 
 class FieldScanProposal(BaseModel):
     """Kết quả scan trả về cho luồng Enterprise."""
@@ -320,3 +372,76 @@ class FieldScanProposal(BaseModel):
     confidence: float = Field(..., description="Độ tự tin (0.0 - 1.0)")
     tier: str = Field(..., description="Tầng ra quyết định (VD: TIER_1_RULES, TIER_3_LLM)")
     provider_meta: dict | None = Field(default=None, description="Metadata bổ sung từ LLM/Scanner")
+
+
+# --- Schema cho Audit Log Hash-Chain (FR-11, §14.3) ---
+
+class AuditEventOut(BaseModel):
+    id: int
+    actor_id: int
+    role: str
+    action: str
+    entity_type: str
+    entity_id: str
+    reason: str
+    created_at: datetime
+    prev_hash: str
+    entry_hash: str
+    request_id: str | None = None
+    client_ip: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+
+class AuditVerifyResponse(BaseModel):
+    valid: bool
+    total_events: int
+    head_hash: str | None = None
+    broken_at_id: int | None = None
+    error: str | None = None
+
+
+# --- Vault Detokenization (§9.5, FR-13) ---
+
+class DetokenizeRequest(BaseModel):
+    token: str = Field(..., min_length=1, max_length=128, description="Token cần giải mã")
+    reason: str = Field(..., min_length=5, max_length=1000, description="Lý do giải mã bắt buộc (phục vụ thanh tra / nghiệp vụ)")
+
+
+class DetokenizeResponse(BaseModel):
+    token: str = Field(..., description="Token đã giải mã")
+    raw_value: str = Field(..., description="Giá trị gốc được giải mã")
+    entity_type: str = Field(..., description="Loại thực thể PII")
+    key_version: str = Field(..., description="Phiên bản khóa mã hóa")
+    decrypted_at: datetime = Field(..., description="Thời điểm giải mã")
+
+
+# --- Health Check Probes (§17.1) ---
+
+class HealthzResponse(BaseModel):
+    status: str = Field(default="ok", description="Trạng thái tiến trình FastAPI")
+    timestamp: str = Field(..., description="Thời gian hiện tại ISO 8601")
+    version: str = Field(default="1.0.0", description="Phiên bản ứng dụng")
+
+
+class ReadyzResponse(BaseModel):
+    status: str = Field(..., description="'ready' nếu các dịch vụ sẵn sàng, ngược lại 'not_ready'")
+    checks: dict[str, str] = Field(..., description="Chi tiết ping kiểm tra CSDL, MongoDB, LLM")
+    timestamp: str = Field(..., description="Thời gian hiện tại ISO 8601")
+
+
+# --- Dataset Grants (§3, §14.2) ---
+
+class DatasetGrantCreate(BaseModel):
+    user_id: int = Field(..., description="ID của người dùng Analyst được cấp quyền")
+
+
+class DatasetGrantOut(BaseModel):
+    id: int
+    dataset_id: int
+    user_id: int
+    granted_by: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

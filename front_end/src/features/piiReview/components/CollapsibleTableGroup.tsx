@@ -8,20 +8,11 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import DatasetIcon from '@mui/icons-material/Dataset';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { alpha, type Theme } from '@mui/material/styles';
 
 type GroupTone = 'primary' | 'secondary' | 'info' | 'success' | 'warning';
-
-function getToneMain(theme: Theme, tone: GroupTone): string {
-  if (tone === 'primary') return theme.palette.primary.main;
-  if (tone === 'secondary') return theme.palette.secondary.main;
-  if (tone === 'info') return theme.palette.info.main;
-  if (tone === 'success') return theme.palette.success.main;
-  return theme.palette.warning.main;
-}
 
 type CollapsibleTableGroupProps = {
   children: ReactNode;
@@ -42,21 +33,26 @@ export function CollapsibleTableGroup({
   onToggle,
   sourcePath,
   summary,
-  tone = 'primary',
 }: CollapsibleTableGroupProps): JSX.Element {
   return (
     <>
-      <TableRow hover onClick={onToggle} sx={{ cursor: 'pointer' }}>
+      <TableRow
+        hover
+        onClick={onToggle}
+        sx={{
+          cursor: 'pointer',
+          bgcolor: '#F9FAFB',
+          '&:hover': { bgcolor: '#F3F4F6' },
+        }}
+      >
         <TableCell
           colSpan={colSpan}
           sx={{
-            bgcolor: (theme) => alpha(getToneMain(theme, tone), 0.08),
-            borderLeft: '4px solid',
-            borderLeftColor: `${tone}.main`,
-            borderBottomColor: 'divider',
-            borderTop: '1px solid',
-            borderTopColor: 'divider',
-            py: 1.25,
+            py: 1,
+            px: 1.5,
+            borderTop: '1px solid #E5E7EB',
+            borderBottom: '1px solid #E5E7EB',
+            borderLeft: '3px solid #1B51A4',
           }}
         >
           <Stack
@@ -67,23 +63,36 @@ export function CollapsibleTableGroup({
           >
             <Stack direction="row" spacing={1} alignItems="center">
               {collapsed ? (
-                <KeyboardArrowRightIcon color={tone} fontSize="small" />
+                <KeyboardArrowRightIcon sx={{ color: '#6B7280', fontSize: 18 }} />
               ) : (
-                <KeyboardArrowDownIcon color={tone} fontSize="small" />
+                <KeyboardArrowDownIcon sx={{ color: '#1B51A4', fontSize: 18 }} />
               )}
-              <DatasetIcon color={tone} fontSize="small" />
-              <Typography variant="subtitle2" fontFamily="monospace">
+              <TableChartOutlinedIcon sx={{ color: '#1B51A4', fontSize: 18 }} />
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  color: '#111827',
+                }}
+              >
                 {sourcePath}
               </Typography>
             </Stack>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
               <Chip
                 label={countLabel}
                 size="small"
-                color={tone}
-                variant="outlined"
                 sx={{
-                  bgcolor: (theme) => alpha(getToneMain(theme, tone), 0.08),
+                  height: 20,
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  bgcolor: '#FFFFFF',
+                  border: '1px solid #D1D5DB',
+                  color: '#374151',
+                  borderRadius: '4px',
                 }}
               />
               {summary}
@@ -91,10 +100,11 @@ export function CollapsibleTableGroup({
           </Stack>
         </TableCell>
       </TableRow>
+
       <TableRow>
         <TableCell colSpan={colSpan} sx={{ p: 0, borderBottom: 0 }}>
-          <Collapse in={!collapsed} timeout={220} unmountOnExit>
-            <Box>
+          <Collapse in={!collapsed} timeout={180} unmountOnExit>
+            <Box sx={{ bgcolor: '#FFFFFF' }}>
               <Table size="small">
                 <TableBody>{children}</TableBody>
               </Table>

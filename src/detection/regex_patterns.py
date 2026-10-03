@@ -8,9 +8,10 @@ from src.detection.taxonomy import PIIType
 HIGH_CONFIDENCE_COLUMNS = {
     PIIType.CCCD.value: ["cccd", "cmnd", "so_dinh_danh", "identity_card", "national_id"],
     PIIType.EMAIL.value: ["email", "mail_address"],
-    PIIType.PHONE.value: ["phone", "sdt", "so_dien_thoai", "mobile"],
+    PIIType.PHONE.value: ["phone", "sdt", "so_dien_thoai", "mobile", "fax"],
     PIIType.TAX_CODE.value: ["tax_code", "mst", "ma_so_thue"],
     PIIType.DOB.value: ["date_of_birth", "birth_date", "dob", "ngay_sinh"],
+    PIIType.ADDRESS.value: ["address", "dia_chi", "street", "street_address"],
     # Lưu ý: CREDIT_CARD và BIOMETRIC_FILE không có trong taxonomy tối thiểu
     # nhưng có thể giữ lại dưới dạng string nếu cần cho tương lai,
     # hoặc ánh xạ về SENSITIVE. Tạm dùng string.
@@ -19,13 +20,13 @@ HIGH_CONFIDENCE_COLUMNS = {
 }
 
 # Các từ khóa tên cột dễ gây nhầm lẫn (Ambiguous), TUYỆT ĐỐI BỎ QUA, đẩy qua Lớp 2 LLM
-AMBIGUOUS_COLUMNS = ["id", "code", "name", "note", "address", "contact_info", "description"]
+AMBIGUOUS_COLUMNS = ["id", "code", "name", "note", "contact_info", "description"]
 
 # Các từ khóa tên cột chắc chắn KHÔNG PHẢI PII CÁ NHÂN (Negative Cases)
 NEGATIVE_COLUMNS = {
     PIIType.TRACKING_CODE.value: ["tracking_number", "tracking_code", "order_id", "order_number", "shipment_id", "waybill", "bill_of_lading"],
-    PIIType.MONEY_ALONE.value: ["amount", "total_price", "unit_price", "balance", "fee", "cost"],
-    "NOT_PERSONAL_DATA": ["customer_id", "_id", "company_name", "ship_via", "doc_type", "postal_code"]
+    PIIType.MONEY_ALONE.value: ["amount", "total_price", "unit_price", "balance", "fee", "cost", "freight"],
+    "NOT_PERSONAL_DATA": ["customer_id", "_id", "company_name", "ship_via", "doc_type", "postal_code", "contact_title", "order_date", "region"]
 }
 
 # ==========================================
@@ -40,8 +41,7 @@ REGEX_PATTERNS = {
     PIIType.EMAIL.value: re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"),
 
     # Số điện thoại VN: Bắt đầu 0, 84 hoặc +84, sau đó là 3,5,7,8,9 và đúng 8 số đằng sau
-    # S? di?n tho?i VN: B?t d?u 0, 84 ho?c +84, sau do la 3,5,7,8,9 va d?ng 8 s? d?ng sau
-    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\\d{8}$"),
+    PIIType.PHONE.value: re.compile(r"^(0|84|\+84)(3|5|7|8|9)\d{8}$"),
 
     # Ma so thue
     PIIType.TAX_CODE.value: re.compile(r"^\d{10}(-\d{3})?$"),

@@ -1,0 +1,186 @@
+{
+  "rules": {
+    "mode": "rules",
+    "total": 74,
+    "correct_action": 74,
+    "action_accuracy": 100.0,
+    "total_eval_time": 0.41760706901550293,
+    "avg_latency": 0.0055466117085637276,
+    "tp": 46,
+    "fp": 0,
+    "tn": 28,
+    "fn": 0,
+    "precision": 100.0,
+    "recall": 100.0,
+    "f1": 100.0,
+    "f2": 100.0,
+    "recall_l3": 100.0,
+    "l3_total": 17,
+    "l3_correct": 17,
+    "level_stats": {
+      "L3": {
+        "total": 17,
+        "correct": 17,
+        "accuracy": 100.0
+      },
+      "L2": {
+        "total": 26,
+        "correct": 26,
+        "accuracy": 100.0
+      },
+      "L1": {
+        "total": 4,
+        "correct": 4,
+        "accuracy": 100.0
+      },
+      "L0": {
+        "total": 27,
+        "correct": 27,
+        "accuracy": 100.0
+      }
+    },
+    "split_stats": {
+      "dev": {
+        "total": 50,
+        "correct": 50,
+        "accuracy": 100.0
+      },
+      "holdout": {
+        "total": 24,
+        "correct": 24,
+        "accuracy": 100.0
+      }
+    },
+    "edge_stats": {
+      "total": 26,
+      "correct": 26,
+      "accuracy": 100.0
+    },
+    "tier_stats": {
+      "TIER_1": {
+        "total": 65,
+        "correct": 65,
+        "accuracy": 100.0,
+        "precision": 100.0,
+        "recall": 100.0,
+        "latency": 0.002897493655865009
+      },
+      "TIER_2": {
+        "total": 6,
+        "correct": 6,
+        "accuracy": 100.0,
+        "precision": 100.0,
+        "recall": 100.0,
+        "latency": 0.003673990567525228
+      },
+      "TIER_3_HYBRID": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 100.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "latency": 0.015999555587768555
+      },
+      "TIER_3_LLM": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 100.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "latency": 0.09203433990478516
+      }
+    }
+  },
+  "full": {
+    "mode": "full",
+    "total": 74,
+    "correct_action": 74,
+    "action_accuracy": 100.0,
+    "total_eval_time": 0.30272340774536133,
+    "avg_latency": 0.004056766226484969,
+    "tp": 46,
+    "fp": 0,
+    "tn": 28,
+    "fn": 0,
+    "precision": 100.0,
+    "recall": 100.0,
+    "f1": 100.0,
+    "f2": 100.0,
+    "recall_l3": 100.0,
+    "l3_total": 17,
+    "l3_correct": 17,
+    "level_stats": {
+      "L3": {
+        "total": 17,
+        "correct": 17,
+        "accuracy": 100.0
+      },
+      "L2": {
+        "total": 26,
+        "correct": 26,
+        "accuracy": 100.0
+      },
+      "L1": {
+        "total": 4,
+        "correct": 4,
+        "accuracy": 100.0
+      },
+      "L0": {
+        "total": 27,
+        "correct": 27,
+        "accuracy": 100.0
+      }
+    },
+    "split_stats": {
+      "dev": {
+        "total": 50,
+        "correct": 50,
+        "accuracy": 100.0
+      },
+      "holdout": {
+        "total": 24,
+        "correct": 24,
+        "accuracy": 100.0
+      }
+    },
+    "edge_stats": {
+      "total": 26,
+      "correct": 26,
+      "accuracy": 100.0
+    },
+    "tier_stats": {
+      "TIER_1": {
+        "total": 65,
+        "correct": 65,
+        "accuracy": 100.0,
+        "precision": 100.0,
+        "recall": 100.0,
+        "latency": 0.003316226372352013
+      },
+      "TIER_2": {
+        "total": 6,
+        "correct": 6,
+        "accuracy": 100.0,
+        "precision": 100.0,
+        "recall": 100.0,
+        "latency": 0.004363298416137695
+      },
+      "TIER_3_HYBRID": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 100.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "latency": 0.0149993896484375
+      },
+      "TIER_3_LLM": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 100.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "latency": 0.021733403205871582
+      }
+    }
+  }
+}

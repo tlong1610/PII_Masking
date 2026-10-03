@@ -24,7 +24,9 @@
       "date_of_birth": "1967-11-24",
       "tax_code": "4518834201"
     },
-    "notes": "LH 0327540543; CCCD 033254456184. Don hang cu #152506320724 da giao. Email backup: alfki.0712@example.vn"
+    "notes": "LH 0327540543; CCCD 033254456184. Don hang cu #152506320724 da giao. Email backup: alfki.0712@example.vn",
+    "c1": "0327540543",
+    "c2": "033254456184"
   },
   {
     "_id": "ANATR",
@@ -51,7 +53,9 @@
       "date_of_birth": "1963-01-18",
       "tax_code": "2890241933"
     },
-    "notes": "LH 0336059364; CCCD 040280283936. Don hang cu #683201500090 da giao. Email backup: anatr.3844@example.vn"
+    "notes": "LH 0336059364; CCCD 040280283936. Don hang cu #683201500090 da giao. Email backup: anatr.3844@example.vn",
+    "c1": "0336059364",
+    "c2": "040280283936"
   },
   {
     "_id": "ANTON",
@@ -78,7 +82,9 @@
       "date_of_birth": "1988-06-11",
       "tax_code": "3575164574"
     },
-    "notes": "LH 0940454294; CCCD 048221541620. Don hang cu #158503381327 da giao. Email backup: anton.6311@example.vn"
+    "notes": "LH 0940454294; CCCD 048221541620. Don hang cu #158503381327 da giao. Email backup: anton.6311@example.vn",
+    "c1": "0940454294",
+    "c2": "048221541620"
   },
   {
     "_id": "AROUT",
@@ -105,7 +111,9 @@
       "date_of_birth": "1979-11-11",
       "tax_code": "2256332212"
     },
-    "notes": "LH 0347084243; CCCD 092223119120. Don hang cu #110239121292 da giao. Email backup: arout.5404@example.vn"
+    "notes": "LH 0347084243; CCCD 092223119120. Don hang cu #110239121292 da giao. Email backup: arout.5404@example.vn",
+    "c1": "0347084243",
+    "c2": "092223119120"
   },
   {
     "_id": "BERGS",
@@ -132,7 +140,9 @@
       "date_of_birth": "1971-06-04",
       "tax_code": "0509146619"
     },
-    "notes": "LH 0989403235; CCCD 079265505644. Don hang cu #064017068890 da giao. Email backup: bergs.8183@example.vn"
+    "notes": "LH 0989403235; CCCD 079265505644. Don hang cu #064017068890 da giao. Email backup: bergs.8183@example.vn",
+    "c1": "0989403235",
+    "c2": "079265505644"
   },
   {
     "_id": "BLAUS",
@@ -159,7 +169,9 @@
       "date_of_birth": "1972-07-16",
       "tax_code": "5438430592"
     },
-    "notes": "LH 0935506730; CCCD 033226374328. Don hang cu #831286536245 da giao. Email backup: blaus.4708@example.vn"
+    "notes": "LH 0935506730; CCCD 033226374328. Don hang cu #831286536245 da giao. Email backup: blaus.4708@example.vn",
+    "c1": "0935506730",
+    "c2": "033226374328"
   },
   {
     "_id": "BLONP",
@@ -186,7 +198,9 @@
       "date_of_birth": "1964-09-01",
       "tax_code": "5776055022"
     },
-    "notes": "LH 0349312006; CCCD 046234423770. Don hang cu #155173281014 da giao. Email backup: blonp.3962@example.vn"
+    "notes": "LH 0349312006; CCCD 046234423770. Don hang cu #155173281014 da giao. Email backup: blonp.3962@example.vn",
+    "c1": "0349312006",
+    "c2": "046234423770"
   },
   {
     "_id": "BOLID",
@@ -213,7 +227,9 @@
       "date_of_birth": "1991-04-21",
       "tax_code": "0204525262"
     },
-    "notes": "LH 0911330041; CCCD 079261880141. Don hang cu #110431208081 da giao. Email backup: bolid.3153@example.vn"
+    "notes": "LH 0911330041; CCCD 079261880141. Don hang cu #110431208081 da giao. Email backup: bolid.3153@example.vn",
+    "c1": "0911330041",
+    "c2": "079261880141"
   },
   {
     "_id": "BONAP",
@@ -240,7 +256,9 @@
       "date_of_birth": "1987-11-05",
       "tax_code": "6941993500"
     },
-    "notes": "LH 0375341004; CCCD 033222229438. Don hang cu #403562325443 da giao. Email backup: bonap.2765@example.vn"
+    "notes": "LH 0375341004; CCCD 033222229438. Don hang cu #403562325443 da giao. Email backup: bonap.2765@example.vn",
+    "c1": "0375341004",
+    "c2": "033222229438"
   },
   {
     "_id": "BOTTM",
@@ -267,7 +285,9 @@
       "date_of_birth": "1983-02-16",
       "tax_code": "1034747385"
     },
-    "notes": "LH 0941560135; CCCD 048221040674. Don hang cu #824108144025 da giao. Email backup: bottm.9301@example.vn"
+    "notes": "LH 0941560135; CCCD 048221040674. Don hang cu #824108144025 da giao. Email backup: bottm.9301@example.vn",
+    "c1": "0941560135",
+    "c2": "048221040674"
   },
   {
     "_id": "BSBEV",
@@ -294,7 +314,9 @@
       "date_of_birth": "1975-06-05",
       "tax_code": "1573116617"
     },
-    "notes": "LH 0973244980; CCCD 001210636233. Don hang cu #335549154105 da giao. Email backup: bsbev.5041@example.vn"
+    "notes": "LH 0973244980; CCCD 001210636233. Don hang cu #335549154105 da giao. Email backup: bsbev.5041@example.vn",
+    "c1": "0973244980",
+    "c2": "001210636233"
   },
   {
     "_id": "CACTU",
@@ -321,7 +343,9 @@
       "date_of_birth": "1988-07-15",
       "tax_code": "3333143808"
     },
-    "notes": "LH 0948987319; CCCD 048210492418. Don hang cu #540620931664 da giao. Email backup: cactu.6316@example.vn"
+    "notes": "LH 0948987319; CCCD 048210492418. Don hang cu #540620931664 da giao. Email backup: cactu.6316@example.vn",
+    "c1": "0948987319",
+    "c2": "048210492418"
   },
   {
     "_id": "CENTC",
@@ -348,7 +372,9 @@
       "date_of_birth": "1983-07-24",
       "tax_code": "6406548222"
     },
-    "notes": "LH 0330631139; CCCD 048230628024. Don hang cu #040396530001 da giao. Email backup: centc.2317@example.vn"
+    "notes": "LH 0330631139; CCCD 048230628024. Don hang cu #040396530001 da giao. Email backup: centc.2317@example.vn",
+    "c1": "0330631139",
+    "c2": "048230628024"
   },
   {
     "_id": "CHOPS",
@@ -375,7 +401,9 @@
       "date_of_birth": "1963-09-04",
       "tax_code": "5146273762"
     },
-    "notes": "LH 0942650785; CCCD 048210984228. Don hang cu #019941489199 da giao. Email backup: chops.0320@example.vn"
+    "notes": "LH 0942650785; CCCD 048210984228. Don hang cu #019941489199 da giao. Email backup: chops.0320@example.vn",
+    "c1": "0942650785",
+    "c2": "048210984228"
   },
   {
     "_id": "COMMI",
@@ -402,7 +430,9 @@
       "date_of_birth": "1988-02-14",
       "tax_code": "9050205875"
     },
-    "notes": "LH 0946623143; CCCD 048261171560. Don hang cu #045222111401 da giao. Email backup: commi.6355@example.vn"
+    "notes": "LH 0946623143; CCCD 048261171560. Don hang cu #045222111401 da giao. Email backup: commi.6355@example.vn",
+    "c1": "0946623143",
+    "c2": "048261171560"
   },
   {
     "_id": "CONSH",
@@ -429,7 +459,9 @@
       "date_of_birth": "1975-12-04",
       "tax_code": "3376948094"
     },
-    "notes": "LH 0975238362; CCCD 001229650685. Don hang cu #065241029325 da giao. Email backup: consh.5057@example.vn"
+    "notes": "LH 0975238362; CCCD 001229650685. Don hang cu #065241029325 da giao. Email backup: consh.5057@example.vn",
+    "c1": "0975238362",
+    "c2": "001229650685"
   },
   {
     "_id": "DRACD",
@@ -456,7 +488,9 @@
       "date_of_birth": "1985-06-15",
       "tax_code": "0044124841"
     },
-    "notes": "LH 0352517205; CCCD 056271744241. Don hang cu #508230140623 da giao. Email backup: dracd.2521@example.vn"
+    "notes": "LH 0352517205; CCCD 056271744241. Don hang cu #508230140623 da giao. Email backup: dracd.2521@example.vn",
+    "c1": "0352517205",
+    "c2": "056271744241"
   },
   {
     "_id": "DUMON",
@@ -483,7 +517,9 @@
       "date_of_birth": "1972-12-08",
       "tax_code": "5502213423"
     },
-    "notes": "LH 0320541192; CCCD 031267344633. Don hang cu #454281909477 da giao. Email backup: dumon.8212@example.vn"
+    "notes": "LH 0320541192; CCCD 031267344633. Don hang cu #454281909477 da giao. Email backup: dumon.8212@example.vn",
+    "c1": "0320541192",
+    "c2": "031267344633"
   },
   {
     "_id": "EASTC",
@@ -510,7 +546,9 @@
       "date_of_birth": "1991-05-23",
       "tax_code": "5224253230"
     },
-    "notes": "LH 0915035989; CCCD 079267043122. Don hang cu #235324412219 da giao. Email backup: eastc.3110@example.vn"
+    "notes": "LH 0915035989; CCCD 079267043122. Don hang cu #235324412219 da giao. Email backup: eastc.3110@example.vn",
+    "c1": "0915035989",
+    "c2": "079267043122"
   },
   {
     "_id": "ERNSH",
@@ -537,7 +575,9 @@
       "date_of_birth": "1992-05-07",
       "tax_code": "7404033136"
     },
-    "notes": "LH 0935900762; CCCD 031254533090. Don hang cu #459141439612 da giao. Email backup: ernsh.3206@example.vn"
+    "notes": "LH 0935900762; CCCD 031254533090. Don hang cu #459141439612 da giao. Email backup: ernsh.3206@example.vn",
+    "c1": "0935900762",
+    "c2": "031254533090"
   },
   {
     "_id": "FAMIA",
@@ -564,7 +604,9 @@
       "date_of_birth": "1994-02-28",
       "tax_code": "3531366721"
     },
-    "notes": "LH 0960687537; CCCD 092241961807. Don hang cu #621953056340 da giao. Email backup: famia.3439@example.vn"
+    "notes": "LH 0960687537; CCCD 092241961807. Don hang cu #621953056340 da giao. Email backup: famia.3439@example.vn",
+    "c1": "0960687537",
+    "c2": "092241961807"
   },
   {
     "_id": "FISSA",
@@ -591,7 +633,9 @@
       "date_of_birth": "1982-05-11",
       "tax_code": "3576838310"
     },
-    "notes": "LH 0937540470; CCCD 031223940817. Don hang cu #543603325402 da giao. Email backup: fissa.9254@example.vn"
+    "notes": "LH 0937540470; CCCD 031223940817. Don hang cu #543603325402 da giao. Email backup: fissa.9254@example.vn",
+    "c1": "0937540470",
+    "c2": "031223940817"
   },
   {
     "_id": "FOLIG",
@@ -618,7 +662,9 @@
       "date_of_birth": "1962-04-14",
       "tax_code": "4731005093"
     },
-    "notes": "LH 0933303034; CCCD 031249679568. Don hang cu #183413753031 da giao. Email backup: folig.0232@example.vn"
+    "notes": "LH 0933303034; CCCD 031249679568. Don hang cu #183413753031 da giao. Email backup: folig.0232@example.vn",
+    "c1": "0933303034",
+    "c2": "031249679568"
   },
   {
     "_id": "FOLKO",
@@ -645,7 +691,9 @@
       "date_of_birth": "1984-11-02",
       "tax_code": "7060381858"
     },
-    "notes": "LH 0343679171; CCCD 092274529665. Don hang cu #425408833128 da giao. Email backup: folko.2424@example.vn"
+    "notes": "LH 0343679171; CCCD 092274529665. Don hang cu #425408833128 da giao. Email backup: folko.2424@example.vn",
+    "c1": "0343679171",
+    "c2": "092274529665"
   },
   {
     "_id": "FRANK",
@@ -672,7 +720,9 @@
       "date_of_birth": "1965-01-01",
       "tax_code": "7311260853"
     },
-    "notes": "LH 0901360404; CCCD 056253350043. Don hang cu #311225997202 da giao. Email backup: frank.7518@example.vn"
+    "notes": "LH 0901360404; CCCD 056253350043. Don hang cu #311225997202 da giao. Email backup: frank.7518@example.vn",
+    "c1": "0901360404",
+    "c2": "056253350043"
   },
   {
     "_id": "FRANR",
@@ -699,7 +749,9 @@
       "date_of_birth": "1986-03-02",
       "tax_code": "0031465742"
     },
-    "notes": "LH 0364222314; CCCD 038271911005. Don hang cu #305831059544 da giao. Email backup: franr.2652@example.vn"
+    "notes": "LH 0364222314; CCCD 038271911005. Don hang cu #305831059544 da giao. Email backup: franr.2652@example.vn",
+    "c1": "0364222314",
+    "c2": "038271911005"
   },
   {
     "_id": "FRANS",
@@ -726,7 +778,9 @@
       "date_of_birth": "1967-09-03",
       "tax_code": "5952482803"
     },
-    "notes": "LH 0373124147; CCCD 031225011357. Don hang cu #345371053141 da giao. Email backup: frans.4235@example.vn"
+    "notes": "LH 0373124147; CCCD 031225011357. Don hang cu #345371053141 da giao. Email backup: frans.4235@example.vn",
+    "c1": "0373124147",
+    "c2": "031225011357"
   },
   {
     "_id": "FURIB",
@@ -753,7 +807,9 @@
       "date_of_birth": "1968-12-06",
       "tax_code": "2350917374"
     },
-    "notes": "LH 0383044083; CCCD 048225053552. Don hang cu #237927128031 da giao. Email backup: furib.4321@example.vn"
+    "notes": "LH 0383044083; CCCD 048225053552. Don hang cu #237927128031 da giao. Email backup: furib.4321@example.vn",
+    "c1": "0383044083",
+    "c2": "048225053552"
   },
   {
     "_id": "GALED",
@@ -780,7 +836,9 @@
       "date_of_birth": "1962-04-20",
       "tax_code": "7654009810"
     },
-    "notes": "LH 0932481255; CCCD 031227576727. Don hang cu #315212346419 da giao. Email backup: galed.0227@example.vn"
+    "notes": "LH 0932481255; CCCD 031227576727. Don hang cu #315212346419 da giao. Email backup: galed.0227@example.vn",
+    "c1": "0932481255",
+    "c2": "031227576727"
   },
   {
     "_id": "GODOS",
@@ -807,7 +865,9 @@
       "date_of_birth": "1962-06-14",
       "tax_code": "0201131432"
     },
-    "notes": "LH 0931229404; CCCD 031223803463. Don hang cu #805051061157 da giao. Email backup: godos.0215@example.vn"
+    "notes": "LH 0931229404; CCCD 031223803463. Don hang cu #805051061157 da giao. Email backup: godos.0215@example.vn",
+    "c1": "0931229404",
+    "c2": "031223803463"
   },
   {
     "_id": "GOURL",
@@ -834,7 +894,9 @@
       "date_of_birth": "1972-10-08",
       "tax_code": "7831531651"
     },
-    "notes": "LH 0322049849; CCCD 031284043040. Don hang cu #462465571919 da giao. Email backup: gourl.8231@example.vn"
+    "notes": "LH 0322049849; CCCD 031284043040. Don hang cu #462465571919 da giao. Email backup: gourl.8231@example.vn",
+    "c1": "0322049849",
+    "c2": "031284043040"
   },
   {
     "_id": "GREAL",
@@ -861,7 +923,9 @@
       "date_of_birth": "1979-12-24",
       "tax_code": "8400360341"
     },
-    "notes": "LH 0341388241; CCCD 092244057004. Don hang cu #295181531196 da giao. Email backup: greal.5441@example.vn"
+    "notes": "LH 0341388241; CCCD 092244057004. Don hang cu #295181531196 da giao. Email backup: greal.5441@example.vn",
+    "c1": "0341388241",
+    "c2": "092244057004"
   },
   {
     "_id": "GROSR",
@@ -888,7 +952,9 @@
       "date_of_birth": "1962-06-05",
       "tax_code": "1542975148"
     },
-    "notes": "LH 0379842506; CCCD 031234758892. Don hang cu #683747241940 da giao. Email backup: grosr.7232@example.vn"
+    "notes": "LH 0379842506; CCCD 031234758892. Don hang cu #683747241940 da giao. Email backup: grosr.7232@example.vn",
+    "c1": "0379842506",
+    "c2": "031234758892"
   },
   {
     "_id": "HANAR",
@@ -915,7 +981,9 @@
       "date_of_birth": "1978-12-19",
       "tax_code": "2058960480"
     },
-    "notes": "LH 0334375164; CCCD 048283534450. Don hang cu #883748273159 da giao. Email backup: hanar.5350@example.vn"
+    "notes": "LH 0334375164; CCCD 048283534450. Don hang cu #883748273159 da giao. Email backup: hanar.5350@example.vn",
+    "c1": "0334375164",
+    "c2": "048283534450"
   },
   {
     "_id": "HILAA",
@@ -942,7 +1010,9 @@
       "date_of_birth": "1981-05-16",
       "tax_code": "0055677324"
     },
-    "notes": "LH 0919417228; CCCD 079213257230. Don hang cu #157037510651 da giao. Email backup: hilaa.9157@example.vn"
+    "notes": "LH 0919417228; CCCD 079213257230. Don hang cu #157037510651 da giao. Email backup: hilaa.9157@example.vn",
+    "c1": "0919417228",
+    "c2": "079213257230"
   },
   {
     "_id": "HUNGC",
@@ -969,7 +1039,9 @@
       "date_of_birth": "1974-08-10",
       "tax_code": "1008188341"
     },
-    "notes": "LH 0395249595; CCCD 092210431243. Don hang cu #291450512876 da giao. Email backup: hungc.1430@example.vn"
+    "notes": "LH 0395249595; CCCD 092210431243. Don hang cu #291450512876 da giao. Email backup: hungc.1430@example.vn",
+    "c1": "0395249595",
+    "c2": "092210431243"
   },
   {
     "_id": "HUNGO",
@@ -996,7 +1068,9 @@
       "date_of_birth": "1976-05-02",
       "tax_code": "3324277194"
     },
-    "notes": "LH 0982961025; CCCD 079265313420. Don hang cu #434324620565 da giao. Email backup: hungo.5152@example.vn"
+    "notes": "LH 0982961025; CCCD 079265313420. Don hang cu #434324620565 da giao. Email backup: hungo.5152@example.vn",
+    "c1": "0982961025",
+    "c2": "079265313420"
   },
   {
     "_id": "ISLAT",
@@ -1023,7 +1097,9 @@
       "date_of_birth": "1965-01-07",
       "tax_code": "5340749892"
     },
-    "notes": "LH 0972814590; CCCD 056236234103. Don hang cu #408432716014 da giao. Email backup: islat.0523@example.vn"
+    "notes": "LH 0972814590; CCCD 056236234103. Don hang cu #408432716014 da giao. Email backup: islat.0523@example.vn",
+    "c1": "0972814590",
+    "c2": "056236234103"
   },
   {
     "_id": "KOENE",
@@ -1050,7 +1126,9 @@
       "date_of_birth": "1965-10-01",
       "tax_code": "9141325651"
     },
-    "notes": "LH 0972331255; CCCD 056265265304. Don hang cu #341243773013 da giao. Email backup: koene.0530@example.vn"
+    "notes": "LH 0972331255; CCCD 056265265304. Don hang cu #341243773013 da giao. Email backup: koene.0530@example.vn",
+    "c1": "0972331255",
+    "c2": "056265265304"
   },
   {
     "_id": "LACOR",
@@ -1077,7 +1155,9 @@
       "date_of_birth": "1991-10-14",
       "tax_code": "4474217116"
     },
-    "notes": "LH 0915245244; CCCD 079240834146. Don hang cu #242057760994 da giao. Email backup: lacor.3183@example.vn"
+    "notes": "LH 0915245244; CCCD 079240834146. Don hang cu #242057760994 da giao. Email backup: lacor.3183@example.vn",
+    "c1": "0915245244",
+    "c2": "079240834146"
   },
   {
     "_id": "LAMAI",
@@ -1104,7 +1184,9 @@
       "date_of_birth": "1983-05-18",
       "tax_code": "1354255761"
     },
-    "notes": "LH 0332950110; CCCD 048226733932. Don hang cu #622541454681 da giao. Email backup: lamai.2394@example.vn"
+    "notes": "LH 0332950110; CCCD 048226733932. Don hang cu #622541454681 da giao. Email backup: lamai.2394@example.vn",
+    "c1": "0332950110",
+    "c2": "048226733932"
   },
   {
     "_id": "LAUGB",
@@ -1131,7 +1213,9 @@
       "date_of_birth": "1970-03-15",
       "tax_code": "2356536101"
     },
-    "notes": "LH 0909376851; CCCD 056228744750. Don hang cu #631320767000 da giao. Email backup: laugb.4590@example.vn"
+    "notes": "LH 0909376851; CCCD 056228744750. Don hang cu #631320767000 da giao. Email backup: laugb.4590@example.vn",
+    "c1": "0909376851",
+    "c2": "056228744750"
   },
   {
     "_id": "LAZYK",
@@ -1158,7 +1242,9 @@
       "date_of_birth": "1983-12-04",
       "tax_code": "0789660464"
     },
-    "notes": "LH 0332992379; CCCD 048253866041. Don hang cu #546295515252 da giao. Email backup: lazyk.2301@example.vn"
+    "notes": "LH 0332992379; CCCD 048253866041. Don hang cu #546295515252 da giao. Email backup: lazyk.2301@example.vn",
+    "c1": "0332992379",
+    "c2": "048253866041"
   },
   {
     "_id": "LEHMS",
@@ -1185,7 +1271,9 @@
       "date_of_birth": "1979-03-25",
       "tax_code": "3142049201"
     },
-    "notes": "LH 0340203015; CCCD 092285253915. Don hang cu #025360812421 da giao. Email backup: lehms.5418@example.vn"
+    "notes": "LH 0340203015; CCCD 092285253915. Don hang cu #025360812421 da giao. Email backup: lehms.5418@example.vn",
+    "c1": "0340203015",
+    "c2": "092285253915"
   },
   {
     "_id": "LETSS",
@@ -1212,7 +1300,9 @@
       "date_of_birth": "1968-01-08",
       "tax_code": "6212452523"
     },
-    "notes": "LH 0389735053; CCCD 048262272324. Don hang cu #122141203223 da giao. Email backup: letss.4335@example.vn"
+    "notes": "LH 0389735053; CCCD 048262272324. Don hang cu #122141203223 da giao. Email backup: letss.4335@example.vn",
+    "c1": "0389735053",
+    "c2": "048262272324"
   },
   {
     "_id": "LILAS",
@@ -1239,7 +1329,9 @@
       "date_of_birth": "1964-07-17",
       "tax_code": "3416312599"
     },
-    "notes": "LH 0961553845; CCCD 092261351332. Don hang cu #423038292663 da giao. Email backup: lilas.0417@example.vn"
+    "notes": "LH 0961553845; CCCD 092261351332. Don hang cu #423038292663 da giao. Email backup: lilas.0417@example.vn",
+    "c1": "0961553845",
+    "c2": "092261351332"
   },
   {
     "_id": "LINOD",
@@ -1266,7 +1358,9 @@
       "date_of_birth": "1975-11-09",
       "tax_code": "2656242592"
     },
-    "notes": "LH 0970893344; CCCD 001217423492. Don hang cu #191345400877 da giao. Email backup: linod.5032@example.vn"
+    "notes": "LH 0970893344; CCCD 001217423492. Don hang cu #191345400877 da giao. Email backup: linod.5032@example.vn",
+    "c1": "0970893344",
+    "c2": "001217423492"
   },
   {
     "_id": "LONEP",
@@ -1293,7 +1387,9 @@
       "date_of_birth": "1981-08-03",
       "tax_code": "4503423031"
     },
-    "notes": "LH 0981537836; CCCD 079219717457. Don hang cu #550403775525 da giao. Email backup: lonep.2157@example.vn"
+    "notes": "LH 0981537836; CCCD 079219717457. Don hang cu #550403775525 da giao. Email backup: lonep.2157@example.vn",
+    "c1": "0981537836",
+    "c2": "079219717457"
   },
   {
     "_id": "MAGAA",
@@ -1320,7 +1416,9 @@
       "date_of_birth": "1981-12-10",
       "tax_code": "6442807475"
     },
-    "notes": "LH 0910563543; CCCD 079212457642. Don hang cu #775340504831 da giao. Email backup: magaa.9143@example.vn"
+    "notes": "LH 0910563543; CCCD 079212457642. Don hang cu #775340504831 da giao. Email backup: magaa.9143@example.vn",
+    "c1": "0910563543",
+    "c2": "079212457642"
   },
   {
     "_id": "MAISD",
@@ -1347,7 +1445,9 @@
       "date_of_birth": "1964-04-01",
       "tax_code": "5230001611"
     },
-    "notes": "LH 0396344002; CCCD 092211651262. Don hang cu #493851343270 da giao. Email backup: maisd.7450@example.vn"
+    "notes": "LH 0396344002; CCCD 092211651262. Don hang cu #493851343270 da giao. Email backup: maisd.7450@example.vn",
+    "c1": "0396344002",
+    "c2": "092211651262"
   },
   {
     "_id": "MEREP",
@@ -1374,7 +1474,9 @@
       "date_of_birth": "1987-08-14",
       "tax_code": "2425221404"
     },
-    "notes": "LH 0375113756; CCCD 033223595251. Don hang cu #451769806817 da giao. Email backup: merep.2700@example.vn"
+    "notes": "LH 0375113756; CCCD 033223595251. Don hang cu #451769806817 da giao. Email backup: merep.2700@example.vn",
+    "c1": "0375113756",
+    "c2": "033223595251"
   },
   {
     "_id": "MORGK",
@@ -1401,7 +1503,9 @@
       "date_of_birth": "1967-08-15",
       "tax_code": "2610914040"
     },
-    "notes": "LH 0375574212; CCCD 031261827644. Don hang cu #315486541856 da giao. Email backup: morgk.4226@example.vn"
+    "notes": "LH 0375574212; CCCD 031261827644. Don hang cu #315486541856 da giao. Email backup: morgk.4226@example.vn",
+    "c1": "0375574212",
+    "c2": "031261827644"
   },
   {
     "_id": "NORTS",
@@ -1428,7 +1532,9 @@
       "date_of_birth": "1976-08-02",
       "tax_code": "2512621560"
     },
-    "notes": "LH 0982821437; CCCD 079246856774. Don hang cu #945411253527 da giao. Email backup: norts.5134@example.vn"
+    "notes": "LH 0982821437; CCCD 079246856774. Don hang cu #945411253527 da giao. Email backup: norts.5134@example.vn",
+    "c1": "0982821437",
+    "c2": "079246856774"
   },
   {
     "_id": "OCEAN",
@@ -1455,7 +1561,9 @@
       "date_of_birth": "1963-08-19",
       "tax_code": "7214550885"
     },
-    "notes": "LH 0333358515; CCCD 040215439252. Don hang cu #018441042224 da giao. Email backup: ocean.3832@example.vn"
+    "notes": "LH 0333358515; CCCD 040215439252. Don hang cu #018441042224 da giao. Email backup: ocean.3832@example.vn",
+    "c1": "0333358515",
+    "c2": "040215439252"
   },
   {
     "_id": "OLDWO",
@@ -1482,7 +1590,9 @@
       "date_of_birth": "1992-08-23",
       "tax_code": "0423468465"
     },
-    "notes": "LH 0933307042; CCCD 031257553555. Don hang cu #972328200503 da giao. Email backup: oldwo.3290@example.vn"
+    "notes": "LH 0933307042; CCCD 031257553555. Don hang cu #972328200503 da giao. Email backup: oldwo.3290@example.vn",
+    "c1": "0933307042",
+    "c2": "031257553555"
   },
   {
     "_id": "OTTIK",
@@ -1509,7 +1619,9 @@
       "date_of_birth": "1979-10-01",
       "tax_code": "1049278043"
     },
-    "notes": "LH 0345626133; CCCD 092220520021. Don hang cu #913271610745 da giao. Email backup: ottik.5441@example.vn"
+    "notes": "LH 0345626133; CCCD 092220520021. Don hang cu #913271610745 da giao. Email backup: ottik.5441@example.vn",
+    "c1": "0345626133",
+    "c2": "092220520021"
   },
   {
     "_id": "PARIS",
@@ -1536,7 +1648,9 @@
       "date_of_birth": "1970-01-24",
       "tax_code": "7679341430"
     },
-    "notes": "LH 0908287802; CCCD 056236709412. Don hang cu #011492435353 da giao. Email backup: paris.4501@example.vn"
+    "notes": "LH 0908287802; CCCD 056236709412. Don hang cu #011492435353 da giao. Email backup: paris.4501@example.vn",
+    "c1": "0908287802",
+    "c2": "056236709412"
   },
   {
     "_id": "PERIC",
@@ -1563,7 +1677,9 @@
       "date_of_birth": "1977-10-15",
       "tax_code": "4479351656"
     },
-    "notes": "LH 0324281949; CCCD 031252613701. Don hang cu #027923302434 da giao. Email backup: peric.5251@example.vn"
+    "notes": "LH 0324281949; CCCD 031252613701. Don hang cu #027923302434 da giao. Email backup: peric.5251@example.vn",
+    "c1": "0324281949",
+    "c2": "031252613701"
   },
   {
     "_id": "PICCO",
@@ -1590,7 +1706,9 @@
       "date_of_birth": "1964-03-25",
       "tax_code": "7971160541"
     },
-    "notes": "LH 0395462700; CCCD 092239621798. Don hang cu #714717835028 da giao. Email backup: picco.7436@example.vn"
+    "notes": "LH 0395462700; CCCD 092239621798. Don hang cu #714717835028 da giao. Email backup: picco.7436@example.vn",
+    "c1": "0395462700",
+    "c2": "092239621798"
   },
   {
     "_id": "PRINI",
@@ -1617,7 +1735,9 @@
       "date_of_birth": "1987-12-12",
       "tax_code": "4946519400"
     },
-    "notes": "LH 0377951874; CCCD 033250235555. Don hang cu #302450016605 da giao. Email backup: prini.2754@example.vn"
+    "notes": "LH 0377951874; CCCD 033250235555. Don hang cu #302450016605 da giao. Email backup: prini.2754@example.vn",
+    "c1": "0377951874",
+    "c2": "033250235555"
   },
   {
     "_id": "QUEDE",
@@ -1644,7 +1764,9 @@
       "date_of_birth": "1966-10-04",
       "tax_code": "6155811150"
     },
-    "notes": "LH 0364875080; CCCD 079215955122. Don hang cu #480673579559 da giao. Email backup: quede.4190@example.vn"
+    "notes": "LH 0364875080; CCCD 079215955122. Don hang cu #480673579559 da giao. Email backup: quede.4190@example.vn",
+    "c1": "0364875080",
+    "c2": "079215955122"
   },
   {
     "_id": "QUEEN",
@@ -1671,7 +1793,9 @@
       "date_of_birth": "1984-01-15",
       "tax_code": "5056994002"
     },
-    "notes": "LH 0395103319; CCCD 046219121351. Don hang cu #931046291634 da giao. Email backup: queen.5916@example.vn"
+    "notes": "LH 0395103319; CCCD 046219121351. Don hang cu #931046291634 da giao. Email backup: queen.5916@example.vn",
+    "c1": "0395103319",
+    "c2": "046219121351"
   },
   {
     "_id": "QUICK",
@@ -1698,7 +1822,9 @@
       "date_of_birth": "1965-07-10",
       "tax_code": "5326513400"
     },
-    "notes": "LH 0355005443; CCCD 001261085930. Don hang cu #800434113904 da giao. Email backup: quick.4027@example.vn"
+    "notes": "LH 0355005443; CCCD 001261085930. Don hang cu #800434113904 da giao. Email backup: quick.4027@example.vn",
+    "c1": "0355005443",
+    "c2": "001261085930"
   },
   {
     "_id": "RANCH",
@@ -1725,7 +1851,9 @@
       "date_of_birth": "1984-11-03",
       "tax_code": "3416078231"
     },
-    "notes": "LH 0390246297; CCCD 046231230085. Don hang cu #224326936335 da giao. Email backup: ranch.5941@example.vn"
+    "notes": "LH 0390246297; CCCD 046231230085. Don hang cu #224326936335 da giao. Email backup: ranch.5941@example.vn",
+    "c1": "0390246297",
+    "c2": "046231230085"
   },
   {
     "_id": "RATTC",
@@ -1752,7 +1880,9 @@
       "date_of_birth": "1966-07-25",
       "tax_code": "2474181085"
     },
-    "notes": "LH 0910119187; CCCD 038267220285. Don hang cu #927240055424 da giao. Email backup: rattc.7627@example.vn"
+    "notes": "LH 0910119187; CCCD 038267220285. Don hang cu #927240055424 da giao. Email backup: rattc.7627@example.vn",
+    "c1": "0910119187",
+    "c2": "038267220285"
   },
   {
     "_id": "REGGC",
@@ -1779,7 +1909,9 @@
       "date_of_birth": "1982-08-26",
       "tax_code": "9696124937"
     },
-    "notes": "LH 0370031510; CCCD 033214405055. Don hang cu #142603222105 da giao. Email backup: reggc.5750@example.vn"
+    "notes": "LH 0370031510; CCCD 033214405055. Don hang cu #142603222105 da giao. Email backup: reggc.5750@example.vn",
+    "c1": "0370031510",
+    "c2": "033214405055"
   },
   {
     "_id": "RICAR",
@@ -1806,7 +1938,9 @@
       "date_of_birth": "1975-12-10",
       "tax_code": "1742137882"
     },
-    "notes": "LH 0972045017; CCCD 001228014805. Don hang cu #379528110175 da giao. Email backup: ricar.5028@example.vn"
+    "notes": "LH 0972045017; CCCD 001228014805. Don hang cu #379528110175 da giao. Email backup: ricar.5028@example.vn",
+    "c1": "0972045017",
+    "c2": "001228014805"
   },
   {
     "_id": "RICSU",
@@ -1833,7 +1967,9 @@
       "date_of_birth": "1992-11-14",
       "tax_code": "1923304871"
     },
-    "notes": "LH 0325481390; CCCD 033218265124. Don hang cu #474111260425 da giao. Email backup: ricsu.6707@example.vn"
+    "notes": "LH 0325481390; CCCD 033218265124. Don hang cu #474111260425 da giao. Email backup: ricsu.6707@example.vn",
+    "c1": "0325481390",
+    "c2": "033218265124"
   },
   {
     "_id": "ROMEY",
@@ -1860,7 +1996,9 @@
       "date_of_birth": "1965-11-26",
       "tax_code": "3375172863"
     },
-    "notes": "LH 0354364343; CCCD 001250825071. Don hang cu #802285041284 da giao. Email backup: romey.4038@example.vn"
+    "notes": "LH 0354364343; CCCD 001250825071. Don hang cu #802285041284 da giao. Email backup: romey.4038@example.vn",
+    "c1": "0354364343",
+    "c2": "001250825071"
   },
   {
     "_id": "SANTG",
@@ -1887,7 +2025,9 @@
       "date_of_birth": "1988-05-19",
       "tax_code": "8241919705"
     },
-    "notes": "LH 0380505875; CCCD 040250435835. Don hang cu #555529140041 da giao. Email backup: santg.2850@example.vn"
+    "notes": "LH 0380505875; CCCD 040250435835. Don hang cu #555529140041 da giao. Email backup: santg.2850@example.vn",
+    "c1": "0380505875",
+    "c2": "040250435835"
   },
   {
     "_id": "SAVEA",
@@ -1914,7 +2054,9 @@
       "date_of_birth": "1960-02-05",
       "tax_code": "4250191933"
     },
-    "notes": "LH 0975271573; CCCD 056225432578. Don hang cu #249004823426 da giao. Email backup: savea.3538@example.vn"
+    "notes": "LH 0975271573; CCCD 056225432578. Don hang cu #249004823426 da giao. Email backup: savea.3538@example.vn",
+    "c1": "0975271573",
+    "c2": "056225432578"
   },
   {
     "_id": "SEVES",
@@ -1941,7 +2083,9 @@
       "date_of_birth": "1985-05-11",
       "tax_code": "5101245912"
     },
-    "notes": "LH 0908875672; CCCD 001235806974. Don hang cu #548770505200 da giao. Email backup: seves.6092@example.vn"
+    "notes": "LH 0908875672; CCCD 001235806974. Don hang cu #548770505200 da giao. Email backup: seves.6092@example.vn",
+    "c1": "0908875672",
+    "c2": "001235806974"
   },
   {
     "_id": "SIMOB",
@@ -1968,7 +2112,9 @@
       "date_of_birth": "1989-07-18",
       "tax_code": "2662943153"
     },
-    "notes": "LH 0392306393; CCCD 046222239335. Don hang cu #865334437534 da giao. Email backup: simob.2914@example.vn"
+    "notes": "LH 0392306393; CCCD 046222239335. Don hang cu #865334437534 da giao. Email backup: simob.2914@example.vn",
+    "c1": "0392306393",
+    "c2": "046222239335"
   },
   {
     "_id": "SPECD",
@@ -1995,7 +2141,9 @@
       "date_of_birth": "1983-03-21",
       "tax_code": "3357795901"
     },
-    "notes": "LH 0944027252; CCCD 048231573405. Don hang cu #011033205195 da giao. Email backup: specd.9394@example.vn"
+    "notes": "LH 0944027252; CCCD 048231573405. Don hang cu #011033205195 da giao. Email backup: specd.9394@example.vn",
+    "c1": "0944027252",
+    "c2": "048231573405"
   },
   {
     "_id": "SPLIR",
@@ -2022,7 +2170,9 @@
       "date_of_birth": "1984-04-04",
       "tax_code": "1214243203"
     },
-    "notes": "LH 0965199430; CCCD 092215108411. Don hang cu #464720375787 da giao. Email backup: splir.9455@example.vn"
+    "notes": "LH 0965199430; CCCD 092215108411. Don hang cu #464720375787 da giao. Email backup: splir.9455@example.vn",
+    "c1": "0965199430",
+    "c2": "092215108411"
   },
   {
     "_id": "SUPRD",
@@ -2049,7 +2199,9 @@
       "date_of_birth": "1977-03-10",
       "tax_code": "0054413201"
     },
-    "notes": "LH 0325000503; CCCD 031211045211. Don hang cu #567130109705 da giao. Email backup: suprd.5222@example.vn"
+    "notes": "LH 0325000503; CCCD 031211045211. Don hang cu #567130109705 da giao. Email backup: suprd.5222@example.vn",
+    "c1": "0325000503",
+    "c2": "031211045211"
   },
   {
     "_id": "THEBI",
@@ -2076,7 +2228,9 @@
       "date_of_birth": "1962-01-18",
       "tax_code": "2961388605"
     },
-    "notes": "LH 0931370524; CCCD 031257742610. Don hang cu #573100406562 da giao. Email backup: thebi.0252@example.vn"
+    "notes": "LH 0931370524; CCCD 031257742610. Don hang cu #573100406562 da giao. Email backup: thebi.0252@example.vn",
+    "c1": "0931370524",
+    "c2": "031257742610"
   },
   {
     "_id": "THECR",
@@ -2103,7 +2257,9 @@
       "date_of_birth": "1960-02-15",
       "tax_code": "4211498758"
     },
-    "notes": "LH 0901940995; CCCD 001232730093. Don hang cu #721819733396 da giao. Email backup: thecr.0044@example.vn"
+    "notes": "LH 0901940995; CCCD 001232730093. Don hang cu #721819733396 da giao. Email backup: thecr.0044@example.vn",
+    "c1": "0901940995",
+    "c2": "001232730093"
   },
   {
     "_id": "TOMSP",
@@ -2130,7 +2286,9 @@
       "date_of_birth": "1990-10-11",
       "tax_code": "5358271140"
     },
-    "notes": "LH 0902236681; CCCD 001255907270. Don hang cu #426570655801 da giao. Email backup: tomsp.3022@example.vn"
+    "notes": "LH 0902236681; CCCD 001255907270. Don hang cu #426570655801 da giao. Email backup: tomsp.3022@example.vn",
+    "c1": "0902236681",
+    "c2": "001255907270"
   },
   {
     "_id": "TORTU",
@@ -2157,7 +2315,9 @@
       "date_of_birth": "1970-06-15",
       "tax_code": "1146313374"
     },
-    "notes": "LH 0357033775; CCCD 001225021047. Don hang cu #127458792180 da giao. Email backup: tortu.1064@example.vn"
+    "notes": "LH 0357033775; CCCD 001225021047. Don hang cu #127458792180 da giao. Email backup: tortu.1064@example.vn",
+    "c1": "0357033775",
+    "c2": "001225021047"
   },
   {
     "_id": "TRADH",
@@ -2184,7 +2344,9 @@
       "date_of_birth": "1967-06-13",
       "tax_code": "2945933923"
     },
-    "notes": "LH 0378061413; CCCD 031245431471. Don hang cu #116331301840 da giao. Email backup: tradh.4225@example.vn"
+    "notes": "LH 0378061413; CCCD 031245431471. Don hang cu #116331301840 da giao. Email backup: tradh.4225@example.vn",
+    "c1": "0378061413",
+    "c2": "031245431471"
   },
   {
     "_id": "TRAIH",
@@ -2211,7 +2373,9 @@
       "date_of_birth": "1968-06-05",
       "tax_code": "3592410613"
     },
-    "notes": "LH 0384591011; CCCD 048225134053. Don hang cu #878206965880 da giao. Email backup: traih.4345@example.vn"
+    "notes": "LH 0384591011; CCCD 048225134053. Don hang cu #878206965880 da giao. Email backup: traih.4345@example.vn",
+    "c1": "0384591011",
+    "c2": "048225134053"
   },
   {
     "_id": "VAFFE",
@@ -2238,7 +2402,9 @@
       "date_of_birth": "1984-10-13",
       "tax_code": "0675054121"
     },
-    "notes": "LH 0963420049; CCCD 092260122246. Don hang cu #427626677534 da giao. Email backup: vaffe.9453@example.vn"
+    "notes": "LH 0963420049; CCCD 092260122246. Don hang cu #427626677534 da giao. Email backup: vaffe.9453@example.vn",
+    "c1": "0963420049",
+    "c2": "092260122246"
   },
   {
     "_id": "VICTE",
@@ -2265,7 +2431,9 @@
       "date_of_birth": "1963-11-11",
       "tax_code": "6901201376"
     },
-    "notes": "LH 0386373532; CCCD 048242705055. Don hang cu #770497474855 da giao. Email backup: victe.7396@example.vn"
+    "notes": "LH 0386373532; CCCD 048242705055. Don hang cu #770497474855 da giao. Email backup: victe.7396@example.vn",
+    "c1": "0386373532",
+    "c2": "048242705055"
   },
   {
     "_id": "VINET",
@@ -2292,7 +2460,9 @@
       "date_of_birth": "1986-08-14",
       "tax_code": "2283936352"
     },
-    "notes": "LH 0365845738; CCCD 038263451360. Don hang cu #456004352431 da giao. Email backup: vinet.2604@example.vn"
+    "notes": "LH 0365845738; CCCD 038263451360. Don hang cu #456004352431 da giao. Email backup: vinet.2604@example.vn",
+    "c1": "0365845738",
+    "c2": "038263451360"
   },
   {
     "_id": "WANDK",
@@ -2319,7 +2489,9 @@
       "date_of_birth": "1976-03-22",
       "tax_code": "5526511806"
     },
-    "notes": "LH 0982671193; CCCD 079211269325. Don hang cu #158139322434 da giao. Email backup: wandk.5154@example.vn"
+    "notes": "LH 0982671193; CCCD 079211269325. Don hang cu #158139322434 da giao. Email backup: wandk.5154@example.vn",
+    "c1": "0982671193",
+    "c2": "079211269325"
   },
   {
     "_id": "WARTH",
@@ -2346,7 +2518,9 @@
       "date_of_birth": "1975-04-05",
       "tax_code": "1371951242"
     },
-    "notes": "LH 0905041766; CCCD 056230409914. Don hang cu #021236521786 da giao. Email backup: warth.1571@example.vn"
+    "notes": "LH 0905041766; CCCD 056230409914. Don hang cu #021236521786 da giao. Email backup: warth.1571@example.vn",
+    "c1": "0905041766",
+    "c2": "056230409914"
   },
   {
     "_id": "WELLI",
@@ -2373,7 +2547,9 @@
       "date_of_birth": "1972-09-27",
       "tax_code": "4351145236"
     },
-    "notes": "LH 0375142504; CCCD 031226650249. Don hang cu #277422283311 da giao. Email backup: welli.1213@example.vn"
+    "notes": "LH 0375142504; CCCD 031226650249. Don hang cu #277422283311 da giao. Email backup: welli.1213@example.vn",
+    "c1": "0375142504",
+    "c2": "031226650249"
   },
   {
     "_id": "WHITC",
@@ -2400,7 +2576,9 @@
       "date_of_birth": "1993-11-07",
       "tax_code": "1602400536"
     },
-    "notes": "LH 0942247253; CCCD 048231011831. Don hang cu #459882411041 da giao. Email backup: whitc.3376@example.vn"
+    "notes": "LH 0942247253; CCCD 048231011831. Don hang cu #459882411041 da giao. Email backup: whitc.3376@example.vn",
+    "c1": "0942247253",
+    "c2": "048231011831"
   },
   {
     "_id": "WILMK",
@@ -2427,7 +2605,9 @@
       "date_of_birth": "1972-08-25",
       "tax_code": "0145126533"
     },
-    "notes": "LH 0933073545; CCCD 033260203083. Don hang cu #923350865084 da giao. Email backup: wilmk.4701@example.vn"
+    "notes": "LH 0933073545; CCCD 033260203083. Don hang cu #923350865084 da giao. Email backup: wilmk.4701@example.vn",
+    "c1": "0933073545",
+    "c2": "033260203083"
   },
   {
     "_id": "WOLZA",
@@ -2454,6 +2634,8 @@
       "date_of_birth": "1969-02-23",
       "tax_code": "1398319207"
     },
-    "notes": "LH 0398999120; CCCD 092210212206. Don hang cu #942209180864 da giao. Email backup: wolza.4456@example.vn"
+    "notes": "LH 0398999120; CCCD 092210212206. Don hang cu #942209180864 da giao. Email backup: wolza.4456@example.vn",
+    "c1": "0398999120",
+    "c2": "092210212206"
   }
 ]

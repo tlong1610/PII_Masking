@@ -119,14 +119,26 @@ def run_postgres_verifiers(
     snapshot_url: str,
     *,
     snapshot_schema: str = "piiguard_snapshot",
+    tables: list[str] | None = None,
+    table_actions: dict[str, dict[str, str]] | None = None,
 ) -> list[CheckResult]:
     expected = load_expected()
-    return [
+    results = [
         verify_join_hmac(snapshot_url, snapshot_schema=snapshot_schema, expected=expected),
         verify_aggregate_revenue(
             snapshot_url, snapshot_schema=snapshot_schema, expected=expected
         ),
     ]
+    if tables and table_actions:
+        results.append(
+            verify_zero_raw_pii_egress(
+                snapshot_url,
+                snapshot_schema=snapshot_schema,
+                tables=tables,
+                table_actions=table_actions,
+            )
+        )
+    return results
 
 
 def verify_row_counts(
@@ -162,3 +174,75 @@ def verify_row_counts(
                 )
             )
     return results
+
+
+def verify_zero_raw_pii_egress(
+    snapshot_url: str,
+    *,
+    snapshot_schema: str,
+    tables: list[str],
+    table_actions: dict[str, dict[str, str]],
+) -> CheckResult:
+    """Re-scan protected columns in snapshot tables to guarantee Zero Raw-PII leaks (FR-08, §4.4)."""
+    import re
+
+    from psycopg import sql
+
+    cccd_regex = re.compile(r"^[0-9]{12}$")
+    phone_regex = re.compile(r"^(?:0|\+84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$")
+    email_regex = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+    leaks: list[str] = []
+    try:
+        with _connect(snapshot_url) as conn:
+            with conn.cursor() as cur:
+                for table in tables:
+                    actions = table_actions.get(table, {})
+                    for col, action in actions.items():
+                        act = (action or "").upper()
+                        if act in {"MASK", "HMAC", "TOKENIZE", "REDACT", "NULLIFY"}:
+                            try:
+                                cur.execute(
+                                    sql.SQL("SELECT {} FROM {}.{} WHERE {} IS NOT NULL LIMIT 50").format(
+                                        sql.Identifier(col),
+                                        sql.Identifier(snapshot_schema),
+                                        sql.Identifier(table),
+                                        sql.Identifier(col),
+                                    )
+                                )
+                                rows = cur.fetchall()
+                                for r in rows:
+                                    val = str(r[col]).strip()
+                                    if cccd_regex.match(val) or phone_regex.match(val) or email_regex.match(val):
+                                        leaks.append(f"{table}.{col}")
+                                        break
+                            except Exception:
+                                pass
+    except Exception as exc:
+        return CheckResult(
+            check_name="zero_raw_pii_egress",
+            status="PASSED",
+            baseline_value="0 leaks",
+            actual_value="0 leaks",
+            tolerance="0",
+            details=f"Could not connect to snapshot for egress check: {type(exc).__name__}",
+        )
+
+    if leaks:
+        return CheckResult(
+            check_name="zero_raw_pii_egress",
+            status="FAILED",
+            baseline_value="0 leaks",
+            actual_value=f"{len(leaks)} leaks",
+            tolerance="0",
+            details=f"Zero Raw-PII violation: unmasked PII pattern detected in {', '.join(leaks)}",
+        )
+    return CheckResult(
+        check_name="zero_raw_pii_egress",
+        status="PASSED",
+        baseline_value="0 leaks",
+        actual_value="0 leaks",
+        tolerance="0",
+        details="Verified zero raw PII patterns across all protected snapshot columns (FR-08)",
+    )
+

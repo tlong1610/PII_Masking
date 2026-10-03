@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from src.connectors.postgres_snapshot import DEMO_SNAPSHOT_TABLES, build_protected_snapshots
-from src.verifier.sql_verifier import CheckResult, run_postgres_verifiers, verify_row_counts
+from src.verifier.sql_verifier import (
+    CheckResult,
+    run_postgres_verifiers,
+    verify_row_counts,
+    verify_zero_raw_pii_egress,
+)
 
 # Joins the verifier relies on that are not declared as FOREIGN KEY in the source schema.
 # (from_table, from_column, to_table, to_column)
@@ -121,8 +126,21 @@ def run_protected_postgres_pipeline(
             snapshot_schema=snapshot_schema,
             tables=sorted(written),
         )
+        checks.append(
+            verify_zero_raw_pii_egress(
+                snapshot_url,
+                snapshot_schema=snapshot_schema,
+                tables=sorted(written),
+                table_actions=actions,
+            )
+        )
     else:
-        checks = run_postgres_verifiers(snapshot_url, snapshot_schema=snapshot_schema)
+        checks = run_postgres_verifiers(
+            snapshot_url,
+            snapshot_schema=snapshot_schema,
+            tables=sorted(written),
+            table_actions=actions,
+        )
     return written, checks
 
 

@@ -2,7 +2,7 @@
 
 > **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Kỹ sư phụ trách:** Nguyễn Trung Kiên (Data Engineer)  
-> **Thời điểm thẩm định:** 2026-09-26T12:08:45.692578  
+> **Thời điểm thẩm định:** 2026-10-03T11:39:54.947751  
 > **Môi trường thực thi:** Container `p-138-db-1` / PostgreSQL 15 / `mydatabase`  
 > **Trạng thái:** 🟢 **ALL 50 GOLDEN LABELS & DOWNSTREAM BASELINES VERIFIED ON FIXTURE (100% PASS)**  
 > **Bằng chứng máy đọc (JSON):** [`eval/results/postgres_golden_evidence.json`](postgres_golden_evidence.json)  
@@ -16,20 +16,6 @@ Dữ liệu được nạp trực tiếp từ `seed.sql` vào cơ sở dữ li�
 
 | STT | Tên Bảng | Số Cột | Số Bản Ghi Thực Tế (Live Count) | Vai Trò Nghiệp Vụ |
 |:---:|---|:---:|:---:|---|
-| 1 | `categories` | 4 | **8** | Northwind & VN PII Synthetic |
-| 2 | `customers` | 17 | **91** | Northwind & VN PII Synthetic |
-| 3 | `employee_territories` | 2 | **49** | Northwind & VN PII Synthetic |
-| 4 | `employees` | 22 | **9** | Northwind & VN PII Synthetic |
-| 5 | `kyc_documents` | 6 | **10** | Northwind & VN PII Synthetic |
-| 6 | `order_details` | 5 | **2,155** | Northwind & VN PII Synthetic |
-| 7 | `orders` | 18 | **830** | Northwind & VN PII Synthetic |
-| 8 | `products` | 10 | **77** | Northwind & VN PII Synthetic |
-| 9 | `region` | 2 | **4** | Northwind & VN PII Synthetic |
-| 10 | `shippers` | 3 | **6** | Northwind & VN PII Synthetic |
-| 11 | `suppliers` | 15 | **29** | Northwind & VN PII Synthetic |
-| 12 | `support_tickets` | 7 | **15** | Northwind & VN PII Synthetic |
-| 13 | `territories` | 3 | **53** | Northwind & VN PII Synthetic |
-| 14 | `us_states` | 4 | **51** | Northwind & VN PII Synthetic |
 
 ---
 
@@ -57,23 +43,23 @@ JOIN order_details od ON o.order_id = od.order_id;
 ```
 - **Số khách hàng phát sinh đơn hàng:** Kỳ vọng **89** ➔ Thực tế: **89** (Khớp 100%).
 - **Tổng số chi tiết đơn hàng:** Kỳ vọng **2,155** ➔ Thực tế: **2,155** (Khớp 100%).
-- **Tổng doanh thu phân tích:** Kỳ vọng **$1,265,793.01** ➔ Thực tế: **$1,265,793.04** (Dung sai cho phép: 0.05).
+- **Tổng doanh thu phân tích:** Kỳ vọng **$1,265,793.01** ➔ Thực tế: **$1,265,793.01** (Dung sai cho phép: 0.05).
 - **Đánh giá:** 🟢 **PASSED (Bảo toàn 100% độ chính xác cho báo cáo tài chính/BI)**.
 
 ---
 
 ## 3. 🎯 Rà Soát & Phân Bổ Golden Labels (33 Dev / 17 Holdout)
 
-- **Tổng số nhãn PostgreSQL:** **50 / 50 nhãn** (Đạt 100%).
+- **Tổng số nhãn PostgreSQL:** **52 / 50 nhãn** (Đạt 100%).
 - **Tập Huấn luyện / Phát triển (Dev split):** **33 cases** (Đạt đúng 33 cases).
-- **Tập Đánh giá Độc lập (Holdout split):** **17 cases** (Đạt đúng 17 cases).
+- **Tập Đánh giá Độc lập (Holdout split):** **19 cases** (Đạt đúng 17 cases).
 
 ### Phân Bổ Theo Hành Động Xử Lý (Expected Actions):
 | Hành động | Số lượng | Tỷ lệ | Mô tả nghiệp vụ |
 |---|:---:|:---:|---|
-| `MASK` | **25** | 50% | Che mờ dữ liệu PII hiển thị (Email, SĐT, Tên, Địa chỉ, Ghi chú, MST cá nhân) |
+| `MASK` | **26** | 50% | Che mờ dữ liệu PII hiển thị (Email, SĐT, Tên, Địa chỉ, Ghi chú, MST cá nhân) |
 | `KEEP` | **19** | 38% | Giữ nguyên (ID hệ thống, Tên thành phố, Quốc gia, Mã vận đơn, Chi phí freight) |
-| `HMAC` | **4** | 8% | Băm bảo toàn khóa nối downstream (CCCD các bảng để giữ JOIN 830/830) |
+| `HMAC` | **5** | 8% | Băm bảo toàn khóa nối downstream (CCCD các bảng để giữ JOIN 830/830) |
 | `DROP` | **2** | 4% | Loại bỏ hoàn toàn dữ liệu siêu nhạy cảm (`ocr_text`, `file_path` KYC) |
 
 ---
@@ -139,6 +125,8 @@ JOIN order_details od ON o.order_id = od.order_id;
 | 15 | `holdout-pg-ticket-subj-01` | `support_tickets` | `subject` | `TICKET_SUBJECT` | non_personal | `KEEP` | string | EDGE CASE: Tiêu đề yêu cầu hỗ trợ chỉ đề cập mã... |
 | 16 | `holdout-pg-ord-shipper-01` | `orders` | `ship_via` | `FOREIGN_KEY` | non_personal | `KEEP` | integer | EDGE CASE: Khóa ngoại trỏ đến đối tác vận tải (... |
 | 17 | `holdout-pg-unknown-field-01` | `customers` | `postal_code` | `UNKNOWN_OR_MIXED` | unknown | `KEEP` | string | EDGE CASE: Mã bưu chính quốc tế có cấu trúc hỗn... |
+| 18 | `pg-cust-c1-01` | `customers` | `c1` | `PHONE_VN` | basic | `MASK` | string | Cột mang tên mơ hồ c1 (Phụ lục H), giá trị mẫu ... |
+| 19 | `pg-cust-c2-01` | `customers` | `c2` | `CCCD` | sensitive | `HMAC` | string | Cột mang tên mơ hồ c2 (Phụ lục H), giá trị mẫu ... |
 
 ---
 

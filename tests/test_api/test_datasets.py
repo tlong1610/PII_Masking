@@ -150,3 +150,36 @@ async def test_revoke_hides_from_analyst(client):
         headers=_auth(analyst),
     )
     assert preview.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_revoke_physical_rollback_and_grant_deletion(client):
+    """Kiểm tra đặc tả FR-08: Revoke phải thực hiện rollback thật:
+    - Xóa toàn bộ quyền truy cập (DatasetGrant) của Analyst đối với dataset này.
+    - Đánh dấu output_location là REVOKED_AND_DROPPED.
+    """
+    dpo = await _login(client, "dpo", "dpo123")
+    ds = await _build_verified_dataset(client, dpo)
+    ds_id = ds["id"]
+
+    # 1. Publish dataset (tự động tạo grant cho Analyst theo §14.2)
+    pub_res = await client.post(f"/api/v1/datasets/{ds_id}/publish", headers=_auth(dpo))
+    assert pub_res.status_code == 200
+
+    # Kiểm tra grants tồn tại sau publish
+    grants_before = await client.get(f"/api/v1/datasets/{ds_id}/grants", headers=_auth(dpo))
+    assert grants_before.status_code == 200
+    assert len(grants_before.json()) > 0
+
+    # 2. DPO gọi Revoke (FR-08)
+    revoke_res = await client.post(f"/api/v1/datasets/{ds_id}/revoke", headers=_auth(dpo))
+    assert revoke_res.status_code == 200
+    revoked_ds = revoke_res.json()
+    assert revoked_ds["status"] == "REVOKED"
+    assert "REVOKED_AND_DROPPED" in revoked_ds["output_location"]
+
+    # 3. Kiểm tra các quyền cấp cho Analyst đã bị xóa sạch (Rollback quyền hoàn toàn)
+    grants_after = await client.get(f"/api/v1/datasets/{ds_id}/grants", headers=_auth(dpo))
+    assert len(grants_after.json()) == 0
+
+

@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 try:
     import psycopg
@@ -177,8 +176,33 @@ class PostgresConnector:
         json_data = profile.model_dump_json(indent=4)
 
         # 3. Lưu ra file
-        out_file = Path(output_path)
-        out_file.parent.mkdir(parents=True, exist_ok=True)
-        out_file.write_text(json_data, encoding="utf-8")
-
+        from pathlib import Path
+        Path(output_path).write_text(json_data, encoding="utf-8")
         logger.info(f"Đã lưu cấu trúc DB ra file: {output_path}")
+
+    def list_relations(self, schema_name: str = "public") -> list[tuple[str, str, str, str]]:
+        """List foreign key relations as (source_table, source_column, target_table, target_column)."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT
+                        tc.table_name AS source_table,
+                        kcu.column_name AS source_column,
+                        ccu.table_name AS target_table,
+                        ccu.column_name AS target_column
+                    FROM information_schema.table_constraints AS tc
+                    JOIN information_schema.key_column_usage AS kcu
+                      ON tc.constraint_name = kcu.constraint_name
+                      AND tc.table_schema = kcu.table_schema
+                    JOIN information_schema.constraint_column_usage AS ccu
+                      ON ccu.constraint_name = tc.constraint_name
+                      AND ccu.table_schema = tc.table_schema
+                    WHERE tc.constraint_type = 'FOREIGN KEY'
+                      AND tc.table_schema = %s
+                """, (schema_name,))
+                rows = cur.fetchall()
+                return [
+                    (r["source_table"], r["source_column"], r["target_table"], r["target_column"])
+                    for r in rows
+                ]
+

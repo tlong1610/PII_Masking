@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # MongoDB source (read-only) and protected snapshot database on the same cluster
     mongo_uri: str = ""
+    mongo_source_uri: str = ""
     mongo_db: str = "mydatabase"
     mongo_snapshot_db: str = "mydatabase_protected"
     enable_mongo: bool = False
@@ -57,6 +58,18 @@ class Settings(BaseSettings):
     # HMAC join-key hashing (not encryption)
     hmac_secret: str = "dev-hmac-secret-change-me"
     hmac_key_version: str = "v1"
+
+    # Vault (§9.5, FR-13)
+    vault_encryption_key: str = ""
+    vault_blind_key: str = ""
+    vault_key_version: str = "v1"
+    vault_rate_limit_per_minute: int = 10
+
+    # Authentication Rate Limiting (§4.1, P2)
+    auth_rate_limit_per_minute: int = 60
+
+    # Governance & Separation of Duties (§3, §17.4)
+    self_approval_allowed: bool = True
 
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"

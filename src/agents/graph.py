@@ -1,5 +1,11 @@
+import uuid
+from typing import Any
+
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, StateGraph
 
+from src.agents.checkpointer import get_checkpoint_saver
 from src.agents.nodes.field_profile_nodes import FieldProfileState, fp_llm_node, fp_proposal_node, fp_rules_node
 from src.agents.nodes.scanner_nodes import (
     dpo_review_node,
@@ -10,6 +16,38 @@ from src.agents.nodes.scanner_nodes import (
     tier3_llm_node,
 )
 from src.agents.state import AgentState
+
+# Default persistent checkpointer (PostgresSaver / SqliteSaver §7)
+default_checkpointer = get_checkpoint_saver()
+
+
+class CheckpointedGraph:
+    """Wrapper around compiled LangGraph to ensure thread_id is always present."""
+
+    def __init__(self, compiled_graph: Any):
+        self.graph = compiled_graph
+
+    def _ensure_config(self, config: dict | None) -> dict:
+        cfg = dict(config or {})
+        configurable = dict(cfg.get("configurable") or {})
+        if "thread_id" not in configurable:
+            configurable["thread_id"] = str(uuid.uuid4())
+        cfg["configurable"] = configurable
+        return cfg
+
+    async def ainvoke(self, input: Any, config: dict | None = None, **kwargs: Any) -> Any:
+        cfg = self._ensure_config(config)
+        try:
+            return await self.graph.ainvoke(input, config=cfg, **kwargs)
+        except NotImplementedError:
+            import asyncio
+            return await asyncio.to_thread(self.graph.invoke, input, config=cfg, **kwargs)
+
+    def invoke(self, input: Any, config: dict | None = None, **kwargs: Any) -> Any:
+        return self.graph.invoke(input, config=self._ensure_config(config), **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.graph, name)
 
 
 def route_after_tier1(state: AgentState) -> str:
@@ -42,7 +80,7 @@ def route_after_proposal(state: AgentState) -> str:
     return END
 
 
-def build_graph() -> StateGraph:
+def build_graph(checkpointer: BaseCheckpointSaver | None = default_checkpointer) -> Any:
     """Xây dựng luồng LangGraph Phễu Lọc 3 Tầng."""
     graph = StateGraph(AgentState)
 
@@ -86,10 +124,12 @@ def build_graph() -> StateGraph:
 
     graph.add_edge("dpo_review", END)
 
-    return graph.compile()
+    compiled = graph.compile(checkpointer=checkpointer)
+    return CheckpointedGraph(compiled) if checkpointer else compiled
 
 
-agent = build_graph()
+# Column-level scanner runs in-memory (§6.3, run_scanner: "samples stay in-memory only")
+agent = build_graph(InMemorySaver())
 
 
 
@@ -105,7 +145,8 @@ def fp_route_after_rules(state: FieldProfileState) -> str:
         return "fp_proposal"
     return "fp_llm"
 
-def build_field_profile_graph():
+def build_field_profile_graph(checkpointer: BaseCheckpointSaver | None = None):
+    chk = checkpointer or InMemorySaver()
     graph = StateGraph(FieldProfileState)
 
     # Khai báo node
@@ -125,7 +166,10 @@ def build_field_profile_graph():
     graph.add_edge("fp_llm", "fp_proposal")
     graph.add_edge("fp_proposal", END)
 
-    return graph.compile()
+    compiled = graph.compile(checkpointer=chk)
+    return CheckpointedGraph(compiled) if chk else compiled
 
 # Agent chính cho luồng FieldProfile (Gate 2)
-field_profile_agent = build_field_profile_graph()
+field_profile_agent = build_field_profile_graph(InMemorySaver())
+
+# End-to-end 8-node Orchestrator Graph (§7.1)

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -15,6 +16,9 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import { Controller, useForm } from 'react-hook-form';
 import { ApiError } from '@/shared/api/client';
 import { useCreateDataSource, useTestDataSource } from '../hooks/usePiiReview';
@@ -98,15 +102,65 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
   });
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" aria-labelledby="add-source-title">
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby="add-source-title"
+      PaperProps={{
+        sx: {
+          borderRadius: '10px',
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+        },
+      }}
+    >
       <form onSubmit={(event) => void onSubmit(event)} noValidate>
-        <DialogTitle id="add-source-title">Thêm nguồn dữ liệu</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2.5} sx={{ pt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Nhập connection URL của cơ sở dữ liệu (PostgreSQL hoặc MongoDB). URL được mã hóa trên máy chủ, chỉ dùng
-              để đọc dữ liệu và không bao giờ hiển thị lại.
+        {/* Databricks Modal Header */}
+        <DialogTitle
+          id="add-source-title"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 1.5,
+            pt: 2.5,
+            px: 3,
+            borderBottom: '1px solid #E5E7EB',
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <StorageOutlinedIcon sx={{ color: '#1B51A4', fontSize: 22 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>
+              Thêm nguồn dữ liệu On-Premise
             </Typography>
+          </Stack>
+          <IconButton size="small" onClick={handleClose} disabled={busy} aria-label="Đóng modal">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 3 }}>
+          <Stack spacing={2.5}>
+            {/* Databricks Info Box */}
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: '6px',
+                bgcolor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                display: 'flex',
+                gap: 1.25,
+                alignItems: 'flex-start',
+              }}
+            >
+              <InfoOutlinedIcon sx={{ color: '#1D4ED8', fontSize: 18, mt: 0.2 }} />
+              <Typography variant="caption" sx={{ color: '#1E40AF', lineHeight: 1.5 }}>
+                URL kết nối cơ sở dữ liệu được mã hóa lưu trữ trong On-Premise Vault. Hệ thống chỉ đọc metadata và schema,
+                không bao giờ lưu hoặc truyền dữ liệu thô.
+              </Typography>
+            </Box>
 
             <Controller
               name="name"
@@ -114,10 +168,11 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Tên nguồn"
-                  placeholder="VD: CRM khách hàng"
+                  label="Tên nguồn dữ liệu"
+                  placeholder="VD: CRM Khách hàng Core Prod"
                   error={Boolean(errors.name)}
                   helperText={errors.name?.message}
+                  size="small"
                   autoFocus
                   fullWidth
                 />
@@ -134,19 +189,34 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                   placeholder="postgresql://user:password@host:5432/dbname"
                   type={showUrl ? 'text' : 'password'}
                   autoComplete="off"
+                  size="small"
                   error={Boolean(errors.url)}
-                  helperText={errors.url?.message ?? 'postgresql://… hoặc mongodb://… / mongodb+srv://…'}
+                  helperText={errors.url?.message ?? 'Định dạng: postgresql://… hoặc mongodb://… / mongodb+srv://…'}
                   fullWidth
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        {engine && <Chip size="small" label={engine === 'postgresql' ? 'PostgreSQL' : 'MongoDB'} />}
+                        {engine && (
+                          <Chip
+                            size="small"
+                            label={engine === 'postgresql' ? 'PostgreSQL' : 'MongoDB'}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              mr: 0.5,
+                              bgcolor: engine === 'postgresql' ? '#EFF6FF' : '#ECFDF5',
+                              color: engine === 'postgresql' ? '#1D4ED8' : '#047857',
+                            }}
+                          />
+                        )}
                         <IconButton
                           aria-label={showUrl ? 'Ẩn URL' : 'Hiện URL'}
                           onClick={() => setShowUrl((value) => !value)}
                           edge="end"
+                          size="small"
                         >
-                          {showUrl ? <VisibilityOff /> : <Visibility />}
+                          {showUrl ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -165,6 +235,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                   placeholder={engine === 'mongodb' ? 'Mặc định lấy từ URL' : 'Mặc định: public'}
                   error={Boolean(errors.namespace)}
                   helperText={errors.namespace?.message}
+                  size="small"
                   fullWidth
                 />
               )}
@@ -177,27 +248,50 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                 <TextField
                   {...field}
                   label={engine === 'mongodb' ? 'Collections cần quét (tùy chọn)' : 'Bảng cần quét (tùy chọn)'}
-                  placeholder="customers, orders"
+                  placeholder="customers, orders, accounts"
                   error={Boolean(errors.tables)}
-                  helperText={errors.tables?.message ?? 'Ngăn cách bằng dấu phẩy. Để trống để quét tất cả.'}
+                  helperText={errors.tables?.message ?? 'Ngăn cách bằng dấu phẩy. Để trống để quét toàn bộ.'}
+                  size="small"
                   fullWidth
                 />
               )}
             />
 
-            {testNote && <Alert severity={testNote.ok ? 'success' : 'error'}>{testNote.message}</Alert>}
-            {submitError && <Alert severity="error">{submitError}</Alert>}
+            {testNote && (
+              <Alert severity={testNote.ok ? 'success' : 'error'} sx={{ fontSize: '0.8rem' }}>
+                {testNote.message}
+              </Alert>
+            )}
+            {submitError && (
+              <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+                {submitError}
+              </Alert>
+            )}
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleClose} disabled={busy}>
+
+        {/* Databricks Modal Footer */}
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #E5E7EB', gap: 1 }}>
+          <Button onClick={handleClose} disabled={busy} variant="outlined" size="small">
             Hủy
           </Button>
-          <Button onClick={() => void handleTest()} disabled={busy} variant="outlined">
-            {testSource.isPending ? <CircularProgress size={20} /> : 'Kiểm tra kết nối'}
+          <Button
+            onClick={() => void handleTest()}
+            disabled={busy}
+            variant="outlined"
+            size="small"
+            sx={{ borderColor: '#1B51A4', color: '#1B51A4' }}
+          >
+            {testSource.isPending ? <CircularProgress size={16} sx={{ color: '#1B51A4' }} /> : 'Kiểm tra kết nối'}
           </Button>
-          <Button type="submit" variant="contained" disabled={busy}>
-            {createSource.isPending ? <CircularProgress size={20} color="inherit" /> : 'Lưu nguồn'}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={busy}
+            size="small"
+            sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
+          >
+            {createSource.isPending ? <CircularProgress size={16} color="inherit" /> : 'Lưu & Kết nối'}
           </Button>
         </DialogActions>
       </form>

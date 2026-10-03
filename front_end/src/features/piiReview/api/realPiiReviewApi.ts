@@ -169,8 +169,9 @@ export async function createDataSource(input: SourceInput): Promise<Source> {
   return sourceSchema.parse(data);
 }
 
-export async function deleteDataSource(sourceId: string): Promise<void> {
-  await apiRequest<void>(`/sources/${encodeURIComponent(sourceId)}`, { method: 'DELETE' });
+export async function deleteDataSource(sourceId: string, force = false): Promise<void> {
+  const query = force ? '?force=true' : '';
+  await apiRequest<void>(`/sources/${encodeURIComponent(sourceId)}${query}`, { method: 'DELETE' });
 }
 
 export async function fetchSourceScope(sourceId: string): Promise<SourceScope> {
@@ -203,7 +204,13 @@ export async function listRuns(sourceId?: string): Promise<Run[]> {
 
 export async function updateFieldDecisions(
   runId: number,
-  decisions: Array<{ field_profile_id: number; action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP'; reason?: string }>
+  decisions: Array<{
+    field_profile_id: number;
+    action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
+    reason?: string;
+    is_exception?: boolean;
+    exception_until?: string | null;
+  }>
 ): Promise<Run> {
   const data = await apiRequest<Run>(`/runs/${runId}/decisions`, {
     method: 'PUT',
@@ -247,3 +254,81 @@ export async function previewDataset(datasetId: number): Promise<DatasetPreview>
   const data = await apiRequest<DatasetPreview>(`/datasets/${datasetId}/preview`);
   return datasetPreviewSchema.parse(data);
 }
+
+// ============================================================================
+// RISK SCORE API (FR-10, §9.4)
+// ============================================================================
+
+export const riskScoreSchema = z.object({
+  score: z.number(),
+  tier: z.enum(['Critical', 'High', 'Medium', 'Low']),
+  action_required: z.string(),
+  max_sensitivity_level: z.string(),
+  drivers: z.object({
+    sens_factor: z.number(),
+    cov_factor: z.number(),
+    vol_factor: z.number(),
+    total_fields: z.number(),
+    total_pii_fields: z.number(),
+    unmasked_pii_fields: z.number(),
+    protected_pii_fields: z.number(),
+    protection_pct: z.number(),
+    row_count: z.number(),
+  }),
+});
+
+export type RiskScoreResult = z.infer<typeof riskScoreSchema>;
+
+export async function fetchRiskScore(runId: number): Promise<RiskScoreResult> {
+  const data = await apiRequest<RiskScoreResult>(`/runs/${runId}/risk-score`);
+  return riskScoreSchema.parse(data);
+}
+
+// ============================================================================
+// VAULT DETOKENIZE API (FR-13, §9.5)
+// ============================================================================
+
+export interface DetokenizeRequest {
+  token: string;
+  reason: string;
+}
+
+export interface DetokenizeResponse {
+  token: string;
+  raw_value: string;
+  entity_type: string;
+  key_version: string;
+  decrypted_at: string;
+}
+
+export async function detokenizeValue(req: DetokenizeRequest): Promise<DetokenizeResponse> {
+  return await apiRequest<DetokenizeResponse>('/vault/detokenize', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+// ============================================================================
+// HEALTH & READINESS PROBES (§17.1)
+// ============================================================================
+
+export interface HealthzResponse {
+  status: string;
+  timestamp: string;
+  version: string;
+}
+
+export interface ReadyzResponse {
+  status: string;
+  checks: Record<string, string>;
+  timestamp: string;
+}
+
+export async function checkLiveness(): Promise<HealthzResponse> {
+  return await apiRequest<HealthzResponse>('/healthz');
+}
+
+export async function checkReadiness(): Promise<ReadyzResponse> {
+  return await apiRequest<ReadyzResponse>('/readyz');
+}
+

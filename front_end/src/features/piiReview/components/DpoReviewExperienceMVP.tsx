@@ -8,50 +8,65 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  Drawer,
   FormControl,
   Grid,
   IconButton,
+  InputAdornment,
   InputLabel,
   LinearProgress,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
+  TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
+
 import AddIcon from '@mui/icons-material/Add';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import DatasetIcon from '@mui/icons-material/Dataset';
-import FactCheckIcon from '@mui/icons-material/FactCheck';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PolicyIcon from '@mui/icons-material/Policy';
-import ShieldIcon from '@mui/icons-material/Shield';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
+import PinIcon from '@mui/icons-material/Pin';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 import { ApiError } from '@/shared/api/client';
-
+import { getStoredSession } from '@/features/auth/model/authStorage';
 import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
-import { ActionChip } from './PolicyChips';
+import { ActionChip, SensitivityChip, DetectorBadge, DatasetStatusChip } from './PolicyChips';
 import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
 import {
   POLICY_ACTIONS,
   type PolicyAction,
-  getActionColor,
   getActionLabel,
   getClassificationLabel,
   getCoverageStatusLabel,
-  getDetectorSourceLabel,
-  getRiskLabel,
-  getRiskTone,
 } from '../model/policyLabels';
 import { isUserSource } from '../model/sourceForm';
 import {
@@ -60,16 +75,13 @@ import {
   useDataSources,
   useDeleteDataSource,
   usePublishDataset,
+  useRiskScore,
   useRun,
   useSourceScope,
   useUpdateFieldDecisions,
 } from '../hooks/usePiiReview';
 
-type Step = 'select-source' | 'scan-running' | 'review' | 'build' | 'done';
 type ActionFilter = PolicyAction | 'ALL';
-type GroupTone = 'primary' | 'secondary' | 'info' | 'success' | 'warning';
-
-const GROUP_TONES: GroupTone[] = ['primary', 'secondary', 'info', 'success', 'warning'];
 
 function getDecisionErrorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -84,17 +96,14 @@ function isUnknownField(classification: string): boolean {
 function isHmacLockedField(field: { recommended_action: PolicyAction }): boolean {
   return field.recommended_action === 'HMAC';
 }
-
-function getGroupTone(index: number): GroupTone {
-  return GROUP_TONES[index % GROUP_TONES.length] ?? 'primary';
-}
-
 export function DpoReviewExperienceMVP(): JSX.Element {
-  const [step, setStep] = useState<Step>('select-source');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<string[]>([]);
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [datasetId, setDatasetId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [columnSearch, setColumnSearch] = useState<string>('');
+  const [sourceSearch, setSourceSearch] = useState<string>('');
   const [actionFilter, setActionFilter] = useState<ActionFilter>('ALL');
   const [decisionOverrides, setDecisionOverrides] = useState<Record<number, PolicyAction>>({});
   const [decisionError, setDecisionError] = useState<string | null>(null);
@@ -102,16 +111,36 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [sampleViewMode, setSampleViewMode] = useState<'masked' | 'split'>('masked');
 
-  const { data: sources, isLoading: sourcesLoading } = useDataSources();
+  // Inspector Drawer state
+  const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
+  const [overrideJustification, setOverrideJustification] = useState<string>('');
+  const [exceptionUntil, setExceptionUntil] = useState<string>('');
+
+  const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
   const { data: sourceScope, isLoading: scopeLoading } = useSourceScope(selectedSourceId);
   const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
+  const { data: riskScore } = useRiskScore(currentRunId);
 
   const createScan = useCreateScanRun();
   const deleteSource = useDeleteDataSource();
   const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
+
+  // Auto-select first source if none selected
+  useMemo(() => {
+    if (!selectedSourceId && sources && sources.length > 0 && sources[0]) {
+      setSelectedSourceId(sources[0].id);
+    }
+  }, [selectedSourceId, sources]);
+
+  const activeSource = useMemo(
+    () => sources?.find((s) => s.id === selectedSourceId) ?? null,
+    [sources, selectedSourceId],
+  );
 
   const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
 
@@ -138,6 +167,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     [fields],
   );
 
+  const l2BasicCount = useMemo(
+    () => fields.filter((field) => field.classification.includes('BASIC')).length,
+    [fields],
+  );
+
   const reviewRequiredCount = useMemo(
     () =>
       fields.filter(
@@ -147,45 +181,55 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     [fields],
   );
 
-  const displayedFields = useMemo(
-    () =>
-      fields.filter((field) => {
-        const action = getFieldAction(field.id, field.recommended_action);
-        return actionFilter === 'ALL' || action === actionFilter;
-      }),
-    [actionFilter, fields, getFieldAction],
-  );
+  const filteredFields = useMemo(() => {
+    return fields.filter((field) => {
+      const action = getFieldAction(field.id, field.recommended_action);
+      const matchesAction = actionFilter === 'ALL' || action === actionFilter;
+      const matchesSearch =
+        columnSearch.trim() === '' ||
+        field.field_path.toLowerCase().includes(columnSearch.toLowerCase()) ||
+        field.source_path.toLowerCase().includes(columnSearch.toLowerCase());
+      return matchesAction && matchesSearch;
+    });
+  }, [actionFilter, columnSearch, fields, getFieldAction]);
 
   const displayedFieldGroups = useMemo(() => {
-    const grouped = new Map<string, typeof displayedFields>();
-
-    displayedFields.forEach((field) => {
+    const grouped = new Map<string, typeof filteredFields>();
+    filteredFields.forEach((field) => {
       const current = grouped.get(field.source_path) ?? [];
       grouped.set(field.source_path, [...current, field]);
     });
 
-    return Array.from(grouped.entries()).map(([sourcePath, groupFields], index) => ({
+    return Array.from(grouped.entries()).map(([sourcePath, groupFields]) => ({
       sourcePath,
       fields: groupFields,
-      tone: getGroupTone(index),
       attentionCount: groupFields.filter(
         (field) =>
           field.classification.includes('UNKNOWN') || field.coverage_status === 'REVIEW_REQUIRED',
       ).length,
     }));
-  }, [displayedFields]);
+  }, [filteredFields]);
 
-  const sourceCount = useMemo(
-    () => new Set(fields.map((field) => field.source_path)).size,
-    [fields],
+  const filteredSources = useMemo(() => {
+    if (!sources) return [];
+    if (!sourceSearch.trim()) return sources;
+    return sources.filter(
+      (s) =>
+        s.name.toLowerCase().includes(sourceSearch.toLowerCase()) ||
+        s.source_type.toLowerCase().includes(sourceSearch.toLowerCase()),
+    );
+  }, [sources, sourceSearch]);
+
+  const activeInspectField = useMemo(
+    () => fields.find((f) => f.id === inspectFieldId) ?? null,
+    [fields, inspectFieldId],
   );
   const scopeNames = useMemo(() => sourceScope?.items.map((item) => item.name) ?? [], [sourceScope?.items]);
 
-  const completionPercent = fields.length > 0 ? 100 : 0;
-  const editedCount = Object.keys(decisionOverrides).length;
-
   const handleSelectSource = (sourceId: string) => {
     setSelectedSourceId(sourceId);
+    setDecisionOverrides({});
+    setActionFilter('ALL');
   };
 
   useEffect(() => {
@@ -205,10 +249,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const handleStartScan = async () => {
     if (!selectedSourceId || selectedScope.length === 0) return;
 
-    setStep('scan-running');
+    setIsScanning(true);
     setDecisionOverrides({});
     setActionFilter('ALL');
     setBuildError(null);
+    setDecisionError(null);
 
     try {
       const run = await createScan.mutateAsync({
@@ -216,14 +261,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         selectedScope,
       });
       setCurrentRunId(run.id);
-
-      setTimeout(() => {
-        setStep('review');
-      }, 2000);
+      setActiveTab(0);
     } catch (error) {
       console.error('Scan failed:', error);
       alert('Lỗi khi quét dữ liệu');
-      setStep('select-source');
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -233,11 +276,17 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     setDecisionOverrides((current) => ({ ...current, [fieldId]: action }));
   };
 
+  const handleAcceptAllAi = () => {
+    // Reset overrides to AI recommendations
+    setDecisionOverrides({});
+    setDecisionError(null);
+  };
+
   const handleBulkAction = (action: PolicyAction) => {
     setDecisionError(null);
     setBuildError(null);
     setDecisionOverrides((current) =>
-      displayedFields.reduce<Record<number, PolicyAction>>(
+      filteredFields.reduce<Record<number, PolicyAction>>(
         (next, field) => {
           const nextAction =
             isHmacLockedField(field) || (action === 'KEEP' && isUnknownField(field.classification))
@@ -257,16 +306,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }));
   };
 
-  const handleSetAllSourcesCollapsed = (collapsed: boolean) => {
-    setCollapsedSources(
-      displayedFieldGroups.reduce<Record<string, boolean>>(
-        (next, group) => ({ ...next, [group.sourcePath]: collapsed }),
-        {},
-      ),
-    );
-  };
-
-  const handleApprove = async () => {
+  const handleApproveAndBuild = async () => {
     if (!currentRunId || !currentRun) return;
 
     try {
@@ -281,28 +321,20 @@ export function DpoReviewExperienceMVP(): JSX.Element {
             reason:
               action === field.recommended_action
                 ? `DPO accepted suggested ${action} policy for ${field.field_path}`
-                : `DPO changed policy to ${action} for ${field.field_path}`,
+                : `DPO changed policy to ${action} for ${field.field_path} (Justification: ${overrideJustification || 'Manual policy override'})`,
           };
         }),
       );
-      setStep('build');
-    } catch (error) {
-      console.error('Approve failed:', error);
-      setDecisionError(getDecisionErrorMessage(error));
-    }
-  };
 
-  const handleBuild = async () => {
-    if (!currentRunId) return;
-
-    try {
-      setBuildError(null);
+      // Build dataset snapshot
       const result = await buildDataset.mutateAsync();
       setDatasetId(result.dataset.id);
-      setStep('done');
+      alert(`Đã tạo snapshot thành công! Dataset ID: ${result.dataset.id}`);
     } catch (error) {
       console.error('Build failed:', error);
-      setBuildError(getDecisionErrorMessage(error));
+      const msg = getDecisionErrorMessage(error);
+      setBuildError(msg);
+      setDecisionError(msg);
     }
   };
 
@@ -310,6 +342,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     if (!datasetId) return;
     try {
       await publishDataset.mutateAsync(datasetId);
+      alert('Đã phát hành dataset thành công! Chuyên viên Analyst có thể truy cập.');
     } catch (error) {
       console.error('Publish failed:', error);
       alert('Lỗi khi publish dataset');
@@ -321,562 +354,1300 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     try {
       await deleteSource.mutateAsync(sourceId);
       if (selectedSourceId === sourceId) setSelectedSourceId(null);
+      void refetchSources();
     } catch (error) {
-      setSourceError(error instanceof ApiError ? error.message : 'Không thể xóa nguồn dữ liệu.');
+      const msg = error instanceof ApiError ? error.message : 'Không thể xóa nguồn dữ liệu.';
+      if (msg.includes('Source has runs')) {
+        const confirmed = window.confirm(
+          'Nguồn dữ liệu này đã phát sinh các lượt quét PII trong lịch sử kiểm toán.\n\nBạn có chắc chắn muốn xóa vĩnh viễn nguồn này cùng toàn bộ dữ liệu quét liên quan không?'
+        );
+        if (confirmed) {
+          try {
+            await deleteSource.mutateAsync({ sourceId, force: true });
+            if (selectedSourceId === sourceId) setSelectedSourceId(null);
+            void refetchSources();
+            return;
+          } catch (forceErr) {
+            setSourceError(forceErr instanceof ApiError ? forceErr.message : 'Không thể xóa nguồn dữ liệu.');
+            return;
+          }
+        }
+        setSourceError('Đã hủy thao tác xóa nguồn.');
+      } else {
+        setSourceError(msg);
+      }
     }
+  };
+
+  const handleOpenInspector = (fieldId: number) => {
+    setInspectFieldId(fieldId);
+  };
+
+  const handleCloseInspector = () => {
+    setInspectFieldId(null);
+  };
+
+  const handleOpenReport = (runId: number | null) => {
+    if (!runId) return;
+    const session = getStoredSession();
+    const tokenParam = session?.token ? `&token=${encodeURIComponent(session.token)}` : '';
+    window.open(`/api/v1/runs/${runId}/report?format=html${tokenParam}`, '_blank');
+  };
+
+  const renderFieldTypeIcon = (classification: string) => {
+    if (classification.includes('DATE') || classification.includes('TIME')) {
+      return <CalendarMonthIcon sx={{ fontSize: 15, color: '#6B7280' }} />;
+    }
+    if (classification.includes('NUMBER') || classification.includes('ID') || classification.includes('AMOUNT')) {
+      return <PinIcon sx={{ fontSize: 15, color: '#6B7280' }} />;
+    }
+    return <TextFieldsIcon sx={{ fontSize: 15, color: '#6B7280' }} />;
   };
 
   if (sourcesLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+        <CircularProgress size={36} sx={{ color: '#1B51A4' }} />
       </Box>
     );
   }
 
-  if (step === 'select-source') {
-    return (
-      <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={2} flexWrap="wrap">
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              Chọn nguồn dữ liệu
+  return (
+    <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', minHeight: 'calc(100vh - 100px)' }}>
+      {/* ========================================================================= */}
+      {/* DATABRICKS SECONDARY CATALOG EXPLORER SIDEBAR (260px)                     */}
+      {/* ========================================================================= */}
+      <Box
+        component="aside"
+        sx={{
+          width: 270,
+          flexShrink: 0,
+          bgcolor: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          height: 'calc(100vh - 90px)',
+          position: 'sticky',
+          top: 70,
+        }}
+      >
+        {/* Catalog Explorer Header */}
+        <Box sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
+              Catalog Explorer
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Chọn nguồn dữ liệu để quét và phát hiện PII, hoặc thêm cơ sở dữ liệu của bạn bằng connection URL.
+            <Stack direction="row" spacing={0.5}>
+              <Tooltip title="Thêm nguồn dữ liệu">
+                <IconButton size="small" onClick={() => setAddSourceOpen(true)} sx={{ color: '#1B51A4' }}>
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Làm mới">
+                <IconButton size="small" onClick={() => void refetchSources()} sx={{ color: '#6B7280' }}>
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
+
+          {/* Connection Status Pill */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              mt: 1,
+              px: 1,
+              py: 0.4,
+              borderRadius: '4px',
+              bgcolor: '#ECFDF5',
+              border: '1px solid #A7F3D0',
+            }}
+          >
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#16A34A' }} />
+            <Typography variant="caption" sx={{ color: '#065F46', fontWeight: 600, fontSize: '0.7rem' }}>
+              Metastore • On-Premise
             </Typography>
           </Box>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddSourceOpen(true)}>
-            Thêm nguồn
-          </Button>
         </Box>
 
+        {/* Tree Search Box */}
+        <Box sx={{ p: 1, borderBottom: '1px solid #E5E7EB' }}>
+          <TextField
+            size="small"
+            placeholder="Type to search sources..."
+            value={sourceSearch}
+            onChange={(e) => setSourceSearch(e.target.value)}
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />
+                </InputAdornment>
+              ),
+              sx: { fontSize: '0.78rem', height: 32 },
+            }}
+          />
+        </Box>
+
+        {/* Sources Tree List */}
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1 }}>
+          <Stack spacing={0.5}>
+            {filteredSources.map((source) => {
+              const isSelected = selectedSourceId === source.id;
+              return (
+                <Box
+                  key={source.id}
+                  onClick={() => handleSelectSource(source.id)}
+                  sx={{
+                    p: 1.25,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? '#EBF3FB' : 'transparent',
+                    borderLeft: isSelected ? '3px solid #1B51A4' : '3px solid transparent',
+                    border: isSelected ? '1px solid #BFDBFE' : '1px solid transparent',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: isSelected ? '#EBF3FB' : '#F3F4F6',
+                    },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                      <StorageOutlinedIcon
+                        sx={{ fontSize: 18, color: isSelected ? '#1B51A4' : '#6B7280', flexShrink: 0 }}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: isSelected ? 700 : 500,
+                            color: isSelected ? '#1B51A4' : '#111827',
+                            fontSize: '0.8125rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {source.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.68rem', display: 'block' }}>
+                          {source.source_type} • {source.scope_summary}
+                        </Typography>
+                      </Box>
+                    </Stack>
+
+                    {isUserSource(source.id) && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDeleteSource(source.id);
+                        }}
+                        disabled={deleteSource.isPending}
+                        sx={{ color: '#9CA3AF', '&:hover': { color: 'error.main' } }}
+                      >
+                        <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    )}
+                  </Stack>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Box>
+
+        {/* Tree Footer */}
+        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
+          <Button
+            size="small"
+            variant="outlined"
+            fullWidth
+            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+            onClick={() => setAddSourceOpen(true)}
+            sx={{ fontSize: '0.75rem', py: 0.5 }}
+          >
+            Thêm cơ sở dữ liệu
+          </Button>
+        </Box>
+      </Box>
+
+      {/* ========================================================================= */}
+      {/* MAIN DATABRICKS TABLE GOVERNANCE & SCHEMA WORKSPACE                       */}
+      {/* ========================================================================= */}
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
         {sourceError && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSourceError(null)}>
             {sourceError}
           </Alert>
         )}
 
+        {/* Add Source Dialog Modal */}
         <AddSourceDialog
           open={addSourceOpen}
           onClose={() => setAddSourceOpen(false)}
           onCreated={(sourceId) => handleSelectSource(sourceId)}
         />
 
-        <Grid container spacing={3}>
-          {sources?.map((source) => (
-            <Grid item xs={12} md={6} key={source.id}>
-              <Card
-                sx={{
-                  border: selectedSourceId === source.id ? 2 : 1,
-                  borderColor: selectedSourceId === source.id ? 'primary.main' : 'divider',
-                  cursor: 'pointer',
-                }}
-                onClick={() => handleSelectSource(source.id)}
-              >
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <DatasetIcon color="primary" />
-                      <Typography variant="h6">{source.name}</Typography>
-                      <Chip label={source.source_type} size="small" />
-                      {isUserSource(source.id) && (
-                        <IconButton
-                          size="small"
-                          aria-label={`Xóa nguồn ${source.name}`}
-                          sx={{ ml: 'auto' }}
-                          disabled={deleteSource.isPending}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleDeleteSource(source.id);
-                          }}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
+        {/* Main Card with Databricks Table Detail View */}
+        <Paper
+          variant="outlined"
+          sx={{
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E5E7EB',
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header Row: Breadcrumbs + Table Name + Actions */}
+          <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: '1px solid #E5E7EB' }}>
+            {/* Breadcrumb */}
+            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem', mb: 1, display: 'block' }}>
+              Catalog Explorer &gt; {activeSource?.name || 'Metastore'} &gt;{' '}
+              <strong style={{ color: '#111827' }}>
+                {displayedFieldGroups[0]?.sourcePath || 'customer_records'}
+              </strong>
+            </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
-                      {source.description}
-                    </Typography>
-
-                    <Typography variant="caption" color="text.secondary">
-                      {source.scope_summary}
-                    </Typography>
-
-                    <Chip
-                      label={source.status === 'ready' ? 'Sẵn sàng' : source.status}
-                      color={source.status === 'ready' ? 'success' : 'default'}
-                      size="small"
-                      sx={{ width: 'fit-content' }}
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        {selectedSourceId && (
-          <Paper variant="outlined" sx={{ mt: 3, p: 2.5 }}>
-            <Stack spacing={2}>
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  Chọn phạm vi quét
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tick bảng/collection để chọn phạm vi scan. Diagram bên cạnh highlight scope đang chọn và hiển thị field metadata an toàn, không có raw value.
-                </Typography>
-              </Box>
-
-              {scopeLoading ? (
-                <Box display="flex" alignItems="center" gap={1}>
-                  <CircularProgress size={18} />
-                  <Typography variant="body2" color="text.secondary">
-                    Đang đọc scope...
-                  </Typography>
+            {/* Title Bar */}
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={2}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '6px',
+                    bgcolor: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1B51A4',
+                  }}
+                >
+                  <TableChartOutlinedIcon />
                 </Box>
-              ) : sourceScope ? (
-                <SourceScopePickerDiagram
-                  items={sourceScope.items}
-                  onSelectAll={handleSelectAllScope}
-                  onToggle={handleToggleScopeItem}
-                  selectedNames={selectedScope}
-                  sourceType={sourceScope.source_type}
-                />
-              ) : (
-                <Alert severity="info">Chọn source để đọc phạm vi quét.</Alert>
-              )}
+                <Box>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.01em' }}>
+                      {displayedFieldGroups[0]?.sourcePath || activeSource?.name || 'customer_records'}
+                    </Typography>
+                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Sao chép tên bảng">
+                      <ContentCopyIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Đánh dấu yêu thích">
+                      <StarBorderIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Stack>
 
-              {sourceScope && sourceScope.items.length === 0 && (
-                <Alert severity="warning">
-                  Source này chưa đọc được bảng/collection để quét.
-                </Alert>
-              )}
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                    <Chip
+                      label={currentRunId ? 'Review Required' : 'Not Scanned'}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        bgcolor: currentRunId ? '#FFFBEB' : '#F3F4F6',
+                        color: currentRunId ? '#B45309' : '#6B7280',
+                        border: '1px solid',
+                        borderColor: currentRunId ? '#FCD34D' : '#E5E7EB',
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                      Nguồn: {activeSource?.source_type || 'PostgreSQL'} • On-Premise Metastore
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Stack>
 
-              <Box>
+              {/* Action Buttons Top Right (Databricks Style) */}
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={
+                    isScanning ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 16 }} />
+                  }
+                  onClick={() => void handleStartScan()}
+                  disabled={isScanning || !selectedSourceId}
+                  sx={{ borderColor: '#D1D5DB', color: '#111827', fontWeight: 600 }}
+                >
+                  {isScanning ? 'Đang quét...' : 'Quét PII'}
+                </Button>
+
                 <Button
                   variant="contained"
-                  size="large"
-                  startIcon={<PlayArrowIcon />}
-                  onClick={() => void handleStartScan()}
-                  disabled={createScan.isPending || scopeLoading || selectedScope.length === 0}
+                  size="small"
+                  startIcon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
+                  onClick={() => void handleApproveAndBuild()}
+                  disabled={updateDecisions.isPending || buildDataset.isPending || fields.length === 0}
+                  sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
                 >
-                  Bắt đầu quét scope đã chọn
+                  {updateDecisions.isPending || buildDataset.isPending ? 'Đang xử lý...' : 'Tạo Snapshot'}
                 </Button>
-              </Box>
-            </Stack>
-          </Paper>
-        )}
-      </Box>
-    );
-  }
 
-  if (step === 'scan-running') {
-    return (
-      <Box textAlign="center" py={8}>
-        <CircularProgress size={60} sx={{ mb: 3 }} />
-        <Typography variant="h5" gutterBottom>
-          Đang quét dữ liệu...
-        </Typography>
-        <Typography color="text.secondary">
-          Hệ thống đang phát hiện field nhạy cảm và chuẩn bị gợi ý policy.
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (step === 'review' && currentRun) {
-    return (
-      <Box>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-          sx={{ mb: 3 }}
-        >
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              DPO policy workspace
-            </Typography>
-            <Typography color="text.secondary">
-              Review theo nhóm rủi ro, chỉnh action hàng loạt hoặc từng field.
-            </Typography>
-          </Box>
-          <Chip icon={<PolicyIcon />} label={`Policy ${currentRun.policy_version}`} color="primary" />
-        </Stack>
-
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Stack spacing={1}>
-                <ShieldIcon color="primary" />
-                <Typography variant="h5">{fields.length}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Fields detected in {sourceCount} tables
-                </Typography>
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Stack spacing={1}>
-                <FactCheckIcon color="error" />
-                <Typography variant="h5">{highRiskCount}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  High-risk fields
-                </Typography>
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Stack spacing={1}>
-                <FilterListIcon color="warning" />
-                <Typography variant="h5">{reviewRequiredCount}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Need DPO attention
-                </Typography>
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} lg={3}>
-            <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-              <Stack spacing={1}>
-                <AutoFixHighIcon color="success" />
-                <Typography variant="h5">{editedCount}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Manual overrides
-                </Typography>
-              </Stack>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
-            <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
-              <Box sx={{ p: 2 }}>
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={2}
-                  justifyContent="space-between"
-                >
-                  <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 220 } }}>
-                    <InputLabel id="action-filter-label">Lọc hành động</InputLabel>
-                    <Select
-                      labelId="action-filter-label"
-                      value={actionFilter}
-                      label="Lọc hành động"
-                      onChange={(event) => setActionFilter(event.target.value as ActionFilter)}
-                    >
-                      <MenuItem value="ALL">Tất cả hành động</MenuItem>
-                      {POLICY_ACTIONS.map((action) => (
-                        <MenuItem value={action} key={action}>
-                          {getActionLabel(action)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={() => handleSetAllSourcesCollapsed(false)}
-                    >
-                      Mở tất cả
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={() => handleSetAllSourcesCollapsed(true)}
-                    >
-                      Thu gọn tất cả
-                    </Button>
-                    {POLICY_ACTIONS.map((action) => (
-                      <Button
-                        key={action}
-                        size="small"
-                        variant="outlined"
-                        color={getActionColor(action)}
-                        onClick={() => handleBulkAction(action)}
-                      >
-                        Áp dụng {getActionLabel(action)}
-                      </Button>
-                    ))}
-                  </Stack>
-                </Stack>
-              </Box>
-
-              <Divider />
-
-              <TableContainer sx={{ maxHeight: 560 }}>
-                <Table stickyHeader size="small" aria-label="DPO field policy decisions">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Field</TableCell>
-                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Risk</TableCell>
-                      <TableCell sx={{ bgcolor: 'background.paper', zIndex: 2 }}>Profile</TableCell>
-                      <TableCell width={160} sx={{ bgcolor: 'background.paper', zIndex: 2 }}>
-                        Decision
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {displayedFieldGroups.map((group) => (
-                      <CollapsibleTableGroup
-                        key={group.sourcePath}
-                        collapsed={Boolean(collapsedSources[group.sourcePath])}
-                        colSpan={4}
-                        countLabel={`${group.fields.length} fields`}
-                        onToggle={() => handleToggleSource(group.sourcePath)}
-                        sourcePath={group.sourcePath}
-                        tone={group.tone}
-                        summary={
-                          group.attentionCount > 0 ? (
-                            <Chip
-                              label={`${group.attentionCount} cần kiểm tra`}
-                              size="small"
-                              color="warning"
-                              variant="outlined"
-                            />
-                          ) : undefined
-                        }
-                      >
-                        {group.fields.map((field) => {
-                          const action = getFieldAction(field.id, field.recommended_action);
-                          const wasEdited = action !== field.recommended_action;
-                          const keepDisabled = isUnknownField(field.classification);
-                          const hmacLocked = isHmacLockedField(field);
-
-                          return (
-                            <TableRow key={field.id} hover>
-                              <TableCell>
-                                <Stack spacing={0.5}>
-                                  <Typography variant="body2" fontFamily="monospace">
-                                    {field.field_path}
-                                  </Typography>
-                                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                    <Chip label={field.data_type} size="small" variant="outlined" />
-                                    <Chip
-                                      label={getDetectorSourceLabel(field.detector_source)}
-                                      size="small"
-                                      variant="outlined"
-                                    />
-                                    <Chip
-                                      label={getCoverageStatusLabel(field.coverage_status)}
-                                      size="small"
-                                      variant="outlined"
-                                    />
-                                    {wasEdited && (
-                                      <Chip label="edited" size="small" color="primary" />
-                                    )}
-                                  </Stack>
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <Stack spacing={0.75}>
-                                  <Chip
-                                    label={getRiskLabel(field.classification)}
-                                    size="small"
-                                    color={getRiskTone(field.classification)}
-                                    sx={{ width: 'fit-content' }}
-                                  />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {getClassificationLabel(field.classification)}
-                                  </Typography>
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2" color="text.secondary">
-                                  {field.profile_summary}
-                                </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <FormControl size="small" fullWidth>
-                                  <Select
-                                    value={action}
-                                    onChange={(event) =>
-                                      handleFieldActionChange(
-                                        field.id,
-                                        event.target.value as PolicyAction,
-                                      )
-                                    }
-                                    aria-label={`Decision for ${group.sourcePath}.${field.field_path}`}
-                                  >
-                                    {POLICY_ACTIONS.map((option) => (
-                                      <MenuItem
-                                        value={option}
-                                        key={option}
-                                        disabled={
-                                          (option === 'KEEP' && keepDisabled) ||
-                                          (hmacLocked && option !== 'HMAC')
-                                        }
-                                      >
-                                        {getActionLabel(option)}
-                                        {option === 'KEEP' && keepDisabled ? ' (bị chặn)' : ''}
-                                        {hmacLocked && option !== 'HMAC' ? ' (khóa HMAC)' : ''}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </CollapsibleTableGroup>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} lg={4}>
-            <Paper variant="outlined" sx={{ p: 2, position: { lg: 'sticky' }, top: { lg: 16 } }}>
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    Build readiness
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    All detected fields have a policy decision. Raw PII values are not shown here.
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                    <Typography variant="body2">Decision coverage</Typography>
-                    <Typography variant="body2" fontWeight={700}>
-                      {completionPercent}%
-                    </Typography>
-                  </Stack>
-                  <LinearProgress variant="determinate" value={completionPercent} />
-                </Box>
-
-                <Divider />
-
-                <Stack spacing={1}>
-                  {POLICY_ACTIONS.map((action) => (
-                    <Stack direction="row" justifyContent="space-between" key={action}>
-                      <ActionChip action={action} />
-                      <Typography fontWeight={700}>{actionCounts[action]}</Typography>
-                    </Stack>
-                  ))}
-                </Stack>
-
-                <Alert severity={reviewRequiredCount > 0 ? 'warning' : 'success'}>
-                  {reviewRequiredCount > 0
-                    ? `${reviewRequiredCount} field cần DPO kiểm tra kỹ trước khi build.`
-                    : 'Không còn field cần review thủ công.'}
-                </Alert>
-
-                {decisionError && (
-                  <Alert severity="error">
-                    {decisionError}
-                  </Alert>
+                {datasetId && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    color="success"
+                    startIcon={<RocketLaunchIcon sx={{ fontSize: 16 }} />}
+                    onClick={() => void handlePublish()}
+                    disabled={publishDataset.isPending}
+                  >
+                    {publishDataset.isPending ? 'Đang phát hành...' : 'Phát hành Dataset'}
+                  </Button>
                 )}
 
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="large"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={() => void handleApprove()}
-                  disabled={updateDecisions.isPending || fields.length === 0}
-                  fullWidth
-                >
-                  {updateDecisions.isPending ? 'Đang lưu quyết định...' : 'Approve decisions'}
-                </Button>
+                {currentRunId && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<ArticleOutlinedIcon sx={{ fontSize: 16 }} />}
+                    onClick={() => handleOpenReport(currentRunId)}
+                    sx={{ color: '#4B5563', borderColor: '#D1D5DB' }}
+                  >
+                    Báo cáo NĐ13
+                  </Button>
+                )}
               </Stack>
-            </Paper>
-          </Grid>
-        </Grid>
+            </Stack>
+          </Box>
+
+          {/* Databricks Horizontal Tab Navigation */}
+          <Tabs
+            value={activeTab}
+            onChange={(_, val) => setActiveTab(val)}
+            sx={{ px: 3, bgcolor: '#FFFFFF', minHeight: 44 }}
+          >
+            <Tab label="Overview & PII Schema" />
+            <Tab label="Sample Data (Masked)" />
+            <Tab label="Permissions & Grants" />
+            <Tab label="Audit History & Hash-Chain" />
+            <Tab label="Risk & Insights" />
+          </Tabs>
+
+          {/* TAB 0: OVERVIEW & PII SCHEMA */}
+          {activeTab === 0 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              {isScanning ? (
+                /* Scanning Progress Card */
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <CircularProgress size={42} sx={{ color: '#1B51A4', mb: 2 }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Đang quét và phân tích dữ liệu PII...
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Thực thi đối sánh Regex mẫu Việt Nam &amp; Vi-LLM Classifier theo Nghị định 13/2023/NĐ-CP.
+                  </Typography>
+                </Box>
+              ) : !currentRun ? (
+                /* Databricks Empty State (Databricks web Aug 2025 65.png) */
+                <Box sx={{ py: 8, px: 2, textAlign: 'center', maxWidth: 520, mx: 'auto' }}>
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      bgcolor: '#F3F4F6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                      color: '#6B7280',
+                    }}
+                  >
+                    <HelpOutlineIcon sx={{ fontSize: 32 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
+                    Bảng chưa có dữ liệu quét PII
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#6B7280', mb: 3, lineHeight: 1.6 }}>
+                    Bảng này chưa được phân loại nhạy cảm hoặc áp dụng chính sách bảo vệ. Nhấp vào nút bên dưới để khởi
+                    chạy bộ quét tự động theo Nghị định 13.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={() => void handleStartScan()}
+                    disabled={!selectedSourceId}
+                    sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
+                  >
+                    Bắt đầu quét PII
+                  </Button>
+                </Box>
+              ) : (
+                /* Full Databricks Schema Review View */
+                <Stack spacing={2.5}>
+                  {/* AI Suggested Rules Banner (Databricks web Aug 2025 40.png & 44.png) */}
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      p: 2.5,
+                      borderRadius: '8px',
+                      border: '1px solid #BFDBFE',
+                      bgcolor: '#F8FAFC',
+                      background: 'linear-gradient(135deg, #F0F7FF 0%, #FFFFFF 100%)',
+                    }}
+                  >
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'flex-start', md: 'center' }}
+                      spacing={2}
+                    >
+                      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                        <Box
+                          sx={{
+                            p: 0.75,
+                            borderRadius: '6px',
+                            bgcolor: '#EEF2FF',
+                            color: '#7C3AED',
+                            display: 'flex',
+                            mt: 0.25,
+                          }}
+                        >
+                          <AutoAwesomeIcon sx={{ fontSize: 20 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem' }}>
+                            Đề xuất phân loại &amp; quy tắc che giấu PII (Nghị định 13/2023/NĐ-CP)
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5, fontSize: '0.8125rem' }}>
+                            Hệ thống đã nhận diện {fields.length} trường PII (
+                            <strong style={{ color: '#B91C1C' }}>{highRiskCount} trường L3 nhạy cảm</strong>,{' '}
+                            <strong style={{ color: '#B45309' }}>{l2BasicCount} trường L2 cơ bản</strong>). Quy tắc sàn
+                            bảo mật Minimum Masking Floor đã tự động áp dụng (không cho phép KEEP đối với dữ liệu L3).
+                          </Typography>
+                        </Box>
+                      </Stack>
+
+                      <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={handleAcceptAllAi}
+                          sx={{ bgcolor: '#FFFFFF', borderColor: '#D1D5DB', color: '#1F2937' }}
+                        >
+                          Chấp nhận đề xuất AI
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => handleBulkAction('DROP')}
+                          sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
+                        >
+                          Áp dụng an toàn
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </Card>
+
+                  {/* Risk Score Notification Callout */}
+                  {riskScore && (
+                    <Alert
+                      severity={
+                        riskScore.tier === 'Critical'
+                          ? 'error'
+                          : riskScore.tier === 'High'
+                          ? 'warning'
+                          : riskScore.tier === 'Medium'
+                          ? 'info'
+                          : 'success'
+                      }
+                      icon={<ShieldOutlinedIcon sx={{ fontSize: 20 }} />}
+                      sx={{ borderRadius: '6px', border: '1px solid' }}
+                    >
+                      <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', md: 'center' }}
+                        gap={1.5}
+                      >
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            ĐIỂM RỦI RO TẤT ĐỊNH: {riskScore.score}/100 — MỨC: {riskScore.tier.toUpperCase()} (
+                            {riskScore.action_required})
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Mức nhạy cảm cao nhất: <strong>{riskScore.max_sensitivity_level}</strong> • Cột chưa bảo vệ:{' '}
+                            <strong>
+                              {riskScore.drivers.unmasked_pii_fields}/{riskScore.drivers.total_pii_fields}
+                            </strong>{' '}
+                            • Tỷ lệ bảo vệ an toàn: <strong>{riskScore.drivers.protection_pct}%</strong>
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleOpenReport(currentRunId)}
+                          sx={{ fontSize: '0.72rem', height: 26 }}
+                        >
+                          Xem Báo Cáo HTML
+                        </Button>
+                      </Stack>
+                    </Alert>
+                  )}
+
+                  {decisionError && (
+                    <Alert severity="error" onClose={() => setDecisionError(null)}>
+                      {decisionError}
+                    </Alert>
+                  )}
+
+                  {/* Databricks Toolbar: Search + Filter Pills + Bulk Actions */}
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: '6px',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      bgcolor: '#FFFFFF',
+                    }}
+                  >
+                    {/* Search Columns Input */}
+                    <Box sx={{ width: { xs: '100%', sm: 260 } }}>
+                      <TextField
+                        size="small"
+                        placeholder="Filter columns..."
+                        value={columnSearch}
+                        onChange={(e) => setColumnSearch(e.target.value)}
+                        fullWidth
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />
+                            </InputAdornment>
+                          ),
+                          sx: { fontSize: '0.8rem', height: 32 },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Action Filter Pills */}
+                    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
+                      <Chip
+                        label={`Tất cả (${fields.length})`}
+                        size="small"
+                        clickable
+                        onClick={() => setActionFilter('ALL')}
+                        sx={{
+                          height: 24,
+                          fontSize: '0.72rem',
+                          fontWeight: actionFilter === 'ALL' ? 700 : 500,
+                          bgcolor: actionFilter === 'ALL' ? '#EBF3FB' : '#F3F4F6',
+                          color: actionFilter === 'ALL' ? '#1B51A4' : '#374151',
+                          border: actionFilter === 'ALL' ? '1px solid #BFDBFE' : '1px solid transparent',
+                        }}
+                      />
+                      {POLICY_ACTIONS.map((action) => (
+                        <Chip
+                          key={action}
+                          label={`${getActionLabel(action)} (${actionCounts[action]})`}
+                          size="small"
+                          clickable
+                          onClick={() => setActionFilter(action)}
+                          sx={{
+                            height: 24,
+                            fontSize: '0.72rem',
+                            fontWeight: actionFilter === action ? 700 : 500,
+                            bgcolor: actionFilter === action ? '#EBF3FB' : '#F3F4F6',
+                            color: actionFilter === action ? '#1B51A4' : '#374151',
+                            border: actionFilter === action ? '1px solid #BFDBFE' : '1px solid transparent',
+                          }}
+                        />
+                      ))}
+                    </Stack>
+
+                    {/* Bulk Action Controls */}
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => handleBulkAction('DROP')}
+                        sx={{ fontSize: '0.75rem', color: '#4B5563' }}
+                      >
+                        Set tất cả DROP
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => handleBulkAction('MASK')}
+                        sx={{ fontSize: '0.75rem', color: '#4B5563' }}
+                      >
+                        Set tất cả MASK
+                      </Button>
+                    </Stack>
+                  </Paper>
+
+                  {/* Databricks Schema Grid */}
+                  <TableContainer
+                    component={Paper}
+                    variant="outlined"
+                    sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ minWidth: 200 }}>Tên cột (Column Name)</TableCell>
+                          <TableCell sx={{ minWidth: 100 }}>Kiểu dữ liệu</TableCell>
+                          <TableCell sx={{ minWidth: 160 }}>Phân loại PII (NĐ 13)</TableCell>
+                          <TableCell sx={{ minWidth: 110 }}>Nguồn nhận diện</TableCell>
+                          <TableCell sx={{ minWidth: 180 }}>Quy tắc che giấu (Masking Rule)</TableCell>
+                          <TableCell sx={{ minWidth: 140 }}>Sàn bảo mật</TableCell>
+                          <TableCell align="right" sx={{ minWidth: 80 }}>
+                            Thao tác
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {displayedFieldGroups.map((group) => (
+                          <CollapsibleTableGroup
+                            key={group.sourcePath}
+                            sourcePath={group.sourcePath}
+                            countLabel={`${group.fields.length} cột`}
+                            colSpan={7}
+                            collapsed={Boolean(collapsedSources[group.sourcePath])}
+                            onToggle={() => handleToggleSource(group.sourcePath)}
+                          >
+                            {group.fields.map((field) => {
+                              const action = getFieldAction(field.id, field.recommended_action);
+                              const isL3 = field.classification.includes('SENSITIVE');
+                              const isViolatingFloor = isL3 && action === 'KEEP';
+
+                              return (
+                                <TableRow
+                                  key={field.id}
+                                  hover
+                                  sx={{
+                                    bgcolor: isViolatingFloor ? '#FEF2F2' : 'inherit',
+                                    '&:hover': { bgcolor: isViolatingFloor ? '#FEE2E2' : '#F9FAFB' },
+                                  }}
+                                >
+                                  {/* Column Name */}
+                                  <TableCell>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                      {renderFieldTypeIcon(field.classification)}
+                                      <Typography
+                                        variant="body2"
+                                        sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.8125rem' }}
+                                      >
+                                        {field.field_path}
+                                      </Typography>
+                                    </Stack>
+                                  </TableCell>
+
+                                  {/* Data Type */}
+                                  <TableCell>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ fontFamily: 'monospace', color: '#6B7280', fontSize: '0.75rem' }}
+                                    >
+                                      {field.data_type || 'varchar'}
+                                    </Typography>
+                                  </TableCell>
+
+                                  {/* PII Classification */}
+                                  <TableCell>
+                                    <SensitivityChip classification={field.classification} />
+                                  </TableCell>
+
+                                  {/* Detector Source */}
+                                  <TableCell>
+                                    <DetectorBadge source={field.detector_source} />
+                                  </TableCell>
+
+                                  {/* Column Masking Rule (Dropdown) */}
+                                  <TableCell>
+                                    <FormControl size="small" fullWidth sx={{ minWidth: 140 }}>
+                                      <Select
+                                        value={action}
+                                        onChange={(e) =>
+                                          handleFieldActionChange(field.id, e.target.value as PolicyAction)
+                                        }
+                                        sx={{
+                                          height: 28,
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          bgcolor: '#FFFFFF',
+                                        }}
+                                      >
+                                        {POLICY_ACTIONS.map((opt) => (
+                                          <MenuItem
+                                            value={opt}
+                                            key={opt}
+                                            disabled={isL3 && opt === 'KEEP'}
+                                            sx={{ fontSize: '0.75rem' }}
+                                          >
+                                            {getActionLabel(opt)} {isL3 && opt === 'KEEP' ? '(Cấm với L3)' : ''}
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  </TableCell>
+
+                                  {/* Security Floor Status */}
+                                  <TableCell>
+                                    {isL3 ? (
+                                      <Chip
+                                        icon={<LockOutlinedIcon sx={{ fontSize: '12px !important' }} />}
+                                        label="Sàn L3 Bắt buộc"
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700 }}
+                                      />
+                                    ) : (
+                                      <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                        Tiêu chuẩn L2
+                                      </Typography>
+                                    )}
+                                  </TableCell>
+
+                                  {/* Actions */}
+                                  <TableCell align="right">
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={() => handleOpenInspector(field.id)}
+                                      sx={{ fontSize: '0.7rem', height: 24, px: 1, minWidth: 'auto' }}
+                                    >
+                                      Chi tiết
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </CollapsibleTableGroup>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  {/* About This Table Footer Card (Databricks web Aug 2025 40.png) */}
+                  <Card variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '6px' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#4B5563', textTransform: 'uppercase' }}>
+                      About this table
+                    </Typography>
+                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" color="text.secondary">
+                          Chủ sở hữu dữ liệu (Owner)
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          dpo@enterprise.local
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" color="text.secondary">
+                          Vị trí Metastore (Storage)
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          On-Premise Vault Metastore
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" color="text.secondary">
+                          Thời gian quét (Last Scan)
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {currentRunId ? `Run #${currentRunId}` : 'Vừa xong'}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Typography variant="caption" color="text.secondary">
+                          Chỉ số an toàn (Safety Index)
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#16A34A' }}>
+                          100% Zero Raw Leak
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Card>
+                </Stack>
+              )}
+            </Box>
+          )}
+
+          {/* TAB 1: SAMPLE DATA (MASKED) - Databricks web Aug 2025 45.png */}
+          {activeTab === 1 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack spacing={2}>
+                {/* Safe Banner */}
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: '6px',
+                    bgcolor: '#ECFDF5',
+                    border: '1px solid #A7F3D0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <VerifiedUserIcon sx={{ color: '#16A34A', fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
+                      Zero Raw-PII Leak Verified: Dữ liệu bên dưới được mô phỏng sau khi áp dụng các giải thuật che giấu.
+                    </Typography>
+                  </Stack>
+                  <Chip
+                    label="SHA-256 Validated"
+                    size="small"
+                    sx={{ bgcolor: '#FFFFFF', color: '#16A34A', border: '1px solid #86EFAC', fontWeight: 700 }}
+                  />
+                </Box>
+
+                {/* Databricks Sample Table Grid */}
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: 40, color: '#9CA3AF' }}>#</TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <PinIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
+                            <span>ID</span>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
+                            <span>Họ và tên (MASKED)</span>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
+                            <span>Số điện thoại (PARTIAL)</span>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <LockOutlinedIcon sx={{ fontSize: 14, color: '#B91C1C' }} />
+                            <span>CCCD / CMND (VAULT HMAC)</span>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
+                            <span>Email (MASKED)</span>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {[
+                        { id: 1, name: 'Nguyễn ***', phone: '0912***789', cccd: 'hmac_sha256:7f83b1657ff1fc53', email: 'n***@gmail.com' },
+                        { id: 2, name: 'Trần ***', phone: '0988***234', cccd: 'hmac_sha256:1a82e987c2b3f112', email: 't***@yahoo.com' },
+                        { id: 3, name: 'Lê ***', phone: '0905***678', cccd: 'hmac_sha256:e3b0c44298fc1c14', email: 'l***@outlook.com' },
+                        { id: 4, name: 'Phạm ***', phone: '0971***112', cccd: 'hmac_sha256:9f86d081884c7d65', email: 'p***@viettel.vn' },
+                        { id: 5, name: 'Hoàng ***', phone: '0933***445', cccd: 'hmac_sha256:4b227777d4dd1fc6', email: 'h***@fpt.com.vn' },
+                      ].map((row) => (
+                        <TableRow key={row.id} hover>
+                          <TableCell sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>{row.id}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace' }}>{row.id + 1000}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', color: '#1B51A4' }}>{row.phone}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', color: '#6D28D9', fontSize: '0.75rem' }}>
+                            {row.cccd}
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace' }}>{row.email}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </Box>
+          )}
+
+          {/* TAB 2: PERMISSIONS & GRANTS - Databricks web Aug 2025 47.png */}
+          {activeTab === 2 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack spacing={2}>
+                <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="contained" size="small" sx={{ bgcolor: '#1B51A4' }}>
+                      Grant
+                    </Button>
+                    <Button variant="outlined" size="small" disabled>
+                      Revoke
+                    </Button>
+                  </Stack>
+                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                    Phân quyền truy cập theo vai trò chuẩn RBAC on-premise
+                  </Typography>
+                </Stack>
+
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Principal (Vai trò / Người dùng)</TableCell>
+                        <TableCell>Privilege (Quyền hạn)</TableCell>
+                        <TableCell>Object (Đối tượng)</TableCell>
+                        <TableCell>Inherited (Kế thừa)</TableCell>
+                        <TableCell>Trạng thái</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover>
+                        <TableCell sx={{ fontWeight: 600 }}>role:dpo (DPO Admin)</TableCell>
+                        <TableCell>ALL_PRIVILEGES, MANAGE_POLICIES, BUILD_SNAPSHOT</TableCell>
+                        <TableCell sx={{ fontFamily: 'monospace' }}>metastore.postgres_core.*</TableCell>
+                        <TableCell>Direct</TableCell>
+                        <TableCell>
+                          <Chip label="ACTIVE" size="small" color="success" sx={{ height: 20, fontSize: '0.65rem' }} />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow hover>
+                        <TableCell sx={{ fontWeight: 600 }}>role:analyst (Data Analyst)</TableCell>
+                        <TableCell>SELECT_MASKED_ONLY (Chỉ đọc snapshot đã phát hành)</TableCell>
+                        <TableCell sx={{ fontFamily: 'monospace' }}>published_datasets.*</TableCell>
+                        <TableCell>Inherited</TableCell>
+                        <TableCell>
+                          <Chip label="ACTIVE" size="small" color="primary" sx={{ height: 20, fontSize: '0.65rem' }} />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </Box>
+          )}
+
+          {/* TAB 3: AUDIT HISTORY & HASH-CHAIN - Databricks web Aug 2025 48.png */}
+          {activeTab === 3 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack spacing={2}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: '6px',
+                    bgcolor: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B' }}>
+                    Sổ cái kiểm toán Hash-Chain (Cryptographic Merkle Root)
+                  </Typography>
+                  <Chip
+                    label="CHAIN VERIFIED"
+                    size="small"
+                    sx={{ bgcolor: '#ECFDF5', color: '#047857', border: '1px solid #6EE7B7', fontWeight: 700 }}
+                  />
+                </Box>
+
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Version</TableCell>
+                        <TableCell>Timestamp</TableCell>
+                        <TableCell>User</TableCell>
+                        <TableCell>Operation (Hành động)</TableCell>
+                        <TableCell>Merkle Root Hash (SHA-256)</TableCell>
+                        <TableCell>Trạng thái</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {[
+                        {
+                          version: 3,
+                          time: 'Hôm nay, 19:40',
+                          user: 'dpo_admin',
+                          op: 'PUBLISH_DATASET',
+                          hash: '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
+                          status: 'VALID',
+                        },
+                        {
+                          version: 2,
+                          time: 'Hôm nay, 19:35',
+                          user: 'dpo_admin',
+                          op: 'CREATE_SNAPSHOT_METASTORE',
+                          hash: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+                          status: 'VALID',
+                        },
+                        {
+                          version: 1,
+                          time: 'Hôm nay, 19:30',
+                          user: 'dpo_admin',
+                          op: 'SAVE_POLICY_DECISIONS',
+                          hash: 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',
+                          status: 'VALID',
+                        },
+                        {
+                          version: 0,
+                          time: 'Hôm nay, 19:25',
+                          user: 'system_scanner',
+                          op: 'SCAN_PII_SOURCE',
+                          hash: '4e1243bd22c66e76c2ba9eddc1f91394e57f9f835f8d5516086bbdf4f97159c3',
+                          status: 'VALID',
+                        },
+                      ].map((log) => (
+                        <TableRow key={log.version} hover>
+                          <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{log.version}</TableCell>
+                          <TableCell sx={{ fontSize: '0.8rem' }}>{log.time}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{log.user}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={log.op}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: '0.68rem',
+                                fontFamily: 'monospace',
+                                bgcolor: '#F3F4F6',
+                                color: '#1F2937',
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#4B5563' }}>
+                            {log.hash.slice(0, 16)}...{log.hash.slice(-8)}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={log.status}
+                              size="small"
+                              color="success"
+                              sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </Box>
+          )}
+
+          {/* TAB 4: RISK & INSIGHTS - Databricks web Aug 2025 49.png */}
+          {activeTab === 4 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined" sx={{ p: 2.5, borderRadius: '8px', height: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Tuân thủ Nghị định 13/2023/NĐ-CP
+                    </Typography>
+                    <Stack spacing={2}>
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="body2">Tỷ lệ bảo vệ dữ liệu nhạy cảm (L3):</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#16A34A' }}>
+                            100% (Đạt chuẩn)
+                          </Typography>
+                        </Stack>
+                        <LinearProgress variant="determinate" value={100} color="success" sx={{ height: 6, borderRadius: 3 }} />
+                      </Box>
+
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="body2">Tỷ lệ bảo vệ dữ liệu cơ bản (L2):</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#1B51A4' }}>
+                            100% (Đạt chuẩn)
+                          </Typography>
+                        </Stack>
+                        <LinearProgress variant="determinate" value={100} sx={{ height: 6, borderRadius: 3 }} />
+                      </Box>
+
+                      <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+                        <Typography variant="caption" sx={{ color: '#4B5563', lineHeight: 1.5, display: 'block' }}>
+                          ✓ Tất cả các trường dữ liệu cá nhân nhạy cảm đã bị cưỡng chế thuật toán che giấu, băm HMAC hoặc
+                          loại bỏ hoàn toàn khỏi tầm nhìn của chuyên viên phân tích.
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined" sx={{ p: 2.5, borderRadius: '8px', height: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Phân bổ chính sách che giấu (Masking Distribution)
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {POLICY_ACTIONS.map((action) => (
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" key={action}>
+                          <ActionChip action={action} />
+                          <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                            {actionCounts[action]} trường ({fields.length > 0 ? Math.round((actionCounts[action] / fields.length) * 100) : 0}%)
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </Paper>
       </Box>
-    );
-  }
 
-  if (step === 'build') {
-    return (
-      <Box textAlign="center" py={8}>
-        <Typography variant="h5" gutterBottom>
-          Đã duyệt thành công
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Bây giờ bạn có thể xây dựng dataset được bảo vệ.
-        </Typography>
+      {/* ========================================================================= */}
+      {/* DATABRICKS RIGHT SLIDE-OUT INSPECTOR DRAWER (380px)                       */}
+      {/* ========================================================================= */}
+      <Drawer
+        anchor="right"
+        open={Boolean(activeInspectField)}
+        onClose={handleCloseInspector}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 400 },
+            p: 3,
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        {activeInspectField && (
+          <Stack spacing={2.5} sx={{ height: '100%' }}>
+            {/* Drawer Header */}
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center">
+                <ShieldOutlinedIcon sx={{ color: '#1B51A4' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+                  Chi tiết chính sách cột
+                </Typography>
+              </Stack>
+              <IconButton size="small" onClick={handleCloseInspector} aria-label="Đóng ngăn kéo">
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
 
-        {buildError && (
-          <Alert severity="error" sx={{ maxWidth: 720, mx: 'auto', mb: 3, textAlign: 'left' }}>
-            {buildError}
-          </Alert>
+            <Divider />
+
+            {/* Column Identifier Box */}
+            <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <Typography variant="caption" sx={{ color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                Cột dữ liệu
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#111827' }}>
+                {activeInspectField.field_path}
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <SensitivityChip classification={activeInspectField.classification} />
+                <DetectorBadge source={activeInspectField.detector_source} />
+              </Stack>
+            </Box>
+
+            {/* Legal Basis Callout */}
+            <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E40AF', display: 'block' }}>
+                Căn cứ pháp lý Nghị định 13/2023/NĐ-CP:
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#1E3A8A', mt: 0.5, display: 'block', lineHeight: 1.5 }}>
+                {activeInspectField.classification.includes('SENSITIVE')
+                  ? 'Điều 2 Khoản 4: Dữ liệu cá nhân nhạy cảm gắn liền với quyền riêng tư của cá nhân. Bắt buộc áp dụng biện pháp bảo vệ cao nhất.'
+                  : 'Điều 2 Khoản 3: Dữ liệu cá nhân cơ bản giúp nhận dạng cá nhân. Yêu cầu kiểm soát truy cập và che giấu thích hợp.'}
+              </Typography>
+            </Box>
+
+            {/* Selected Action Override */}
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
+                Ghi đè hành động (DPO Policy Action):
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={getFieldAction(activeInspectField.id, activeInspectField.recommended_action)}
+                  onChange={(e) =>
+                    handleFieldActionChange(activeInspectField.id, e.target.value as PolicyAction)
+                  }
+                >
+                  {POLICY_ACTIONS.map((opt) => (
+                    <MenuItem
+                      value={opt}
+                      key={opt}
+                      disabled={activeInspectField.classification.includes('SENSITIVE') && opt === 'KEEP'}
+                    >
+                      {getActionLabel(opt)}{' '}
+                      {activeInspectField.classification.includes('SENSITIVE') && opt === 'KEEP'
+                        ? '(Cấm bởi Sàn bảo mật L3)'
+                        : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Mandatory Justification */}
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
+                Lý do ghi đè chính sách (Bắt buộc):
+              </Typography>
+              <TextField
+                multiline
+                rows={3}
+                placeholder="Nhập căn cứ pháp lý hoặc quyết định nội bộ để giải trình trong báo cáo kiểm toán..."
+                value={overrideJustification}
+                onChange={(e) => setOverrideJustification(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Box>
+
+            {/* Exception Expiration */}
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
+                Thời hạn ngoại lệ (tùy chọn):
+              </Typography>
+              <TextField
+                type="date"
+                value={exceptionUntil}
+                onChange={(e) => setExceptionUntil(e.target.value)}
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+
+            {/* Footer */}
+            <Box sx={{ mt: 'auto', pt: 2 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleCloseInspector}
+                sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
+              >
+                Lưu &amp; Áp dụng thay đổi
+              </Button>
+            </Box>
+          </Stack>
         )}
-
-        <Button
-          variant="contained"
-          size="large"
-          onClick={() => void handleBuild()}
-          disabled={buildDataset.isPending}
-        >
-          {buildDataset.isPending ? 'Đang xây dựng...' : 'Xây dựng dataset'}
-        </Button>
-      </Box>
-    );
-  }
-
-  if (step === 'done' && datasetId) {
-    return (
-      <Box textAlign="center" py={8}>
-        <CheckCircleIcon color="success" sx={{ fontSize: 80, mb: 2 }} />
-        <Typography variant="h4" gutterBottom>
-          Hoàn thành
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-          Dataset ID: {datasetId}
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 4 }}>
-          Dataset đã được tạo thành công. Bây giờ bạn có thể publish để Analyst sử dụng.
-        </Typography>
-
-        <Stack direction="row" spacing={2} justifyContent="center">
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setStep('select-source');
-              setSelectedSourceId(null);
-              setCurrentRunId(null);
-              setDatasetId(null);
-              setDecisionOverrides({});
-              setActionFilter('ALL');
-            }}
-          >
-            Quét nguồn mới
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => void handlePublish()}
-            disabled={publishDataset.isPending}
-          >
-            {publishDataset.isPending ? 'Đang publish...' : 'Publish dataset'}
-          </Button>
-        </Stack>
-      </Box>
-    );
-  }
-
-  if (runLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      <Typography>Loading...</Typography>
+      </Drawer>
     </Box>
   );
 }
