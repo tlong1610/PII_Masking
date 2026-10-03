@@ -1,15 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
-  Checkbox,
   Chip,
   CircularProgress,
   Divider,
-  FormControlLabel,
   FormControl,
   Grid,
   IconButton,
@@ -43,6 +41,7 @@ import { ApiError } from '@/shared/api/client';
 import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
 import { ActionChip } from './PolicyChips';
+import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
 import {
   POLICY_ACTIONS,
   type PolicyAction,
@@ -180,19 +179,27 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     () => new Set(fields.map((field) => field.source_path)).size,
     [fields],
   );
+  const scopeNames = useMemo(() => sourceScope?.items.map((item) => item.name) ?? [], [sourceScope?.items]);
 
   const completionPercent = fields.length > 0 ? 100 : 0;
   const editedCount = Object.keys(decisionOverrides).length;
 
   const handleSelectSource = (sourceId: string) => {
     setSelectedSourceId(sourceId);
-    setSelectedScope([]);
   };
+
+  useEffect(() => {
+    setSelectedScope(scopeNames);
+  }, [scopeNames]);
 
   const handleToggleScopeItem = (name: string) => {
     setSelectedScope((current) =>
       current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
     );
+  };
+
+  const handleSelectAllScope = () => {
+    setSelectedScope((current) => (current.length === scopeNames.length ? [] : scopeNames));
   };
 
   const handleStartScan = async () => {
@@ -411,14 +418,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         </Grid>
 
         {selectedSourceId && (
-          <Paper variant="outlined" sx={{ mt: 3, p: 2 }}>
+          <Paper variant="outlined" sx={{ mt: 3, p: 2.5 }}>
             <Stack spacing={2}>
               <Box>
                 <Typography variant="h6" gutterBottom>
                   Chọn phạm vi quét
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Backend chỉ scan các bảng/collection được chọn. Không hiển thị raw value.
+                  Tick bảng/collection để chọn phạm vi scan. Diagram bên cạnh highlight scope đang chọn và hiển thị field metadata an toàn, không có raw value.
                 </Typography>
               </Box>
 
@@ -429,33 +436,16 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     Đang đọc scope...
                   </Typography>
                 </Box>
+              ) : sourceScope ? (
+                <SourceScopePickerDiagram
+                  items={sourceScope.items}
+                  onSelectAll={handleSelectAllScope}
+                  onToggle={handleToggleScopeItem}
+                  selectedNames={selectedScope}
+                  sourceType={sourceScope.source_type}
+                />
               ) : (
-                <Grid container spacing={1}>
-                  {sourceScope?.items.map((item) => (
-                    <Grid item xs={12} sm={6} md={4} key={item.name}>
-                      <Paper variant="outlined" sx={{ px: 1.5, py: 1 }}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={selectedScope.includes(item.name)}
-                              onChange={() => handleToggleScopeItem(item.name)}
-                            />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2" fontFamily="monospace">
-                                {item.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.kind} • {item.field_count} fields
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
+                <Alert severity="info">Chọn source để đọc phạm vi quét.</Alert>
               )}
 
               {sourceScope && sourceScope.items.length === 0 && (
@@ -472,7 +462,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   onClick={() => void handleStartScan()}
                   disabled={createScan.isPending || scopeLoading || selectedScope.length === 0}
                 >
-                  Bắt đầu quét PII
+                  Bắt đầu quét scope đã chọn
                 </Button>
               </Box>
             </Stack>
@@ -856,7 +846,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
             onClick={() => {
               setStep('select-source');
               setSelectedSourceId(null);
-              setSelectedScope([]);
               setCurrentRunId(null);
               setDatasetId(null);
               setDecisionOverrides({});

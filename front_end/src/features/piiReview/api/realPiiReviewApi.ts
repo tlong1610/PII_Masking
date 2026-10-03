@@ -29,6 +29,12 @@ export const sourceScopeSchema = z.object({
     name: z.string(),
     kind: z.string(),
     field_count: z.number(),
+    fields: z.array(z.object({
+      name: z.string(),
+      data_type: z.string(),
+      is_primary_key: z.boolean(),
+      is_foreign_key: z.boolean(),
+    })).default([]),
     row_count: z.number().nullable().optional(),
     document_count: z.number().nullable().optional(),
   })),
@@ -129,6 +135,7 @@ export interface SourceInput {
 }
 
 export type SourceScope = z.infer<typeof sourceScopeSchema>;
+export type SourceScopeItem = SourceScope['items'][number];
 export type FieldProfile = z.infer<typeof fieldProfileSchema>;
 export type Run = z.infer<typeof runSchema>;
 export type Dataset = z.infer<typeof datasetSchema>;

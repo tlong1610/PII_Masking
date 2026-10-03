@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">PIIGuard VN Brand DNA</title>
+  <desc id="desc">Brand DNA infographic for PIIGuard VN: privacy-safe verified datasets for analytics and AI.</desc>
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="62%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .bg { fill: #F8FAFC; }
+      .heroText { font-family: Inter, Arial, sans-serif; fill: #FFFFFF; }
+      .title { font-size: 56px; font-weight: 800; letter-spacing: 0; }
+      .subtitle { font-size: 25px; font-weight: 500; opacity: 0.92; }
+      .sectionTitle { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 24px; font-weight: 800; }
+      .body { font-family: Inter, Arial, sans-serif; fill: #334155; font-size: 19px; font-weight: 500; }
+      .small { font-family: Inter, Arial, sans-serif; fill: #64748B; font-size: 16px; font-weight: 500; }
+      .label { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 17px; font-weight: 800; }
+      .card { fill: #FFFFFF; stroke: #D9E2EC; stroke-width: 1.5; rx: 22; filter: url(#shadow); }
+      .soft { fill: #ECFDF5; stroke: #99F6E4; stroke-width: 1.5; rx: 18; }
+      .warn { fill: #FFF7ED; stroke: #FDBA74; stroke-width: 1.5; rx: 18; }
+      .danger { fill: #FEF2F2; stroke: #FCA5A5; stroke-width: 1.5; rx: 18; }
+      .pill { fill: #E0F2FE; stroke: #7DD3FC; stroke-width: 1; rx: 18; }
+      .line { stroke: #CBD5E1; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .flowBox { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 1.5; rx: 16; }
+      .flowText { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 15px; font-weight: 750; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#CBD5E1"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="1000"/>
+
+  <rect x="56" y="48" width="1488" height="210" rx="32" fill="url(#hero)"/>
+  <text x="96" y="124" class="heroText title">PIIGuard VN Brand DNA</text>
+  <text x="96" y="171" class="heroText subtitle">Protect data. Preserve utility.</text>
+  <text x="96" y="216" class="heroText subtitle">From raw enterprise databases to privacy-safe, verified datasets for analytics and AI.</text>
+
+  <g transform="translate(96,310)">
+    <rect class="card" width="430" height="220"/>
+    <text x="28" y="48" class="sectionTitle">Brand Core</text>
+    <text x="28" y="90" class="body">PIIGuard is the privacy gate</text>
+    <text x="28" y="120" class="body">between raw databases and</text>
+    <text x="28" y="150" class="body">Analyst / AI workloads.</text>
+    <text x="28" y="194" class="small">Raw data in. Verified protected dataset out.</text>
+  </g>
+
+  <g transform="translate(586,310)">
+    <rect class="card" width="430" height="220"/>
+    <text x="28" y="48" class="sectionTitle">Brand Promise</text>
+    <text x="28" y="90" class="body">Protect personal data without</text>
+    <text x="28" y="120" class="body">destroying joins, lookups, and</text>
+    <text x="28" y="150" class="body">analytics value.</text>
+    <text x="28" y="194" class="small">DPO governs. Backend enforces. Verifier proves.</text>
+  </g>
+
+  <g transform="translate(1076,310)">
+    <rect class="card" width="430" height="220"/>
+    <text x="28" y="48" class="sectionTitle">Positioning</text>
+    <text x="28" y="90" class="body">Privacy-safe data infrastructure</text>
+    <text x="28" y="120" class="body">for enterprise analytics and</text>
+    <text x="28" y="150" class="body">AI teams.</text>
+    <text x="28" y="194" class="small">Not a masking toy. A governed publishing flow.</text>
+  </g>
+
+  <text x="96" y="585" class="sectionTitle">Product Flow</text>
+  <g transform="translate(96,620)">
+    <rect class="flowBox" x="0" y="0" width="160" height="72"/>
+    <text class="flowText" x="28" y="31">Connect DB</text>
+    <text class="small" x="34" y="55">read-only</text>
+
+    <path class="line" d="M168 36 H220"/>
+    <rect class="flowBox" x="228" y="0" width="160" height="72"/>
+    <text class="flowText" x="255" y="31">Scan Demo Scope</text>
+    <text class="small" x="265" y="55">tables / collections</text>
+
+    <path class="line" d="M396 36 H448"/>
+    <rect class="flowBox" x="456" y="0" width="160" height="72"/>
+    <text class="flowText" x="501" y="31">Scan PII</text>
+    <text class="small" x="493" y="55">rules + AI</text>
+
+    <path class="line" d="M624 36 H676"/>
+    <rect class="flowBox" x="684" y="0" width="160" height="72"/>
+    <text class="flowText" x="714" y="31">DPO Review</text>
+    <text class="small" x="723" y="55">review actions</text>
+
+    <path class="line" d="M852 36 H904"/>
+    <rect class="flowBox" x="912" y="0" width="160" height="72"/>
+    <text class="flowText" x="944" y="31">Build Output</text>
+    <text class="small" x="947" y="55">protected DB</text>
+
+    <path class="line" d="M1080 36 H1132"/>
+    <rect class="flowBox" x="1140" y="0" width="160" height="72"/>
+    <text class="flowText" x="1179" y="31">Verify</text>
+    <text class="small" x="1169" y="55">utility checks</text>
+
+    <path class="line" d="M1308 36 H1360"/>
+    <rect class="flowBox" x="1368" y="0" width="160" height="72"/>
+    <text class="flowText" x="1412" y="31">Publish</text>
+    <text class="small" x="1412" y="55">Analyst view</text>
+  </g>
+
+  <g transform="translate(96,750)">
+    <rect class="soft" width="330" height="138"/>
+    <text x="24" y="42" class="label">Safe by Design</text>
+    <text x="24" y="75" class="small">No raw PII in UI, prompt, report,</text>
+    <text x="24" y="100" class="small">log, or Analyst preview.</text>
+  </g>
+
+  <g transform="translate(458,750)">
+    <rect class="soft" width="330" height="138"/>
+    <text x="24" y="42" class="label">Useful After Protection</text>
+    <text x="24" y="75" class="small">HMAC keeps JOIN / lookup stable.</text>
+    <text x="24" y="100" class="small">Verifier checks utility before publish.</text>
+  </g>
+
+  <g transform="translate(820,750)">
+    <rect class="warn" width="330" height="138"/>
+    <text x="24" y="42" class="label">Human-Governed AI</text>
+    <text x="24" y="75" class="small">AI proposes. DPO decides.</text>
+    <text x="24" y="100" class="small">Backend enforces role and state.</text>
+  </g>
+
+  <g transform="translate(1182,750)">
+    <rect class="danger" width="330" height="138"/>
+    <text x="24" y="42" class="label">Evidence-Ready</text>
+    <text x="24" y="75" class="small">Audit trail, verifier results,</text>
+    <text x="24" y="100" class="small">VERIFIED / PUBLISHED status.</text>
+  </g>
+
+  <g transform="translate(96,920)">
+    <rect class="pill" width="260" height="42"/>
+    <text x="28" y="27" class="label">Primary: #0F172A</text>
+    <rect x="292" class="pill" width="240" height="42"/>
+    <text x="320" y="27" class="label">Trust: #0F766E</text>
+    <rect x="564" class="pill" width="260" height="42"/>
+    <text x="592" y="27" class="label">Verified: #16A34A</text>
+    <rect x="856" class="pill" width="250" height="42"/>
+    <text x="884" y="27" class="label">Warning: #D97706</text>
+    <rect x="1138" class="pill" width="255" height="42"/>
+    <text x="1166" y="27" class="label">Blocked: #DC2626</text>
+  </g>
+</svg>

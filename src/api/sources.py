@@ -16,7 +16,15 @@ from src.api.deps import require_dpo
 from src.api.session_store import SessionUser
 from src.db import models as db_models
 from src.db.session import get_db
-from src.models.schemas import Source, SourceCreate, SourceTestResult, SourceType, SourceScope, SourceScopeItem
+from src.models.schemas import (
+    Source,
+    SourceCreate,
+    SourceScope,
+    SourceScopeField,
+    SourceScopeItem,
+    SourceTestResult,
+    SourceType,
+)
 from src.services import secret_box
 from src.services.source_validation import (
     ParsedSource,
@@ -150,6 +158,15 @@ def get_source_scope(
                     name=table.table_name,
                     kind="table",
                     field_count=len(table.columns),
+                    fields=[
+                        SourceScopeField(
+                            name=column.column_name,
+                            data_type=column.data_type,
+                            is_primary_key=column.is_primary_key,
+                            is_foreign_key=column.is_foreign_key,
+                        )
+                        for column in table.columns
+                    ],
                 )
                 for table in profile.tables
             ],
@@ -158,31 +175,83 @@ def get_source_scope(
     if source.engine == "mongodb" and conn.live:
         from src.connectors.mongo_connector import MongoConnector
 
-        scopes = MongoConnector(conn.url, conn.namespace).inspect_scope()
+        profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
             engine=source.engine,
             items=[
                 SourceScopeItem(
-                    name=item["collection_name"],
+                    name=collection.table_name,
                     kind="collection",
-                    field_count=item["field_count"],
-                    document_count=item["document_count"],
+                    field_count=len(collection.columns),
+                    fields=[
+                        SourceScopeField(
+                            name=column.column_name,
+                            data_type=column.data_type,
+                            is_primary_key=column.is_primary_key,
+                            is_foreign_key=column.is_foreign_key,
+                        )
+                        for column in collection.columns
+                    ],
                 )
-                for item in scopes
+                for collection in profile.tables
             ],
         )
 
     if source.source_type == SourceType.SQL:
         items = [
-            SourceScopeItem(name="customers", kind="table", field_count=5),
-            SourceScopeItem(name="orders", kind="table", field_count=5),
+            SourceScopeItem(
+                name="customers",
+                kind="table",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="customer_id", data_type="varchar", is_primary_key=True),
+                    SourceScopeField(name="full_name", data_type="varchar"),
+                    SourceScopeField(name="phone", data_type="varchar"),
+                    SourceScopeField(name="email", data_type="varchar"),
+                    SourceScopeField(name="notes", data_type="text"),
+                ],
+            ),
+            SourceScopeItem(
+                name="orders",
+                kind="table",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="order_id", data_type="varchar", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="varchar", is_foreign_key=True),
+                    SourceScopeField(name="order_date", data_type="date"),
+                    SourceScopeField(name="amount", data_type="numeric"),
+                    SourceScopeField(name="tracking_code", data_type="varchar"),
+                ],
+            ),
         ]
     else:
         items = [
-            SourceScopeItem(name="customers", kind="collection", field_count=5),
-            SourceScopeItem(name="orders", kind="collection", field_count=5),
+            SourceScopeItem(
+                name="customers",
+                kind="collection",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="_id", data_type="objectId", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="string"),
+                    SourceScopeField(name="full_name", data_type="string"),
+                    SourceScopeField(name="phone", data_type="string"),
+                    SourceScopeField(name="notes", data_type="string"),
+                ],
+            ),
+            SourceScopeItem(
+                name="orders",
+                kind="collection",
+                field_count=5,
+                fields=[
+                    SourceScopeField(name="_id", data_type="objectId", is_primary_key=True),
+                    SourceScopeField(name="customer_id", data_type="string", is_foreign_key=True),
+                    SourceScopeField(name="order_date", data_type="date"),
+                    SourceScopeField(name="amount", data_type="float"),
+                    SourceScopeField(name="pii_ext.customer_cccd", data_type="string"),
+                ],
+            ),
         ]
     return SourceScope(
         source_id=source.id,
