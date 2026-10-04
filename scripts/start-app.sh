@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# PIIGuard VN - Full Stack Startup Script
+# PIIGuard Shield - Full Stack Startup Script
 # ============================================
 # Author: Team 138
 # Purpose: Initialize and run the complete application stack
@@ -14,7 +14,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  PIIGuard VN - Full Stack Startup${NC}"
+echo -e "${GREEN}  PIIGuard Shield - Full Stack Startup${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # Check prerequisites
@@ -101,7 +101,7 @@ echo -e "${GREEN}✓ Directories created${NC}"
 echo -e "${YELLOW}[8/8] Starting application services...${NC}"
 echo ""
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  Starting PIIGuard VN Services${NC}"
+echo -e "${GREEN}  Starting PIIGuard Shield Services${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo "Backend API will be available at: http://localhost:8001"

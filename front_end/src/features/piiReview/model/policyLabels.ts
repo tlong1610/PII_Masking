@@ -43,6 +43,15 @@ export function getTransformLabel(transform: TransformKind): string {
   return 'Đã loại bỏ';
 }
 
+/** What an Analyst can do with a column after protection. */
+export function getTransformAnalystHint(transform: TransformKind): string {
+  if (transform === 'KEEP') return 'Dùng trực tiếp để phân tích (lọc, nhóm, tính tổng...).';
+  if (transform === 'HMAC')
+    return 'Mã thay thế cố định: dùng để ghép bảng hoặc đếm số khách riêng biệt; không thể giải ngược ra giá trị gốc.';
+  if (transform === 'MASK') return 'Đã che một phần: chỉ để nhận biết dạng dữ liệu, không dùng để lọc hay ghép bảng.';
+  return 'Đã bị loại khỏi dataset, Analyst không nhận được cột này.';
+}
+
 export function getTransformColor(transform: TransformKind): ChipTone {
   if (transform === 'DROPPED') return 'error';
   if (transform === 'MASK') return 'warning';
@@ -52,6 +61,7 @@ export function getTransformColor(transform: TransformKind): ChipTone {
 
 export function getRiskTone(classification: string): ChipTone {
   if (classification.includes('NON_PERSONAL')) return 'default';
+  if (classification.includes('QUASI')) return 'info';
   if (classification.includes('SENSITIVE')) return 'error';
   if (classification.includes('PERSONAL')) return 'warning';
   return 'default';
@@ -59,6 +69,7 @@ export function getRiskTone(classification: string): ChipTone {
 
 export function getRiskLabel(classification: string): string {
   if (classification.includes('NON_PERSONAL')) return 'Rủi ro thấp';
+  if (classification.includes('QUASI')) return 'Định danh gián tiếp';
   if (classification.includes('SENSITIVE')) return 'Nhạy cảm';
   if (classification.includes('PERSONAL')) return 'Có PII';
   if (classification.includes('UNKNOWN')) return 'Cần kiểm tra';
@@ -67,6 +78,7 @@ export function getRiskLabel(classification: string): string {
 
 export function getClassificationLabel(classification: string): string {
   if (classification.includes('NON_PERSONAL')) return 'Không phải dữ liệu cá nhân';
+  if (classification.includes('QUASI')) return 'Định danh gián tiếp (L1)';
   if (classification.includes('PERSONAL_SENSITIVE')) return 'Dữ liệu cá nhân nhạy cảm';
   if (classification.includes('PERSONAL_BASIC')) return 'Dữ liệu cá nhân cơ bản';
   if (classification.includes('UNKNOWN')) return 'Chưa xác định';

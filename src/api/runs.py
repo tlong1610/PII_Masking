@@ -25,6 +25,7 @@ from src.models.schemas import (
     FieldDecisionOut,
     FieldDecisionsUpdate,
     FieldProfileOut,
+    JoinKeyOut,
     PolicyAction,
     RunCreate,
     RunOut,
@@ -39,6 +40,21 @@ from src.services.risk_scorer import calculate_risk_score, resolve_sensitivity_l
 from src.services.secret_box import SecretBoxError
 
 router = APIRouter(tags=["runs"])
+
+# Classifications a DPO may confirm as "not personal data"; PII must use the exception flow.
+_RECLASSIFIABLE = frozenset({"UNKNOWN", "NON_PERSONAL"})
+
+
+def _field_error(profile: db_models.FieldProfile, message: str) -> HTTPException:
+    """422 that names the offending field so the UI can jump straight to it (no values, only paths)."""
+    return HTTPException(
+        status_code=422,
+        detail={
+            "message": message,
+            "field_profile_id": profile.id,
+            "field_path": f"{profile.source_path}.{profile.field_path}",
+        },
+    )
 
 
 def mongo_client():
@@ -448,6 +464,62 @@ def get_run_report(
     return report_data
 
 
+def _postgres_join_relations(conn: SourceConnection) -> list[tuple[str, str, str, str]]:
+    """Logical join keys plus FOREIGN KEYs declared in a live source (same set the build guard checks)."""
+    from src.transform.pg_pipeline import LOGICAL_JOIN_KEYS
+
+    relations = list(LOGICAL_JOIN_KEYS)
+    if conn.live:
+        try:
+            from src.connectors.postgres_connector import PostgresConnector
+
+            relations.extend(PostgresConnector(conn.url).list_relations(conn.namespace or "public"))
+        except Exception:
+            pass
+    return relations
+
+
+def _mongo_join_relations(conn: SourceConnection) -> list[tuple[str, str, str, str]]:
+    if not conn.live:
+        return []
+    try:
+        from src.connectors.mongo_connector import MongoConnector
+
+        return MongoConnector(conn.url, conn.namespace, client=mongo_client()).list_relations()
+    except Exception:
+        return []
+
+
+@router.get("/runs/{run_id}/join-keys", response_model=list[JoinKeyOut])
+def get_run_join_keys(
+    run_id: int,
+    user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> list[JoinKeyOut]:
+    """Join keys between scanned fields: both ends must share KEEP or HMAC or the build is blocked."""
+    run = _load_run(db, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    source = get_source_by_id(run.source_id, db)
+    if source is None:
+        return []
+    conn = _connection_for(source, db)
+    relations = _mongo_join_relations(conn) if run.engine == "mongodb" else _postgres_join_relations(conn)
+
+    scanned = {(p.source_path, p.field_path) for p in run.field_profiles}
+    seen: set[tuple[str, str, str, str]] = set()
+    out: list[JoinKeyOut] = []
+    for relation in relations:
+        from_table, from_column, to_table, to_column = relation
+        if relation in seen or (from_table, from_column) not in scanned or (to_table, to_column) not in scanned:
+            continue
+        seen.add(relation)
+        out.append(
+            JoinKeyOut(from_table=from_table, from_column=from_column, to_table=to_table, to_column=to_column)
+        )
+    return out
+
+
 @router.get("/runs/{run_id}/risk-score")
 def get_run_risk_score(
     run_id: int,
@@ -509,22 +581,48 @@ def put_decisions(
                 status_code=400,
                 detail=f"field_profile_id {item.field_profile_id} not in run",
             )
+        # 0. DPO reclassification: only UNKNOWN (or already non-personal) fields, with a reason.
+        #    PII fields must go through the exception flow below instead.
+        classification, taxonomy_id = profile.classification, profile.taxonomy_id
+        if item.classification_override is not None:
+            if profile.classification not in _RECLASSIFIABLE:
+                raise _field_error(
+                    profile,
+                    (
+                        f"Không thể xác nhận 'không phải PII' cho trường '{profile.field_path}' "
+                        f"đã được phân loại là {profile.classification}. "
+                        "Hạ mức trường PII phải dùng ngoại lệ (is_exception, reason, exception_until)."
+                    ),
+                )
+            if not (item.reason and item.reason.strip()):
+                raise _field_error(
+                    profile,
+                    (
+                        f"Xác nhận 'không phải PII' cho trường '{profile.field_path}' "
+                        "bắt buộc phải ghi lý do (reason)."
+                    ),
+                )
+            classification, taxonomy_id = item.classification_override, "NOT_PERSONAL_DATA"
+
         # 1. UNKNOWN check: UNKNOWN fields cannot be KEEP
-        if profile.classification == "UNKNOWN" and item.action == PolicyAction.KEEP:
-            raise HTTPException(
-                status_code=422,
-                detail="UNKNOWN fields cannot be KEEP; use DROP or a justified classification",
+        if classification == "UNKNOWN" and item.action == PolicyAction.KEEP:
+            raise _field_error(
+                profile,
+                (
+                    f"Trường '{profile.field_path}' chưa xác định (UNKNOWN) nên không được Giữ nguyên. "
+                    "Hãy xác nhận 'không phải PII' (kèm lý do) hoặc chọn Che/Loại bỏ."
+                ),
             )
 
         # 2. Minimum Masking Floor & Downgrade Rule (FR-06, FR-07, §2.2, §9.2)
         sens_level = resolve_sensitivity_level(
-            classification=profile.classification,
-            taxonomy_id=profile.taxonomy_id,
+            classification=classification,
+            taxonomy_id=taxonomy_id,
             field_path=profile.field_path,
         )
         is_explicit_non_personal = (
-            profile.classification in ("NON_PERSONAL", "NOT_PERSONAL_DATA")
-            and (profile.taxonomy_id or "") in (
+            classification in ("NON_PERSONAL", "NOT_PERSONAL_DATA")
+            and (taxonomy_id or "") in (
                 "NOT_PERSONAL_DATA",
                 "NON_PERSONAL",
                 "TAX_CODE_ORG",
@@ -537,11 +635,14 @@ def put_decisions(
                 "",
             )
         )
+        # Quasi-identifiers (L1: city, IP) may be kept for analysis without an exception;
+        # they only identify someone when combined with direct identifiers, which stay masked.
         is_pii = (
             not is_explicit_non_personal
+            and classification != "QUASI_IDENTIFIER"
             and (
                 sens_level in ("L1", "L2", "L3")
-                or profile.classification in (
+                or classification in (
                     "PERSONAL_BASIC",
                     "PERSONAL_SENSITIVE",
                     "PERSONAL_CONTEXT",
@@ -554,9 +655,9 @@ def put_decisions(
         # If it is a PII field and action is KEEP: this is strictly below the minimum protection floor
         if is_pii and item.action == PolicyAction.KEEP:
             if not item.is_exception:
-                raise HTTPException(
-                    status_code=422,
-                    detail=(
+                raise _field_error(
+                    profile,
+                    (
                         f"Chính sách '{item.action.value}' yếu hơn mức che tối thiểu cho trường PII '{profile.field_path}' "
                         f"(Mức độ nhạy cảm: {sens_level}, phân loại: {profile.classification}). "
                         "Chính sách yếu hơn mức tối thiểu bị chặn (FR-06, FR-07, §2.2, §9.2). "
@@ -565,17 +666,17 @@ def put_decisions(
                     ),
                 )
             if not (item.reason and item.reason.strip()):
-                raise HTTPException(
-                    status_code=422,
-                    detail=(
+                raise _field_error(
+                    profile,
+                    (
                         f"Hạ mức chính sách ngoại lệ cho trường '{profile.field_path}' "
                         "bắt buộc phải ghi rõ lý do giải trình (reason)."
                     ),
                 )
             if item.exception_until is None:
-                raise HTTPException(
-                    status_code=422,
-                    detail=(
+                raise _field_error(
+                    profile,
+                    (
                         f"Hạ mức chính sách ngoại lệ cho trường '{profile.field_path}' "
                         "bắt buộc phải có thời hạn ngoại lệ (exception_until)."
                     ),
@@ -585,9 +686,9 @@ def put_decisions(
             if exp.tzinfo is None:
                 exp = exp.replace(tzinfo=UTC)
             if exp <= now:
-                raise HTTPException(
-                    status_code=422,
-                    detail=(
+                raise _field_error(
+                    profile,
+                    (
                         f"Thời hạn ngoại lệ (exception_until) cho trường '{profile.field_path}' "
                         "phải là một thời điểm trong tương lai."
                     ),
@@ -596,9 +697,9 @@ def put_decisions(
         # 3. Check override reason (FR-07: bắt buộc lý do khi ghi đè)
         is_override = (item.action.value != profile.recommended_action)
         if is_override and not (item.reason and item.reason.strip()):
-            raise HTTPException(
-                status_code=422,
-                detail=(
+            raise _field_error(
+                profile,
+                (
                     f"Bắt buộc phải cung cấp lý do (reason) khi ghi đè chính sách cho trường '{profile.field_path}' "
                     f"(đề xuất: {profile.recommended_action}, chọn: {item.action.value}) (FR-07)."
                 ),
@@ -611,6 +712,13 @@ def put_decisions(
     for item in body.decisions:
         profile = profiles_by_id[item.field_profile_id]
         field_label = f"{profile.source_path}.{profile.field_path}"
+        if item.classification_override is not None and profile.classification != item.classification_override:
+            audit_changes.append(
+                f"{field_label}: reclassified {profile.classification} -> {item.classification_override} by DPO"
+            )
+            profile.classification = item.classification_override
+            profile.taxonomy_id = "NOT_PERSONAL_DATA"
+            profile.detector_source = DetectorSource.DPO.value
         effective_reason = (
             item.reason.strip()
             if (item.reason and item.reason.strip())
@@ -762,9 +870,9 @@ def build_run(
     for d in run.field_decisions:
         profile = next(p for p in run.field_profiles if p.id == d.field_profile_id)
         if profile.classification == "UNKNOWN" and d.action == PolicyAction.KEEP.value:
-            raise HTTPException(
-                status_code=422,
-                detail="Build blocked: UNKNOWN cannot KEEP",
+            raise _field_error(
+                profile,
+                f"Build blocked: trường '{profile.field_path}' chưa xác định (UNKNOWN) không được Giữ nguyên.",
             )
 
     source = get_source_by_id(run.source_id, db)
@@ -806,23 +914,12 @@ def build_run(
     )
     if pg_scanned:
         from src.transform.pg_pipeline import (
-            LOGICAL_JOIN_KEYS,
-            pg_join_key_violations,
-        )
-        from src.transform.pg_pipeline import (
             actions_from_run_decisions as pg_actions_from_decisions,
         )
+        from src.transform.pg_pipeline import pg_join_key_violations
 
         pg_table_actions = pg_actions_from_decisions(run.field_profiles, run.field_decisions)
-        all_pg_relations = list(LOGICAL_JOIN_KEYS)
-        if conn.live:
-            try:
-                from src.connectors.postgres_connector import PostgresConnector
-                pg_conn_temp = PostgresConnector(conn.url)
-                discovered_fk = pg_conn_temp.list_relations(conn.namespace or "public")
-                all_pg_relations.extend(discovered_fk)
-            except Exception:
-                pass
+        all_pg_relations = _postgres_join_relations(conn)
         pg_violations = pg_join_key_violations(pg_table_actions, relations=tuple(all_pg_relations))
         if pg_violations:
             raise HTTPException(

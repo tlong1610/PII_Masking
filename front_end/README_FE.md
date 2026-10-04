@@ -1,6 +1,6 @@
-# PIIGuard VN Frontend
+# PIIGuard Shield Frontend
 
-React + TypeScript + Vite frontend for the PIIGuard VN MVP demo.
+React + TypeScript + Vite frontend for the PIIGuard Shield MVP demo.
 
 ## Quick Start
 

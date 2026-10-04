@@ -1,6 +1,6 @@
-# Hướng Dẫn Seed Dữ Liệu PostgreSQL — PIIGuard VN
+# Hướng Dẫn Seed Dữ Liệu PostgreSQL — PIIGuard Shield
 
-Tài liệu hướng dẫn chi tiết cách nạp (seed), cấu hình schema, nạp dữ liệu quan hệ doanh nghiệp mô phỏng và kiểm chứng đối soát CSDL PostgreSQL cho hệ thống PIIGuard VN.
+Tài liệu hướng dẫn chi tiết cách nạp (seed), cấu hình schema, nạp dữ liệu quan hệ doanh nghiệp mô phỏng và kiểm chứng đối soát CSDL PostgreSQL cho hệ thống PIIGuard Shield.
 
 ---
 

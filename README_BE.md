@@ -1,6 +1,6 @@
-# PIIGuard VN — Backend
+# PIIGuard Shield — Backend
 
-Backend API của PIIGuard VN: quét và review dữ liệu có khả năng chứa PII, tạo dataset đã bảo vệ và kiểm tra quyền truy cập trước khi phát hành.
+Backend API của PIIGuard Shield: quét và review dữ liệu có khả năng chứa PII, tạo dataset đã bảo vệ và kiểm tra quyền truy cập trước khi phát hành.
 
 ## Tech stack
 

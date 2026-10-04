@@ -7,6 +7,7 @@ except ImportError:
         pass
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -217,6 +218,19 @@ class FieldDecisionItem(BaseModel):
     reason: str = ""
     is_exception: bool = False
     exception_until: datetime | None = None
+    classification_override: Literal["NON_PERSONAL"] | None = Field(
+        default=None,
+        description="DPO confirms an UNKNOWN field is not personal data (reason required)",
+    )
+
+
+class JoinKeyOut(BaseModel):
+    """A join between two scanned fields; both ends must use the same KEEP/HMAC action."""
+
+    from_table: str
+    from_column: str
+    to_table: str
+    to_column: str
 
 
 class FieldDecisionsUpdate(BaseModel):
@@ -253,6 +267,8 @@ class DatasetPreview(BaseModel):
     status: DatasetStatus
     columns: list[DatasetPreviewColumn]
     rows: list[dict]
+    tables: list[str] = Field(default_factory=list, description="Snapshot tables/collections in this dataset")
+    selected_table: str = Field(default="", description="Table/collection the rows belong to")
     note: str = "Processed output only; raw source values are never included"
     relationships: list[DatasetRelationship] = Field(default_factory=list)
 
@@ -343,6 +359,7 @@ class FieldScanResult(BaseModel):
     tier: str = Field(default="", description="Tầng ra quyết định (TIER_1, TIER_2, TIER_3)")
     bm25_score: float | None = Field(default=None, description="Điểm tần suất từ khóa BM25 (Tầng 2)")
     hybrid_score: float | None = Field(default=None, description="Điểm hỗn hợp Hybrid (Tầng 3.1)")
+    provider_meta: dict | None = Field(default=None, description="LLM provider metadata (usage/model), no data")
 
 # --- Schema cho Luồng Enterprise (Gate 2 - Không chứa raw PII) ---
 

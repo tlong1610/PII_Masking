@@ -1,4 +1,4 @@
-# 🏗️ Cấu Trúc Dự Án & Phân Chia Trách Nhiệm — PIIGuard VN
+# 🏗️ Cấu Trúc Dự Án & Phân Chia Trách Nhiệm — PIIGuard Shield
 
 > **Tài liệu hướng dẫn dành cho thành viên Team P-138.**  
 > Đọc kỹ tài liệu này trước khi tạo branch và viết code để biết chính xác **mình cần code ở folder nào**, **giao tiếp với module khác ra sao**, và **tránh xung đột code (conflict)** khi mở Pull Request vào `develop`.

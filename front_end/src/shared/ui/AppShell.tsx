@@ -101,7 +101,7 @@ export function AppShell({ activeRole, currentUser, onLogout, children }: AppShe
               variant="subtitle1"
               sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.01em' }}
             >
-              PIIGuard VN
+              PIIGuard Shield
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem' }}>
               Data Intelligence & Governance

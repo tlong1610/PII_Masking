@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-MongoDB API end-to-end run — PIIGuard VN.
+MongoDB API end-to-end run — PIIGuard Shield.
 
 Drives the real API flow against the seeded MongoDB:
   POST /runs (MongoConnector + scanner, nested dot paths) -> PUT /runs/{id}/decisions

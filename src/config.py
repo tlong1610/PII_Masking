@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
     anthropic_api_key: str = ""
     google_api_key: str = ""
     groq_api_key: str = ""
@@ -43,6 +44,8 @@ class Settings(BaseSettings):
     pg_scan_tables: str = ""
     # Wire LangGraph PII scan into POST /runs (off = stub profiles for tests)
     enable_ai_scan: bool = False
+    # Columns scanned in parallel by the AI scan (each waits on one LLM call); lower it on rate limits
+    scan_concurrency: int = Field(default=4, ge=1, le=32)
 
     # MongoDB source (read-only) and protected snapshot database on the same cluster
     mongo_uri: str = ""

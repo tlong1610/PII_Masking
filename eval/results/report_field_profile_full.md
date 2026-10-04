@@ -1,6 +1,6 @@
 # 📊 Evaluation Report — FieldProfile Scanner (FULL Mode)
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Chế độ kiểm thử:** `full`  
 > **Tiêu chuẩn tham chiếu:** Đặc tả v0.2 §16.2 & §16.3 — Luật 91/2025/QH15 & NĐ 356/2025/NĐ-CP  
 

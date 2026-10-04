@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-PostgreSQL API end-to-end run — PIIGuard VN.
+PostgreSQL API end-to-end run — PIIGuard Shield.
 
 Drives the real API flow against the seeded docker PostgreSQL:
   POST /runs (connector + scanner) -> PUT /runs/{id}/decisions -> POST /runs/{id}/build

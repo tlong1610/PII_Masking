@@ -1,6 +1,6 @@
 # 🗺️ Tài Liệu Ánh Xạ Dữ Liệu Thực Tế Thay Thế Đặc Tả v0.2 (DATASET MAPPING)
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Phiên bản:** v1.0.0 (Build Phase)  
 > **Căn cứ:** Quyết định thay thế tập dữ liệu tổng hợp BigQuery/Y tế bằng bộ dữ liệu thực nghiệm cam kết P0 (PostgreSQL + MongoDB) theo [ARCHITECTURE.md](file:///c:/Users/kienn/ProjectBuildPhase/P-138/ARCHITECTURE.md).
 
@@ -9,7 +9,7 @@
 ## 1. 📌 Bối Cảnh & Cơ Sở Quyết Định
 
 Trong bản đặc tả kỹ thuật v0.2 (§1.1, §3.1), ban tổ chức đề xuất kịch bản dữ liệu mẫu y tế trên nền tảng Google BigQuery. Tuy nhiên, căn cứ theo:
-1. **Kiến trúc cốt lõi P0 của hệ thống ([ARCHITECTURE.md](file:///c:/Users/kienn/ProjectBuildPhase/P-138/ARCHITECTURE.md)):** PIIGuard VN cam kết cung cấp giải pháp bảo vệ dữ liệu doanh nghiệp toàn diện cho 2 hệ quản trị cơ sở dữ liệu phổ biến nhất tại Việt Nam là **PostgreSQL (RDBMS)** và **MongoDB (Document Store / NoSQL)**.
+1. **Kiến trúc cốt lõi P0 của hệ thống ([ARCHITECTURE.md](file:///c:/Users/kienn/ProjectBuildPhase/P-138/ARCHITECTURE.md)):** PIIGuard Shield cam kết cung cấp giải pháp bảo vệ dữ liệu doanh nghiệp toàn diện cho 2 hệ quản trị cơ sở dữ liệu phổ biến nhất tại Việt Nam là **PostgreSQL (RDBMS)** và **MongoDB (Document Store / NoSQL)**.
 2. **Luật Bảo vệ Dữ liệu Cá nhân (Luật 91/2025/QH15) & Nghị định 356/2025/NĐ-CP:** Dữ liệu thương mại điện tử, tài chính và logistics chứa đầy đủ các phân nhóm dữ liệu cá nhân cơ bản và nhạy cảm (CCCD, SĐT, Email, Địa chỉ, Mã số thuế, Hồ sơ KYC, Lịch sử giao dịch).
 3. **Mục tiêu thực nghiệm Downstream Verifier:** Đảm bảo 100% tính toàn vẹn của các truy vấn phân tích nghiệp vụ thực tế (SQL `JOIN` và MongoDB `$lookup` đạt 830/830 rows matched).
 

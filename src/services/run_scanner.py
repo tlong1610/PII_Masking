@@ -5,7 +5,9 @@ Samples stay in-memory for the agent only — never persisted to metadata DB.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from src.models.schemas import ColumnProfile, FieldScanResult, PolicyAction
@@ -17,11 +19,30 @@ _NUMERIC_TYPES = frozenset(
 )
 
 _PERSONAL_BASIC_TYPES = frozenset(
-    {"CCCD", "PHONE", "ADDRESS", "DOB", "TAX_CODE", "FULL_NAME", "NAME"}
+    {"CCCD", "PHONE", "ADDRESS", "DOB", "TAX_CODE", "FULL_NAME", "NAME", "FREE_TEXT_PII"}
 )
+# Định danh gián tiếp (L1): chỉ nhận ra người khi ghép với dữ liệu khác; DPO được Giữ nguyên để phân tích.
+_QUASI_IDENTIFIER_TYPES = frozenset({"CITY", "DISTRICT", "IP_ADDRESS", "GENDER", "QUASI_IDENTIFIER"})
 _PERSONAL_CONTEXT_TYPES = frozenset({"EMAIL", "OCR_TEXT"})
 _NON_PERSONAL_TYPES = frozenset(
-    {"NOT_PERSONAL_DATA", "TRACKING_CODE", "MONEY_ALONE", "NON_PERSONAL"}
+    {"NOT_PERSONAL_DATA", "TRACKING_CODE", "MONEY_ALONE", "NON_PERSONAL", "TAX_CODE_ORG", "EMPTY_COLUMN"}
+)
+# NĐ 13/2023 Điều 2 khoản 4: tài chính (thẻ, tài khoản), sinh trắc, sức khỏe, bản sao giấy tờ tùy thân.
+_SENSITIVE_TYPES = frozenset(
+    {
+        "SENSITIVE",
+        "PERSONAL_SENSITIVE",
+        "BIOMETRIC",
+        "BIOMETRIC_FILE",
+        "HEALTH",
+        "MEDICAL",
+        "PATIENT_ID",
+        "CREDIT_CARD",
+        "BANK_ACCOUNT",
+        "FINANCIAL",
+        "OCR_IDENTITY_DOC",
+        "INTERNAL_FILE_PATH",
+    }
 )
 
 
@@ -31,12 +52,14 @@ def classification_from_pii_type(inferred: str) -> str:
         return "UNKNOWN"
     if t in _NON_PERSONAL_TYPES:
         return "NON_PERSONAL"
+    if t in _SENSITIVE_TYPES:
+        return "PERSONAL_SENSITIVE"
+    if t in _QUASI_IDENTIFIER_TYPES:
+        return "QUASI_IDENTIFIER"
     if t in _PERSONAL_CONTEXT_TYPES:
         return "PERSONAL_CONTEXT"
     if t in _PERSONAL_BASIC_TYPES or t.startswith("PERSONAL"):
         return "PERSONAL_BASIC"
-    if t in {"SENSITIVE", "BIOMETRIC", "HEALTH"}:
-        return "PERSONAL_SENSITIVE"
     return "PERSONAL_BASIC"
 
 
@@ -69,6 +92,18 @@ def coverage_from_result(result: FieldScanResult) -> str:
     return "partial"
 
 
+# Classifications whose proposal must never be KEEP: PII needs masking (or a DPO exception) and
+# UNKNOWN needs a DPO confirmation first. The scanner only proposes; these limits are not negotiable.
+_NEVER_KEEP = frozenset({"PERSONAL_SENSITIVE", "PERSONAL_BASIC", "PERSONAL_CONTEXT", "UNKNOWN"})
+
+
+def enforce_proposal_consistency(classification: str, action: str) -> tuple[str, str | None]:
+    """Fix contradictory proposals (e.g. LLM: 'PII' + 'KEEP'); returns (action, note or None)."""
+    if classification in _NEVER_KEEP and action == PolicyAction.KEEP.value:
+        return PolicyAction.MASK.value, f"Đề xuất hạ từ Giữ nguyên xuống Che vì phân loại là {classification}."
+    return action, None
+
+
 def field_profile_spec(
     *,
     table: str,
@@ -77,9 +112,12 @@ def field_profile_spec(
 ) -> dict[str, Any]:
     inferred = (result.inferred_pii_type or "UNKNOWN").upper()
     classification = classification_from_pii_type(inferred)
-    summary = (result.reasoning or "").strip()[:500]
+    summary = (result.reasoning or "").strip()[:400]
     if not summary:
         summary = f"tier={result.tier or 'n/a'} confidence={result.confidence:.2f}"
+    action, note = enforce_proposal_consistency(classification, normalize_action(result.recommended_action))
+    if note:
+        summary = f"{summary} [{note}]"
     return {
         "source_path": table,
         "field_path": result.field_name or column.column_name,
@@ -89,7 +127,7 @@ def field_profile_spec(
         "taxonomy_id": None if inferred == "UNKNOWN" else inferred,
         "detector_source": detector_from_tier(result.tier),
         "coverage_status": coverage_from_result(result),
-        "recommended_action": normalize_action(result.recommended_action),
+        "recommended_action": action,
     }
 
 
@@ -117,6 +155,50 @@ async def scan_column(column: ColumnProfile) -> FieldScanResult | None:
     if isinstance(proposal, dict):
         return FieldScanResult.model_validate(proposal)
     return None
+
+
+async def _scan_columns(
+    columns: list[tuple[str, ColumnProfile]],
+    *,
+    use_ai: bool,
+    rule_scanner: Any,
+    scan: Callable[[ColumnProfile], Awaitable[FieldScanResult | None]] | None = None,
+) -> list[FieldScanResult | None]:
+    """Scan (table, column) pairs and return results in input order; a failing column yields None.
+
+    With AI, columns run in parallel (bounded by SCAN_CONCURRENCY): almost all the time is spent
+    waiting on the LLM, so a few concurrent calls cut scan time several-fold. Without AI only the
+    deterministic rule tier runs, which is instant.
+    """
+    from src.config import get_settings
+
+    def rules(table: str, column: ColumnProfile) -> FieldScanResult | None:
+        try:
+            return rule_scanner.tier1_static_filter(column)
+        except Exception:
+            logger.exception("Scan failed for %s.%s", table, column.column_name)
+            return None
+
+    if not use_ai:
+        return [rules(table, column) for table, column in columns]
+
+    scan_one = scan or scan_column
+    semaphore = asyncio.Semaphore(max(1, get_settings().scan_concurrency))
+
+    async def one(table: str, column: ColumnProfile) -> FieldScanResult | None:
+        async with semaphore:
+            try:
+                return await scan_one(column)
+            except Exception:
+                logger.exception("Scan failed for %s.%s", table, column.column_name)
+                return None
+
+    return list(await asyncio.gather(*(one(table, column) for table, column in columns)))
+
+
+def _with_table(column: ColumnProfile, table_name: str) -> ColumnProfile:
+    """Table-scoped tier-1 rules (supplier tax code, KYC documents) need the column's table."""
+    return column if column.table_name else column.model_copy(update={"table_name": table_name})
 
 
 def _numeric_measure_spec(table: str, column: ColumnProfile) -> dict[str, Any]:
@@ -162,33 +244,30 @@ async def scan_postgres_source(
             join_fields.add((table.table_name, rel.from_column))
             join_fields.add((rel.to_table, rel.to_column))
 
+    targets = [
+        (table.table_name, _with_table(column, table.table_name))
+        for table in db_profile.tables
+        if wanted is None or table.table_name in wanted
+        for column in table.columns
+    ]
+    to_scan = [(name, column) for name, column in targets if column.system_recommendation != "HASHING"]
+    scanned = iter(await _scan_columns(to_scan, use_ai=use_ai, rule_scanner=rule_scanner))
+
     specs: list[dict[str, Any]] = []
-    for table in db_profile.tables:
-        if wanted is not None and table.table_name not in wanted:
+    for table_name, column in targets:
+        if column.system_recommendation == "HASHING":
+            specs.append(_join_key_spec(table_name, column))
             continue
-        for column in table.columns:
-            if column.system_recommendation == "HASHING":
-                specs.append(_join_key_spec(table.table_name, column))
-                continue
-            try:
-                if use_ai:
-                    result = await scan_column(column)
-                else:
-                    result = rule_scanner.tier1_static_filter(column)
-            except Exception:
-                logger.exception(
-                    "Scan failed for %s.%s", table.table_name, column.column_name
-                )
-                result = None
-            if result is not None:
-                spec = field_profile_spec(table=table.table_name, column=column, result=result)
-            elif not use_ai and column.data_type in _NUMERIC_TYPES:
-                spec = _numeric_measure_spec(table.table_name, column)
-            else:
-                spec = _fallback_spec(table.table_name, column)
-            if (table.table_name, column.column_name) in join_fields:
-                spec["recommended_action"] = PolicyAction.HMAC.value
-            specs.append(spec)
+        result = next(scanned)
+        if result is not None:
+            spec = field_profile_spec(table=table_name, column=column, result=result)
+        elif not use_ai and column.data_type in _NUMERIC_TYPES:
+            spec = _numeric_measure_spec(table_name, column)
+        else:
+            spec = _fallback_spec(table_name, column)
+        if (table_name, column.column_name) in join_fields:
+            spec["recommended_action"] = PolicyAction.HMAC.value
+        specs.append(spec)
 
     if not specs:
         raise ValueError(
@@ -241,46 +320,52 @@ async def scan_mongo_source(
             join_fields.add((table.table_name, rel.from_column))
             join_fields.add((rel.to_table, rel.to_column))
 
-    for table in db_profile.tables:
-        if wanted is not None and table.table_name not in wanted:
-            continue
-        for column in table.columns:
-            is_join_key = (table.table_name, column.column_name) in join_fields
-            scanner_col = column.model_copy(
+    # The scanner sees a snake_case copy of the dot path; field_path keeps the real one.
+    targets = [
+        (
+            table.table_name,
+            column,
+            _with_table(column, table.table_name).model_copy(
                 update={"column_name": column.column_name.replace(".", "_")}
-            )
-            if column.system_recommendation == "HASHING":
-                # Keys stay HMAC, but a key carrying PII (e.g. CCCD) must still be labelled as PII.
-                result = rule_scanner.tier1_static_filter(scanner_col)
-                if result is None or classification_from_pii_type(result.inferred_pii_type) == "UNKNOWN":
-                    spec = _join_key_spec(table.table_name, column)
-                else:
-                    spec = field_profile_spec(table=table.table_name, column=column, result=result)
-                    spec["field_path"] = column.column_name
-                    spec["recommended_action"] = PolicyAction.HMAC.value
-                specs.append(spec)
-                continue
-            if column.data_type == "object":
-                spec = _fallback_spec(table.table_name, column)
-                spec["profile_summary"] = "Nested object beyond scan depth; contents not profiled"
-                specs.append(spec)
-                continue
-            try:
-                if use_ai:
-                    result = await scan_column(scanner_col)
-                else:
-                    result = rule_scanner.tier1_static_filter(scanner_col)
-            except Exception:
-                logger.exception("Scan failed for %s.%s", table.table_name, column.column_name)
-                result = None
-            if result is None:
-                spec = _fallback_spec(table.table_name, column)
+            ),
+        )
+        for table in db_profile.tables
+        if wanted is None or table.table_name in wanted
+        for column in table.columns
+    ]
+    to_scan = [
+        (table_name, scanner_col)
+        for table_name, column, scanner_col in targets
+        if column.system_recommendation != "HASHING" and column.data_type != "object"
+    ]
+    scanned = iter(await _scan_columns(to_scan, use_ai=use_ai, rule_scanner=rule_scanner))
+
+    for table_name, column, scanner_col in targets:
+        if column.system_recommendation == "HASHING":
+            # Keys stay HMAC, but a key carrying PII (e.g. CCCD) must still be labelled as PII.
+            result = rule_scanner.tier1_static_filter(scanner_col)
+            if result is None or classification_from_pii_type(result.inferred_pii_type) == "UNKNOWN":
+                spec = _join_key_spec(table_name, column)
             else:
-                spec = field_profile_spec(table=table.table_name, column=column, result=result)
-            spec["field_path"] = column.column_name
-            if is_join_key:
+                spec = field_profile_spec(table=table_name, column=column, result=result)
+                spec["field_path"] = column.column_name
                 spec["recommended_action"] = PolicyAction.HMAC.value
             specs.append(spec)
+            continue
+        if column.data_type == "object":
+            spec = _fallback_spec(table_name, column)
+            spec["profile_summary"] = "Nested object beyond scan depth; contents not profiled"
+            specs.append(spec)
+            continue
+        result = next(scanned)
+        if result is None:
+            spec = _fallback_spec(table_name, column)
+        else:
+            spec = field_profile_spec(table=table_name, column=column, result=result)
+        spec["field_path"] = column.column_name
+        if (table_name, column.column_name) in join_fields:
+            spec["recommended_action"] = PolicyAction.HMAC.value
+        specs.append(spec)
 
     if not specs:
         raise ValueError(

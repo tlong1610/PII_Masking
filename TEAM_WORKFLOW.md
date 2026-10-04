@@ -1,6 +1,6 @@
-# Quy trình làm việc Team PIIGuard VN
+# Quy trình làm việc Team PIIGuard Shield
 
-**Dự án:** PIIGuard VN — Công cụ phát hiện và che giấu PII theo luật Việt Nam  
+**Dự án:** PIIGuard Shield — Công cụ phát hiện và che giấu PII theo luật Việt Nam  
 **Thời gian:** MVP 14 ngày (VinUni AI20K Cohort 4)  
 **Team:** 4 người
 

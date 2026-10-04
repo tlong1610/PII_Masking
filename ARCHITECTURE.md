@@ -1,10 +1,10 @@
-# PIIGuard VN - Kiến Trúc Hệ Thống
+# PIIGuard Shield - Kiến Trúc Hệ Thống
 
-Tài liệu này là bản kiến trúc ngắn gọn của PIIGuard VN. Bản chi tiết hơn nằm ở [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
+Tài liệu này là bản kiến trúc ngắn gọn của PIIGuard Shield. Bản chi tiết hơn nằm ở [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
 
 ## 1. Tổng Quan
 
-PIIGuard VN giúp DPO tạo một dataset đã được bảo vệ trước khi chia sẻ cho Analyst.
+PIIGuard Shield giúp DPO tạo một dataset đã được bảo vệ trước khi chia sẻ cho Analyst.
 
 Luồng P0:
 

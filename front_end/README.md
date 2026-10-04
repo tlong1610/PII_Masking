@@ -1,4 +1,4 @@
-# PIIGuard VN Frontend
+# PIIGuard Shield Frontend
 
 ## Quick Start
 

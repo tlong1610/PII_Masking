@@ -13,7 +13,7 @@ describe('AppShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('PIIGuard VN')).toBeInTheDocument();
+    expect(screen.getByText('PIIGuard Shield')).toBeInTheDocument();
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
 

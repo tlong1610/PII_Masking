@@ -183,3 +183,55 @@ async def test_revoke_physical_rollback_and_grant_deletion(client):
     assert len(grants_after.json()) == 0
 
 
+
+
+@pytest.mark.asyncio
+async def test_publish_keeps_snapshot_location(client):
+    """Publish must not overwrite the physical snapshot location (preview/revoke depend on it)."""
+    dpo = await _login(client, "dpo", "dpo123")
+    ds = await _build_verified_dataset(client, dpo)
+    published = await client.post(f"/api/v1/datasets/{ds['id']}/publish", headers=_auth(dpo))
+    assert published.status_code == 200
+    assert published.json()["status"] == "PUBLISHED"
+    assert published.json()["output_location"] == ds["output_location"]
+    assert not published.json()["output_location"].startswith("published://")
+
+
+@pytest.mark.asyncio
+async def test_preview_lists_tables_and_respects_table_and_limit(client):
+    dpo = await _login(client, "dpo", "dpo123")
+    analyst = await _login(client, "analyst", "analyst123")
+    ds = await _build_verified_dataset(client, dpo)
+    await client.post(f"/api/v1/datasets/{ds['id']}/publish", headers=_auth(dpo))
+
+    preview = await client.get(f"/api/v1/datasets/{ds['id']}/preview", headers=_auth(analyst))
+    assert preview.status_code == 200
+    body = preview.json()
+    assert body["tables"]
+    assert body["selected_table"] == body["tables"][0]
+    assert body["rows"]
+    dropped = {c["name"] for c in body["columns"] if c["transform"] == "DROPPED"}
+    for row in body["rows"]:
+        assert not dropped & set(row)
+
+    one = await client.get(
+        f"/api/v1/datasets/{ds['id']}/preview",
+        params={"table": body["tables"][0], "limit": 1},
+        headers=_auth(analyst),
+    )
+    assert one.status_code == 200
+    assert len(one.json()["rows"]) == 1
+
+    missing = await client.get(
+        f"/api/v1/datasets/{ds['id']}/preview",
+        params={"table": "not_a_table"},
+        headers=_auth(analyst),
+    )
+    assert missing.status_code == 404
+
+    too_many = await client.get(
+        f"/api/v1/datasets/{ds['id']}/preview",
+        params={"limit": 10_000},
+        headers=_auth(analyst),
+    )
+    assert too_many.status_code == 422

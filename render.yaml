@@ -11,7 +11,7 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_NAME
-        value: PIIGuard VN
+        value: PIIGuard Shield
       - key: LOG_LEVEL
         value: INFO
       - key: CORS_ORIGINS

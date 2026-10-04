@@ -1,5 +1,5 @@
 --
--- Northwind + PIIGuard VN synthetic PII (single seed file)
+-- Northwind + PIIGuard Shield synthetic PII (single seed file)
 -- Load once:  docker exec -i p-138-db-1 psql -U postgres -d mydatabase -f /tmp/seed.sql
 -- Or: docker cp data/fixtures/seed.sql p-138-db-1:/tmp/ && docker exec p-138-db-1 psql -U postgres -d mydatabase -v ON_ERROR_STOP=1 -f /tmp/seed.sql
 --
@@ -3871,7 +3871,7 @@ ALTER TABLE ONLY employees
     ADD CONSTRAINT fk_employees_employees FOREIGN KEY (reports_to) REFERENCES employees;
 
 --
--- After loading this dump, apply PII enrichment for PIIGuard VN demo:
+-- After loading this dump, apply PII enrichment for PIIGuard Shield demo:
 --   psql -f northwind_pii_enrichment.sql
 -- Or: python scripts/gen_northwind_pii_patch.py  (regenerate) then apply.
 --

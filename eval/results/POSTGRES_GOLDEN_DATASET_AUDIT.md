@@ -1,6 +1,6 @@
 # 🎯 BÁO CÁO NGHIỆM THU POSTGRESQL GOLDEN DATASET & DOWNSTREAM BASELINE
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Kỹ sư phụ trách:** Nguyễn Trung Kiên (Data Engineer)  
 > **Thời điểm thẩm định:** 2026-10-03T11:39:54.947751  
 > **Môi trường thực thi:** Container `p-138-db-1` / PostgreSQL 15 / `mydatabase`  

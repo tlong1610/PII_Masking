@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
-  <title id="title">PIIGuard VN Brand DNA</title>
-  <desc id="desc">Brand DNA infographic for PIIGuard VN: privacy-safe verified datasets for analytics and AI.</desc>
+  <title id="title">PIIGuard Shield Brand DNA</title>
+  <desc id="desc">Brand DNA infographic for PIIGuard Shield: privacy-safe verified datasets for analytics and AI.</desc>
   <defs>
     <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0F172A"/>
@@ -36,7 +36,7 @@
   <rect class="bg" width="1600" height="1000"/>
 
   <rect x="56" y="48" width="1488" height="210" rx="32" fill="url(#hero)"/>
-  <text x="96" y="124" class="heroText title">PIIGuard VN Brand DNA</text>
+  <text x="96" y="124" class="heroText title">PIIGuard Shield Brand DNA</text>
   <text x="96" y="171" class="heroText subtitle">Protect data. Preserve utility.</text>
   <text x="96" y="216" class="heroText subtitle">From raw enterprise databases to privacy-safe, verified datasets for analytics and AI.</text>
 

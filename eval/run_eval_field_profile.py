@@ -195,7 +195,7 @@ def build_markdown_report(m: dict[str, Any]) -> str:
     md = []
     md.append(f"# 📊 Evaluation Report — FieldProfile Scanner ({m['mode'].upper()} Mode)")
     md.append("")
-    md.append("> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  ")
+    md.append("> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  ")
     md.append(f"> **Chế độ kiểm thử:** `{m['mode']}`  ")
     md.append("> **Tiêu chuẩn tham chiếu:** Đặc tả v0.2 §16.2 & §16.3 — Luật 91/2025/QH15 & NĐ 356/2025/NĐ-CP  ")
     md.append("")
@@ -286,7 +286,7 @@ def build_ablation_report(rules_m: dict[str, Any], full_m: dict[str, Any]) -> st
     md = []
     md.append("# 🧪 Ablation Study Report — Phễu Nhận Diện Đa Tầng")
     md.append("")
-    md.append("> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  ")
+    md.append("> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  ")
     md.append("> **Căn cứ đặc tả:** Mục 16.3 (Ablation Study) & 16.2 (Chỉ số mức cột & Recall@L3)  ")
     md.append("> **Phương pháp:** So sánh hiệu năng giữa `Rules-only (Tier 1)` và `Full Multi-Tier Engine (Tier 1 + 2 + 3)`  ")
     md.append("")

@@ -4,7 +4,7 @@ from src.agents.state import AgentState
 from src.detection.bm25_engine import BM25Engine
 from src.detection.hitl_feedback import get_few_shot_examples, save_few_shot_example, update_rag_corpus
 from src.detection.rule_engine import RuleBasedScanner
-from src.detection.taxonomy import PIIType
+from src.detection.taxonomy import LLM_PII_TYPES, PIIType, normalize_llm_pii_type
 from src.detection.vector_store import PIIKnowledgeBase
 from src.models.schemas import FieldScanResult
 
@@ -72,13 +72,13 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 3.1: Chấm điểm hỗn hợp (BM25 + Vector Semantic)."""
     col_profile = state.get("column_profile")
     bm25_score = state.get("bm25_score", 0.5)
-    
+
     # Construct query from column profile
     query = f"{col_profile.column_name} {col_profile.data_type}"
-    
+
     # Lazy load kb only when needed
     kb = get_kb()
-    
+
     # chúng ta query trực tiếp từ vector_store để lấy distance/score.
     hybrid_score = 0.5 # Giá trị mặc định nếu lỗi
     if kb.vector_store:
@@ -139,15 +139,22 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
 
     try:
-        llm = get_llm()
+        # temperature 0: classification must be reproducible (same column -> same label) for audit.
+        llm = get_llm(temperature=0)
         parser = PydanticOutputParser(pydantic_object=FieldScanResult)
+        allowed_types = "\n".join(f"- {name}: {description}" for name, description in LLM_PII_TYPES.items())
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", """Bạn là một chuyên gia bảo mật dữ liệu (Data Privacy Officer).
 Nhiệm vụ của bạn là phân tích cấu trúc của một cột trong Database và quyết định xem nó có chứa dữ liệu cá nhân (PII) hay không, dựa trên tên cột và hình dáng dữ liệu (Data Shape) đã được ẩn danh.
 
-Các loại PII (inferred_pii_type) có thể là: CCCD, PHONE, EMAIL, ADDRESS, DOB, TAX_CODE, UNKNOWN, NOT_PERSONAL_DATA...
-Hành động khuyến nghị (recommended_action): HMAC (nếu là Khóa chính/Khóa ngoại - PK/FK), MASK (nếu là PII thông thường), KEEP (nếu không phải).
+inferred_pii_type BẮT BUỘC là MỘT giá trị trong danh sách sau (không được tự đặt nhãn khác):
+{allowed_types}
+
+recommended_action phải NHẤT QUÁN với inferred_pii_type:
+- NOT_PERSONAL_DATA hoặc CITY -> KEEP
+- Khóa chính/khóa ngoại (PK/FK) -> HMAC
+- Mọi loại PII còn lại và UNKNOWN -> MASK (DPO sẽ quyết định nới lỏng nếu cần)
 
 {format_instructions}
 
@@ -171,7 +178,8 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
             "data_type": col_profile.data_type,
             "system_rec": col_profile.system_recommendation or "Không",
             "data_shapes": json.dumps(data_shape),
-            "format_instructions": parser.get_format_instructions()
+            "format_instructions": parser.get_format_instructions(),
+            "allowed_types": allowed_types,
         }).to_messages())
 
         content = raw_response.content
@@ -180,6 +188,8 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
 
         result: FieldScanResult = parser.parse(content)
         result.provider_meta = getattr(raw_response, "response_metadata", None)
+        # Closed label set: an invented label (e.g. GEOGRAPHIC_REGION) becomes UNKNOWN for DPO review.
+        result.inferred_pii_type = normalize_llm_pii_type(result.inferred_pii_type)
 
         # Ghi đè tier logic
         result.tier = "TIER_3_LLM"
@@ -193,9 +203,11 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
         fallback_result = FieldScanResult(
             field_name=col_name,
             inferred_pii_type=PIIType.UNKNOWN.value,
-            recommended_action=PolicyAction.KEEP.value,
+            # UNKNOWN is never proposed as KEEP: mask until a DPO confirms it is not personal data.
+            recommended_action=PolicyAction.MASK.value,
             confidence=0.0,
-            reasoning=f"LLM unavailable: {e}",
+            # Error type only: provider messages are not persisted into field metadata.
+            reasoning=f"LLM unavailable ({type(e).__name__}); cần DPO xem xét.",
             tier="TIER_3_LLM"
         )
         return {"tier3_result": fallback_result}

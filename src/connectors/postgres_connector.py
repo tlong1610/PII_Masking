@@ -136,6 +136,7 @@ class PostgresConnector:
                             samples = []
 
                         col_prof = ColumnProfile(
+                            table_name=table,
                             column_name=col_name,
                             data_type=data_type,
                             is_primary_key=is_pk,
@@ -182,7 +183,9 @@ class PostgresConnector:
 
     def list_relations(self, schema_name: str = "public") -> list[tuple[str, str, str, str]]:
         """List foreign key relations as (source_table, source_column, target_table, target_column)."""
-        with self.get_connection() as conn:
+        if psycopg is None:
+            raise RuntimeError("Thư viện psycopg chưa được cài đặt. Không thể kết nối Database.")
+        with psycopg.connect(self.connection_string, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT

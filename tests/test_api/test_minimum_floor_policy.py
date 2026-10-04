@@ -53,7 +53,7 @@ async def test_probe_keep_on_pii_fields_with_empty_reason_blocked(client):
             },
         )
         assert res.status_code == 422
-        err_msg = res.json()["detail"]
+        err_msg = res.json()["detail"]["message"]
         assert "yếu hơn mức che tối thiểu" in err_msg or "Bắt buộc phải cung cấp lý do" in err_msg
 
 
@@ -85,8 +85,8 @@ async def test_keep_on_pii_without_exception_blocked_even_with_reason(client):
         },
     )
     assert res.status_code == 422
-    assert "yếu hơn mức che tối thiểu" in res.json()["detail"]
-    assert "is_exception=True" in res.json()["detail"]
+    assert "yếu hơn mức che tối thiểu" in res.json()["detail"]["message"]
+    assert "is_exception=True" in res.json()["detail"]["message"]
 
 
 @pytest.mark.asyncio
@@ -121,7 +121,7 @@ async def test_keep_on_pii_with_exception_requires_reason_and_future_expiry(clie
         },
     )
     assert res_no_reason.status_code == 422
-    assert "bắt buộc phải ghi rõ lý do giải trình" in res_no_reason.json()["detail"]
+    assert "bắt buộc phải ghi rõ lý do giải trình" in res_no_reason.json()["detail"]["message"]
 
     # Case B: is_exception=True but exception_until is missing
     res_no_expiry = await client.put(
@@ -140,7 +140,7 @@ async def test_keep_on_pii_with_exception_requires_reason_and_future_expiry(clie
         },
     )
     assert res_no_expiry.status_code == 422
-    assert "bắt buộc phải có thời hạn ngoại lệ" in res_no_expiry.json()["detail"]
+    assert "bắt buộc phải có thời hạn ngoại lệ" in res_no_expiry.json()["detail"]["message"]
 
     # Case C: is_exception=True but exception_until is in the past
     res_past_expiry = await client.put(
@@ -159,7 +159,7 @@ async def test_keep_on_pii_with_exception_requires_reason_and_future_expiry(clie
         },
     )
     assert res_past_expiry.status_code == 422
-    assert "phải là một thời điểm trong tương lai" in res_past_expiry.json()["detail"]
+    assert "phải là một thời điểm trong tương lai" in res_past_expiry.json()["detail"]["message"]
 
 
 @pytest.mark.asyncio
@@ -240,5 +240,5 @@ async def test_override_safe_action_without_reason_blocked(client):
         },
     )
     assert res.status_code == 422
-    assert "Bắt buộc phải cung cấp lý do" in res.json()["detail"]
-    assert "FR-07" in res.json()["detail"]
+    assert "Bắt buộc phải cung cấp lý do" in res.json()["detail"]["message"]
+    assert "FR-07" in res.json()["detail"]["message"]

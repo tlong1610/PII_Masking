@@ -66,9 +66,24 @@ export function ActionChip({ action }: { action: PolicyAction }): JSX.Element {
  * Databricks-styled Sensitivity Classification Badge (L3 Sensitive, L2 Basic, Non-PII)
  */
 export function SensitivityChip({ classification }: { classification: string }): JSX.Element {
-  const isL3 = classification.includes('SENSITIVE');
-  const isL2 = classification.includes('BASIC') || (classification.includes('PERSONAL') && !isL3);
+  // NON_PERSONAL also contains "PERSONAL": check it first so it never renders as L2.
   const isNonPii = classification.includes('NON_PERSONAL');
+  const isL3 = !isNonPii && classification.includes('SENSITIVE');
+  const isL2 =
+    !isNonPii && !isL3 && (classification.includes('BASIC') || classification.includes('PERSONAL'));
+  const isL1 = classification.includes('QUASI');
+
+  if (isL1) {
+    return (
+      <Chip
+        label="L1 • Gián tiếp"
+        size="small"
+        color="info"
+        variant="outlined"
+        sx={{ fontWeight: 600, fontSize: '0.72rem', height: 22, borderRadius: '4px' }}
+      />
+    );
+  }
 
   if (isL3) {
     return (

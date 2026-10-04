@@ -73,7 +73,7 @@ def test_canary_not_in_data_shapes_or_llm_prompt(monkeypatch):
                 })
             return MockResponse()
 
-    monkeypatch.setattr("src.services.llm.get_llm", lambda: MockLLM())
+    monkeypatch.setattr("src.services.llm.get_llm", lambda **_kwargs: MockLLM())
 
     col_profile = ColumnProfile(
         table_name="patients",

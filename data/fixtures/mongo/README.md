@@ -1,6 +1,6 @@
-# Hướng Dẫn Seed Dữ Liệu MongoDB — PIIGuard VN
+# Hướng Dẫn Seed Dữ Liệu MongoDB — PIIGuard Shield
 
-Tài liệu hướng dẫn chi tiết cách nạp (seed), cấu hình chỉ mục (index) và kiểm chứng bộ dữ liệu mô phỏng MongoDB cho hệ thống PIIGuard VN.
+Tài liệu hướng dẫn chi tiết cách nạp (seed), cấu hình chỉ mục (index) và kiểm chứng bộ dữ liệu mô phỏng MongoDB cho hệ thống PIIGuard Shield.
 
 ---
 
@@ -119,4 +119,4 @@ Script sẽ băm `identity.cccd` và `pii_ext.customer_cccd` bằng cùng secret
 
 > [!IMPORTANT]
 > - **Nguyên tắc No-raw-value**: Tuyệt đối không `print()` hoặc ghi log số CCCD, SĐT, Email thô của khách hàng ra màn hình/log file trong quá trình seed và kiểm thử.
-> - Toàn bộ dữ liệu trong bộ fixture này là **dữ liệu tổng hợp (synthetic/fake 100%)**, tuân thủ Nghị định 13/2023/NĐ-CP và PRD dự án PIIGuard VN.
+> - Toàn bộ dữ liệu trong bộ fixture này là **dữ liệu tổng hợp (synthetic/fake 100%)**, tuân thủ Nghị định 13/2023/NĐ-CP và PRD dự án PIIGuard Shield.

@@ -1,6 +1,6 @@
 # 🧪 Ablation Study Report — Phễu Nhận Diện Đa Tầng
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Căn cứ đặc tả:** Mục 16.3 (Ablation Study) & 16.2 (Chỉ số mức cột & Recall@L3)  
 > **Phương pháp:** So sánh hiệu năng giữa `Rules-only (Tier 1)` và `Full Multi-Tier Engine (Tier 1 + 2 + 3)`  
 

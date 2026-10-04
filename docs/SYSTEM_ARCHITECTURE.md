@@ -1,6 +1,6 @@
-# PIIGuard VN - System Architecture
+# PIIGuard Shield - System Architecture
 
-Tài liệu này mô tả luồng MVP của PIIGuard VN. MVP chỉ hỗ trợ **PostgreSQL** và **MongoDB**. Các database khác để sau khi demo end-to-end đã ổn định.
+Tài liệu này mô tả luồng MVP của PIIGuard Shield. MVP chỉ hỗ trợ **PostgreSQL** và **MongoDB**. Các database khác để sau khi demo end-to-end đã ổn định.
 
 ## 1. Ý tưởng chính
 
@@ -217,7 +217,7 @@ P0 hiện có `sql-demo` và `nosql-demo`. Source động cho doanh nghiệp là
 
 Cần kiểm tra kỹ trước demo:
 
-- `GET /datasets/{id}/preview` phải đọc output thật từ protected snapshot, không dùng placeholder;
+- `GET /datasets/{id}/preview?table=&limit=` đọc dòng thật từ protected snapshot (Postgres schema hoặc Mongo `<db>_protected_run<id>`); publish giữ nguyên `output_location` vật lý để preview/revoke dùng được. Placeholder `[REDACTED]`/`hmac_stub_*` chỉ còn cho nguồn demo stub;
 - source động chưa được coi là xong nếu vẫn chỉ dùng `_DEMO_SOURCES`;
 - mọi evidence/report/log không được chứa raw PII, credential hoặc API key.
 
