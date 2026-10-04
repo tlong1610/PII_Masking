@@ -21,47 +21,64 @@ Tài liệu này tổng hợp toàn bộ các yêu cầu đầu ra cho **Gate 2 
 
 ## 5. Eval Evidences - 5 Manual Test Cases với Output Thực Tế
 
-> **HƯỚNG DẪN CHO THÀNH VIÊN TEAM:** Hãy chạy UI, chụp ảnh màn hình (DPO Review hoặc API Response) cho 5 trường dưới đây, lưu vào `front_end/screenshots/` (với đúng tên file) để hoàn thiện mục này!
+**Cách chạy:** đăng nhập vai trò DPO trên UI, kết nối nguồn PostgreSQL thật (Northwind + PII tổng hợp, `localhost:5432/mydatabase`), bấm **Quét PII** với `ENABLE_AI_SCAN=true`, rồi mở **Chi tiết** từng cột. Kết quả dưới đây là output thực tế của lượt quét **run #37** (04/10/2026). Cột "Mức rủi ro" lấy từ `risk_scorer` (`resolve_sensitivity_level`), cột "Chip UI" là nhãn hiển thị trên màn hình DPO Review. Dữ liệu fixture là tổng hợp 100%, ảnh chụp không chứa giá trị PII.
+
+| # | Bảng.Cột | Kỳ vọng | Output thực tế (loại / phân loại / mức rủi ro / chip UI) | Hành động thực tế | Nguồn nhận diện | Kết quả |
+|---|---|---|---|---|---|---|
+| 1 | `customers.contact_name` | `FULL_NAME`, L2, MASK | `FULL_NAME` / `PERSONAL_BASIC` / L2 / L2 • Cơ bản | `MASK` | Luật (tên `<thực thể>_name`) | ✅ Đạt |
+| 2 | `customers.cccd` | `CCCD`, L3, HMAC | `CCCD` / `PERSONAL_BASIC` / **L3** / **L2 • Cơ bản** | `HMAC` (khóa nối với `orders.customer_cccd`) | Luật (từ khóa) | ✅ Đạt hành động; ⚠️ chip UI hiện L2 |
+| 3 | `customers.mobile_phone` | `PHONE_VN`, L2, MASK | `PHONE` / `PERSONAL_BASIC` / L2 / L2 • Cơ bản | `MASK` | Luật (từ khóa) | ✅ Đạt (tên loại là `PHONE`) |
+| 4 | `customers.personal_notes` | `FREE_TEXT_PII`, L3, MASK | `FREE_TEXT_PII` / `PERSONAL_BASIC` / **L3** / **L2 • Cơ bản** | `MASK` | Luật (regex PII nhúng trong văn bản) | ✅ Đạt hành động; ⚠️ chip UI hiện L2 |
+| 5 | `orders.tracking_code` | `TRACKING_NUMBER`, L0, KEEP | `TRACKING_CODE` / `NON_PERSONAL` / L0 / Non-PII | `KEEP` | Luật (ca âm) | ✅ Đạt (tên loại là `TRACKING_CODE`) |
+
+**Tổng kết:** 5/5 ca đúng hành động bảo vệ kỳ vọng. Hai điểm còn lệch, ghi lại để theo dõi:
+- Ca 2 và 4: bộ tính rủi ro xếp đúng **L3**, nhưng chip trên UI lấy theo `classification` (`PERSONAL_BASIC`) nên hiện **L2**. Hành động và chặn "Giữ nguyên" không bị ảnh hưởng; cần đồng bộ chip UI với `resolve_sensitivity_level`.
+- Ca 3 và 5: hệ thống dùng tên loại `PHONE` và `TRACKING_CODE` (theo `taxonomy.py`), khác cách gọi `PHONE_VN` / `TRACKING_NUMBER` trong kỳ vọng ban đầu.
 
 ### Test Case 1: Tên Khách Hàng (Tên Người - Định danh cơ bản)
 - **Bảng/Cột:** `customers` / `contact_name`
-- **Phân loại kỳ vọng (Agent Output):** `FULL_NAME` (L2 - Basic)
-- **Hành động đề xuất (Action):** `MASK`
+- **Output thực tế:** `FULL_NAME`, phân loại `PERSONAL_BASIC` (L2 • Cơ bản), nguồn: luật. Lý do hệ thống ghi: "Tên gắn với một người (họ tên)".
+- **Hành động đề xuất:** `MASK` (Che dữ liệu)
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1
 - **Bằng chứng (Screenshot thực tế):**
-> `![Evidence 1 - Name](../../front_end/screenshots/tc1_name.png)`
+
+![Evidence 1 - Name](../../front_end/screenshots/tc1_name.png)
 
 ### Test Case 2: Căn Cước Công Dân (Định danh nhạy cảm cao)
 - **Bảng/Cột:** `customers` / `cccd`
-- **Phân loại kỳ vọng (Agent Output):** `CCCD` (L3 - Sensitive)
-- **Hành động đề xuất (Action):** `HMAC` (để giữ khả năng JOIN mapping)
+- **Output thực tế:** `CCCD`, phân loại `PERSONAL_BASIC`, mức rủi ro L3 (chip UI hiện L2 • Cơ bản), nguồn: luật. Cột được nhận diện là **khóa nối** với `orders.customer_cccd`.
+- **Hành động đề xuất:** `HMAC` (Băm HMAC, giữ khả năng JOIN; Che/Loại bỏ bị khóa với khóa nối)
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
 - **Bằng chứng (Screenshot thực tế):**
-> `![Evidence 2 - CCCD](../../front_end/screenshots/tc2_cccd.png)`
+
+![Evidence 2 - CCCD](../../front_end/screenshots/tc2_cccd.png)
 
 ### Test Case 3: Số Điện Thoại (PII cơ bản)
 - **Bảng/Cột:** `customers` / `mobile_phone`
-- **Phân loại kỳ vọng (Agent Output):** `PHONE_VN` (L2 - Sensitive)
-- **Hành động đề xuất (Action):** `MASK`
+- **Output thực tế:** `PHONE`, phân loại `PERSONAL_BASIC` (L2 • Cơ bản), nguồn: luật.
+- **Hành động đề xuất:** `MASK` (Che dữ liệu). Muốn giữ nguyên phải khai ngoại lệ có lý do và ngày hết hạn.
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1
 - **Bằng chứng (Screenshot thực tế):**
-> `![Evidence 3 - Phone](../../front_end/screenshots/tc3_phone.png)`
+
+![Evidence 3 - Phone](../../front_end/screenshots/tc3_phone.png)
 
 ### Test Case 4: Cột Dữ Liệu Tự Do (Free Text PII / Notes)
 - **Bảng/Cột:** `customers` / `personal_notes`
-- **Phân loại kỳ vọng (Agent Output):** `FREE_TEXT_PII` (L3 - Sensitive)
-- **Hành động đề xuất (Action):** `MASK`
+- **Output thực tế:** `FREE_TEXT_PII`, phân loại `PERSONAL_BASIC`, mức rủi ro L3 (chip UI hiện L2 • Cơ bản), nguồn: luật. Lý do hệ thống ghi: "Trường văn bản tự do chứa thông tin PII nhúng (SĐT/CCCD/Email)".
+- **Hành động đề xuất:** `MASK` (Che dữ liệu)
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
 - **Bằng chứng (Screenshot thực tế):**
-> `![Evidence 4 - Notes](../../front_end/screenshots/tc4_notes.png)`
+
+![Evidence 4 - Notes](../../front_end/screenshots/tc4_notes.png)
 
 ### Test Case 5: Mã Vận Đơn (Không Phải PII - Edge Case)
 - **Bảng/Cột:** `orders` / `tracking_code`
-- **Phân loại kỳ vọng (Agent Output):** `TRACKING_NUMBER` (L0 - Non-Personal)
-- **Hành động đề xuất (Action):** `KEEP`
+- **Output thực tế:** `TRACKING_CODE`, phân loại `NON_PERSONAL` (Non-PII, L0), nguồn: luật. Mã vận đơn 12 chữ số trùng định dạng CCCD nhưng không bị nhận nhầm.
+- **Hành động đề xuất:** `KEEP` (Giữ nguyên)
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 2 (Mã logistics nghiệp vụ)
 - **Bằng chứng (Screenshot thực tế):**
-> `![Evidence 5 - Tracking](../../front_end/screenshots/tc5_tracking.png)`
+
+![Evidence 5 - Tracking](../../front_end/screenshots/tc5_tracking.png)
 
 ---
 
