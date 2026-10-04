@@ -5,7 +5,7 @@ Tài liệu này tổng hợp toàn bộ các yêu cầu đầu ra cho **Gate 2 
 ---
 
 ## 1. Video Demo 3 phút (End-to-End)
-- **Link Video:** **[CHÈN LINK VIDEO YOUTUBE/DRIVE VÀO ĐÂY]**
+- **Link Video:** **https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing**
 - **Nội dung:** Video quay lại luồng chạy thực tế của Agent từ đầu đến cuối: nhận input (PostgreSQL/MongoDB) → quét PII → LLM đề xuất masking → DPO duyệt trên UI → áp dụng policy.
 
 ## 2. Architecture Diagram
