@@ -1,5 +1,5 @@
 """
-MongoDB Fixture Seed Script — PIIGuard VN
+MongoDB Fixture Seed Script — PIIGuard Shield
 =========================================
 Loads synthetic ecommerce + Vietnam PII datasets into MongoDB:
 - customers: 91 documents (seed_customers.json)

@@ -1,6 +1,6 @@
-# 🛡️ BÁO CÁO NGHIỆM THU POSTGRESQL END-TO-END — PIIGUARD VN
+# 🛡️ BÁO CÁO NGHIỆM THU POSTGRESQL END-TO-END — PIIGUARD SHIELD
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Thời điểm thẩm định:** 25/09/2026 23:25 (UTC+7)  
 > **Trạng thái:** 🟢 **ALL DOWNSTREAM VERIFICATION CHECKS PASSED (100% MATCH)**  
 > **Phạm vi thẩm định:** PostgreSQL Fixture 12+2 Bảng, Khóa chính/ngoại, Golden Labels, Holdout Dataset, và Kết quả Downstream JOIN / Aggregate trước và sau xử lý.

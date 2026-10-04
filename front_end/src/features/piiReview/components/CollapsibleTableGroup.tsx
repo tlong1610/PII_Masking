@@ -23,7 +23,23 @@ type CollapsibleTableGroupProps = {
   sourcePath: string;
   summary?: ReactNode;
   tone?: GroupTone;
+  /**
+   * Column widths shared with the outer table's header. Each group renders its own nested table,
+   * so without fixed widths every group sizes its columns differently and rows do not line up.
+   */
+  columnWidths?: readonly string[];
 };
+
+/** <colgroup> + fixed layout so separate tables (header and groups) share the same column grid. */
+export function FixedColumns({ widths }: { widths: readonly string[] }): JSX.Element {
+  return (
+    <colgroup>
+      {widths.map((width, index) => (
+        <col key={index} style={{ width }} />
+      ))}
+    </colgroup>
+  );
+}
 
 export function CollapsibleTableGroup({
   children,
@@ -33,6 +49,7 @@ export function CollapsibleTableGroup({
   onToggle,
   sourcePath,
   summary,
+  columnWidths,
 }: CollapsibleTableGroupProps): JSX.Element {
   return (
     <>
@@ -105,7 +122,8 @@ export function CollapsibleTableGroup({
         <TableCell colSpan={colSpan} sx={{ p: 0, borderBottom: 0 }}>
           <Collapse in={!collapsed} timeout={180} unmountOnExit>
             <Box sx={{ bgcolor: '#FFFFFF' }}>
-              <Table size="small">
+              <Table size="small" sx={columnWidths ? { tableLayout: 'fixed' } : undefined}>
+                {columnWidths && <FixedColumns widths={columnWidths} />}
                 <TableBody>{children}</TableBody>
               </Table>
             </Box>

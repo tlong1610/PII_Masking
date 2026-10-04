@@ -1,4 +1,4 @@
-# ✅ Task Checklist cho Tùng - PIIGuard VN
+# ✅ Task Checklist cho Tùng - PIIGuard Shield
 
 ## 🎯 Priority 1: Core PII Detection
 

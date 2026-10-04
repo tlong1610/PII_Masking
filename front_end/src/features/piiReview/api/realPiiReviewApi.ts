@@ -98,6 +98,8 @@ export const datasetPreviewSchema = z.object({
     transform: z.enum(['MASK', 'HMAC', 'KEEP', 'DROPPED']),
   })),
   rows: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))),
+  tables: z.array(z.string()).default([]),
+  selected_table: z.string().default(''),
   note: z.string().optional(),
   relationships: z.array(z.object({
     source_table: z.string(),
@@ -202,21 +204,39 @@ export async function listRuns(sourceId?: string): Promise<Run[]> {
   return z.array(runSchema).parse(data);
 }
 
+export interface FieldDecisionInput {
+  field_profile_id: number;
+  action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
+  reason?: string;
+  is_exception?: boolean;
+  exception_until?: string | null;
+  /** DPO confirms an UNKNOWN field is not personal data (reason required). */
+  classification_override?: 'NON_PERSONAL' | null;
+}
+
 export async function updateFieldDecisions(
   runId: number,
-  decisions: Array<{
-    field_profile_id: number;
-    action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
-    reason?: string;
-    is_exception?: boolean;
-    exception_until?: string | null;
-  }>
+  decisions: FieldDecisionInput[],
 ): Promise<Run> {
   const data = await apiRequest<Run>(`/runs/${runId}/decisions`, {
     method: 'PUT',
     body: JSON.stringify({ decisions }),
   });
   return runSchema.parse(data);
+}
+
+export const joinKeySchema = z.object({
+  from_table: z.string(),
+  from_column: z.string(),
+  to_table: z.string(),
+  to_column: z.string(),
+});
+
+export type JoinKey = z.infer<typeof joinKeySchema>;
+
+export async function fetchJoinKeys(runId: number): Promise<JoinKey[]> {
+  const data = await apiRequest<JoinKey[]>(`/runs/${runId}/join-keys`);
+  return z.array(joinKeySchema).parse(data);
 }
 
 export async function buildDataset(runId: number): Promise<BuildResponse> {
@@ -250,8 +270,22 @@ export async function revokeDataset(datasetId: number): Promise<Dataset> {
   return datasetSchema.parse(data);
 }
 
-export async function previewDataset(datasetId: number): Promise<DatasetPreview> {
-  const data = await apiRequest<DatasetPreview>(`/datasets/${datasetId}/preview`);
+export interface DatasetPreviewOptions {
+  table?: string | null;
+  limit?: number;
+}
+
+export async function previewDataset(
+  datasetId: number,
+  options: DatasetPreviewOptions = {},
+): Promise<DatasetPreview> {
+  const params = new URLSearchParams();
+  if (options.table) params.set('table', options.table);
+  if (options.limit) params.set('limit', String(options.limit));
+  const query = params.toString();
+  const data = await apiRequest<DatasetPreview>(
+    `/datasets/${datasetId}/preview${query ? `?${query}` : ''}`,
+  );
   return datasetPreviewSchema.parse(data);
 }
 

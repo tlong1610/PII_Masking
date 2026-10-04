@@ -87,7 +87,7 @@ def _format_safe_sample(item: dict) -> str:
 def audit_postgres_golden_dataset():
     execution_time = datetime.now().isoformat()
     print("=" * 80)
-    print("      PIIGUARD VN — POSTGRESQL GOLDEN DATASET & FIXTURE AUDIT")
+    print("      PIIGUARD SHIELD — POSTGRESQL GOLDEN DATASET & FIXTURE AUDIT")
     print("=" * 80)
     print(f"Timestamp: {execution_time}")
     print("Environment: Docker container p-138-db-1 / PostgreSQL 15 / mydatabase")
@@ -385,7 +385,7 @@ def audit_postgres_golden_dataset():
     report_lines = [
         "# 🎯 BÁO CÁO NGHIỆM THU POSTGRESQL GOLDEN DATASET & DOWNSTREAM BASELINE",
         "",
-        "> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  ",
+        "> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  ",
         "> **Kỹ sư phụ trách:** Nguyễn Trung Kiên (Data Engineer)  ",
         f"> **Thời điểm thẩm định:** {execution_time}  ",
         "> **Môi trường thực thi:** Container `p-138-db-1` / PostgreSQL 15 / `mydatabase`  ",

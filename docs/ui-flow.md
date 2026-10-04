@@ -1,4 +1,4 @@
-# UI Flow & Wireframe — PIIGuard VN
+# UI Flow & Wireframe — PIIGuard Shield
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Cập nhật:** 21/09/2026  
 **Phạm vi:** MVP 14 ngày; PostgreSQL và MongoDB đều P0; dữ liệu mô phỏng.
@@ -50,7 +50,7 @@ S9 của DPO dẫn về chọn nguồn S1; S9 của Analyst chỉ có “Làm m�
 
 | Vùng | Nội dung |
 |---|---|
-| Đầu trang | PIIGuard VN; tài khoản DPO; nhãn “Dữ liệu mô phỏng” |
+| Đầu trang | PIIGuard Shield; tài khoản DPO; nhãn “Dữ liệu mô phỏng” |
 | Nguồn | Hai lựa chọn PostgreSQL/MongoDB; tên nguồn demo, trạng thái kết nối |
 | Phạm vi | Cặp customers/orders; số bảng/collection, số trường/bản ghi; kiểu dữ liệu chưa hỗ trợ |
 | Tác vụ | Tên phép SQL join hoặc MongoDB lookup sẽ được kiểm tra |

@@ -14,7 +14,8 @@
         "cmnd",
         "chứng minh nhân dân",
         "số định danh cá nhân"
-      ]
+      ],
+      "pii_type": "CCCD"
     }
   },
   {
@@ -30,8 +31,19 @@
         "họ tên",
         "họ và tên",
         "tên khai sinh",
-        "tên gọi khác"
-      ]
+        "tên gọi khác",
+        "full name",
+        "first name",
+        "last name",
+        "middle name",
+        "contact name",
+        "customer name",
+        "employee name",
+        "person name",
+        "ho ten",
+        "ten khach hang"
+      ],
+      "pii_type": "FULL_NAME"
     }
   },
   {
@@ -52,7 +64,8 @@
         "date of birth",
         "birth date",
         "birth"
-      ]
+      ],
+      "pii_type": "DOB"
     }
   },
   {
@@ -76,7 +89,8 @@
         "postal code",
         "region",
         "zip"
-      ]
+      ],
+      "pii_type": "ADDRESS"
     }
   },
   {
@@ -95,7 +109,8 @@
         "mobile",
         "fax",
         "telephone"
-      ]
+      ],
+      "pii_type": "PHONE"
     }
   },
   {
@@ -111,7 +126,8 @@
         "email",
         "thư điện tử",
         "mail address"
-      ]
+      ],
+      "pii_type": "EMAIL"
     }
   },
   {
@@ -127,7 +143,8 @@
         "ảnh cccd",
         "hình ảnh thẻ căn cước",
         "ảnh chứng minh"
-      ]
+      ],
+      "pii_type": "BIOMETRIC_FILE"
     }
   },
   {
@@ -144,7 +161,8 @@
         "hình ảnh cá nhân",
         "ảnh chụp",
         "face image"
-      ]
+      ],
+      "pii_type": "FACE_IMAGE"
     }
   },
   {
@@ -160,7 +178,8 @@
         "vector khuôn mặt",
         "template khuôn mặt",
         "nhận dạng khuôn mặt"
-      ]
+      ],
+      "pii_type": "BIOMETRIC"
     }
   },
   {
@@ -179,7 +198,8 @@
         "đặc điểm sinh học",
         "sinh trắc học",
         "biometrics"
-      ]
+      ],
+      "pii_type": "BIOMETRIC"
     }
   },
   {
@@ -196,7 +216,8 @@
         "thông tin tài khoản số",
         "số tài khoản",
         "bank account"
-      ]
+      ],
+      "pii_type": "BANK_ACCOUNT"
     }
   },
   {
@@ -213,7 +234,8 @@
         "mật khẩu ngân hàng",
         "password",
         "đăng nhập"
-      ]
+      ],
+      "pii_type": "FINANCIAL"
     }
   },
   {
@@ -230,7 +252,8 @@
         "thẻ ngân hàng",
         "thẻ tín dụng",
         "credit card"
-      ]
+      ],
+      "pii_type": "CREDIT_CARD"
     }
   },
   {
@@ -246,7 +269,8 @@
         "lịch sử giao dịch",
         "giao dịch ngân hàng",
         "hoạt động tài chính"
-      ]
+      ],
+      "pii_type": "FINANCIAL"
     }
   },
   {
@@ -262,7 +286,8 @@
         "số tiền giao dịch",
         "số tiền",
         "số dư"
-      ]
+      ],
+      "pii_type": "FINANCIAL"
     }
   },
   {
@@ -278,7 +303,8 @@
         "số tiền đứng riêng",
         "số tiền",
         "con số"
-      ]
+      ],
+      "pii_type": "MONEY_ALONE"
     }
   },
   {
@@ -294,7 +320,8 @@
         "text ocr cccd",
         "ocr",
         "trích xuất text"
-      ]
+      ],
+      "pii_type": "OCR_IDENTITY_DOC"
     }
   },
   {
@@ -311,7 +338,8 @@
         "barcode cccd",
         "mã qr",
         "mã vạch"
-      ]
+      ],
+      "pii_type": "CCCD"
     }
   },
   {
@@ -334,7 +362,8 @@
         "doc type",
         "subject",
         "ship via"
-      ]
+      ],
+      "pii_type": "NOT_PERSONAL_DATA"
     }
   },
   {
@@ -354,7 +383,8 @@
         "ghi_chu",
         "description",
         "comment"
-      ]
+      ],
+      "pii_type": "FREE_TEXT_PII"
     }
   },
   {
@@ -372,7 +402,8 @@
         "receiver",
         "consignee",
         "nguoi_nhan"
-      ]
+      ],
+      "pii_type": "FULL_NAME"
     }
   },
   {
@@ -389,7 +420,8 @@
         "ship_address",
         "delivery_address",
         "dia_chi_giao"
-      ]
+      ],
+      "pii_type": "ADDRESS"
     }
   },
   {
@@ -407,7 +439,37 @@
         "kyc_image",
         "document_path",
         "raw_data"
-      ]
+      ],
+      "pii_type": "OCR_IDENTITY_DOC"
+    }
+  },
+  {
+    "id": "ENT-CATALOG-ATTR",
+    "content": "Thuộc tính sản phẩm, danh mục, thương hiệu và tồn kho (tên sản phẩm, tên danh mục, mã SKU, số lượng, đơn giá, chiết khấu, trạng thái) mô tả hàng hóa, không gắn với một người nên không phải dữ liệu cá nhân.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Thuộc tính sản phẩm / danh mục",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 2 Luật 91",
+      "keywords": [
+        "product",
+        "product name",
+        "category",
+        "category name",
+        "brand",
+        "sku",
+        "item",
+        "stock",
+        "quantity",
+        "unit price",
+        "discount",
+        "reorder level",
+        "sản phẩm",
+        "danh mục",
+        "thương hiệu"
+      ],
+      "pii_type": "NOT_PERSONAL_DATA"
     }
   }
 ]

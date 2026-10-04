@@ -4,14 +4,13 @@ import {
   Box,
   Button,
   Card,
-  CardContent,
   Chip,
   CircularProgress,
-  Divider,
-  Grid,
   IconButton,
   InputAdornment,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Table,
@@ -34,27 +33,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import CodeIcon from '@mui/icons-material/Code';
-import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import PinIcon from '@mui/icons-material/Pin';
 
-import {
-  Background,
-  Controls,
-  MiniMap,
-  ReactFlow,
-  type Edge,
-  type Node,
-} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import {
-  previewDataset,
-  type DatasetPreview,
-  type DatasetRelationship,
-} from '../api/realPiiReviewApi';
+import { previewDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
@@ -62,12 +46,10 @@ import {
   DatasetStatusChip,
   TransformChip,
 } from './PolicyChips';
-import {
-  TRANSFORMS,
-  type TransformKind,
-  getTransformColor,
-  getTransformLabel,
-} from '../model/policyLabels';
+import { getTransformAnalystHint } from '../model/policyLabels';
+
+const ROW_LIMIT_OPTIONS = [20, 50, 100, 200] as const;
+const DOWNLOAD_ROW_LIMIT = 200;
 
 function formatPreviewValue(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === '') {
@@ -123,6 +105,8 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [queryRunTime, setQueryRunTime] = useState<number | null>(null);
   const [downloadingDatasetId, setDownloadingDatasetId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [rowLimit, setRowLimit] = useState<number>(ROW_LIMIT_OPTIONS[0]);
 
   const { data: datasets, isLoading } = useDatasets('PUBLISHED');
 
@@ -138,7 +122,32 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     [datasets, selectedDatasetId],
   );
 
-  const { data: preview, isLoading: previewLoading } = useDatasetPreview(selectedDatasetId);
+  const { data: preview, isLoading: previewLoading } = useDatasetPreview(
+    selectedDatasetId,
+    selectedTable,
+    rowLimit,
+  );
+
+  const sampleColumns = useMemo(
+    () =>
+      preview?.columns.filter(
+        (column) => column.source_path === preview.selected_table && column.transform !== 'DROPPED',
+      ) ?? [],
+    [preview],
+  );
+
+  const droppedInTable = useMemo(
+    () =>
+      preview?.columns.filter(
+        (column) => column.source_path === preview.selected_table && column.transform === 'DROPPED',
+      ) ?? [],
+    [preview],
+  );
+
+  const handleSelectDataset = (datasetId: number) => {
+    setSelectedDatasetId(datasetId);
+    setSelectedTable(null);
+  };
 
   const filteredDatasets = useMemo(() => {
     if (!datasets) return [];
@@ -162,14 +171,6 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     }));
   }, [preview]);
 
-  const transformCounts = useMemo(() => {
-    if (!preview) return { MASK: 0, HMAC: 0, KEEP: 0, DROPPED: 0 };
-    return preview.columns.reduce<Record<TransformKind, number>>(
-      (counts, column) => ({ ...counts, [column.transform]: counts[column.transform] + 1 }),
-      { MASK: 0, HMAC: 0, KEEP: 0, DROPPED: 0 },
-    );
-  }, [preview]);
-
   const handleTogglePreviewSource = (sourcePath: string) => {
     setCollapsedPreviewSources((current) => ({
       ...current,
@@ -177,16 +178,11 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     }));
   };
 
-  const handleDownloadPreview = (datasetPreview: DatasetPreview) => {
-    setDownloadError(null);
-    downloadCsv(datasetPreview);
-  };
-
-  const handleDownloadDataset = async (datasetId: number) => {
+  const handleDownloadDataset = async (datasetId: number, table: string | null) => {
     try {
       setDownloadError(null);
       setDownloadingDatasetId(datasetId);
-      const datasetPreview = await previewDataset(datasetId);
+      const datasetPreview = await previewDataset(datasetId, { table, limit: DOWNLOAD_ROW_LIMIT });
       downloadCsv(datasetPreview);
     } catch (error) {
       console.error('Download failed:', error);
@@ -322,7 +318,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
               return (
                 <Box
                   key={dataset.id}
-                  onClick={() => setSelectedDatasetId(dataset.id)}
+                  onClick={() => handleSelectDataset(dataset.id)}
                   sx={{
                     p: 1.25,
                     borderRadius: '6px',
@@ -455,28 +451,41 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                 </Box>
               </Stack>
 
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
-                disabled
-                sx={{ borderColor: '#D1D5DB', color: '#6B7280' }}
-              >
-                Xuất file CSV an toàn
-              </Button>
+              <Tooltip title={`Tải tối đa ${DOWNLOAD_ROW_LIMIT} dòng của bảng đang xem (đã bảo vệ, không có PII gốc)`}>
+                <span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={
+                      downloadingDatasetId !== null ? (
+                        <CircularProgress size={14} color="inherit" />
+                      ) : (
+                        <DownloadIcon sx={{ fontSize: 16 }} />
+                      )
+                    }
+                    disabled={selectedDatasetId === null || downloadingDatasetId !== null}
+                    onClick={() =>
+                      selectedDatasetId !== null &&
+                      void handleDownloadDataset(selectedDatasetId, preview?.selected_table || null)
+                    }
+                  >
+                    Tải CSV bảng {preview?.selected_table || ''}
+                  </Button>
+                </span>
+              </Tooltip>
             </Stack>
           </Box>
 
           {/* Databricks Tab Bar */}
           <Tabs
             value={activeTab}
-            onChange={(_, val) => setActiveTab(val)}
+            onChange={(_, val: number) => setActiveTab(val)}
             sx={{ px: 3, bgcolor: '#FFFFFF', minHeight: 44 }}
           >
-            <Tab label="Sample Data (Masked)" />
-            <Tab label="Schema & Transforms" />
-            <Tab label="Lineage & Relationships" />
-            <Tab label="Query Notebook (SQL / Genie)" />
+            <Tab label="Dữ liệu đã bảo vệ" />
+            <Tab label="Các cột & cách dùng" />
+            <Tab label="Quan hệ giữa các bảng" />
+            <Tab label="Truy vấn mẫu (demo)" />
           </Tabs>
 
           {/* TAB 0: SAMPLE DATA */}
@@ -488,63 +497,133 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                 </Box>
               ) : preview ? (
                 <Stack spacing={2.5}>
-                  <Alert severity="success" sx={{ borderRadius: '6px' }}>
-                    Dataset đã được bảo vệ toàn diện theo Nghị định 13. Dữ liệu nhạy cảm đã bị che giấu hoặc băm HMAC
-                    trước khi hiển thị.
+                  <Alert severity="info" sx={{ borderRadius: '6px' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Đây là dữ liệu thật đã được DPO duyệt và bảo vệ. Bạn dùng nó để phân tích, không cần xem PII gốc.
+                    </Typography>
+                    <Typography variant="body2" component="div">
+                      Cách đọc: cột <strong>Giữ nguyên</strong> dùng trực tiếp; cột <strong>Băm HMAC</strong> là mã thay
+                      thế cố định, dùng để ghép bảng hoặc đếm; cột <strong>Đã che</strong> chỉ để nhận biết dạng dữ liệu;
+                      cột <strong>Đã loại bỏ</strong> không có trong dataset.
+                    </Typography>
                   </Alert>
 
-                  {/* Summary transform chips */}
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-                    <DatasetStatusChip status={preview.status} />
-                    {TRANSFORMS.map((transform) => (
-                      <Chip
-                        key={transform}
-                        label={`${getTransformLabel(transform)}: ${transformCounts[transform]}`}
-                        color={getTransformColor(transform)}
+                  {preview.note && (
+                    <Typography variant="caption" color="text.secondary">
+                      {preview.note}
+                    </Typography>
+                  )}
+
+                  {/* Table picker + row limit */}
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1.5}
+                    justifyContent="space-between"
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  >
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Bảng:
+                      </Typography>
+                      {preview.tables.map((tableName) => (
+                        <Chip
+                          key={tableName}
+                          icon={<TableChartOutlinedIcon />}
+                          label={tableName}
+                          size="small"
+                          clickable
+                          color={tableName === preview.selected_table ? 'primary' : 'default'}
+                          variant={tableName === preview.selected_table ? 'filled' : 'outlined'}
+                          onClick={() => setSelectedTable(tableName)}
+                        />
+                      ))}
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" color="text.secondary">
+                        Số dòng hiển thị
+                      </Typography>
+                      <Select<number>
                         size="small"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '0.72rem', borderRadius: '4px' }}
-                      />
-                    ))}
+                        value={rowLimit}
+                        onChange={(event) => setRowLimit(Number(event.target.value))}
+                        sx={{ fontSize: '0.8125rem', height: 30 }}
+                      >
+                        {ROW_LIMIT_OPTIONS.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </Stack>
                   </Stack>
 
-                  {/* Databricks Sample Table Grid */}
+                  {/* Summary transform chips for the selected table */}
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                    <DatasetStatusChip status={preview.status} />
+                    <Typography variant="caption" color="text.secondary">
+                      {preview.rows.length} dòng · {sampleColumns.length} cột
+                    </Typography>
+                    {droppedInTable.length > 0 && (
+                      <Tooltip title={droppedInTable.map((column) => column.name).join(', ')}>
+                        <Chip
+                          label={`${droppedInTable.length} cột đã loại bỏ`}
+                          color="error"
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: '0.72rem', borderRadius: '4px' }}
+                        />
+                      </Tooltip>
+                    )}
+                  </Stack>
+
                   <TableContainer
                     component={Paper}
                     variant="outlined"
-                    sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                    sx={{ borderRadius: '6px', maxHeight: 520, overflowX: 'auto' }}
                   >
-                    <Table size="small">
+                    <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ width: 40, color: '#9CA3AF' }}>#</TableCell>
-                          {preview.columns
-                            .filter((c) => c.transform !== 'DROPPED')
-                            .slice(0, 6)
-                            .map((col) => (
-                              <TableCell key={col.name}>
-                                <Stack direction="row" spacing={0.5} alignItems="center">
-                                  <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                                  <span>{col.name}</span>
+                          <TableCell sx={{ width: 40 }}>#</TableCell>
+                          {sampleColumns.map((col) => (
+                            <TableCell key={col.name} sx={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+                              <Tooltip title={getTransformAnalystHint(col.transform)}>
+                                <Stack spacing={0.5} alignItems="flex-start">
+                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <TextFieldsIcon sx={{ fontSize: 14 }} color="disabled" />
+                                    <span>{col.name}</span>
+                                  </Stack>
+                                  <TransformChip transform={col.transform} />
                                 </Stack>
-                              </TableCell>
-                            ))}
+                              </Tooltip>
+                            </TableCell>
+                          ))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {preview.rows.slice(0, 8).map((row, idx) => (
-                          <TableRow key={idx} hover>
-                            <TableCell sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>{idx + 1}</TableCell>
-                            {preview.columns
-                              .filter((c) => c.transform !== 'DROPPED')
-                              .slice(0, 6)
-                              .map((col) => (
-                                <TableCell key={col.name} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                        {preview.rows.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={sampleColumns.length + 1}>
+                              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                                Bảng này chưa có dòng dữ liệu nào.
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          preview.rows.map((row, idx) => (
+                            <TableRow key={idx} hover>
+                              <TableCell sx={{ fontFamily: 'monospace' }}>{idx + 1}</TableCell>
+                              {sampleColumns.map((col) => (
+                                <TableCell
+                                  key={col.name}
+                                  sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+                                >
                                   {formatPreviewValue(row[col.name])}
                                 </TableCell>
                               ))}
-                          </TableRow>
-                        ))}
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -566,7 +645,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                     <TableRow>
                       <TableCell>Tên cột</TableCell>
                       <TableCell>Phương thức biến đổi</TableCell>
-                      <TableCell>Dữ liệu mẫu sau xử lý</TableCell>
+                      <TableCell>Analyst dùng cột này để làm gì</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -603,14 +682,9 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                             <TableCell>
                               <Typography
                                 variant="caption"
-                                sx={{
-                                  fontFamily: 'monospace',
-                                  color: col.transform === 'DROPPED' ? 'error.main' : 'text.secondary',
-                                }}
+                                sx={{ color: col.transform === 'DROPPED' ? 'error.main' : 'text.secondary' }}
                               >
-                                {col.transform === 'DROPPED'
-                                  ? '[ĐÃ LOẠI BỎ]'
-                                  : formatPreviewValue(preview.rows[0]?.[col.name])}
+                                {getTransformAnalystHint(col.transform)}
                               </Typography>
                             </TableCell>
                           </TableRow>
@@ -642,6 +716,10 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           {activeTab === 3 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Stack spacing={2.5}>
+                <Alert severity="warning" sx={{ borderRadius: '6px' }}>
+                  Màn hình minh hoạ: câu truy vấn và kết quả bên dưới là ví dụ cố định, chưa chạy trên dataset thật. Để
+                  phân tích, hãy tải CSV ở tab &quot;Dữ liệu đã bảo vệ&quot;.
+                </Alert>
                 {/* Notebook Action Bar */}
                 <Box
                   sx={{

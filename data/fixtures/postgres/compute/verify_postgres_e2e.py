@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-PostgreSQL End-to-End Verification Runner — PIIGuard VN.
+PostgreSQL End-to-End Verification Runner — PIIGuard Shield.
 Executes SQL JOIN and Aggregate queries before and after PII transformation,
 validates that row counts and total revenue exactly match baseline expectations,
 and outputs formal verification evidence.
@@ -42,7 +42,7 @@ from src.verifier.sql_verifier import (  # noqa: E402
 
 def run_full_postgres_audit():
     print("=" * 80)
-    print("      PIIGUARD VN — POSTGRESQL END-TO-END VERIFICATION & AUDIT EVIDENCE")
+    print("      PIIGUARD SHIELD — POSTGRESQL END-TO-END VERIFICATION & AUDIT EVIDENCE")
     print("=" * 80)
     print(f"Timestamp: {datetime.now().isoformat()}")
     print("Target DB: PostgreSQL (docker container p-138-db-1 / localhost:5432/mydatabase)")

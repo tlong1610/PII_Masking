@@ -77,3 +77,35 @@ PII_TAXONOMY: dict[str, dict[str, Any]] = {
     }
 }
 
+
+
+# Closed label set the LLM tier may answer with (prompt + output validation share it).
+# Any other label is normalised to UNKNOWN so the DPO reviews it instead of it silently becoming PII L2.
+LLM_PII_TYPES: dict[str, str] = {
+    "FULL_NAME": "Họ tên của một người (khách hàng, nhân viên, người liên hệ, người nhận).",
+    "PHONE": "Số điện thoại, fax, số máy lẻ của cá nhân.",
+    "EMAIL": "Địa chỉ email.",
+    "ADDRESS": "Địa chỉ cụ thể (số nhà, đường, phường).",
+    "DOB": "Ngày sinh. CHỈ dùng khi cột thực sự là ngày sinh; ngày sự kiện (đặt hàng, tuyển dụng, tạo) KHÔNG phải DOB.",
+    "CCCD": "Số CCCD/CMND/hộ chiếu/định danh cá nhân.",
+    "TAX_CODE": "Mã số thuế cá nhân.",
+    "CREDIT_CARD": "Số thẻ, số tài khoản ngân hàng (nhạy cảm).",
+    "HEALTH": "Thông tin sức khỏe, bệnh án, bảo hiểm y tế (nhạy cảm).",
+    "BIOMETRIC": "Ảnh khuôn mặt, vân tay, dữ liệu sinh trắc (nhạy cảm).",
+    "FREE_TEXT_PII": "Văn bản tự do có thể chứa thông tin cá nhân (ghi chú, nội dung trao đổi).",
+    "CITY": "Thành phố, quận/huyện, phường/xã nơi một người sống: định danh gián tiếp.",
+    "IP_ADDRESS": "Địa chỉ IP/MAC: định danh gián tiếp.",
+    "NOT_PERSONAL_DATA": (
+        "Không phải dữ liệu cá nhân: số lượng, giá, trạng thái, mô tả sản phẩm/danh mục, quốc gia, vùng, "
+        "bang, ngày sự kiện, mã kỹ thuật, URL công ty."
+    ),
+    "UNKNOWN": "Không đủ căn cứ để kết luận.",
+}
+
+
+def normalize_llm_pii_type(raw: str | None) -> str:
+    """Map the LLM's label onto LLM_PII_TYPES; anything else (e.g. GEOGRAPHIC_REGION) becomes UNKNOWN."""
+    label = (raw or "").upper().strip()
+    aliases = {"NAME": "FULL_NAME", "PERSON_NAME": "FULL_NAME", "NON_PERSONAL": "NOT_PERSONAL_DATA"}
+    label = aliases.get(label, label)
+    return label if label in LLM_PII_TYPES else PIIType.UNKNOWN.value

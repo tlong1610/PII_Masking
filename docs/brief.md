@@ -1,4 +1,4 @@
-# PIIGuard VN — Brief
+# PIIGuard Shield — Brief
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Ngày:** 21/09/2026 · **MVP:** 14 ngày
 
@@ -13,7 +13,7 @@ DPO và đội dữ liệu đang rà thủ công các trường dữ liệu cá 
 
 ## Giải pháp
 
-PIIGuard VN hỗ trợ rà soát và bảo vệ dữ liệu trước khi chia sẻ từ **PostgreSQL và MongoDB**.
+PIIGuard Shield hỗ trợ rà soát và bảo vệ dữ liệu trước khi chia sẻ từ **PostgreSQL và MongoDB**.
 
 - PostgreSQL demo dùng fixture đã commit tại `data/fixtures/seed.sql`: Northwind + PII Việt Nam synthetic, không chứa dữ liệu thật.
 - Quét mọi trường trong phạm vi chọn; đối chiếu danh mục pháp lý, không giới hạn cứng 4–5 trường PII.

@@ -11,7 +11,8 @@ export const piiReviewQueryKeys = {
   runs: ['pii-review', 'runs'] as const,
   run: (runId: number) => ['pii-review', 'run', runId] as const,
   datasets: (status?: string) => ['pii-review', 'datasets', status] as const,
-  datasetPreview: (datasetId: number) => ['pii-review', 'dataset-preview', datasetId] as const,
+  datasetPreview: (datasetId: number, table?: string | null, limit?: number) =>
+    ['pii-review', 'dataset-preview', datasetId, table ?? null, limit ?? null] as const,
 };
 
 // ============================================================================
@@ -105,18 +106,19 @@ export function useUpdateFieldDecisions(runId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (
-      decisions: Array<{
-        field_profile_id: number;
-        action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
-        reason?: string;
-        is_exception?: boolean;
-        exception_until?: string | null;
-      }>
-    ) => api.updateFieldDecisions(runId, decisions),
+    mutationFn: (decisions: api.FieldDecisionInput[]) => api.updateFieldDecisions(runId, decisions),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
     },
+  });
+}
+
+export function useJoinKeys(runId: number | null) {
+  return useQuery({
+    queryKey: ['pii-review', 'join-keys', runId] as const,
+    queryFn: () => api.fetchJoinKeys(runId!),
+    enabled: runId !== null,
+    staleTime: 60000,
   });
 }
 
@@ -166,10 +168,10 @@ export function useRevokeDataset() {
   });
 }
 
-export function useDatasetPreview(datasetId: number | null) {
+export function useDatasetPreview(datasetId: number | null, table?: string | null, limit?: number) {
   return useQuery({
-    queryKey: piiReviewQueryKeys.datasetPreview(datasetId!),
-    queryFn: () => api.previewDataset(datasetId!),
+    queryKey: piiReviewQueryKeys.datasetPreview(datasetId!, table, limit),
+    queryFn: () => api.previewDataset(datasetId!, { table, limit }),
     enabled: datasetId !== null,
   });
 }

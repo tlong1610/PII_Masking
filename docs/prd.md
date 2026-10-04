@@ -1,11 +1,11 @@
-# PRD — PIIGuard VN
+# PRD — PIIGuard Shield
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Cập nhật:** 21/09/2026  
 **Trạng thái:** thiết kế MVP đã chốt; chưa phải xác nhận phần mềm đã triển khai hoặc đạt chỉ số.
 
 ## 1. Bối cảnh & Mục tiêu
 
-DPO và đội dữ liệu cần rà soát dữ liệu cá nhân trước khi chia sẻ dữ liệu phân tích. Rà thủ công dễ bỏ sót; che một khóa liên kết không đúng cách có thể làm sai kết quả downstream. PIIGuard VN phục vụ việc **rà soát trước khi phát hành một dataset cho Analyst**.
+DPO và đội dữ liệu cần rà soát dữ liệu cá nhân trước khi chia sẻ dữ liệu phân tích. Rà thủ công dễ bỏ sót; che một khóa liên kết không đúng cách có thể làm sai kết quả downstream. PIIGuard Shield phục vụ việc **rà soát trước khi phát hành một dataset cho Analyst**.
 
 ### MVP được chọn
 
@@ -34,7 +34,7 @@ Tách ba khái niệm: **danh mục pháp lý**, **khả năng phát hiện đã
 
 Mọi trường đều phải có quyết định đầu ra. Không phát hiện được không đồng nghĩa không phải dữ liệu cá nhân. Không dùng nhãn “đã tuân thủ hoàn toàn”, “không còn PII” hoặc “giữ được mọi phép join”.
 
-PIIGuard VN áp dụng nguyên tắc **no-raw-value UI**: giao diện không hiển thị giá trị nguồn thô cho bất kỳ vai trò nào, kể cả DPO. DPO review dựa trên đường dẫn trường, kiểu dữ liệu, pattern/profile đã lọc, taxonomy/căn cứ, action đề xuất và tác động downstream. Với trường UNKNOWN, DPO vẫn không xem raw value; nếu profile chưa đủ căn cứ thì chọn DROP hoặc chặn để xử lý ngoài phạm vi demo.
+PIIGuard Shield áp dụng nguyên tắc **no-raw-value UI**: giao diện không hiển thị giá trị nguồn thô cho bất kỳ vai trò nào, kể cả DPO. DPO review dựa trên đường dẫn trường, kiểu dữ liệu, pattern/profile đã lọc, taxonomy/căn cứ, action đề xuất và tác động downstream. Với trường UNKNOWN, DPO vẫn không xem raw value; nếu profile chưa đủ căn cứ thì chọn DROP hoặc chặn để xử lý ngoài phạm vi demo.
 
 ### Non-goals
 

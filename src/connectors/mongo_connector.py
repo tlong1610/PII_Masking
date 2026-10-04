@@ -221,6 +221,7 @@ class MongoConnector:
                     system_rec = "HASHING" if (is_pk or is_fk) else None
 
                     col_prof = ColumnProfile(
+                        table_name=coll_name,
                         column_name=field_path,
                         data_type=meta["type"],
                         is_primary_key=is_pk,

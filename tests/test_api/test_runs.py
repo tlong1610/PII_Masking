@@ -124,6 +124,111 @@ async def test_unknown_cannot_keep_and_full_build_succeeds(client):
     assert "password" not in blob
 
 
+async def _create_stub_run(client, token: str) -> dict:
+    created = await client.post("/api/v1/runs", headers=_auth(token), json={"source_id": "sql-demo"})
+    assert created.status_code == 201
+    return created.json()
+
+
+async def _put_one(client, token: str, run_id: int, decision: dict):
+    return await client.put(
+        f"/api/v1/runs/{run_id}/decisions",
+        headers=_auth(token),
+        json={"decisions": [decision]},
+    )
+
+
+@pytest.mark.asyncio
+async def test_dpo_can_confirm_unknown_is_not_personal_and_keep(client):
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_stub_run(client, token)
+    unknown = next(p for p in run["field_profiles"] if p["classification"] == "UNKNOWN")
+    base = {"field_profile_id": unknown["id"], "action": "KEEP", "classification_override": "NON_PERSONAL"}
+
+    no_reason = await _put_one(client, token, run["id"], {**base, "reason": "  "})
+    assert no_reason.status_code == 422
+    assert no_reason.json()["detail"]["field_profile_id"] == unknown["id"]
+    assert no_reason.json()["detail"]["field_path"].endswith(unknown["field_path"])
+
+    saved = await _put_one(client, token, run["id"], {**base, "reason": "Product status, not personal"})
+    assert saved.status_code == 200
+    profile = next(p for p in saved.json()["field_profiles"] if p["id"] == unknown["id"])
+    assert profile["classification"] == "NON_PERSONAL"
+    assert profile["taxonomy_id"] == "NOT_PERSONAL_DATA"
+    assert profile["detector_source"] == "dpo"
+    decision = next(d for d in saved.json()["field_decisions"] if d["field_profile_id"] == unknown["id"])
+    assert decision["action"] == "KEEP"
+
+
+@pytest.mark.asyncio
+async def test_pii_field_cannot_be_reclassified_only_excepted(client):
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_stub_run(client, token)
+    pii = next(p for p in run["field_profiles"] if p["classification"].startswith("PERSONAL"))
+
+    reclassified = await _put_one(
+        client,
+        token,
+        run["id"],
+        {"field_profile_id": pii["id"], "action": "KEEP", "classification_override": "NON_PERSONAL", "reason": "x"},
+    )
+    assert reclassified.status_code == 422
+
+    no_deadline = await _put_one(
+        client,
+        token,
+        run["id"],
+        {"field_profile_id": pii["id"], "action": "KEEP", "is_exception": True, "reason": "Approved study"},
+    )
+    assert no_deadline.status_code == 422
+
+    excepted = await _put_one(
+        client,
+        token,
+        run["id"],
+        {
+            "field_profile_id": pii["id"],
+            "action": "KEEP",
+            "is_exception": True,
+            "reason": "Approved study",
+            "exception_until": "2099-01-01T00:00:00Z",
+        },
+    )
+    assert excepted.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_join_keys_lists_only_scanned_relations(client, monkeypatch):
+    from src.api import runs as runs_module
+
+    monkeypatch.setattr(
+        runs_module,
+        "_postgres_join_relations",
+        lambda conn: [
+            ("orders", "customer_id", "customers", "customer_id"),
+            ("orders", "customer_id", "customers", "customer_id"),
+            ("orders", "product_id", "products", "product_id"),
+        ],
+    )
+    token = await _login(client, "dpo", "dpo123")
+    created = await client.post(
+        "/api/v1/runs",
+        headers=_auth(token),
+        json={"source_id": "sql-demo", "selected_scope": ["customers", "orders"]},
+    )
+    assert created.status_code == 201
+
+    keys = await client.get(f"/api/v1/runs/{created.json()['id']}/join-keys", headers=_auth(token))
+    assert keys.status_code == 200
+    assert keys.json() == [
+        {"from_table": "orders", "from_column": "customer_id", "to_table": "customers", "to_column": "customer_id"}
+    ]
+
+    analyst = await _login(client, "analyst", "analyst123")
+    forbidden = await client.get(f"/api/v1/runs/{created.json()['id']}/join-keys", headers=_auth(analyst))
+    assert forbidden.status_code == 403
+
+
 @pytest.mark.asyncio
 async def test_create_run_ai_scan_path(client, monkeypatch):
     """When ENABLE_AI_SCAN is on, create_run uses scanner (mocked) not stub."""
@@ -272,3 +377,22 @@ async def test_orchestrate_run_endpoint_rbac_and_execution(client):
     assert orch_data["risk"]["score"] is not None
     assert orch_data["applied_count"] == len(profiles)
 
+
+
+@pytest.mark.asyncio
+async def test_quasi_identifier_can_be_kept_without_exception(client):
+    from src.db import models as db_models
+    from src.db.session import get_session_factory
+
+    token = await _login(client, "dpo", "dpo123")
+    run = await _create_stub_run(client, token)
+    field = run["field_profiles"][0]
+    with get_session_factory()() as db:
+        profile = db.get(db_models.FieldProfile, field["id"])
+        profile.classification = "QUASI_IDENTIFIER"
+        profile.taxonomy_id = "CITY"
+        profile.field_path = "ship_city"
+        db.commit()
+
+    kept = await _put_one(client, token, run["id"], {"field_profile_id": field["id"], "action": "KEEP", "reason": "x"})
+    assert kept.status_code == 200

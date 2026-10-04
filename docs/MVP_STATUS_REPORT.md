@@ -1,5 +1,5 @@
 
-# PIIGuard VN - MVP Status Report (Oct 3, 2026)
+# PIIGuard Shield - MVP Status Report (Oct 3, 2026)
 
 ## ✅ HOÀN THÀNH (P0 Core Features)
 

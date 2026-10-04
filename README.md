@@ -1,4 +1,4 @@
-# PIIGuard VN
+# PIIGuard Shield
 
 > Hỗ trợ DPO rà soát dữ liệu cá nhân trong PostgreSQL và MongoDB, duyệt biện pháp bảo vệ và chia sẻ dataset vẫn dùng được cho tác vụ phân tích đã kiểm tra.
 
@@ -173,7 +173,7 @@ Các endpoint chính cho MVP:
 | `POST /datasets/{id}/publish` | DPO            | Chỉ VERIFIED; ghi audit và cho Analyst dùng            |
 | `POST /datasets/{id}/revoke`  | DPO            | Thu hồi quyền dùng qua app                             |
 | `GET /datasets`               | Analyst        | Chỉ PUBLISHED                                          |
-| `GET /datasets/{id}/preview`  | Analyst        | Chỉ preview đầu ra được phép                           |
+| `GET /datasets/{id}/preview`  | Analyst        | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200) |
 
 Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
 

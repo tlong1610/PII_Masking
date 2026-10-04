@@ -43,6 +43,9 @@ function getErrorMessage(responseBody: unknown, fallback: string): string {
   ) {
     const detail = responseBody.detail;
     if (typeof detail === 'string') return detail;
+    if (typeof detail === 'object' && detail !== null && 'message' in detail && typeof detail.message === 'string') {
+      return detail.message;
+    }
     if (detail) return JSON.stringify(detail);
   }
 

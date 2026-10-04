@@ -149,6 +149,10 @@ def resolve_sensitivity_level(
     if c_upper == "PERSONAL_SENSITIVE":
         return "L3"
 
+    # Quasi-identifiers (city, IP) are L1 even when the path contains an L2 word such as "name".
+    if c_upper == "QUASI_IDENTIFIER":
+        return "L1"
+
     # Priority 2: Direct L2 match
     if any(k in tax_upper for k in _L2_KEYWORDS) or any(
         _match_path_keyword(k, path_tokens) for k in _L2_KEYWORDS

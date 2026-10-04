@@ -94,3 +94,16 @@ def test_ambiguous_unknown_no_keyword(scanner):
     )
     result = scanner.scan(profile)
     assert result is None
+
+
+def test_national_id_is_never_non_personal(scanner):
+    """Regression: the '_id' negative keyword used to win over the CCCD name rule."""
+    profile = FieldProfile(
+        engine="postgresql",
+        table_or_collection="customers",
+        path="national_id",
+        data_type="string",
+        statistics={"max_len": 9, "min_len": 9},
+    )
+    result = scanner.scan(profile)
+    assert result is None or result.classification != "NON_PERSONAL"

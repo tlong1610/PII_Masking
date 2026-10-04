@@ -203,3 +203,147 @@ async def test_scan_mongo_drops_objects_beyond_scan_depth(monkeypatch):
 async def test_scan_postgres_raises_when_nothing_matches(fake_connector):
     with pytest.raises(ValueError, match="No columns scanned"):
         await scan_postgres_source("postgresql://fake/db", use_ai=False, tables=("missing",))
+
+
+def _text_col(name: str) -> ColumnProfile:
+    return ColumnProfile(column_name=name, data_type="text", is_primary_key=False, is_foreign_key=False, samples=[])
+
+
+@pytest.mark.asyncio
+async def test_ai_scan_runs_columns_in_parallel_bounded_and_in_order(monkeypatch):
+    import asyncio
+
+    from src.config import get_settings
+    from src.services.run_scanner import _scan_columns
+
+    monkeypatch.setattr(get_settings(), "scan_concurrency", 3)
+    running = 0
+    peak = 0
+
+    async def fake_scan(column: ColumnProfile) -> FieldScanResult | None:
+        nonlocal running, peak
+        running += 1
+        peak = max(peak, running)
+        await asyncio.sleep(0.01)
+        running -= 1
+        if column.column_name == "boom":
+            raise RuntimeError("llm down")
+        return FieldScanResult(
+            field_name=column.column_name,
+            inferred_pii_type="NOT_PERSONAL_DATA",
+            confidence=1.0,
+            recommended_action="KEEP",
+            reasoning="ok",
+        )
+
+    names = ["a", "b", "boom", "c", "d", "e", "f"]
+    results = await _scan_columns(
+        [("t", _text_col(name)) for name in names], use_ai=True, rule_scanner=None, scan=fake_scan
+    )
+
+    assert peak == 3
+    assert [r.field_name if r else None for r in results] == ["a", "b", None, "c", "d", "e", "f"]
+
+
+@pytest.mark.parametrize(
+    ("pii_type", "classification"),
+    [
+        ("CREDIT_CARD", "PERSONAL_SENSITIVE"),
+        ("BIOMETRIC_FILE", "PERSONAL_SENSITIVE"),
+        ("PATIENT_ID", "PERSONAL_SENSITIVE"),
+        ("OCR_IDENTITY_DOC", "PERSONAL_SENSITIVE"),
+        ("TAX_CODE_ORG", "NON_PERSONAL"),
+        ("PHONE", "PERSONAL_BASIC"),
+    ],
+)
+def test_sensitive_and_org_types_get_the_right_level(pii_type, classification):
+    assert classification_from_pii_type(pii_type) == classification
+
+
+@pytest.mark.asyncio
+async def test_rule_scan_passes_table_name_to_table_scoped_rules(monkeypatch):
+    profile = DatabaseProfile(
+        database_name="db",
+        tables=[
+            TableProfile(
+                table_name="suppliers",
+                relations=[],
+                columns=[_text_col("tax_code").model_copy(update={"samples": ["0101234567"]})],
+            )
+        ],
+    )
+
+    class FakeConnector:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def extract_database_profile(self, schema_name="public", sample_size=5):
+            return profile
+
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector", FakeConnector)
+    specs = await scan_postgres_source("postgresql://fake/db", use_ai=False)
+    assert specs[0]["taxonomy_id"] == "TAX_CODE_ORG"
+    assert specs[0]["recommended_action"] == "KEEP"
+
+
+def test_llm_labels_are_normalised_to_the_closed_set():
+    from src.detection.taxonomy import normalize_llm_pii_type
+
+    assert normalize_llm_pii_type("GEOGRAPHIC_REGION") == "UNKNOWN"
+    assert normalize_llm_pii_type("name") == "FULL_NAME"
+    assert normalize_llm_pii_type("NOT_PERSONAL_DATA") == "NOT_PERSONAL_DATA"
+
+
+@pytest.mark.parametrize(
+    ("pii_type", "proposed", "expected_classification", "expected_action"),
+    [
+        ("PHONE", "KEEP", "PERSONAL_BASIC", "MASK"),
+        ("UNKNOWN", "KEEP", "UNKNOWN", "MASK"),
+        ("CREDIT_CARD", "KEEP", "PERSONAL_SENSITIVE", "MASK"),
+        ("CITY", "KEEP", "QUASI_IDENTIFIER", "KEEP"),
+        ("NOT_PERSONAL_DATA", "KEEP", "NON_PERSONAL", "KEEP"),
+        ("EMPTY_COLUMN", "DROP", "NON_PERSONAL", "DROP"),
+    ],
+)
+def test_contradictory_proposals_are_corrected(pii_type, proposed, expected_classification, expected_action):
+    result = FieldScanResult(
+        field_name="c", inferred_pii_type=pii_type, confidence=0.9, recommended_action=proposed, reasoning="llm"
+    )
+    spec = field_profile_spec(table="t", column=_text_col("c"), result=result)
+    assert spec["classification"] == expected_classification
+    assert spec["recommended_action"] == expected_action
+    if proposed != expected_action:
+        assert "Giữ nguyên xuống Che" in spec["profile_summary"]
+
+
+def test_llm_node_uses_temperature_zero_and_closed_labels(monkeypatch):
+    import json
+
+    from src.agents.nodes.scanner_nodes import tier3_llm_node
+
+    calls: list[dict] = []
+
+    class FakeLLM:
+        def invoke(self, _messages):
+            class Response:
+                content = json.dumps(
+                    {
+                        "field_name": "ship_region_label",
+                        "inferred_pii_type": "GEOGRAPHIC_REGION",
+                        "confidence": 0.9,
+                        "recommended_action": "KEEP",
+                        "reasoning": "region",
+                    }
+                )
+                response_metadata: dict = {}
+
+            return Response()
+
+    def fake_get_llm(**kwargs):
+        calls.append(kwargs)
+        return FakeLLM()
+
+    monkeypatch.setattr("src.services.llm.get_llm", fake_get_llm)
+    out = tier3_llm_node({"column_profile": _text_col("ship_region_label"), "data_shape": ["CCCC"]})
+    assert calls == [{"temperature": 0}]
+    assert out["tier3_result"].inferred_pii_type == "UNKNOWN"

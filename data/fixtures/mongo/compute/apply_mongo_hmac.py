@@ -36,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 80)
-    print("      PIIGUARD VN — MONGODB HMAC-SHA256 TRANSFORMATION RUNNER")
+    print("      PIIGUARD SHIELD — MONGODB HMAC-SHA256 TRANSFORMATION RUNNER")
     print("=" * 80)
     print(f"Timestamp:       {datetime.now().isoformat()}")
     print(f"Source Database: {args.source_db}")

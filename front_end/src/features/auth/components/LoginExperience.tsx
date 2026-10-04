@@ -127,7 +127,7 @@ export function LoginExperience(): JSX.Element {
           <LayersOutlinedIcon sx={{ fontSize: 28 }} />
         </Box>
         <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>
-          PIIGuard VN
+          PIIGuard Shield
         </Typography>
         <Typography variant="body2" sx={{ color: '#4B5563', fontSize: '0.85rem' }}>
           On-Premise Data Intelligence & PII Governance Platform

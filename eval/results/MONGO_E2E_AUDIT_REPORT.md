@@ -1,6 +1,6 @@
-# 🍃 BÁO CÁO NGHIỆM THU MONGODB END-TO-END — PIIGUARD VN
+# 🍃 BÁO CÁO NGHIỆM THU MONGODB END-TO-END — PIIGUARD SHIELD
 
-> **Dự án:** PIIGuard VN (Mã đề: DATA-06 — Nhóm: P-138)  
+> **Dự án:** PIIGuard Shield (Mã đề: DATA-06 — Nhóm: P-138)  
 > **Kỹ sư phụ trách:** Nguyễn Trung Kiên (Data Engineer)  
 > **Thời điểm nghiệm thu:** 26/09/2026 (UTC+7)  
 > **Trạng thái:** 🟢 **ALL DOWNSTREAM $LOOKUP VERIFICATION CHECKS PASSED (100% MATCH — 830/830)**  

@@ -1,6 +1,12 @@
 import logging
 
-from src.detection.regex_patterns import HIGH_CONFIDENCE_COLUMNS, NEGATIVE_COLUMNS
+from src.detection.regex_patterns import (
+    HIGH_CONFIDENCE_COLUMNS,
+    NEGATIVE_COLUMNS,
+    classify_name_column,
+    is_generic_id_column,
+    match_column_keyword,
+)
 from src.detection.taxonomy import PII_TAXONOMY, PIIType
 from src.models.schemas import FieldProfile, FieldScanProposal, PolicyAction
 
@@ -18,12 +24,8 @@ class FieldProfileScanner:
         return path.replace(".", "_")
 
     def _check_column_name(self, path_snake: str, keyword_dict: dict) -> str | None:
-        """Kiểm tra tên cột có nằm trong danh sách từ khóa không."""
-        col_lower = path_snake.lower()
-        for pii_type, keywords in keyword_dict.items():
-            if any(kw in col_lower for kw in keywords):
-                return pii_type
-        return None
+        """Kiểm tra tên cột có chứa từ khóa (theo NGUYÊN TỪ, không phải chuỗi con)."""
+        return match_column_keyword(path_snake, keyword_dict)
 
     def _check_statistics_heuristic(self, data_type: str, stats: dict, matched_type: str | None) -> str | None:
         """Dùng heuristic trên statistics để củng cố loại PII được phát hiện qua tên cột."""
@@ -78,7 +80,9 @@ class FieldProfileScanner:
         tbl_name = (profile.table_or_collection or "").lower()
 
         # Bước 0.1: Kiểm tra bảng nhà cung cấp / tổ chức: tax_code là MST doanh nghiệp -> KEEP
-        if tbl_name in ["suppliers", "vendor", "partners", "company"] and any(kw in path_snake.lower() for kw in ["tax_code", "mst", "ma_so_thue"]):
+        if tbl_name in ["suppliers", "vendor", "partners", "company"] and self._check_column_name(
+            path_snake, {"TAX_CODE": ["tax_code", "mst", "ma_so_thue"]}
+        ):
             return FieldScanProposal(
                 field_path=profile.path,
                 classification="NON_PERSONAL",
@@ -99,19 +103,6 @@ class FieldProfileScanner:
                 tier="TIER_1_RULES"
             )
 
-        # Bước 0.3: Bắt các ca ÂM (Tracking, Order, Amount) - Chắc chắn 100% không phải PII
-        negative_type = self._check_column_name(path_snake, NEGATIVE_COLUMNS)
-        if negative_type:
-            cls, act = self.get_classification_and_action(negative_type)
-            return FieldScanProposal(
-                field_path=profile.path,
-                classification=cls,
-                action=act,
-                reason=f"Matched negative keyword for {negative_type}. (Rules-based)",
-                confidence=1.0,
-                tier="TIER_1_RULES"
-            )
-
         # Bước 1 & 2: Bắt PII rõ ràng qua tên cột + Statistics
         high_conf_type = self._check_column_name(path_snake, HIGH_CONFIDENCE_COLUMNS)
         if high_conf_type:
@@ -126,6 +117,36 @@ class FieldProfileScanner:
                     confidence=0.95,
                     tier="TIER_1_RULES"
                 )
+
+        # Bước 2.5: Cột tên "<thực thể>_name" (first/contact_name -> họ tên; product_name -> không phải người)
+        name_type = None if high_conf_type else classify_name_column(path_snake)
+        if name_type:
+            cls, act = self.get_classification_and_action(name_type)
+            return FieldScanProposal(
+                field_path=profile.path,
+                classification=cls,
+                action=act,
+                reason=f"Name column classified by its entity as {name_type}. (Rules-based)",
+                confidence=0.95,
+                tier="TIER_1_RULES"
+            )
+
+        # Bước 3: Ca ÂM (Tracking, Order, Amount, khóa kỹ thuật *_id) - chỉ SAU khi đã loại trừ PII theo tên,
+        # để national_id / patient_id không bao giờ bị coi là an toàn.
+        negative_type = self._check_column_name(path_snake, NEGATIVE_COLUMNS)
+        if negative_type is None and is_generic_id_column(path_snake):
+            negative_type = "NOT_PERSONAL_DATA"
+        # A PII-looking name whose statistics were inconclusive stays ambiguous (LLM), never "safe".
+        if negative_type and not high_conf_type:
+            cls, act = self.get_classification_and_action(negative_type)
+            return FieldScanProposal(
+                field_path=profile.path,
+                classification=cls,
+                action=act,
+                reason=f"Matched negative keyword for {negative_type}. (Rules-based)",
+                confidence=1.0,
+                tier="TIER_1_RULES"
+            )
 
         # Ca mập mờ (ví dụ có keyword nhưng max_len không khớp) hoặc không có keyword rõ ràng
         return None

@@ -7,7 +7,6 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Divider,
   Drawer,
   FormControl,
   Grid,
@@ -42,7 +41,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -58,7 +56,8 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { ApiError } from '@/shared/api/client';
 import { getStoredSession } from '@/features/auth/model/authStorage';
 import { AddSourceDialog } from './AddSourceDialog';
-import { CollapsibleTableGroup } from './CollapsibleTableGroup';
+import { CollapsibleTableGroup, FixedColumns } from './CollapsibleTableGroup';
+import { FieldPolicyDrawerContent } from './FieldPolicyDrawerContent';
 import { ActionChip, SensitivityChip, DetectorBadge, DatasetStatusChip } from './PolicyChips';
 import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
 import {
@@ -70,10 +69,26 @@ import {
 } from '../model/policyLabels';
 import { isUserSource } from '../model/sourceForm';
 import {
+  EMPTY_FIELD_NOTE,
+  type FieldDecisionNote,
+  buildFieldDecisionPayload,
+  getFieldKind,
+  needsException,
+  needsNotPersonalConfirmation,
+} from '../model/fieldDecision';
+import { type DecisionIssue, collectDecisionIssues, issuesFromApiError } from '../model/decisionIssues';
+import {
+  JOIN_KEY_ACTIONS,
+  buildJoinGroups,
+  formatJoinKeyViolations,
+  getJoinPartnerLabel,
+} from '../model/joinKeys';
+import {
   useBuildDataset,
   useCreateScanRun,
   useDataSources,
   useDeleteDataSource,
+  useJoinKeys,
   usePublishDataset,
   useRiskScore,
   useRun,
@@ -83,8 +98,20 @@ import {
 
 type ActionFilter = PolicyAction | 'ALL';
 
+/** Minimum protection the backend enforces for a classification (L3 is rendered as a chip). */
+function getFloorLabel(classification: string): string {
+  const kind = getFieldKind(classification);
+  if (kind === 'PII') return 'Tiêu chuẩn L2 (che)';
+  if (kind === 'QUASI') return 'L1 (được giữ)';
+  if (kind === 'UNKNOWN') return 'Cần xác nhận';
+  return 'Không áp dụng';
+}
+
+/** Column name, type, PII class, detector, masking rule, floor, action — shared by header and every table group. */
+const REVIEW_COLUMN_WIDTHS = ['24%', '13%', '11%', '12%', '18%', '12%', '10%'] as const;
+
 function getDecisionErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) return formatJoinKeyViolations(error.response) ?? error.message;
   if (error instanceof Error) return error.message;
   return 'Không thể lưu quyết định. Vui lòng thử lại.';
 }
@@ -116,8 +143,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
   // Inspector Drawer state
   const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
-  const [overrideJustification, setOverrideJustification] = useState<string>('');
-  const [exceptionUntil, setExceptionUntil] = useState<string>('');
+  const [fieldNotes, setFieldNotes] = useState<Record<number, FieldDecisionNote>>({});
+  const [inspectInitialAction, setInspectInitialAction] = useState<PolicyAction>('MASK');
+  const [decisionIssues, setDecisionIssues] = useState<DecisionIssue[]>([]);
+  const [highlightFieldId, setHighlightFieldId] = useState<number | null>(null);
+  const issueFieldIds = useMemo(() => new Set(decisionIssues.map((issue) => issue.fieldId)), [decisionIssues]);
 
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
   const { data: sourceScope, isLoading: scopeLoading } = useSourceScope(selectedSourceId);
@@ -143,6 +173,43 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   );
 
   const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
+  const { data: joinKeys } = useJoinKeys(currentRunId);
+  const joinGroups = useMemo(() => buildJoinGroups(fields, joinKeys ?? []), [fields, joinKeys]);
+
+  /** KEEP on a join group is only safe when every end is non-personal; otherwise HMAC only. */
+  const isJoinKeepAllowed = useCallback(
+    (fieldId: number) =>
+      (joinGroups.get(fieldId) ?? [fieldId]).every((id) => {
+        const member = fields.find((item) => item.id === id);
+        return member !== undefined && getFieldKind(member.classification) === 'NON_PERSONAL';
+      }),
+    [fields, joinGroups],
+  );
+
+  const isActionDisabledFor = useCallback(
+    (field: { id: number; classification: string }, action: PolicyAction): boolean => {
+      if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return true;
+      if (!joinGroups.has(field.id)) return false;
+      if (!JOIN_KEY_ACTIONS.includes(action)) return true;
+      return action === 'KEEP' && !isJoinKeepAllowed(field.id);
+    },
+    [isJoinKeepAllowed, joinGroups],
+  );
+
+  const getActionOptionNote = (field: { id: number; classification: string }, action: PolicyAction): string => {
+    if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return '(Cấm với L3)';
+    if (joinGroups.has(field.id) && isActionDisabledFor(field, action)) return '(Khóa nối)';
+    return '';
+  };
+
+  /** Applies one action to a field and, for join keys, to every other end of the join. */
+  const applyActionToGroup = useCallback(
+    (fieldId: number, action: PolicyAction) => {
+      const ids = joinGroups.get(fieldId) ?? [fieldId];
+      setDecisionOverrides((current) => ids.reduce((next, id) => ({ ...next, [id]: action }), current));
+    },
+    [joinGroups],
+  );
 
   const getFieldAction = useCallback(
     (fieldId: number, recommendedAction: PolicyAction): PolicyAction =>
@@ -229,6 +296,8 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const handleSelectSource = (sourceId: string) => {
     setSelectedSourceId(sourceId);
     setDecisionOverrides({});
+    setFieldNotes({});
+    setDecisionIssues([]);
     setActionFilter('ALL');
   };
 
@@ -251,6 +320,8 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
     setIsScanning(true);
     setDecisionOverrides({});
+    setFieldNotes({});
+    setDecisionIssues([]);
     setActionFilter('ALL');
     setBuildError(null);
     setDecisionError(null);
@@ -271,14 +342,29 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   };
 
   const handleFieldActionChange = (fieldId: number, action: PolicyAction) => {
+    const field = fields.find((item) => item.id === fieldId);
+    if (field && isActionDisabledFor(field, action)) return;
+    const kind = field ? getFieldKind(field.classification) : 'PII';
+    const note = fieldNotes[fieldId] ?? EMPTY_FIELD_NOTE;
+    // KEEP on UNKNOWN/PII needs a confirmation or an exception: collect it in the inspector.
+    if (
+      (needsNotPersonalConfirmation(kind, action) && !note.notPersonal) ||
+      (needsException(kind, action) && !note.exceptionUntil)
+    ) {
+      handleOpenInspector(fieldId, action);
+      return;
+    }
     setDecisionError(null);
     setBuildError(null);
-    setDecisionOverrides((current) => ({ ...current, [fieldId]: action }));
+    applyActionToGroup(fieldId, action);
+    clearIssuesFor(joinGroups.get(fieldId) ?? [fieldId]);
   };
 
   const handleAcceptAllAi = () => {
     // Reset overrides to AI recommendations
     setDecisionOverrides({});
+    setFieldNotes({});
+    setDecisionIssues([]);
     setDecisionError(null);
   };
 
@@ -288,6 +374,10 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     setDecisionOverrides((current) =>
       filteredFields.reduce<Record<number, PolicyAction>>(
         (next, field) => {
+          // Join keys keep their (group-consistent) action: bulk MASK/DROP would break the join.
+          if (joinGroups.has(field.id)) {
+            return { ...next, [field.id]: current[field.id] ?? field.recommended_action };
+          }
           const nextAction =
             isHmacLockedField(field) || (action === 'KEEP' && isUnknownField(field.classification))
               ? field.recommended_action
@@ -306,24 +396,66 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }));
   };
 
+  /** Shows a field in the review table (clears filters, expands its table, scrolls, highlights, opens it). */
+  const handleGoToField = (fieldId: number) => {
+    const field = fields.find((item) => item.id === fieldId);
+    if (!field) return;
+    setActiveTab(0);
+    setActionFilter('ALL');
+    setColumnSearch('');
+    setCollapsedSources((current) => ({ ...current, [field.source_path]: false }));
+    setHighlightFieldId(fieldId);
+    window.setTimeout(() => {
+      document.getElementById(`field-row-${fieldId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    window.setTimeout(() => setHighlightFieldId((current) => (current === fieldId ? null : current)), 4000);
+    handleOpenInspector(fieldId);
+  };
+
+  const showDecisionIssues = (issues: DecisionIssue[]) => {
+    setDecisionIssues(issues);
+    setDecisionError(null);
+    setActiveTab(0);
+    window.setTimeout(() => {
+      document.getElementById('decision-issues')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
+
+  const clearIssuesFor = (fieldIds: number[]) => {
+    setDecisionIssues((current) => current.filter((issue) => !fieldIds.includes(issue.fieldId)));
+  };
+
   const handleApproveAndBuild = async () => {
     if (!currentRunId || !currentRun) return;
+
+    // Catch every problem up front so the DPO can fix them all, not one 422 at a time.
+    const issues = collectDecisionIssues({
+      fields,
+      getAction: (field) => getFieldAction(field.id, field.recommended_action),
+      notes: fieldNotes,
+      joinGroups,
+      today: new Date().toISOString().slice(0, 10),
+    });
+    setDecisionIssues(issues);
+    if (issues.length > 0) {
+      showDecisionIssues(issues);
+      return;
+    }
 
     try {
       setDecisionError(null);
       setBuildError(null);
       await updateDecisions.mutateAsync(
-        fields.map((field) => {
-          const action = getFieldAction(field.id, field.recommended_action);
-          return {
-            field_profile_id: field.id,
-            action,
-            reason:
-              action === field.recommended_action
-                ? `DPO accepted suggested ${action} policy for ${field.field_path}`
-                : `DPO changed policy to ${action} for ${field.field_path} (Justification: ${overrideJustification || 'Manual policy override'})`,
-          };
-        }),
+        fields.map((field) =>
+          buildFieldDecisionPayload({
+            fieldProfileId: field.id,
+            fieldPath: field.field_path,
+            kind: getFieldKind(field.classification),
+            action: getFieldAction(field.id, field.recommended_action),
+            recommendedAction: field.recommended_action,
+            note: fieldNotes[field.id],
+          }),
+        ),
       );
 
       // Build dataset snapshot
@@ -332,6 +464,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       alert(`Đã tạo snapshot thành công! Dataset ID: ${result.dataset.id}`);
     } catch (error) {
       console.error('Build failed:', error);
+      const serverIssues = error instanceof ApiError ? issuesFromApiError(error.response, fields) : [];
+      if (serverIssues.length > 0) {
+        showDecisionIssues(serverIssues);
+        return;
+      }
       const msg = getDecisionErrorMessage(error);
       setBuildError(msg);
       setDecisionError(msg);
@@ -379,12 +516,26 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     }
   };
 
-  const handleOpenInspector = (fieldId: number) => {
+  const handleOpenInspector = (fieldId: number, action?: PolicyAction) => {
+    const field = fields.find((item) => item.id === fieldId);
+    if (!field) return;
+    setInspectInitialAction(action ?? getFieldAction(field.id, field.recommended_action));
     setInspectFieldId(fieldId);
   };
 
   const handleCloseInspector = () => {
     setInspectFieldId(null);
+  };
+
+  /** Called by the inspector once its draft passed validation. */
+  const handleSaveInspector = (action: PolicyAction, note: FieldDecisionNote) => {
+    if (!activeInspectField) return;
+    setDecisionError(null);
+    setBuildError(null);
+    applyActionToGroup(activeInspectField.id, action);
+    setFieldNotes((current) => ({ ...current, [activeInspectField.id]: note }));
+    clearIssuesFor(joinGroups.get(activeInspectField.id) ?? [activeInspectField.id]);
+    handleCloseInspector();
   };
 
   const handleOpenReport = (runId: number | null) => {
@@ -901,8 +1052,40 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   )}
 
                   {decisionError && (
-                    <Alert severity="error" onClose={() => setDecisionError(null)}>
+                    <Alert severity="error" onClose={() => setDecisionError(null)} sx={{ whiteSpace: 'pre-line' }}>
                       {decisionError}
+                    </Alert>
+                  )}
+
+                  {decisionIssues.length > 0 && (
+                    <Alert id="decision-issues" severity="error" onClose={() => setDecisionIssues([])}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Chưa thể tạo snapshot: {decisionIssues.length} cột cần sửa. Bấm &quot;Đi tới&quot; để mở đúng
+                        cột.
+                      </Typography>
+                      <Stack spacing={0.75}>
+                        {decisionIssues.map((issue, index) => (
+                          <Stack
+                            key={`${issue.fieldId}-${index}`}
+                            direction="row"
+                            spacing={1}
+                            alignItems="flex-start"
+                          >
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleGoToField(issue.fieldId)}
+                              sx={{ flexShrink: 0, py: 0, fontSize: '0.72rem' }}
+                            >
+                              Đi tới
+                            </Button>
+                            <Typography variant="body2">
+                              <strong style={{ fontFamily: 'monospace' }}>{issue.fieldLabel}</strong>: {issue.message}
+                            </Typography>
+                          </Stack>
+                        ))}
+                      </Stack>
                     </Alert>
                   )}
 
@@ -999,20 +1182,19 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   <TableContainer
                     component={Paper}
                     variant="outlined"
-                    sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
+                    sx={{ borderRadius: '6px', border: '1px solid #E5E7EB', overflowX: 'auto' }}
                   >
-                    <Table size="small">
+                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 960 }}>
+                      <FixedColumns widths={REVIEW_COLUMN_WIDTHS} />
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ minWidth: 200 }}>Tên cột (Column Name)</TableCell>
-                          <TableCell sx={{ minWidth: 100 }}>Kiểu dữ liệu</TableCell>
-                          <TableCell sx={{ minWidth: 160 }}>Phân loại PII (NĐ 13)</TableCell>
-                          <TableCell sx={{ minWidth: 110 }}>Nguồn nhận diện</TableCell>
-                          <TableCell sx={{ minWidth: 180 }}>Quy tắc che giấu (Masking Rule)</TableCell>
-                          <TableCell sx={{ minWidth: 140 }}>Sàn bảo mật</TableCell>
-                          <TableCell align="right" sx={{ minWidth: 80 }}>
-                            Thao tác
-                          </TableCell>
+                          <TableCell>Tên cột (Column Name)</TableCell>
+                          <TableCell>Kiểu dữ liệu</TableCell>
+                          <TableCell>Phân loại PII (NĐ 13)</TableCell>
+                          <TableCell>Nguồn nhận diện</TableCell>
+                          <TableCell>Quy tắc che giấu</TableCell>
+                          <TableCell>Sàn bảo mật</TableCell>
+                          <TableCell align="right">Thao tác</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1022,6 +1204,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                             sourcePath={group.sourcePath}
                             countLabel={`${group.fields.length} cột`}
                             colSpan={7}
+                            columnWidths={REVIEW_COLUMN_WIDTHS}
                             collapsed={Boolean(collapsedSources[group.sourcePath])}
                             onToggle={() => handleToggleSource(group.sourcePath)}
                           >
@@ -1033,10 +1216,17 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                               return (
                                 <TableRow
                                   key={field.id}
+                                  id={`field-row-${field.id}`}
                                   hover
                                   sx={{
                                     bgcolor: isViolatingFloor ? '#FEF2F2' : 'inherit',
                                     '&:hover': { bgcolor: isViolatingFloor ? '#FEE2E2' : '#F9FAFB' },
+                                    ...(highlightFieldId === field.id && {
+                                      outline: '2px solid',
+                                      outlineColor: 'error.main',
+                                      outlineOffset: '-2px',
+                                    }),
+                                    ...(issueFieldIds.has(field.id) && { bgcolor: '#FEF2F2' }),
                                   }}
                                 >
                                   {/* Column Name */}
@@ -1045,11 +1235,28 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                                       {renderFieldTypeIcon(field.classification)}
                                       <Typography
                                         variant="body2"
-                                        sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.8125rem' }}
+                                        sx={{
+                                          fontFamily: 'monospace',
+                                          fontWeight: 600,
+                                          fontSize: '0.8125rem',
+                                          minWidth: 0,
+                                          overflowWrap: 'anywhere',
+                                        }}
                                       >
                                         {field.field_path}
                                       </Typography>
                                     </Stack>
+                                    {joinGroups.has(field.id) && (
+                                      <Tooltip title="Khóa nối: các đầu nối luôn dùng chung một hành động để Analyst vẫn ghép bảng được">
+                                        <Typography
+                                          variant="caption"
+                                          color="info.main"
+                                          sx={{ display: 'block', mt: 0.25, fontSize: '0.7rem', overflowWrap: 'anywhere' }}
+                                        >
+                                          🔗 Nối với {getJoinPartnerLabel(field.id, joinGroups, fields)}
+                                        </Typography>
+                                      </Tooltip>
+                                    )}
                                   </TableCell>
 
                                   {/* Data Type */}
@@ -1074,7 +1281,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
                                   {/* Column Masking Rule (Dropdown) */}
                                   <TableCell>
-                                    <FormControl size="small" fullWidth sx={{ minWidth: 140 }}>
+                                    <FormControl size="small" fullWidth>
                                       <Select
                                         value={action}
                                         onChange={(e) =>
@@ -1091,10 +1298,10 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                                           <MenuItem
                                             value={opt}
                                             key={opt}
-                                            disabled={isL3 && opt === 'KEEP'}
+                                            disabled={isActionDisabledFor(field, opt)}
                                             sx={{ fontSize: '0.75rem' }}
                                           >
-                                            {getActionLabel(opt)} {isL3 && opt === 'KEEP' ? '(Cấm với L3)' : ''}
+                                            {getActionLabel(opt)} {getActionOptionNote(field, opt)}
                                           </MenuItem>
                                         ))}
                                       </Select>
@@ -1114,7 +1321,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                                       />
                                     ) : (
                                       <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                                        Tiêu chuẩn L2
+                                        {getFloorLabel(field.classification)}
                                       </Typography>
                                     )}
                                   </TableCell>
@@ -1125,7 +1332,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                                       size="small"
                                       variant="outlined"
                                       onClick={() => handleOpenInspector(field.id)}
-                                      sx={{ fontSize: '0.7rem', height: 24, px: 1, minWidth: 'auto' }}
+                                      sx={{ fontSize: '0.7rem', height: 24, px: 1, minWidth: 64, whiteSpace: 'nowrap' }}
                                     >
                                       Chi tiết
                                     </Button>
@@ -1533,119 +1740,21 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         }}
       >
         {activeInspectField && (
-          <Stack spacing={2.5} sx={{ height: '100%' }}>
-            {/* Drawer Header */}
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Stack direction="row" spacing={1} alignItems="center">
-                <ShieldOutlinedIcon sx={{ color: '#1B51A4' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                  Chi tiết chính sách cột
-                </Typography>
-              </Stack>
-              <IconButton size="small" onClick={handleCloseInspector} aria-label="Đóng ngăn kéo">
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-
-            <Divider />
-
-            {/* Column Identifier Box */}
-            <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-              <Typography variant="caption" sx={{ color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
-                Cột dữ liệu
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#111827' }}>
-                {activeInspectField.field_path}
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <SensitivityChip classification={activeInspectField.classification} />
-                <DetectorBadge source={activeInspectField.detector_source} />
-              </Stack>
-            </Box>
-
-            {/* Legal Basis Callout */}
-            <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E40AF', display: 'block' }}>
-                Căn cứ pháp lý Nghị định 13/2023/NĐ-CP:
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#1E3A8A', mt: 0.5, display: 'block', lineHeight: 1.5 }}>
-                {activeInspectField.classification.includes('SENSITIVE')
-                  ? 'Điều 2 Khoản 4: Dữ liệu cá nhân nhạy cảm gắn liền với quyền riêng tư của cá nhân. Bắt buộc áp dụng biện pháp bảo vệ cao nhất.'
-                  : 'Điều 2 Khoản 3: Dữ liệu cá nhân cơ bản giúp nhận dạng cá nhân. Yêu cầu kiểm soát truy cập và che giấu thích hợp.'}
-              </Typography>
-            </Box>
-
-            {/* Selected Action Override */}
-            <Box>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-                Ghi đè hành động (DPO Policy Action):
-              </Typography>
-              <FormControl size="small" fullWidth>
-                <Select
-                  value={getFieldAction(activeInspectField.id, activeInspectField.recommended_action)}
-                  onChange={(e) =>
-                    handleFieldActionChange(activeInspectField.id, e.target.value as PolicyAction)
-                  }
-                >
-                  {POLICY_ACTIONS.map((opt) => (
-                    <MenuItem
-                      value={opt}
-                      key={opt}
-                      disabled={activeInspectField.classification.includes('SENSITIVE') && opt === 'KEEP'}
-                    >
-                      {getActionLabel(opt)}{' '}
-                      {activeInspectField.classification.includes('SENSITIVE') && opt === 'KEEP'
-                        ? '(Cấm bởi Sàn bảo mật L3)'
-                        : ''}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* Mandatory Justification */}
-            <Box>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-                Lý do ghi đè chính sách (Bắt buộc):
-              </Typography>
-              <TextField
-                multiline
-                rows={3}
-                placeholder="Nhập căn cứ pháp lý hoặc quyết định nội bộ để giải trình trong báo cáo kiểm toán..."
-                value={overrideJustification}
-                onChange={(e) => setOverrideJustification(e.target.value)}
-                fullWidth
-                size="small"
-              />
-            </Box>
-
-            {/* Exception Expiration */}
-            <Box>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-                Thời hạn ngoại lệ (tùy chọn):
-              </Typography>
-              <TextField
-                type="date"
-                value={exceptionUntil}
-                onChange={(e) => setExceptionUntil(e.target.value)}
-                fullWidth
-                size="small"
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
-
-            {/* Footer */}
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={handleCloseInspector}
-                sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
-              >
-                Lưu &amp; Áp dụng thay đổi
-              </Button>
-            </Box>
-          </Stack>
+          <FieldPolicyDrawerContent
+            key={activeInspectField.id}
+            field={activeInspectField}
+            initialAction={inspectInitialAction}
+            initialNote={fieldNotes[activeInspectField.id] ?? EMPTY_FIELD_NOTE}
+            joinPartnerLabel={
+              joinGroups.has(activeInspectField.id)
+                ? getJoinPartnerLabel(activeInspectField.id, joinGroups, fields)
+                : null
+            }
+            isActionDisabled={(action) => isActionDisabledFor(activeInspectField, action)}
+            getActionOptionNote={(action) => getActionOptionNote(activeInspectField, action)}
+            onSave={handleSaveInspector}
+            onClose={handleCloseInspector}
+          />
         )}
       </Drawer>
     </Box>
