@@ -142,37 +142,38 @@ Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hi
 
 > 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
 
-| Đường dẫn                                      | Nội dung                                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------------------- |
-| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Kiến trúc hệ thống, security boundary và deploy model |
-| [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture |
-| [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md) | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |
-| `docs/brief.md`, `docs/brief-one-page.pdf`     | Brief theo 6 mục Gate 1; PDF đúng một trang                               |
-| `docs/prd.md`                                  | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu      |
-| `docs/ui-flow.md`                              | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                         |
-| `src/`                                         | API, workflow, connectors, protection, verifier và metadata               |
-| `frontend/`                                    | React dashboard                                                           |
-| `eval/`, `tests/`                              | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                     |
-| `presentation/`                                | Demo script, số liệu thực tế và slide sau nghiệm thu                      |
-| `.github/workflows/`                           | CI theo khung repo chương trình                                           |
+| Đường dẫn                                                              | Nội dung                                                                       |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)                         | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng      |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md)                                   | Kiến trúc hệ thống, security boundary và deploy model                          |
+| [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture                 |
+| [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md)       | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |
+| `docs/brief.md`, `docs/brief-one-page.pdf`                             | Brief theo 6 mục Gate 1; PDF đúng một trang                                    |
+| `docs/prd.md`                                                          | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu           |
+| `docs/ui-flow.md`                                                      | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                              |
+| `src/`                                                                 | API, workflow, connectors, protection, verifier và metadata                    |
+| `frontend/`                                                            | React dashboard                                                                |
+| `eval/`, `tests/`                                                      | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                          |
+| `presentation/`                                                        | Demo script, số liệu thực tế và slide sau nghiệm thu                           |
+| `.github/workflows/`                                                   | CI theo khung repo chương trình                                                |
 
 ## API Endpoints
 
 Các endpoint chính cho MVP:
 
-| Endpoint dự kiến              | Quyền          | Hành vi                                                |
-| ----------------------------- | -------------- | ------------------------------------------------------ |
-| `POST /sessions`              | Tài khoản demo | Xác thực; role do server quyết định                    |
-| `GET /sources`                | DPO            | Liệt kê hai nguồn đã cấu hình, không trả credential    |
-| `GET /sources/{id}/scope`     | DPO            | Đọc danh sách bảng/collection để chọn phạm vi quét     |
-| `POST /runs`                  | DPO            | Tạo run và quét chỉ các bảng/collection đã chọn        |
-| `GET /runs/{id}`              | DPO            | Tiến độ, field profile và trạng thái                   |
-| `PUT /runs/{id}/decisions`    | DPO            | Review mọi trường; lưu phiên quyết định                |
-| `POST /runs/{id}/build`       | DPO            | Xác nhận, kiểm tra trạng thái, tạo staging và verifier |
-| `POST /datasets/{id}/publish` | DPO            | Chỉ VERIFIED; ghi audit và cho Analyst dùng            |
-| `POST /datasets/{id}/revoke`  | DPO            | Thu hồi quyền dùng qua app                             |
-| `GET /datasets`               | Analyst        | Chỉ PUBLISHED                                          |
+| Endpoint dự kiến              | Quyền          | Hành vi                                                            |
+| ----------------------------- | -------------- | ------------------------------------------------------------------ |
+| `POST /sessions`              | Tài khoản demo | Xác thực; role do server quyết định                                |
+| `GET /sources`                | DPO            | Liệt kê hai nguồn đã cấu hình, không trả credential                |
+| `GET /sources/{id}/scope`     | DPO            | Đọc danh sách bảng/collection để chọn phạm vi quét                 |
+| `POST /runs`                  | DPO            | Tạo run và quét chỉ các bảng/collection đã chọn                    |
+| `GET /runs/{id}`              | DPO            | Tiến độ, field profile và trạng thái                               |
+| `PUT /runs/{id}/decisions`    | DPO            | Review mọi trường; lưu phiên quyết định                            |
+| `POST /runs/{id}/build`       | DPO            | Xác nhận, kiểm tra trạng thái, tạo staging và verifier             |
+| `GET /runs/{id}/report`       | DPO            | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII    |
+| `POST /datasets/{id}/publish` | DPO            | Chỉ VERIFIED; ghi audit và cho Analyst dùng                        |
+| `POST /datasets/{id}/revoke`  | DPO            | Thu hồi quyền dùng qua app                                         |
+| `GET /datasets`               | Analyst        | Chỉ PUBLISHED                                                      |
 | `GET /datasets/{id}/preview`  | Analyst        | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200) |
 
 Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
@@ -185,13 +186,15 @@ Mẫu Gate 1 có **4 deliverable**: brief, PRD, UI Flow và **repo + AI Log setu
 - [x] PRD đủ 9 mục mẫu và tiêu chí nghiệm thu.
 - [x] UI Flow đủ hai vai trò, xác nhận, loading, lỗi và empty state.
 - [x] README và bản quyết định MVP đồng bộ phạm vi.
-- [ ] Remote trỏ đúng repo P-138 của Cohort 4; dependencies cài được.
-- [ ] `.env` có secret ngoài git; server và Swagger chạy thật.
-- [ ] Hai database/fixture và hai tài khoản hoạt động.
-- [ ] Nhánh `develop`, PR tài liệu được người khác review/merge; CI đạt.
+- [x] Remote trỏ đúng repo P-138 của Cohort 4; dependencies cài được.
+- [x] `.env` có secret ngoài git; server và Swagger chạy thật.
+- [x] Hai database/fixture và hai tài khoản hoạt động.
+- [x] Nhánh `develop`, PR tài liệu được người khác review/merge; CI đạt.
 - [ ] Hook AI log đã hoạt động và log đến grading server.
-- [ ] Bằng chứng eval, guardrail và downstream của cả hai nguồn.
-- [ ] Demo, video, slide và URL nếu chương trình yêu cầu.
+- [x] Đã hoàn thành 5 test case manual và bằng chứng eval: [Xem chi tiết tại docs/gate_2/README.md](docs/gate_2/README.md)
+- [x] Demo, video, slide và URL: **[Xem chi tiết tại docs/gate_2/README.md](docs/gate_2/README.md)**
+
+> 📁 **Toàn bộ hồ sơ và bằng chứng nộp bài Gate 2 được tổng hợp tại: [docs/gate_2/README.md](docs/gate_2/README.md)**
 
 Không đánh dấu các mục chưa có bằng chứng. Không sao chép hạn lịch hoặc tên org Cohort 3 trong mẫu sang Cohort 4. Theo mẫu được cung cấp, G2 yêu cầu ít nhất 10 PR có ý nghĩa đã merge; kế hoạch chia việc phải đáp ứng, không tạo PR rỗng chỉ để đủ số.
 
@@ -211,6 +214,7 @@ Phân công triển khai được chọn cho kế hoạch; công suất thực t
 Lịch thực hiện, giờ dự kiến và điểm cắt hiện theo Trello của team.
 
 ## License
+
 MIT
 
 ## Đánh giá (Evaluation)
@@ -227,12 +231,14 @@ PYTHONPATH=. python eval/run_eval_full.py
 ## 📚 Tài Liệu Dự Án
 
 ### Cho Team Members
+
 - [FAQ - Câu Hỏi Thường Gặp](docs/FAQ_PHUC.md) - Trả lời các câu hỏi về CI, golden dataset, debugging
 - [Task Checklist cho Tùng](docs/TUNG_TASKS.md) - Chi tiết các tasks cần hoàn thành
 - [CI Runner Guide](docs/CI_RUNNER_GUIDE.md) - Hướng dẫn self-hosted CI runner trên Mac
 - [Golden Dataset](docs/GOLDEN_DATASET.md) - Giải thích về tập dữ liệu chuẩn và cách eval
 
 ### Cho Development
+
 - [Architecture Diagrams](docs/ux/) - UI/UX flows và system architecture
 - [Brand Assets](docs/brand/) - Logo và brand guidelines
 - [Evaluation Results](eval/results/report_full.md) - Kết quả đánh giá chính thức
