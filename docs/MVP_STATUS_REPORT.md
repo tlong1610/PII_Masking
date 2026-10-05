@@ -28,9 +28,9 @@
 
 ---
 
-## ❌ THIẾU - GATE 2 BLOCKER
+## ✅ HOÀN THÀNH - GATE 2 BLOCKER
 
-### 🔴 CRITICAL: Privacy Risk Report (Long)
+### 🟢 CRITICAL: Privacy Risk Report (Long) - ĐÃ XONG
 
 **Task đã tạo:** https://trello.com/c/JfgByAH8
 
@@ -43,17 +43,17 @@
 - 6 sections: summary, stats, decisions, verifier, warnings, disclaimer
 - Calculate initial risk vs residual risk
 
-**Why critical:** Mentor yêu cầu bắt buộc cho Gate 2. Không có report = không pass.
+**Why critical:** Mentor yêu cầu bắt buộc cho Gate 2. Đã hoàn thiện và tích hợp vào giao diện.
 
 ---
 
 ## 📊 TỔNG KẾT
 
-**MVP Core:** ✅ 100% hoàn thành (75/75 tasks)
-- Long: 23/23 ✓
+**MVP Core:** ✅ 100% hoàn thành
+- Long: 24/24 ✓ (Bao gồm Privacy Risk Report)
 - Tùng: 17/17 ✓ (không còn task P0)
 - Kiên: 17/17 ✓
-- Phúc: 18/18 ✓
+- Phúc: 19/19 ✓ (Bao gồm UI cho Report)
 
 **Gate 2 Requirements:**
 - ✅ Agent chạy thật end-to-end
@@ -61,13 +61,9 @@
 - ✅ Repo ≥ 10 PR merged
 - ✅ README.md setup guide
 - ✅ Eval evidence (72 cases)
-- ❌ **Privacy Risk Report** (BLOCKER)
-- ⏳ Video demo 3 phút (pending report completion)
+- ✅ **Privacy Risk Report** (Hoàn thành)
+- ✅ Video demo 3 phút (Đã nộp trong docs/gate_2/README.md)
 
 **Remaining P0:**
-1. Long: GET /runs/{id}/report endpoint
-2. Phúc: FE report page (after Long finishes)
-3. Phúc: Record demo video (after report page done)
-
-**Estimated time:** 1-2 ngày nếu Long focus vào report endpoint.
+- Không còn task P0. Đã sẵn sàng nghiệm thu Gate 2.
 
