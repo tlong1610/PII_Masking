@@ -9,6 +9,9 @@ on:
 jobs:
   lint-and-test:
     runs-on: self-hosted
+    env:
+      RUNNER_TOOL_CACHE: ${{ runner.workspace }}/hostedtoolcache
+      AGENT_TOOLSDIRECTORY: ${{ runner.workspace }}/hostedtoolcache
 
     steps:
       - uses: actions/checkout@v4
