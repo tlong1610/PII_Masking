@@ -32,16 +32,15 @@ Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid
 | DPO / Data reviewer | Review có căn cứ, quyết định rõ và bằng chứng xử lý                      |
 | Analyst             | Dataset được phép dùng, có kiểm tra tác vụ và thời điểm snapshot rõ ràng |
 
-## Phạm vi MVP 14 ngày
+## Lộ trình Phát triển (Roadmap)
 
-| Có trong P0                                                                                              | Để sau MVP                                        |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| PostgreSQL (CSDL quan hệ doanh nghiệp đầy đủ nhiều bảng) + MongoDB (2 collections `customers`, `orders`) | Nhà cung cấp database khác, dữ liệu thật          |
-| ≤2.000 bản ghi và ≤20 đường dẫn trường mỗi nguồn; scalar và object lồng giới hạn                         | Mảng, nội dung tự do, file/OCR, schema tùy ý      |
-| Quét mọi trường trong phạm vi, DPO review, xử lý UNKNOWN bằng review hoặc DROP                           | Nhận diện tự động đầy đủ mọi loại dữ liệu cá nhân |
-| 2 tài khoản demo có kiểm tra quyền tại backend                                                           | SSO, đa tổ chức, RBAC đầy đủ                      |
-| Snapshot SQL/NoSQL, 2 tác vụ downstream định trước                                                       | Realtime, truy vấn tùy ý, join xuyên database     |
-| MASK/DROP/HMAC; báo cáo và audit tối thiểu                                                               | Token vault, KMS, vận hành production             |
+Dự án đã hoàn thành MVP (P0) và đang bước vào giai đoạn P1 (Nâng cao).
+
+| P0 - MVP (Đã hoàn thành) | P1 - Trọng tâm hiện tại | P2 - Để sau / Tương lai |
+| --- | --- | --- |
+| CSDL PostgreSQL và MongoDB (quy mô <2000 dòng) | Mở rộng quy mô, nhận diện PII đặc thù tiếng Việt | Nhà cung cấp database khác (Snowflake/BigQuery) |
+| MASK/DROP/HMAC, Verifier downstream cơ bản | Multi-agent đánh giá rủi ro & Eval đo precision/recall | Realtime CDC, truy vấn tùy ý, join xuyên DB |
+| DPO duyệt tĩnh (HITL), tài khoản demo local | Audit Log đầy đủ hệ thống, SSO/RBAC mở rộng | Token vault, KMS, vận hành production |
 
 PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Nếu file nhãn nội bộ cần `sample_value` để eval, các giá trị đó chỉ dùng trong fixture/eval và không được hiển thị trong UI, report, prompt hoặc log.
 
