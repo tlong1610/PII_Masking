@@ -16,9 +16,6 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        env:
-          RUNNER_TOOL_CACHE: ${{ runner.workspace }}/hostedtoolcache
-          AGENT_TOOLSDIRECTORY: ${{ runner.workspace }}/hostedtoolcache
         with:
           python-version: "3.11"
           cache: pip
