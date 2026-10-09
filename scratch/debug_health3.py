@@ -1,14 +1,17 @@
 import asyncio
+
 from httpx import AsyncClient
-from src.main import app
+
 from src.config import get_settings
+from src.main import app
+
 
 async def main():
     import os
     os.environ["ENABLE_MONGO"] = "true"
     os.environ["MONGO_URI"] = "mongodb://dummy"
     get_settings.cache_clear()
-    
+
     import pymongo
     class MockAdmin:
         def command(self, cmd):
@@ -18,8 +21,9 @@ async def main():
             self.admin = MockAdmin()
     pymongo.MongoClient = MockMongoClient
 
-    from src.db import session as db_session
     from unittest.mock import MagicMock
+
+    from src.db import session as db_session
     def mock_get_db():
         mock_db = MagicMock()
         yield mock_db

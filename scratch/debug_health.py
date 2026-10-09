@@ -1,14 +1,17 @@
 import asyncio
+
 from httpx import AsyncClient
-from src.main import app
+
 from src.config import get_settings
+from src.main import app
+
 
 async def main():
     import os
     os.environ["ENABLE_MONGO"] = "true"
     os.environ["MONGO_URI"] = "mongodb://dummy"
     get_settings.cache_clear()
-    
+
     import pymongo
     class MockAdmin:
         def command(self, cmd):

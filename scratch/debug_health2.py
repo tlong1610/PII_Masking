@@ -1,4 +1,5 @@
 import traceback
+
 try:
     class MockAdmin:
         def command(self, cmd):
@@ -8,5 +9,5 @@ try:
             self.admin = MockAdmin()
     client = MockMongoClient()
     client.admin.command('ping')
-except Exception as e:
+except Exception:
     traceback.print_exc()

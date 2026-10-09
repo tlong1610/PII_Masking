@@ -38,15 +38,16 @@ async def test_readyz_readiness_probe_healthy(client, monkeypatch):
     class MockMongoClient:
         def __init__(self, *args, **kwargs):
             self.admin = MockAdmin()
-        
+
         def close(self):
             pass
 
     monkeypatch.setattr("pymongo.MongoClient", MockMongoClient)
 
-    from src.main import app
-    from src.db import session as db_session
     from unittest.mock import MagicMock
+
+    from src.db import session as db_session
+    from src.main import app
 
     def mock_get_db():
         mock_db = MagicMock()
