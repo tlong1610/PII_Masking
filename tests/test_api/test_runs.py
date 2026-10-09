@@ -265,6 +265,7 @@ async def test_create_run_ai_scan_path(client, monkeypatch):
         "src.services.run_scanner.scan_postgres_source",
         fake_scan,
     )
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: True)
 
     token = await _login(client, "dpo", "dpo123")
     created = await client.post(
@@ -307,6 +308,7 @@ async def test_create_run_ai_scan_failure_marks_failed(client, monkeypatch):
         "src.services.run_scanner.scan_postgres_source",
         boom,
     )
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: True)
 
     token = await _login(client, "dpo", "dpo123")
     created = await client.post(
