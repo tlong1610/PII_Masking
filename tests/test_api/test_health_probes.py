@@ -24,22 +24,53 @@ async def test_healthz_liveness_probe_root_and_api(client):
 
 
 @pytest.mark.asyncio
-async def test_readyz_readiness_probe_healthy(client):
+async def test_readyz_readiness_probe_healthy(client, monkeypatch):
     """Readiness probe /readyz kiểm tra các kết nối phụ thuộc sẵn sàng phục vụ request."""
-    # 1. Root /readyz
-    res_root = await client.get("/readyz")
-    assert res_root.status_code == 200
-    data_root = res_root.json()
-    assert data_root["status"] == "ready"
-    assert data_root["checks"]["database"] == "ok"
-    assert "mongodb" in data_root["checks"]
-    assert "llm" in data_root["checks"]
-    assert "timestamp" in data_root
+    monkeypatch.setenv("ENABLE_MONGO", "true")
+    monkeypatch.setenv("MONGO_URI", "mongodb://dummy")
+    from src.config import get_settings
+    get_settings.cache_clear()
 
-    # 2. Prefixed /api/v1/readyz
-    res_api = await client.get("/api/v1/readyz")
-    assert res_api.status_code == 200
-    assert res_api.json()["status"] == "ready"
+    class MockAdmin:
+        def command(self, cmd):
+            pass
+
+    class MockMongoClient:
+        def __init__(self, *args, **kwargs):
+            self.admin = MockAdmin()
+        
+        def close(self):
+            pass
+
+    monkeypatch.setattr("pymongo.MongoClient", MockMongoClient)
+
+    from src.main import app
+    from src.db import session as db_session
+    from unittest.mock import MagicMock
+
+    def mock_get_db():
+        mock_db = MagicMock()
+        mock_db.execute.return_value = None
+        yield mock_db
+
+    app.dependency_overrides[db_session.get_db] = mock_get_db
+    try:
+        # 1. Root /readyz
+        res_root = await client.get("/readyz")
+        assert res_root.status_code == 200
+        data_root = res_root.json()
+        assert data_root["status"] == "ready"
+        assert data_root["checks"]["database"] == "ok"
+        assert "mongodb" in data_root["checks"]
+        assert "llm" in data_root["checks"]
+        assert "timestamp" in data_root
+
+        # 2. Prefixed /api/v1/readyz
+        res_api = await client.get("/api/v1/readyz")
+        assert res_api.status_code == 200
+        assert res_api.json()["status"] == "ready"
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
