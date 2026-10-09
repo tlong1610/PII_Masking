@@ -8,12 +8,18 @@
 # Exits 0 silently if no Python is found — hooks must never block the AI tool.
 set -u
 
-if command -v python3 >/dev/null 2>&1; then
-  PY=python3
-elif command -v python >/dev/null 2>&1; then
-  PY=python
-elif command -v py >/dev/null 2>&1; then
-  PY="py -3"
+# `command -v` alone is not enough: on Windows, python3/python can be the
+# Microsoft Store stub, which is on PATH but fails when run.
+PY=""
+for cand in python3 python "py -3"; do
+  # shellcheck disable=SC2086
+  if command -v ${cand%% *} >/dev/null 2>&1 && $cand -c "" >/dev/null 2>&1; then
+    PY="$cand"; break
+  fi
+done
+
+if [ -n "$PY" ]; then
+  :
 else
   # PATH lookup failed — probe standard Windows install locations.
   PY=""

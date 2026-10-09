@@ -30,6 +30,15 @@ Thumbs.db
 
 # Data (never commit large data)
 data/
+!data/
+data/*
+!data/fixtures/
+data/fixtures/*
+!data/fixtures/seed.sql
+!data/fixtures/postgres/
+!data/fixtures/postgres/**
+!data/fixtures/mongo/
+!data/fixtures/mongo/**
 *.db
 *.sqlite3
 
@@ -58,3 +67,9 @@ out/
 # AI logs — tracked structure, ignored content
 .ai-log/*.jsonl
 .ai-log/archive/
+
+
+**/tx
+**/mcp_config.json
+# Claude Code guidance (local)
+CLAUDE.md

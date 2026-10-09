@@ -1,18 +1,25 @@
-from __future__ import annotations
-
 from typing import TypedDict
+
+from src.models.schemas import ColumnProfile, FieldScanResult
 
 
 class AgentState(TypedDict, total=False):
-    """State schema cho LangGraph agent.
+    """State schema cho luồng LangGraph."""
+    # Đầu vào
+    column_profile: ColumnProfile
 
-    Mỗi node đọc và ghi vào state này.
-    total=False cho phép tất cả fields là optional.
-    """
+    # Các trạng thái trung gian cho mô hình Phễu 3 tầng
+    tier1_result: FieldScanResult | None
+    bm25_score: float | None
+    data_shape: list[str] | None  # Dữ liệu mẫu đã được ẩn danh hình dáng
+    hybrid_score: float | None
+    tier3_result: FieldScanResult | None
 
-    query: str
-    context: str
-    analysis: str
-    response: str
-    error: str
-    metadata: dict
+    # Kết quả cuối cùng
+    final_proposal: FieldScanResult | None
+
+    # Cờ đánh dấu cần sự kiểm duyệt của DPO
+    requires_dpo_review: bool
+
+    # Báo lỗi nếu có
+    error: str | None

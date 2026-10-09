@@ -1,194 +1,260 @@
-# AI20K Agent Template
+# PIIGuard Shield
 
-Template chính thức cho học viên VinUni AI20K Build Phase: cấu trúc dự án, code
-mẫu và hướng dẫn kỹ thuật để xây dựng một AI Agent hoàn chỉnh — từ kiến trúc,
-code, test cho đến deploy và nộp bài Demo Day.
+> Hỗ trợ DPO rà soát dữ liệu cá nhân trong PostgreSQL và MongoDB, duyệt biện pháp bảo vệ và chia sẻ dataset vẫn dùng được cho tác vụ phân tích đã kiểm tra.
 
-Technical Guidebook: <https://phoenix.note.transformerlabs.ai/technical-book>
+**Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
+**Bản thiết kế:** 21/09/2026 · **MVP:** 14 ngày / 4 người
 
-## Template có sẵn những gì
+Đây là bộ tài liệu triển khai MVP. Trạng thái code thực tế phải được đối chiếu bằng test/evidence trong repo, không đánh dấu xong chỉ vì tài liệu đã mô tả.
 
-- **Cấu trúc thư mục tách lớp** — `agents/`, `api/`, `services/`, `models/` đã
-  chia sẵn, không phải bàn lại từ đầu.
-- **Code mẫu chạy được** — LangGraph agent (state, node, tool), FastAPI routes,
-  Pydantic settings, schema.
-- **Docker và CI** — Dockerfile multi-stage, `docker-compose.yml`, workflow
-  GitHub Actions chạy `ruff` + `pytest` khi push lên `main`/`develop` và khi mở
-  pull request vào `main`.
-- **Technical Guidebook 10 chương** trong `docs/guide/`, đồng thời đọc được
-  online.
-- **Checklist 10 deliverables** của Demo Day.
-- **AI usage logging** — hook cài sẵn cho 6 công cụ AI, log tự động gửi lên
-  grading server mỗi lần `git push`.
+## Vấn đề (Problem)
 
-## Yêu cầu
+DPO và đội dữ liệu mất công rà từng trường trước khi cung cấp dữ liệu cho Analyst. Họ vừa có thể bỏ sót dữ liệu cá nhân, vừa có thể làm hỏng phép liên kết nếu che khóa không nhất quán. Cần một quy trình có căn cứ, người duyệt và kiểm tra tác động trước khi chia sẻ.
 
-- Python 3.11 (phiên bản CI đang dùng)
-- Git
-- Docker — tuỳ chọn, chỉ cần nếu chạy `docker compose`
+## Giải pháp (Solution)
 
-## Bắt đầu
+**PostgreSQL hoặc MongoDB → chọn bảng/collection → quét → DPO duyệt → tạo snapshot đã xử lý → kiểm tra downstream → DPO phát hành → Analyst dùng.**
 
-### 1. Clone repo của đội
+- Hai connector dùng chung bộ xử lý và chính sách; cả SQL và NoSQL là P0.
+- Danh mục phân loại có nguồn pháp lý, tách khỏi độ phủ detector; không đóng cứng thành 4–5 trường PII.
+- LLM hỗ trợ schema mơ hồ từ profile đã lọc; code kiểm tra, biến đổi và thực thi quyền; DPO quyết định.
+- Chọn MASK/DROP/HMAC theo mục đích dùng PII: lookup/mapping/aggregate dùng HMAC một chiều; trường không cần downstream thì MASK/DROP; dữ liệu cần trả về user và ảnh/voice nằm ngoài P0.
+- Snapshot đầu ra riêng, nguồn chỉ đọc; SQL join và MongoDB lookup phải đạt trước khi phát hành.
+- UI không hiển thị raw PII value cho bất kỳ vai trò nào, kể cả DPO. DPO duyệt bằng field path, kiểu dữ liệu, pattern/profile đã lọc, căn cứ, action đề xuất và tác động downstream.
+- Báo cáo web/JSON, cảnh báo có lý do, lịch sử review; không tuyên bố tuân thủ tuyệt đối.
 
-Khi đội được chốt, hệ thống tự sinh repo cho đội từ template này, nằm trong org
-GitHub của khoá bạn đang học và đặt tên theo mã đội. Copy URL ở trang đội trên
-Phoenix rồi clone về:
+Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Mapping, độ phủ và giới hạn: [PRD](docs/prd.md).
 
-```bash
-git clone https://github.com/<ORG-CỦA-KHOÁ>/<MÃ-ĐỘI>.git
-cd <MÃ-ĐỘI>
+## Target User
+
+| Vai trò             | Giá trị nhận được                                                        |
+| ------------------- | ------------------------------------------------------------------------ |
+| DPO / Data reviewer | Review có căn cứ, quyết định rõ và bằng chứng xử lý                      |
+| Analyst             | Dataset được phép dùng, có kiểm tra tác vụ và thời điểm snapshot rõ ràng |
+
+## Lộ trình Phát triển (Roadmap)
+
+Dự án đã hoàn thành MVP (P0) và đang bước vào giai đoạn P1 (Nâng cao).
+
+| P0 - MVP (Đã hoàn thành) | P1 - Trọng tâm hiện tại | P2 - Để sau / Tương lai |
+| --- | --- | --- |
+| CSDL PostgreSQL và MongoDB (quy mô <2000 dòng) | Mở rộng quy mô, nhận diện PII đặc thù tiếng Việt | Nhà cung cấp database khác (Snowflake/BigQuery) |
+| MASK/DROP/HMAC, Verifier downstream cơ bản | Multi-agent đánh giá rủi ro & Eval đo precision/recall | Realtime CDC, truy vấn tùy ý, join xuyên DB |
+| DPO duyệt tĩnh (HITL), tài khoản demo local | Audit Log đầy đủ hệ thống, SSO/RBAC mở rộng | Token vault, KMS, vận hành production |
+
+PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql`. Đây là dữ liệu mô phỏng 100%, dựa trên schema Northwind và được bổ sung PII Việt Nam synthetic như CCCD, số điện thoại, email, mã số thuế, ticket hỗ trợ và OCR text từ hồ sơ KYC giả lập. Golden dataset phải có nhãn chuẩn theo field, ca âm dễ nhầm, expected policy và expected downstream result. Nếu file nhãn nội bộ cần `sample_value` để eval, các giá trị đó chỉ dùng trong fixture/eval và không được hiển thị trong UI, report, prompt hoặc log.
+
+## Tech Stack
+
+| Layer       | Lựa chọn                                                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Backend     | Python 3.11 + FastAPI + Pydantic                                                                                           |
+| AI workflow | LangGraph luồng cố định; OpenAI `gpt-4.1-mini-2025-04-14`, structured output                                               |
+| Frontend    | React + TypeScript + Vite                                                                                                  |
+| Database    | PostgreSQL (CSDL quan hệ doanh nghiệp đầy đủ nhiều bảng) + MongoDB; psycopg + PyMongo; state trong schema PostgreSQL riêng |
+| Protection  | MASK/DROP và Python HMAC-SHA-256; không vector store                                                                       |
+| DevOps      | Docker Compose + GitHub Actions; máy demo riêng, database không công khai                                                  |
+
+Quyết định kiến trúc và phương án đánh đổi: [ARCHITECTURE.md](ARCHITECTURE.md) và [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
+
+## Quick Start
+
+MVP cắm database bằng **connection string**, không ưu tiên upload file database. Có hai nhóm database:
+
+```text
+Input  = source database read-only
+Output = protected snapshot database cho Analyst
 ```
 
-Không cần `rm -rf .git`, `git init` hay `git remote add`: repo sinh từ template
-đã bắt đầu bằng lịch sử riêng của đội và remote trỏ sẵn đúng chỗ. Chưa thấy repo
-của đội thì báo BTC — repo tự tạo nằm ngoài org sẽ không được chấm.
+PostgreSQL:
 
-### 2. Cài môi trường
+```env
+SOURCE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mydatabase
+SNAPSHOT_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/snapshot_out
+ENABLE_PG_SNAPSHOT=true
+```
+
+MongoDB:
+
+```env
+MONGO_URI=mongodb://admin:admin@localhost:27017/?authSource=admin
+MONGO_DB=mydatabase
+MONGO_SNAPSHOT_DB=mydatabase_protected
+ENABLE_MONGO=true
+```
+
+Không commit `.env`, API key, password, HMAC secret hoặc connection string có credential.
 
 ```bash
+git clone https://github.com/AI20K-Build-Phase-Cohort-4/P-138.git
+cd P-138
 python3.11 -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 3. Cấu hình biến môi trường
-
-```bash
+source .venv/bin/activate
 cp .env.example .env
+pip install -r requirements.txt
+uvicorn src.main:app --reload
 ```
 
-Mở `.env` và điền `OPENAI_API_KEY`. Riêng `AI_LOG_API_KEY`, mỗi thành viên tự
-tạo key riêng tại [dashboard Phoenix](https://phoenix.note.transformerlabs.ai/api-keys)
-rồi thay vào chỗ `<get-your-api-key-from-dashboard-phoenix>` — giá trị trong
-`.env.example` chỉ là placeholder, để nguyên thì log không vào được hệ thống chấm.
+Fixture demo:
 
-### 4. Cài hook ghi log AI
+```text
+PostgreSQL seed: data/fixtures/seed.sql
+MongoDB seed   : data/fixtures/mongo/
+```
+
+Sau khi server chạy, mở `http://localhost:8000/docs`. Flow API chính:
+
+```text
+POST /sessions
+GET /sources
+GET /sources/{id}/scope
+POST /runs
+GET /runs/{id}
+PUT /runs/{id}/decisions
+POST /runs/{id}/build
+POST /datasets/{id}/publish
+GET /datasets/{id}/preview
+```
+
+`sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Source động cho doanh nghiệp phải nhận connection string, test connection, đọc scope, cho DPO chọn bảng/collection, rồi mới scan PII trong phạm vi đã chọn.
+
+## GitHub Actions self-hosted runner (máy Phúc)
+
+Runner `team-138-rin1652` được đăng ký cho repo P-138 với nhãn `team-138`. Thư mục `actions-runner/` là runtime của GitHub Runner, chỉ tồn tại local và không được commit.
+
+Khi mở Mac và muốn CI nhận job, chạy trong terminal:
 
 ```bash
-bash scripts/setup_hooks.sh                                      # Linux / macOS / Git Bash
-powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1 # Windows PowerShell
+cd /Users/phucnguyen/Desktop/AI/team_build_phase/P-138/actions-runner
+./run.sh
 ```
 
-Chạy một lần sau khi clone. Hook ghi lại prompt khi bạn dùng Claude Code, Cursor,
-Codex CLI, Gemini CLI, Antigravity hoặc GitHub Copilot, và cài pre-push hook để
-đẩy log lên server.
-
-### 5. Chạy server
+Giữ terminal này mở và để Mac thức, có mạng. Kiểm tra runner:
 
 ```bash
-uvicorn src.main:app --reload --port 8000
+./svc.sh status
 ```
 
-Swagger UI ở <http://localhost:8000/docs>. Hoặc dùng `make run`, `make test`,
-`make lint` — xem `Makefile`.
+Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hiện tại. Nếu gập máy làm Mac sleep, runner sẽ offline; job dùng `runs-on: self-hosted` sẽ chờ hoặc có thể fail nếu đang chạy.
 
-## Cấu trúc thư mục
+## Project Structure
 
-```
-src/
-  agents/            LangGraph agent
-    graph.py         State graph (nodes + edges)
-    state.py         State schema (TypedDict)
-    nodes/           Node functions
-    tools/           Agent tools (@tool)
-  api/routes.py      FastAPI endpoints
-  models/schemas.py  Pydantic schemas
-  services/llm.py    LLM client
-  config.py          Pydantic Settings
-  main.py            App entry point
-tests/               pytest suite
-scripts/             Hook ghi log AI + installer
-docs/
-  guide/             Technical Guidebook (nguồn của bản online)
-  architecture_diagram.md
-eval/                Kết quả evaluation
-presentation/        Slide và video Demo Day
-.claude/ .codex/ .cursor/ .gemini/ .agents/ .github/hooks/
-                     Config hook cho từng công cụ
-.github/workflows/   CI
-Dockerfile           Multi-stage build
-docker-compose.yml   Chạy backend bằng Docker
-README_boilerplate.md  Khung README cho dự án của đội
-```
+> 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
 
-## Technical Guidebook
+| Đường dẫn                                                              | Nội dung                                                                       |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)                         | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng      |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md)                                   | Kiến trúc hệ thống, security boundary và deploy model                          |
+| [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture                 |
+| [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md)       | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |
+| `docs/brief.md`, `docs/brief-one-page.pdf`                             | Brief theo 6 mục Gate 1; PDF đúng một trang                                    |
+| `docs/prd.md`                                                          | Phạm vi, stories, HITL, lỗi, dữ liệu, stack, ambiguity và nghiệm thu           |
+| `docs/ui-flow.md`                                                      | 2 vai trò, 5 trang/2 modal và trạng thái bắt buộc                              |
+| `src/`                                                                 | API, workflow, connectors, protection, verifier và metadata                    |
+| `frontend/`                                                            | React dashboard                                                                |
+| `eval/`, `tests/`                                                      | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                          |
+| `presentation/`                                                        | Demo script, số liệu thực tế và slide sau nghiệm thu                           |
+| `.github/workflows/`                                                   | CI theo khung repo chương trình                                                |
 
-| Chương | Nội dung | Thời gian |
-|---|---|---|
-| 1 | Lời mở đầu — mục tiêu, cách sử dụng | 15 phút |
-| 2 | Khởi tạo dự án — clone, setup, git workflow | 4 giờ |
-| 3 | Thiết kế kiến trúc — 3-tier, diagram, ADR | 6 giờ |
-| 4 | LangGraph Agent — state, node, edge, tool, RAG | 8 giờ |
-| 5 | FastAPI — routes, validation, error handling, streaming | 6 giờ |
-| 6 | Giao diện — Next.js và Streamlit | 6 giờ |
-| 7 | DevOps — Docker, CI/CD, deploy, logging | 6 giờ |
-| 8 | Kiểm thử — unit test, integration test, RAGAS | 4 giờ |
-| 9 | Demo Day — 10 deliverables, checklist | 2 giờ |
-| 10 | Tài nguyên — khoá học, tài liệu, BMAD method | tham khảo |
+## API Endpoints
 
-Đọc online tại <https://phoenix.note.transformerlabs.ai/technical-book>: đăng
-nhập bằng GitHub (đúng account đã được BTC mời vào org của khoá), chọn tab
-**Technical Book** ở sidebar trái. Bản offline nằm trong `docs/guide/`, mở được
-bằng bất kỳ markdown viewer nào.
+Các endpoint chính cho MVP:
 
-## 10 deliverables cho Demo Day
+| Endpoint dự kiến              | Quyền          | Hành vi                                                            |
+| ----------------------------- | -------------- | ------------------------------------------------------------------ |
+| `POST /sessions`              | Tài khoản demo | Xác thực; role do server quyết định                                |
+| `GET /sources`                | DPO            | Liệt kê hai nguồn đã cấu hình, không trả credential                |
+| `GET /sources/{id}/scope`     | DPO            | Đọc danh sách bảng/collection để chọn phạm vi quét                 |
+| `POST /runs`                  | DPO            | Tạo run và quét chỉ các bảng/collection đã chọn                    |
+| `GET /runs/{id}`              | DPO            | Tiến độ, field profile và trạng thái                               |
+| `PUT /runs/{id}/decisions`    | DPO            | Review mọi trường; lưu phiên quyết định                            |
+| `POST /runs/{id}/build`       | DPO            | Xác nhận, kiểm tra trạng thái, tạo staging và verifier             |
+| `GET /runs/{id}/report`       | DPO            | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII    |
+| `POST /datasets/{id}/publish` | DPO            | Chỉ VERIFIED; ghi audit và cho Analyst dùng                        |
+| `POST /datasets/{id}/revoke`  | DPO            | Thu hồi quyền dùng qua app                                         |
+| `GET /datasets`               | Analyst        | Chỉ PUBLISHED                                                      |
+| `GET /datasets/{id}/preview`  | Analyst        | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200) |
 
-| # | Deliverable | Vị trí | Template lo tới đâu |
-|---|---|---|---|
-| 1 | Source code | `src/` | Khung sẵn |
-| 2 | README | copy `README_boilerplate.md` thành `README.md` | Khung sẵn |
-| 3 | Architecture diagram | `docs/architecture_diagram.md` | Khung sẵn |
-| 4 | AI logs | LangSmith (3 biến môi trường) + auto AI usage logging | Cấu hình sẵn |
-| 5 | Live URL | deploy lên Render/Vercel | CI/CD sẵn |
-| 6 | Video demo | `presentation/` | Đội tự làm |
-| 7 | Pitch deck | `presentation/` | Đội tự làm |
-| 8 | Development journal | `JOURNAL.md` | Khung sẵn |
-| 9 | Worklog | `WORKLOG.md` | Khung sẵn |
-| 10 | Evaluation evidence | `eval/` | Đội tự làm |
+Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
 
-## Tech stack
+## Deliverables Checklist
 
-| Lớp | Công nghệ |
-|---|---|
-| Agent | LangGraph + LangChain 0.3 |
-| Backend | FastAPI 0.115 + Uvicorn |
-| LLM | OpenAI, mặc định `gpt-4o-mini` (đổi trong `src/config.py`) |
-| Giao diện | Next.js hoặc Streamlit (đội tự chọn, hướng dẫn ở chương 6) |
-| Lint / test | ruff + pytest 8 |
-| DevOps | Docker + GitHub Actions |
+Mẫu Gate 1 có **4 deliverable**: brief, PRD, UI Flow và **repo + AI Log setup**. README là một phần của repo setup, không thay thế phần chạy thật.
 
-## AI usage logging
+- [x] Brief đủ 6 mục; kèm PDF một trang.
+- [x] PRD đủ 9 mục mẫu và tiêu chí nghiệm thu.
+- [x] UI Flow đủ hai vai trò, xác nhận, loading, lỗi và empty state.
+- [x] README và bản quyết định MVP đồng bộ phạm vi.
+- [x] Remote trỏ đúng repo P-138 của Cohort 4; dependencies cài được.
+- [x] `.env` có secret ngoài git; server và Swagger chạy thật.
+- [x] Hai database/fixture và hai tài khoản hoạt động.
+- [x] Nhánh `develop`, PR tài liệu được người khác review/merge; CI đạt.
+- [ ] Hook AI log đã hoạt động và log đến grading server.
+- [x] Đã hoàn thành 5 test case manual và bằng chứng eval: [Xem chi tiết tại docs/gate_2/README.md](docs/gate_2/README.md)
+- [x] Demo, video, slide và URL: **[Xem chi tiết tại docs/gate_2/README.md](docs/gate_2/README.md)**
 
-Mọi prompt được ghi vào `.ai-log/session.jsonl` và tự động gửi lên grading server
-ở bước pre-push.
+> 📁 **Toàn bộ hồ sơ và bằng chứng nộp bài Gate 2 được tổng hợp tại: [docs/gate_2/README.md](docs/gate_2/README.md)**
 
-| Công cụ | Cấu hình | Thời điểm ghi |
-|---|---|---|
-| Claude Code | `.claude/settings.json` | mỗi prompt (`UserPromptSubmit`) |
-| Cursor | `.cursor/hooks.json` | mỗi prompt và khi dừng |
-| OpenAI Codex CLI | `.codex/hooks.json` | mỗi prompt và khi dừng |
-| Gemini CLI | `.gemini/settings.json` | mỗi lượt agent chạy |
-| GitHub Copilot | `.github/hooks/hooks.json` | mỗi prompt và cuối session |
-| Antigravity IDE | `.agents/hooks.json` | mỗi prompt, kèm lần quét lại lúc `git push` |
+Không đánh dấu các mục chưa có bằng chứng. Không sao chép hạn lịch hoặc tên org Cohort 3 trong mẫu sang Cohort 4. Theo mẫu được cung cấp, G2 yêu cầu ít nhất 10 PR có ý nghĩa đã merge; kế hoạch chia việc phải đáp ứng, không tạo PR rỗng chỉ để đủ số.
 
-Dùng ChatGPT hay công cụ web khác thì log thủ công:
+Làm việc theo `feature/<ten>` → PR có review → `develop` → `main` ổn định. Không push trực tiếp `main`. Thay đổi hành vi phải sửa tài liệu trong cùng PR.
 
-```bash
-bash scripts/_pyrun.sh scripts/log_manual.py --tool chatgpt --prompt "What you asked"
-```
+## Team
 
-## Đóng góp
+Phân công triển khai được chọn cho kế hoạch; công suất thực tế cần xác minh ngày 1.
 
-Repo này là open source. Đọc [CONTRIBUTING.md](CONTRIBUTING.md) trước khi mở PR.
+| Thành viên        | Trách nhiệm chính                                                              |
+| ----------------- | ------------------------------------------------------------------------------ |
+| Nguyễn Đình Phúc  | PO/Team Lead; frontend, scope, đối chiếu căn cứ, demo/pitch                    |
+| Trần Xuân Tùng    | Rules/LLM, structured output, workflow phát hiện và đánh giá AI                |
+| Nguyễn Trung Kiên | MongoDB connector, fixture/nhãn chuẩn, downstream và eval                      |
+| Đoàn Tuấn Long    | Backend, PostgreSQL connector, writer/guardrail, phân quyền và môi trường demo |
 
-Nội dung trong `docs/guide/` là nguồn của Technical Book và được đồng bộ lên bản
-online, nên mọi thay đổi ở đó cần review của
-[@AI20K-Build-Phase/book-maintainers](https://github.com/orgs/AI20K-Build-Phase/teams/book-maintainers)
-— xem [.github/CODEOWNERS](.github/CODEOWNERS).
-
-Báo lỗ hổng bảo mật theo [SECURITY.md](SECURITY.md), đừng mở public issue.
+Lịch thực hiện, giờ dự kiến và điểm cắt hiện theo Trello của team.
 
 ## License
 
-[MIT](LICENSE) — dùng tự do cho mục đích giáo dục.
+MIT
+
+## Đánh giá (Evaluation)
+
+Chỉ số đánh giá (eval) chính thức của dự án được lấy từ báo cáo chi tiết tại file [eval/results/report_full.md](eval/results/report_full.md).
+Xin vui lòng tham khảo file này để xem các kết quả đo lường, precision, recall trên tập dữ liệu chuẩn.
+
+Để chạy lại quá trình đánh giá (eval), bạn có thể sử dụng lệnh sau:
+
+```bash
+PYTHONPATH=. python eval/run_eval_full.py
+```
+
+## 📚 Tài Liệu Dự Án
+
+### Cho Team Members
+
+- [FAQ - Câu Hỏi Thường Gặp](docs/FAQ_PHUC.md) - Trả lời các câu hỏi về CI, golden dataset, debugging
+- [Task Checklist cho Tùng](docs/TUNG_TASKS.md) - Chi tiết các tasks cần hoàn thành
+- [CI Runner Guide](docs/CI_RUNNER_GUIDE.md) - Hướng dẫn self-hosted CI runner trên Mac
+- [Golden Dataset](docs/GOLDEN_DATASET.md) - Giải thích về tập dữ liệu chuẩn và cách eval
+
+### Cho Development
+
+- [Architecture Diagrams](docs/ux/) - UI/UX flows và system architecture
+- [Brand Assets](docs/brand/) - Logo và brand guidelines
+- [Evaluation Results](eval/results/report_full.md) - Kết quả đánh giá chính thức
+
+### Quick Start Dev Environment
+
+```bash
+# 1. Start backend + databases
+docker-compose up -d
+
+# 2. Start frontend (terminal riêng)
+cd front_end && npm run dev
+
+# 3. Mở browser
+open http://localhost:5173
+# Login: dpo/dpo123 hoặc analyst/analyst123
+
+# 4. Check logs
+docker logs p-138-backend-1 -f
+```

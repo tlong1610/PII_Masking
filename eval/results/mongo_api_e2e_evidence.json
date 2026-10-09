@@ -1,0 +1,282 @@
+{
+  "generated_at": "2026-09-28T15:53:13.526027",
+  "flow": "POST /runs -> PUT /runs/{id}/decisions -> POST /runs/{id}/build",
+  "scan_mode": "rule",
+  "status": "VERIFIED",
+  "dataset_status": "VERIFIED",
+  "output_location": "mongodb://mydatabase_protected/customers,orders",
+  "collections_scanned": [
+    "customers",
+    "orders"
+  ],
+  "fields_total": 35,
+  "action_counts": {
+    "HMAC": 5,
+    "KEEP": 5,
+    "DROP": 20,
+    "MASK": 5
+  },
+  "fields": [
+    {
+      "collection": "customers",
+      "field": "_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "collection": "customers",
+      "field": "company.name",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "collection": "customers",
+      "field": "company.contact_name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "company.contact_title",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "address.street",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "address.city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "address.region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "address.postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "collection": "customers",
+      "field": "address.country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "contact.phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "collection": "customers",
+      "field": "contact.fax",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "contact.email",
+      "classification": "PERSONAL_CONTEXT",
+      "action": "MASK"
+    },
+    {
+      "collection": "customers",
+      "field": "contact.mobile_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "collection": "customers",
+      "field": "identity.cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "HMAC"
+    },
+    {
+      "collection": "customers",
+      "field": "identity.date_of_birth",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "customers",
+      "field": "identity.tax_code",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "collection": "customers",
+      "field": "notes",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "collection": "orders",
+      "field": "customer_id",
+      "classification": "NON_PERSONAL",
+      "action": "HMAC"
+    },
+    {
+      "collection": "orders",
+      "field": "employee_id",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "collection": "orders",
+      "field": "order_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "required_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipped_date",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.via",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.freight",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.name",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.address",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.city",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.region",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.postal_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "collection": "orders",
+      "field": "shipment.country",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    },
+    {
+      "collection": "orders",
+      "field": "pii_ext.customer_cccd",
+      "classification": "PERSONAL_BASIC",
+      "action": "HMAC"
+    },
+    {
+      "collection": "orders",
+      "field": "pii_ext.ship_phone",
+      "classification": "PERSONAL_BASIC",
+      "action": "MASK"
+    },
+    {
+      "collection": "orders",
+      "field": "pii_ext.tracking_code",
+      "classification": "NON_PERSONAL",
+      "action": "KEEP"
+    },
+    {
+      "collection": "orders",
+      "field": "pii_ext.order_notes",
+      "classification": "UNKNOWN",
+      "action": "DROP"
+    }
+  ],
+  "checks": [
+    {
+      "check_name": "policy_complete",
+      "status": "PASSED",
+      "baseline": "35",
+      "actual": "35",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "doc_count:customers",
+      "status": "PASSED",
+      "baseline": "91",
+      "actual": "91",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "doc_count:orders",
+      "status": "PASSED",
+      "baseline": "830",
+      "actual": "830",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "lookup_matched:orders.customer_id->customers._id",
+      "status": "PASSED",
+      "baseline": "830",
+      "actual": "830",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "lookup_unmatched:orders.customer_id->customers._id",
+      "status": "PASSED",
+      "baseline": "0",
+      "actual": "0",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "lookup_matched:orders.pii_ext.customer_cccd->customers.identity.cccd",
+      "status": "PASSED",
+      "baseline": "830",
+      "actual": "830",
+      "tolerance": "0"
+    },
+    {
+      "check_name": "lookup_unmatched:orders.pii_ext.customer_cccd->customers.identity.cccd",
+      "status": "PASSED",
+      "baseline": "0",
+      "actual": "0",
+      "tolerance": "0"
+    }
+  ]
+}

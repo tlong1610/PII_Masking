@@ -48,13 +48,15 @@ Env overrides:
   ANTIGRAVITY_BRAIN_DIR  point at a different brain/ directory
   AI_LOG_DIR             where session.jsonl is written (default: .ai-log)
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Fix Windows console encoding so VN diacritics in prompts print cleanly.
@@ -167,6 +169,8 @@ def _conv_cwds(transcript: Path) -> set[str]:
                     cwd = args.get("Cwd") or args.get("cwd")
                     cwd = _unquote_arg(cwd)
                     if isinstance(cwd, str):
+                        # Strip any residual quotes around the path
+                        cwd = cwd.strip().strip('"').strip("'")
                         n = _normalize(cwd)
                         if n:
                             cwds.add(n)
@@ -176,7 +180,7 @@ def _conv_cwds(transcript: Path) -> set[str]:
 
 
 def _conv_matches_repo(cwds: set[str], repo_root_n: str) -> bool:
-    """True if any cwd is equal to, ancestor of, or descendant of the repo."""
+    """True if any cwd is equal to or a descendant of the repo root."""
     if not repo_root_n or not cwds:
         return False
     for cwd in cwds:
@@ -184,8 +188,7 @@ def _conv_matches_repo(cwds: set[str], repo_root_n: str) -> bool:
             return True
         if cwd.startswith(repo_root_n + "\\"):
             return True
-        if repo_root_n.startswith(cwd + "\\"):
-            return True
+        # NOTE: removed parent-directory match to prevent false positives
     return False
 
 
@@ -273,10 +276,15 @@ def iter_user_inputs(brain_dirs: list[Path], cutoff: datetime | None,
                      only_conv: str | None, repo_root_n: str):
     """Yield user-input dicts from every matching conversation transcript."""
     for brain in brain_dirs:
-        for conv_dir in sorted(brain.iterdir()):
-            if not conv_dir.is_dir():
+        if only_conv:
+            conv_dirs = [brain / only_conv]
+        else:
+            try:
+                conv_dirs = sorted(brain.iterdir())
+            except OSError:
                 continue
-            if only_conv and conv_dir.name != only_conv:
+        for conv_dir in conv_dirs:
+            if not conv_dir.is_dir():
                 continue
             transcript = (
                 conv_dir / ".system_generated" / "logs" / "transcript.jsonl"
@@ -361,6 +369,17 @@ def log_from_hook(transcript: Path, data: dict) -> int:
     conv_id = data.get("conversationId") or transcript.parents[2].name
     workspaces = [w for w in (data.get("workspacePaths") or []) if w]
     root = Path(workspaces[0]) if workspaces else Path.cwd()
+
+    expected_conv = os.environ.get("ANTIGRAVITY_CONV_ID")
+    if not expected_conv:
+        env_file = root / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith("ANTIGRAVITY_CONV_ID="):
+                    expected_conv = line.split("=", 1)[1].strip()
+                    break
+    if expected_conv and conv_id != expected_conv:
+        return 0
 
     log_dir = Path(os.environ.get("AI_LOG_DIR", ".ai-log"))
     if not log_dir.is_absolute():
@@ -462,12 +481,21 @@ def main() -> None:
     if not args.all:
         cutoff = datetime.now(tz=VN_TZ) - timedelta(hours=args.hours)
 
+    conv_id = args.conv_id or os.environ.get("ANTIGRAVITY_CONV_ID")
+    if not conv_id:
+        env_file = Path.cwd() / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith("ANTIGRAVITY_CONV_ID="):
+                    conv_id = line.split("=", 1)[1].strip()
+                    break
+
     repo_root_n = "" if args.no_repo_filter else _normalize(str(Path.cwd()))
 
     repo, branch, commit, student = repo_context()
 
     new_entries: list[dict] = []
-    for msg in iter_user_inputs(brain_dirs, cutoff, args.conv_id, repo_root_n):
+    for msg in iter_user_inputs(brain_dirs, cutoff, conv_id, repo_root_n):
         entry = build_entry(msg, repo, branch, commit, student)
         if entry["entry_id"] in logged_ids:
             continue

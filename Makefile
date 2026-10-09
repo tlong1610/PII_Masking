@@ -1,19 +1,19 @@
 .PHONY: run test lint format typecheck check clean
 
 run:
-	uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	.venv/bin/uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest tests/ -v
+	.venv/bin/pytest tests/ -v
 
 lint:
-	ruff check src/ tests/
+	.venv/bin/ruff check src/ tests/
 
 format:
-	ruff format src/ tests/
+	.venv/bin/ruff format src/ tests/
 
 typecheck:
-	mypy src/
+	.venv/bin/mypy src/
 
 check: lint format test
 

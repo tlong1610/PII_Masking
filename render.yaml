@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: piiguard-vn-api
+    runtime: docker
+    plan: free
+    autoDeploy: false
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: PIIGuard Shield
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CORS_ORIGINS
+        value: https://frontend-alpha-fawn-53.vercel.app,http://localhost:5173,http://localhost:3000
+      - key: DATABASE_URL
+        value: sqlite:///./data/render_app.db
+      - key: ENABLE_AI_SCAN
+        value: "false"
+      - key: ENABLE_PG_SNAPSHOT
+        value: "false"
+      - key: ENABLE_MONGO
+        value: "false"
+      - key: HMAC_SECRET
+        generateValue: true
+      - key: HMAC_KEY_VERSION
+        value: v1
