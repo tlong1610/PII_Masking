@@ -70,6 +70,8 @@ def pg_live(monkeypatch):
         return [dict(s) for s in FAKE_SPECS]
 
     monkeypatch.setattr("src.services.run_scanner.scan_postgres_source", fake_scan)
+    import os
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: os.getenv("ENABLE_PG_SNAPSHOT") == "true")
     yield calls
     get_settings.cache_clear()
 
@@ -124,6 +126,7 @@ async def test_sql_source_status_follows_pg_config(client, monkeypatch):
     monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv("SOURCE_DATABASE_URL", SOURCE_URL)
     monkeypatch.setenv("SNAPSHOT_DATABASE_URL", SNAPSHOT_URL)
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: True)
     get_settings.cache_clear()
     listed = await client.get("/api/v1/sources", headers=_auth(token))
     get_settings.cache_clear()
