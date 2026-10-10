@@ -325,6 +325,8 @@ class ColumnProfile(BaseModel):
     system_recommendation: str | None = Field(
         default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)"
     )
+    length_mean: float | None = Field(default=None, description="Trung bình chiều dài dữ liệu cột")
+    length_variance: float | None = Field(default=None, description="Phương sai chiều dài dữ liệu cột")
 
 
 class TableRelation(BaseModel):

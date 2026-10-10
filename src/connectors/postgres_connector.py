@@ -135,6 +135,25 @@ class PostgresConnector:
                             logger.error(f"Lỗi khi trích xuất mẫu bảng {table} cột {col_name}: {e}")
                             samples = []
 
+                        # Tính mean và variance của độ dài dữ liệu
+                        stats_query = sql.SQL("SELECT AVG(LENGTH({}::TEXT)) as mean_len, COALESCE(VARIANCE(LENGTH({}::TEXT)), 0) as var_len FROM {} WHERE {} IS NOT NULL").format(
+                            sql.Identifier(col_name),
+                            sql.Identifier(col_name),
+                            sql.Identifier(table),
+                            sql.Identifier(col_name)
+                        )
+
+                        length_mean = None
+                        length_variance = None
+                        try:
+                            cur.execute(stats_query)
+                            stats_raw = cur.fetchone()
+                            if stats_raw:
+                                length_mean = float(stats_raw["mean_len"]) if stats_raw["mean_len"] is not None else None
+                                length_variance = float(stats_raw["var_len"]) if stats_raw["var_len"] is not None else None
+                        except Exception as e:
+                            logger.error(f"Lỗi khi tính toán thống kê độ dài bảng {table} cột {col_name}: {e}")
+
                         col_prof = ColumnProfile(
                             table_name=table,
                             column_name=col_name,
@@ -142,7 +161,9 @@ class PostgresConnector:
                             is_primary_key=is_pk,
                             is_foreign_key=is_fk,
                             samples=samples,
-                            system_recommendation=system_rec
+                            system_recommendation=system_rec,
+                            length_mean=length_mean,
+                            length_variance=length_variance
                         )
                         column_profiles.append(col_prof)
 
