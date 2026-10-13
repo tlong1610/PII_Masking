@@ -9,10 +9,7 @@ import {
   type DatasetStatus,
   type PolicyAction,
   type TransformKind,
-  type DetectorSource,
-  getActionColor,
   getActionLabel,
-  getDatasetStatusColor,
   getDatasetStatusLabel,
   getTransformColor,
   getTransformLabel,
@@ -160,7 +157,7 @@ export function SensitivityChip({ classification }: { classification: string }):
 /**
  * Databricks-styled Detector Source Badge (Rule, AI LLM, DPO)
  */
-export function DetectorBadge({ source }: { source?: DetectorSource | string }): JSX.Element {
+export function DetectorBadge({ source }: { source?: string }): JSX.Element {
   if (source === 'ai' || source === 'LLM') {
     return (
       <Box
@@ -180,7 +177,7 @@ export function DetectorBadge({ source }: { source?: DetectorSource | string }):
         }}
       >
         <AutoAwesomeIcon sx={{ fontSize: 12 }} />
-        Vi-LLM
+        AI
       </Box>
     );
   }
@@ -204,7 +201,7 @@ export function DetectorBadge({ source }: { source?: DetectorSource | string }):
         }}
       >
         <PersonOutlineIcon sx={{ fontSize: 12 }} />
-        DPO Override
+        DPO chỉnh
       </Box>
     );
   }
@@ -227,7 +224,7 @@ export function DetectorBadge({ source }: { source?: DetectorSource | string }):
       }}
     >
       <RuleIcon sx={{ fontSize: 12 }} />
-      Regex Pattern
+      Luật nhận diện
     </Box>
   );
 }

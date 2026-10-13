@@ -135,6 +135,18 @@ Hiển thị bước lỗi, phần đã xong, việc cần sửa và trạng th�
 | Nguồn không có bản ghi | Không có dữ liệu để đánh giá | Kiểm tra fixture; không phát hành |
 | Analyst chưa có bản công bố | Chưa có dataset được DPO phát hành | Làm mới S7 |
 
+### Trang quản trị DPO (thanh điều hướng trái)
+
+Ngoài luồng S1–S6, DPO có ba trang quản lý. Cả ba chỉ hiển thị metadata, số đếm và dữ liệu đã bảo vệ, không có giá trị nguồn thô.
+
+| Trang | Đường dẫn | Nội dung | Hành động |
+|---|---|---|---|
+| Lịch sử quét | `/dpo/runs` | Mọi run kèm trạng thái, số trường PII / đã quyết định, người tạo, dataset mới nhất; lọc theo trạng thái | Tiếp tục duyệt (mở `/dpo/runs/:id` với quyết định đã lưu), xem & phát hành, xem dataset; xoá một hoặc nhiều run (modal xác nhận). Run còn dataset VERIFIED/PUBLISHED phải thu hồi dataset trước; nhật ký audit không bị xoá |
+| Dataset đã bảo vệ | `/dpo/datasets`, `/dpo/datasets/:id` | Dataset theo trạng thái; chi tiết gồm vị trí snapshot, kết quả verifier, số cột theo hành động, xem trước dữ liệu đã bảo vệ | Phát hành (chỉ VERIFIED), thu hồi (modal xác nhận, xoá snapshot vật lý), cấp / thu hồi quyền từng Analyst |
+| Nhật ký kiểm toán | `/dpo/audit` | Sự kiện audit lọc theo hành động / đối tượng; banner kết quả kiểm tra chuỗi hash từ backend | Tải thêm; mở run/dataset liên quan |
+
+Run đang review nằm trên URL (`/dpo/runs/:id`), nên reload hoặc mở lại từ lịch sử vẫn giữ nguyên run và các quyết định đã lưu. Tab "Quyền" và "Nhật ký" trong màn hình S3/S6 dùng cùng dữ liệu thật như các trang trên.
+
 ## 4. Quy tắc nghiệm thu UI
 
 - Hai tài khoản không truy cập chéo quyền khi gọi trực tiếp API.

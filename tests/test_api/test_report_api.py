@@ -168,3 +168,27 @@ async def test_analyst_access_controls_and_summary_report(client):
     assert rep_query_token.status_code == 200
     assert "text/html" in rep_query_token.headers["content-type"]
 
+
+
+@pytest.mark.asyncio
+async def test_report_levels_match_review_screen_and_flag_drafts(client):
+    """Report L3 count follows the scan classification (what the review screen shows), not keywords."""
+    dpo_token = await _login(client, "dpo", "dpo123")
+    created = await client.post("/api/v1/runs", headers=_auth(dpo_token), json={"source_id": "sql-demo"})
+    run = created.json()
+
+    report = (await client.get(f"/api/v1/runs/{run['id']}/report", headers=_auth(dpo_token))).json()
+    sensitive = sum(1 for p in run["field_profiles"] if p["classification"] == "PERSONAL_SENSITIVE")
+    assert report["metrics"]["sensitivity_breakdown"]["L3"] == sensitive
+    for item in report["inventory"]:
+        if item["classification"] == "PERSONAL_BASIC":
+            assert item["sensitivity_level"] == "L2"
+
+    # Nothing approved or built yet: the report is a draft and makes no verification claims.
+    assert report["is_draft"] is True
+    assert report["metrics"]["raw_pii_egress"].startswith("Chưa kiểm chứng")
+    assert all("snapshot_output" in item and "masked_sample" not in item for item in report["inventory"])
+
+    html = (await client.get(f"/api/v1/runs/{run['id']}/report?format=html", headers=_auth(dpo_token))).text
+    assert "BẢN NHÁP" in html
+    assert "Nghị Định 13" not in html

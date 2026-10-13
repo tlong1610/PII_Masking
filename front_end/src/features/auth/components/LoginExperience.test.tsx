@@ -30,7 +30,7 @@ describe('LoginExperience', () => {
   it('autofills credentials when clicking DPO preset card', () => {
     renderComponent();
 
-    const dpoButton = screen.getByText(/DPO \/ Data Reviewer/i);
+    const dpoButton = screen.getByText(/DPO \/ Người duyệt dữ liệu/i);
     fireEvent.click(dpoButton);
 
     const usernameInput = screen.getByLabelText(/Tài khoản/i);
@@ -43,7 +43,7 @@ describe('LoginExperience', () => {
   it('autofills credentials when clicking Analyst preset card', () => {
     renderComponent();
 
-    const analystButton = screen.getByText(/Data Analyst/i);
+    const analystButton = screen.getByText(/Chuyên viên phân tích/i);
     fireEvent.click(analystButton);
 
     const usernameInput = screen.getByLabelText(/Tài khoản/i);

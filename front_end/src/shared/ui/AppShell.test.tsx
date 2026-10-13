@@ -55,6 +55,48 @@ describe('AppShell', () => {
     expect(onLogoutMock).toHaveBeenCalledTimes(1);
   });
 
+  it('renders workspace pages as links and marks the current one active', () => {
+    render(
+      <MemoryRouter initialEntries={['/dpo/datasets']}>
+        <AppShell
+          activeRole="DPO"
+          currentUser={{ username: 'dpo', role: 'DPO' }}
+          navItems={[
+            { label: 'Quét & duyệt', to: '/dpo', icon: null, end: true },
+            { label: 'Dataset đã bảo vệ', to: '/dpo/datasets', icon: null },
+          ]}
+        >
+          <div>Content</div>
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Dataset đã bảo vệ' })).toHaveClass('active');
+    expect(screen.getByRole('link', { name: 'Quét & duyệt' })).not.toHaveClass('active');
+    // A single-role user has nothing to switch to, so no workspace link duplicates "Quét & duyệt".
+    expect(screen.queryByRole('link', { name: 'DPO' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Không gian làm việc')).not.toBeInTheDocument();
+  });
+
+  it('collapses the menu to icons and remembers the choice', () => {
+    localStorage.removeItem('piiguard.navCollapsed');
+    render(
+      <MemoryRouter>
+        <AppShell activeRole="DPO" currentUser={{ username: 'dpo', role: 'DPO' }}>
+          <div>Content</div>
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thu gọn menu' }));
+
+    expect(screen.getByRole('button', { name: 'Mở rộng menu' })).toHaveAttribute('aria-expanded', 'false');
+    // Links stay reachable by name while only icons are shown.
+    expect(screen.getByRole('link', { name: 'DPO' })).toBeInTheDocument();
+    expect(localStorage.getItem('piiguard.navCollapsed')).toBe('1');
+    localStorage.removeItem('piiguard.navCollapsed');
+  });
+
   it('hides DPO navigation for Analyst users', () => {
     render(
       <MemoryRouter>

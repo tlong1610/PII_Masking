@@ -116,6 +116,17 @@ POST /datasets/{id}/publish
 GET /datasets/{id}/preview
 ```
 
+Màn hình DPO trên frontend (`front_end/`):
+
+| Đường dẫn               | Nội dung                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `/dpo`                  | Quét & duyệt: chọn nguồn, quét PII, quyết định từng trường, tạo snapshot                     |
+| `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu                    |
+| `/dpo/runs`             | Lịch sử quét, lọc theo trạng thái, đi tiếp tới bước kế tiếp; xoá từng run hoặc nhiều run đã chọn |
+| `/dpo/datasets`         | Snapshots & datasets theo trạng thái (chờ phát hành / đã phát hành / đã thu hồi)             |
+| `/dpo/datasets/:id`     | Chi tiết: verifier, xem trước dữ liệu đã bảo vệ, phát hành / thu hồi, cấp quyền Analyst      |
+| `/dpo/audit`            | Nhật ký kiểm toán và trạng thái chuỗi hash                                                   |
+
 `sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Source động cho doanh nghiệp phải nhận connection string, test connection, đọc scope, cho DPO chọn bảng/collection, rồi mới scan PII trong phạm vi đã chọn.
 
 ## GitHub Actions self-hosted runner (máy Phúc)
@@ -160,20 +171,27 @@ Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hi
 
 Các endpoint chính cho MVP:
 
-| Endpoint dự kiến              | Quyền          | Hành vi                                                            |
-| ----------------------------- | -------------- | ------------------------------------------------------------------ |
-| `POST /sessions`              | Tài khoản demo | Xác thực; role do server quyết định                                |
-| `GET /sources`                | DPO            | Liệt kê hai nguồn đã cấu hình, không trả credential                |
-| `GET /sources/{id}/scope`     | DPO            | Đọc danh sách bảng/collection để chọn phạm vi quét                 |
-| `POST /runs`                  | DPO            | Tạo run và quét chỉ các bảng/collection đã chọn                    |
-| `GET /runs/{id}`              | DPO            | Tiến độ, field profile và trạng thái                               |
-| `PUT /runs/{id}/decisions`    | DPO            | Review mọi trường; lưu phiên quyết định                            |
-| `POST /runs/{id}/build`       | DPO            | Xác nhận, kiểm tra trạng thái, tạo staging và verifier             |
-| `GET /runs/{id}/report`       | DPO            | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII    |
-| `POST /datasets/{id}/publish` | DPO            | Chỉ VERIFIED; ghi audit và cho Analyst dùng                        |
-| `POST /datasets/{id}/revoke`  | DPO            | Thu hồi quyền dùng qua app                                         |
-| `GET /datasets`               | Analyst        | Chỉ PUBLISHED                                                      |
-| `GET /datasets/{id}/preview`  | Analyst        | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200) |
+| Endpoint                                  | Quyền           | Hành vi                                                                              |
+| ----------------------------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| `POST /sessions`                          | Tài khoản demo  | Xác thực; role do server quyết định                                                  |
+| `GET /sources`                            | DPO             | Liệt kê nguồn demo + nguồn do DPO đăng ký, không trả credential                      |
+| `GET /sources/{id}/scope`                 | DPO             | Bảng/collection, cột và `relationships` (FK, khoá logic, tham chiếu Mongo suy luận) |
+| `POST /runs`                              | DPO             | Tạo run và quét chỉ các bảng/collection đã chọn                                      |
+| `GET /runs`                               | DPO             | Lịch sử run (mới nhất trước), lọc `?status=&source_id=`; chỉ trả số đếm              |
+| `GET /runs/{id}`                          | DPO             | Tiến độ, field profile, quyết định đã lưu và trạng thái                              |
+| `DELETE /runs/{id}`                       | DPO             | Xoá run và metadata; bị chặn (409) khi còn dataset VERIFIED/PUBLISHED; giữ nhật ký audit |
+| `PUT /runs/{id}/decisions`                | DPO             | Review mọi trường; lưu phiên quyết định                                              |
+| `POST /runs/{id}/build`                   | DPO             | Xác nhận, kiểm tra trạng thái, tạo staging và verifier                               |
+| `GET /runs/{id}/report`                   | DPO             | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII                      |
+| `GET /runs/{id}/risk-score`               | DPO             | Điểm rủi ro; số dòng đếm từ nguồn, `row_count_estimated=true` nếu không đếm được     |
+| `GET /datasets`                           | DPO / Analyst   | DPO: mọi dataset (trừ FAILED) kèm thời điểm và số grant; Analyst: chỉ PUBLISHED được cấp quyền; lọc `?status=` |
+| `GET /datasets/{id}`                      | DPO             | Chi tiết dataset, kết quả verifier, số cột theo MASK/HMAC/KEEP/DROP                  |
+| `POST /datasets/{id}/publish`             | DPO             | Chỉ VERIFIED; ghi audit và cho Analyst dùng                                          |
+| `POST /datasets/{id}/revoke`              | DPO             | Xoá snapshot vật lý, huỷ mọi grant                                                   |
+| `GET /datasets/{id}/preview`              | DPO / Analyst   | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200)                   |
+| `GET/POST /datasets/{id}/grants`, `DELETE /datasets/{id}/grants/{user_id}` | DPO | Xem / cấp / thu hồi quyền của Analyst trên dataset (kèm `username`) |
+| `GET /users?role=ANALYST`                 | DPO             | Danh sách người dùng để cấp quyền (chỉ id, username, role)                           |
+| `GET /audit`, `GET /audit/verify`         | DPO             | Nhật ký kiểm toán lọc `?action=&entity_type=&entity_id=`; kiểm tra chuỗi hash        |
 
 Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
 

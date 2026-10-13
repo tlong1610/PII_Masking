@@ -38,6 +38,12 @@ export const sourceScopeSchema = z.object({
     row_count: z.number().nullable().optional(),
     document_count: z.number().nullable().optional(),
   })),
+  relationships: z.array(z.object({
+    source_table: z.string(),
+    source_column: z.string(),
+    target_table: z.string(),
+    target_column: z.string(),
+  })).default([]),
 });
 
 export const fieldProfileSchema = z.object({
@@ -51,6 +57,23 @@ export const fieldProfileSchema = z.object({
   detector_source: z.enum(['rule', 'ai', 'dpo', 'unknown']),
   coverage_status: z.string(),
   recommended_action: z.enum(['MASK', 'DROP', 'HMAC', 'KEEP']),
+});
+
+export const datasetSchema = z.object({
+  id: z.number(),
+  run_id: z.number(),
+  dataset_name: z.string(),
+  status: z.enum(['STAGING', 'VERIFIED', 'PUBLISHED', 'REVOKED', 'FAILED']),
+  output_location: z.string(),
+});
+
+export const fieldDecisionSchema = z.object({
+  id: z.number(),
+  field_profile_id: z.number(),
+  action: z.enum(['MASK', 'DROP', 'HMAC', 'KEEP']),
+  reason: z.string(),
+  is_exception: z.boolean().optional(),
+  exception_until: z.string().nullable().optional(),
 });
 
 export const runSchema = z.object({
@@ -69,22 +92,15 @@ export const runSchema = z.object({
     'PUBLISHED',
     'FAILED',
     'STALE',
-    'REVOKED'
+    'REVOKED',
+    'CANCELLED',
   ]),
   created_by: z.number(),
   source_manifest_version: z.string(),
   policy_version: z.string(),
   field_profiles: z.array(fieldProfileSchema),
-  field_decisions: z.array(z.any()),
-  datasets: z.array(z.any()),
-});
-
-export const datasetSchema = z.object({
-  id: z.number(),
-  run_id: z.number(),
-  dataset_name: z.string(),
-  status: z.enum(['STAGING', 'VERIFIED', 'PUBLISHED', 'REVOKED', 'FAILED']),
-  output_location: z.string(),
+  field_decisions: z.array(fieldDecisionSchema),
+  datasets: z.array(datasetSchema),
 });
 
 export const datasetPreviewSchema = z.object({
@@ -107,6 +123,7 @@ export const datasetPreviewSchema = z.object({
     target_table: z.string(),
     target_column: z.string(),
   })).default([]),
+  verification: z.object({ passed: z.number(), total: z.number() }).nullable().optional(),
 });
 
 export const verifierResultSchema = z.object({
@@ -196,12 +213,6 @@ export async function createScanRun(sourceId: string, selectedScope: string[]): 
 export async function getRunById(runId: number): Promise<Run> {
   const data = await apiRequest<Run>(`/runs/${runId}`);
   return runSchema.parse(data);
-}
-
-export async function listRuns(sourceId?: string): Promise<Run[]> {
-  const query = sourceId ? `?source_id=${sourceId}` : '';
-  const data = await apiRequest<Run[]>(`/runs${query}`);
-  return z.array(runSchema).parse(data);
 }
 
 export interface FieldDecisionInput {
@@ -309,6 +320,8 @@ export const riskScoreSchema = z.object({
     protection_pct: z.number(),
     row_count: z.number(),
   }),
+  /** True when the source could not be counted and the volume factor uses a default. */
+  row_count_estimated: z.boolean().default(false),
 });
 
 export type RiskScoreResult = z.infer<typeof riskScoreSchema>;

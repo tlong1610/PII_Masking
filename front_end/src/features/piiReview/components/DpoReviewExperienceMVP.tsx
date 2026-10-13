@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
   Box,
   Button,
   Card,
-  CardContent,
   Chip,
   CircularProgress,
   Drawer,
@@ -12,7 +12,6 @@ import {
   Grid,
   IconButton,
   InputAdornment,
-  InputLabel,
   LinearProgress,
   MenuItem,
   Paper,
@@ -32,6 +31,8 @@ import {
 } from '@mui/material';
 
 import AddIcon from '@mui/icons-material/Add';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -41,33 +42,33 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import SearchIcon from '@mui/icons-material/Search';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import PinIcon from '@mui/icons-material/Pin';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
+import { AuditTrail } from '@/features/auditLog';
+import { DatasetGrantsPanel, DatasetPreviewTable } from '@/features/datasets';
+import { RunStatusBadge } from '@/features/runHistory';
 import { ApiError } from '@/shared/api/client';
+import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
+import { routes } from '@/shared/config/routes';
 import { getStoredSession } from '@/features/auth/model/authStorage';
 import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup, FixedColumns } from './CollapsibleTableGroup';
 import { FieldPolicyDrawerContent } from './FieldPolicyDrawerContent';
-import { ActionChip, SensitivityChip, DetectorBadge, DatasetStatusChip } from './PolicyChips';
-import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
+import { ActionChip, SensitivityChip, DetectorBadge } from './PolicyChips';
 import {
   POLICY_ACTIONS,
   type PolicyAction,
   getActionLabel,
-  getClassificationLabel,
-  getCoverageStatusLabel,
 } from '../model/policyLabels';
 import { isUserSource } from '../model/sourceForm';
+import { computeProtectionRates } from '../model/protectionRates';
+import { getLatestDataset, restoreSavedDecisions } from '../model/savedDecisions';
 import {
   EMPTY_FIELD_NOTE,
   type FieldDecisionNote,
@@ -123,7 +124,24 @@ function isUnknownField(classification: string): boolean {
 function isHmacLockedField(field: { recommended_action: PolicyAction }): boolean {
   return field.recommended_action === 'HMAC';
 }
-export function DpoReviewExperienceMVP(): JSX.Element {
+type DpoReviewExperienceProps = {
+  /** Run to reopen (from `/dpo/runs/:id`); null starts a fresh review. */
+  initialRunId?: number | null;
+  /** Called after a scan creates a run, so the page can put it in the URL. */
+  onRunCreated?: (runId: number) => void;
+};
+
+/** Snapshot statuses that still have rows to preview and grants to manage. */
+const LIVE_DATASET_STATUSES = new Set(['VERIFIED', 'PUBLISHED']);
+
+const RISK_TIER_LABELS: Record<'Critical' | 'High' | 'Medium' | 'Low', string> = {
+  Critical: 'Nghiêm trọng',
+  High: 'Cao',
+  Medium: 'Trung bình',
+  Low: 'Thấp',
+};
+
+export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: DpoReviewExperienceProps): JSX.Element {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<string[]>([]);
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
@@ -134,12 +152,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const [actionFilter, setActionFilter] = useState<ActionFilter>('ALL');
   const [decisionOverrides, setDecisionOverrides] = useState<Record<number, PolicyAction>>({});
   const [decisionError, setDecisionError] = useState<string | null>(null);
-  const [buildError, setBuildError] = useState<string | null>(null);
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
   const [addSourceOpen, setAddSourceOpen] = useState(false);
+  // While a run is open the review table needs the width; the source list folds into a rail.
+  const [catalogCollapsed, setCatalogCollapsed] = useState(initialRunId !== null);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [sampleViewMode, setSampleViewMode] = useState<'masked' | 'split'>('masked');
 
   // Inspector Drawer state
   const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
@@ -150,8 +168,8 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const issueFieldIds = useMemo(() => new Set(decisionIssues.map((issue) => issue.fieldId)), [decisionIssues]);
 
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
-  const { data: sourceScope, isLoading: scopeLoading } = useSourceScope(selectedSourceId);
-  const { data: currentRun, isLoading: runLoading } = useRun(currentRunId);
+  const { data: sourceScope } = useSourceScope(selectedSourceId);
+  const { data: currentRun } = useRun(currentRunId);
   const { data: riskScore } = useRiskScore(currentRunId);
 
   const createScan = useCreateScanRun();
@@ -159,6 +177,33 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const updateDecisions = useUpdateFieldDecisions(currentRunId || 0);
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
+
+  // The URL decides which run is open: /dpo starts fresh, /dpo/runs/:id reopens a saved run.
+  const hydratedRunId = useRef<number | null>(null);
+  useEffect(() => {
+    hydratedRunId.current = null;
+    setCurrentRunId(initialRunId);
+    setDatasetId(null);
+    setDecisionOverrides({});
+    setFieldNotes({});
+    setDecisionIssues([]);
+    setActiveTab(0);
+    setCatalogCollapsed(initialRunId !== null);
+  }, [initialRunId]);
+
+  // Once per opened run, restore its source, latest snapshot and the decisions already saved.
+  useEffect(() => {
+    if (!currentRun || hydratedRunId.current === currentRun.id) return;
+    hydratedRunId.current = currentRun.id;
+    setSelectedSourceId(currentRun.source_id);
+    setDatasetId(getLatestDataset(currentRun.datasets)?.id ?? null);
+    const restored = restoreSavedDecisions(currentRun.field_decisions);
+    setDecisionOverrides(restored.overrides);
+    setFieldNotes(restored.notes);
+  }, [currentRun]);
+
+  const datasetStatus = currentRun?.datasets.find((dataset) => dataset.id === datasetId)?.status ?? null;
+  const datasetIsLive = datasetStatus !== null && LIVE_DATASET_STATUSES.has(datasetStatus);
 
   // Auto-select first source if none selected
   useMemo(() => {
@@ -229,6 +274,11 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     [fields, getFieldAction],
   );
 
+  const protectionRates = useMemo(
+    () => computeProtectionRates(fields, (field) => getFieldAction(field.id, field.recommended_action)),
+    [fields, getFieldAction],
+  );
+
   const highRiskCount = useMemo(
     () => fields.filter((field) => field.classification.includes('SENSITIVE')).length,
     [fields],
@@ -236,15 +286,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
   const l2BasicCount = useMemo(
     () => fields.filter((field) => field.classification.includes('BASIC')).length,
-    [fields],
-  );
-
-  const reviewRequiredCount = useMemo(
-    () =>
-      fields.filter(
-        (field) =>
-          field.classification.includes('UNKNOWN') || field.coverage_status === 'REVIEW_REQUIRED',
-      ).length,
     [fields],
   );
 
@@ -305,16 +346,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     setSelectedScope(scopeNames);
   }, [scopeNames]);
 
-  const handleToggleScopeItem = (name: string) => {
-    setSelectedScope((current) =>
-      current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
-    );
-  };
-
-  const handleSelectAllScope = () => {
-    setSelectedScope((current) => (current.length === scopeNames.length ? [] : scopeNames));
-  };
-
   const handleStartScan = async () => {
     if (!selectedSourceId || selectedScope.length === 0) return;
 
@@ -323,7 +354,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
     setFieldNotes({});
     setDecisionIssues([]);
     setActionFilter('ALL');
-    setBuildError(null);
     setDecisionError(null);
 
     try {
@@ -333,6 +363,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       });
       setCurrentRunId(run.id);
       setActiveTab(0);
+      onRunCreated?.(run.id);
     } catch (error) {
       console.error('Scan failed:', error);
       alert('Lỗi khi quét dữ liệu');
@@ -355,7 +386,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       return;
     }
     setDecisionError(null);
-    setBuildError(null);
     applyActionToGroup(fieldId, action);
     clearIssuesFor(joinGroups.get(fieldId) ?? [fieldId]);
   };
@@ -370,7 +400,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
   const handleBulkAction = (action: PolicyAction) => {
     setDecisionError(null);
-    setBuildError(null);
     setDecisionOverrides((current) =>
       filteredFields.reduce<Record<number, PolicyAction>>(
         (next, field) => {
@@ -444,7 +473,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
 
     try {
       setDecisionError(null);
-      setBuildError(null);
       await updateDecisions.mutateAsync(
         fields.map((field) =>
           buildFieldDecisionPayload({
@@ -461,7 +489,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       // Build dataset snapshot
       const result = await buildDataset.mutateAsync();
       setDatasetId(result.dataset.id);
-      alert(`Đã tạo snapshot thành công! Dataset ID: ${result.dataset.id}`);
+      alert(`Đã tạo snapshot thành công! Mã dataset: ${result.dataset.id}`);
     } catch (error) {
       console.error('Build failed:', error);
       const serverIssues = error instanceof ApiError ? issuesFromApiError(error.response, fields) : [];
@@ -470,7 +498,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
         return;
       }
       const msg = getDecisionErrorMessage(error);
-      setBuildError(msg);
       setDecisionError(msg);
     }
   };
@@ -531,7 +558,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
   const handleSaveInspector = (action: PolicyAction, note: FieldDecisionNote) => {
     if (!activeInspectField) return;
     setDecisionError(null);
-    setBuildError(null);
     applyActionToGroup(activeInspectField.id, action);
     setFieldNotes((current) => ({ ...current, [activeInspectField.id]: note }));
     clearIssuesFor(joinGroups.get(activeInspectField.id) ?? [activeInspectField.id]);
@@ -568,68 +594,67 @@ export function DpoReviewExperienceMVP(): JSX.Element {
       {/* ========================================================================= */}
       {/* DATABRICKS SECONDARY CATALOG EXPLORER SIDEBAR (260px)                     */}
       {/* ========================================================================= */}
+      {/* One panel that animates its width; collapsed it keeps only a rail of icons. */}
       <Box
         component="aside"
-        sx={{
-          width: 270,
+        aria-label="Nguồn dữ liệu"
+        sx={(theme) => ({
+          width: catalogCollapsed ? 48 : 270,
           flexShrink: 0,
-          bgcolor: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: '8px',
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 2,
           overflow: 'hidden',
           display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
-          height: 'calc(100vh - 90px)',
+          height: STICKY_PANEL_HEIGHT,
           position: 'sticky',
-          top: 70,
-        }}
+          top: STICKY_PANEL_TOP,
+          transition: theme.transitions.create('width', { duration: theme.transitions.duration.shorter }),
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        })}
       >
+        {catalogCollapsed ? (
+          <Stack alignItems="center" spacing={1} sx={{ py: 1 }}>
+            <Tooltip title="Mở danh sách nguồn" placement="right">
+              <IconButton size="small" onClick={() => setCatalogCollapsed(false)} aria-label="Mở danh sách nguồn">
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={activeSource ? `Nguồn: ${activeSource.name}` : 'Chưa chọn nguồn'} placement="right">
+              <StorageOutlinedIcon fontSize="small" color={activeSource ? 'primary' : 'disabled'} />
+            </Tooltip>
+          </Stack>
+        ) : (
+        <Box sx={{ minWidth: 268, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Catalog Explorer Header */}
         <Box sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
-              Catalog Explorer
+              Nguồn dữ liệu
             </Typography>
             <Stack direction="row" spacing={0.5}>
-              <Tooltip title="Thêm nguồn dữ liệu">
-                <IconButton size="small" onClick={() => setAddSourceOpen(true)} sx={{ color: '#1B51A4' }}>
-                  <AddIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
               <Tooltip title="Làm mới">
                 <IconButton size="small" onClick={() => void refetchSources()} sx={{ color: '#6B7280' }}>
                   <RefreshIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              <Tooltip title="Thu gọn">
+                <IconButton size="small" onClick={() => setCatalogCollapsed(true)} aria-label="Thu gọn danh sách nguồn">
+                  <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Stack>
           </Stack>
 
-          {/* Connection Status Pill */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              mt: 1,
-              px: 1,
-              py: 0.4,
-              borderRadius: '4px',
-              bgcolor: '#ECFDF5',
-              border: '1px solid #A7F3D0',
-            }}
-          >
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#16A34A' }} />
-            <Typography variant="caption" sx={{ color: '#065F46', fontWeight: 600, fontSize: '0.7rem' }}>
-              Metastore • On-Premise
-            </Typography>
-          </Box>
         </Box>
 
         {/* Tree Search Box */}
         <Box sx={{ p: 1, borderBottom: '1px solid #E5E7EB' }}>
           <TextField
             size="small"
-            placeholder="Type to search sources..."
+            placeholder="Tìm nguồn dữ liệu..."
             value={sourceSearch}
             onChange={(e) => setSourceSearch(e.target.value)}
             fullWidth
@@ -724,6 +749,8 @@ export function DpoReviewExperienceMVP(): JSX.Element {
             Thêm cơ sở dữ liệu
           </Button>
         </Box>
+        </Box>
+        )}
       </Box>
 
       {/* ========================================================================= */}
@@ -757,10 +784,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
           <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: '1px solid #E5E7EB' }}>
             {/* Breadcrumb */}
             <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem', mb: 1, display: 'block' }}>
-              Catalog Explorer &gt; {activeSource?.name || 'Metastore'} &gt;{' '}
-              <strong style={{ color: '#111827' }}>
-                {displayedFieldGroups[0]?.sourcePath || 'customer_records'}
-              </strong>
+              Nguồn dữ liệu &gt; {activeSource?.name ?? 'Chưa chọn nguồn'}
+              {displayedFieldGroups[0] ? (
+                <>
+                  {' '}&gt; <strong>{displayedFieldGroups[0].sourcePath}</strong>
+                </>
+              ) : null}
             </Typography>
 
             {/* Title Bar */}
@@ -789,32 +818,18 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <Box>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.01em' }}>
-                      {displayedFieldGroups[0]?.sourcePath || activeSource?.name || 'customer_records'}
+                      {currentRun ? `Run #${currentRun.id}` : activeSource?.name ?? 'Chọn nguồn dữ liệu'}
                     </Typography>
-                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Sao chép tên bảng">
-                      <ContentCopyIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Đánh dấu yêu thích">
-                      <StarBorderIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                    <Chip
-                      label={currentRunId ? 'Review Required' : 'Not Scanned'}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        bgcolor: currentRunId ? '#FFFBEB' : '#F3F4F6',
-                        color: currentRunId ? '#B45309' : '#6B7280',
-                        border: '1px solid',
-                        borderColor: currentRunId ? '#FCD34D' : '#E5E7EB',
-                      }}
-                    />
+                    {currentRun ? (
+                      <RunStatusBadge status={currentRun.status} />
+                    ) : (
+                      <Chip label="Chưa quét" size="small" variant="outlined" />
+                    )}
                     <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                      Nguồn: {activeSource?.source_type || 'PostgreSQL'} • On-Premise Metastore
+                      Nguồn: {activeSource ? `${activeSource.name} (${activeSource.engine})` : '—'}
                     </Typography>
                   </Stack>
                 </Box>
@@ -846,7 +861,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   {updateDecisions.isPending || buildDataset.isPending ? 'Đang xử lý...' : 'Tạo Snapshot'}
                 </Button>
 
-                {datasetId && (
+                {datasetId && datasetStatus === 'VERIFIED' && (
                   <Button
                     variant="contained"
                     size="small"
@@ -859,6 +874,12 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   </Button>
                 )}
 
+                {datasetId && (
+                  <Button component={RouterLink} to={routes.dpoDataset(datasetId)} size="small" variant="outlined">
+                    Quản lý dataset #{datasetId}
+                  </Button>
+                )}
+
                 {currentRunId && (
                   <Button
                     size="small"
@@ -867,7 +888,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     onClick={() => handleOpenReport(currentRunId)}
                     sx={{ color: '#4B5563', borderColor: '#D1D5DB' }}
                   >
-                    Báo cáo NĐ13
+                    Báo cáo tuân thủ
                   </Button>
                 )}
               </Stack>
@@ -877,14 +898,14 @@ export function DpoReviewExperienceMVP(): JSX.Element {
           {/* Databricks Horizontal Tab Navigation */}
           <Tabs
             value={activeTab}
-            onChange={(_, val) => setActiveTab(val)}
+            onChange={(_, val: number) => setActiveTab(val)}
             sx={{ px: 3, bgcolor: '#FFFFFF', minHeight: 44 }}
           >
-            <Tab label="Overview & PII Schema" />
-            <Tab label="Sample Data (Masked)" />
-            <Tab label="Permissions & Grants" />
-            <Tab label="Audit History & Hash-Chain" />
-            <Tab label="Risk & Insights" />
+            <Tab label="Tổng quan & phân loại PII" />
+            <Tab label="Dữ liệu đã bảo vệ" />
+            <Tab label="Quyền truy cập" />
+            <Tab label="Nhật ký kiểm toán" />
+            <Tab label="Rủi ro" />
           </Tabs>
 
           {/* TAB 0: OVERVIEW & PII SCHEMA */}
@@ -898,7 +919,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     Đang quét và phân tích dữ liệu PII...
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Thực thi đối sánh Regex mẫu Việt Nam &amp; Vi-LLM Classifier theo Nghị định 13/2023/NĐ-CP.
+                    Đối sánh mẫu nhận diện tiếng Việt và phân loại bằng AI theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP.
                   </Typography>
                 </Box>
               ) : !currentRun ? (
@@ -925,7 +946,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#6B7280', mb: 3, lineHeight: 1.6 }}>
                     Bảng này chưa được phân loại nhạy cảm hoặc áp dụng chính sách bảo vệ. Nhấp vào nút bên dưới để khởi
-                    chạy bộ quét tự động theo Nghị định 13.
+                    chạy bộ quét tự động theo Luật 91/2025/QH15.
                   </Typography>
                   <Button
                     variant="contained"
@@ -973,35 +994,25 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                         </Box>
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem' }}>
-                            Đề xuất phân loại &amp; quy tắc che giấu PII (Nghị định 13/2023/NĐ-CP)
+                            Đề xuất phân loại &amp; quy tắc che giấu PII (Luật 91/2025/QH15)
                           </Typography>
                           <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5, fontSize: '0.8125rem' }}>
                             Hệ thống đã nhận diện {fields.length} trường PII (
                             <strong style={{ color: '#B91C1C' }}>{highRiskCount} trường L3 nhạy cảm</strong>,{' '}
-                            <strong style={{ color: '#B45309' }}>{l2BasicCount} trường L2 cơ bản</strong>). Quy tắc sàn
-                            bảo mật Minimum Masking Floor đã tự động áp dụng (không cho phép KEEP đối với dữ liệu L3).
+                            <strong style={{ color: '#B45309' }}>{l2BasicCount} trường L2 cơ bản</strong>). Quy tắc mức
+                            che tối thiểu đã tự động áp dụng (không cho phép KEEP đối với dữ liệu L3).
                           </Typography>
                         </Box>
                       </Stack>
 
-                      <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={handleAcceptAllAi}
-                          sx={{ bgcolor: '#FFFFFF', borderColor: '#D1D5DB', color: '#1F2937' }}
-                        >
-                          Chấp nhận đề xuất AI
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleBulkAction('DROP')}
-                          sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
-                        >
-                          Áp dụng an toàn
-                        </Button>
-                      </Stack>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleAcceptAllAi}
+                        sx={{ flexShrink: 0, bgcolor: '#FFFFFF', borderColor: '#D1D5DB', color: '#1F2937' }}
+                      >
+                        Chấp nhận đề xuất AI
+                      </Button>
                     </Stack>
                   </Card>
 
@@ -1028,7 +1039,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                       >
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            ĐIỂM RỦI RO TẤT ĐỊNH: {riskScore.score}/100 — MỨC: {riskScore.tier.toUpperCase()} (
+                            ĐIỂM RỦI RO: {riskScore.score}/100 — MỨC: {RISK_TIER_LABELS[riskScore.tier].toUpperCase()} (
                             {riskScore.action_required})
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -1039,14 +1050,6 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                             • Tỷ lệ bảo vệ an toàn: <strong>{riskScore.drivers.protection_pct}%</strong>
                           </Typography>
                         </Box>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleOpenReport(currentRunId)}
-                          sx={{ fontSize: '0.72rem', height: 26 }}
-                        >
-                          Xem Báo Cáo HTML
-                        </Button>
                       </Stack>
                     </Alert>
                   )}
@@ -1107,7 +1110,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     <Box sx={{ width: { xs: '100%', sm: 260 } }}>
                       <TextField
                         size="small"
-                        placeholder="Filter columns..."
+                        placeholder="Lọc cột..."
                         value={columnSearch}
                         onChange={(e) => setColumnSearch(e.target.value)}
                         fullWidth
@@ -1165,7 +1168,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                         onClick={() => handleBulkAction('DROP')}
                         sx={{ fontSize: '0.75rem', color: '#4B5563' }}
                       >
-                        Set tất cả DROP
+                        Loại bỏ tất cả
                       </Button>
                       <Button
                         size="small"
@@ -1173,7 +1176,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                         onClick={() => handleBulkAction('MASK')}
                         sx={{ fontSize: '0.75rem', color: '#4B5563' }}
                       >
-                        Set tất cả MASK
+                        Che tất cả
                       </Button>
                     </Stack>
                   </Paper>
@@ -1184,13 +1187,13 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     variant="outlined"
                     sx={{ borderRadius: '6px', border: '1px solid #E5E7EB', overflowX: 'auto' }}
                   >
-                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 960 }}>
+                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 880 }}>
                       <FixedColumns widths={REVIEW_COLUMN_WIDTHS} />
                       <TableHead>
                         <TableRow>
                           <TableCell>Tên cột (Column Name)</TableCell>
                           <TableCell>Kiểu dữ liệu</TableCell>
-                          <TableCell>Phân loại PII (NĐ 13)</TableCell>
+                          <TableCell>Phân loại PII</TableCell>
                           <TableCell>Nguồn nhận diện</TableCell>
                           <TableCell>Quy tắc che giấu</TableCell>
                           <TableCell>Sàn bảo mật</TableCell>
@@ -1346,317 +1349,46 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                     </Table>
                   </TableContainer>
 
-                  {/* About This Table Footer Card (Databricks web Aug 2025 40.png) */}
-                  <Card variant="outlined" sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '6px' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#4B5563', textTransform: 'uppercase' }}>
-                      About this table
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Chủ sở hữu dữ liệu (Owner)
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          dpo@enterprise.local
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Vị trí Metastore (Storage)
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          On-Premise Vault Metastore
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Thời gian quét (Last Scan)
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {currentRunId ? `Run #${currentRunId}` : 'Vừa xong'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          Chỉ số an toàn (Safety Index)
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#16A34A' }}>
-                          100% Zero Raw Leak
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Card>
                 </Stack>
               )}
             </Box>
           )}
 
-          {/* TAB 1: SAMPLE DATA (MASKED) - Databricks web Aug 2025 45.png */}
+          {/* TAB 1: rows read back from the protected snapshot */}
           {activeTab === 1 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
-              <Stack spacing={2}>
-                {/* Safe Banner */}
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: '6px',
-                    bgcolor: '#ECFDF5',
-                    border: '1px solid #A7F3D0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <VerifiedUserIcon sx={{ color: '#16A34A', fontSize: 20 }} />
-                    <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
-                      Zero Raw-PII Leak Verified: Dữ liệu bên dưới được mô phỏng sau khi áp dụng các giải thuật che giấu.
-                    </Typography>
-                  </Stack>
-                  <Chip
-                    label="SHA-256 Validated"
-                    size="small"
-                    sx={{ bgcolor: '#FFFFFF', color: '#16A34A', border: '1px solid #86EFAC', fontWeight: 700 }}
-                  />
-                </Box>
-
-                {/* Databricks Sample Table Grid */}
-                <TableContainer
-                  component={Paper}
-                  variant="outlined"
-                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ width: 40, color: '#9CA3AF' }}>#</TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <PinIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                            <span>ID</span>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                            <span>Họ và tên (MASKED)</span>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                            <span>Số điện thoại (PARTIAL)</span>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <LockOutlinedIcon sx={{ fontSize: 14, color: '#B91C1C' }} />
-                            <span>CCCD / CMND (VAULT HMAC)</span>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <TextFieldsIcon sx={{ fontSize: 14, color: '#9CA3AF' }} />
-                            <span>Email (MASKED)</span>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {[
-                        { id: 1, name: 'Nguyễn ***', phone: '0912***789', cccd: 'hmac_sha256:7f83b1657ff1fc53', email: 'n***@gmail.com' },
-                        { id: 2, name: 'Trần ***', phone: '0988***234', cccd: 'hmac_sha256:1a82e987c2b3f112', email: 't***@yahoo.com' },
-                        { id: 3, name: 'Lê ***', phone: '0905***678', cccd: 'hmac_sha256:e3b0c44298fc1c14', email: 'l***@outlook.com' },
-                        { id: 4, name: 'Phạm ***', phone: '0971***112', cccd: 'hmac_sha256:9f86d081884c7d65', email: 'p***@viettel.vn' },
-                        { id: 5, name: 'Hoàng ***', phone: '0933***445', cccd: 'hmac_sha256:4b227777d4dd1fc6', email: 'h***@fpt.com.vn' },
-                      ].map((row) => (
-                        <TableRow key={row.id} hover>
-                          <TableCell sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>{row.id}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace' }}>{row.id + 1000}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', color: '#1B51A4' }}>{row.phone}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', color: '#6D28D9', fontSize: '0.75rem' }}>
-                            {row.cccd}
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace' }}>{row.email}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Stack>
+              {datasetId ? (
+                <DatasetPreviewTable datasetId={datasetId} available={datasetIsLive} />
+              ) : (
+                <Alert severity="info">
+                  Chưa có snapshot cho lượt quét này. Bấm “Tạo Snapshot” để xem dữ liệu sau khi áp dụng MASK / HMAC /
+                  DROP.
+                </Alert>
+              )}
             </Box>
           )}
 
-          {/* TAB 2: PERMISSIONS & GRANTS - Databricks web Aug 2025 47.png */}
+          {/* TAB 2: dataset grants */}
           {activeTab === 2 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-                  <Stack direction="row" spacing={1}>
-                    <Button variant="contained" size="small" sx={{ bgcolor: '#1B51A4' }}>
-                      Grant
-                    </Button>
-                    <Button variant="outlined" size="small" disabled>
-                      Revoke
-                    </Button>
-                  </Stack>
-                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                    Phân quyền truy cập theo vai trò chuẩn RBAC on-premise
-                  </Typography>
-                </Stack>
-
-                <TableContainer
-                  component={Paper}
-                  variant="outlined"
-                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Principal (Vai trò / Người dùng)</TableCell>
-                        <TableCell>Privilege (Quyền hạn)</TableCell>
-                        <TableCell>Object (Đối tượng)</TableCell>
-                        <TableCell>Inherited (Kế thừa)</TableCell>
-                        <TableCell>Trạng thái</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow hover>
-                        <TableCell sx={{ fontWeight: 600 }}>role:dpo (DPO Admin)</TableCell>
-                        <TableCell>ALL_PRIVILEGES, MANAGE_POLICIES, BUILD_SNAPSHOT</TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace' }}>metastore.postgres_core.*</TableCell>
-                        <TableCell>Direct</TableCell>
-                        <TableCell>
-                          <Chip label="ACTIVE" size="small" color="success" sx={{ height: 20, fontSize: '0.65rem' }} />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow hover>
-                        <TableCell sx={{ fontWeight: 600 }}>role:analyst (Data Analyst)</TableCell>
-                        <TableCell>SELECT_MASKED_ONLY (Chỉ đọc snapshot đã phát hành)</TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace' }}>published_datasets.*</TableCell>
-                        <TableCell>Inherited</TableCell>
-                        <TableCell>
-                          <Chip label="ACTIVE" size="small" color="primary" sx={{ height: 20, fontSize: '0.65rem' }} />
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Stack>
+              {datasetId ? (
+                <DatasetGrantsPanel datasetId={datasetId} editable={datasetIsLive} />
+              ) : (
+                <Alert severity="info">
+                  Quyền truy cập được cấp trên từng dataset. Tạo snapshot trước để quản lý quyền của Analyst.
+                </Alert>
+              )}
             </Box>
           )}
 
-          {/* TAB 3: AUDIT HISTORY & HASH-CHAIN - Databricks web Aug 2025 48.png */}
+          {/* TAB 3: audit events of this run + hash-chain check */}
           {activeTab === 3 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
-              <Stack spacing={2}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: '6px',
-                    bgcolor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B' }}>
-                    Sổ cái kiểm toán Hash-Chain (Cryptographic Merkle Root)
-                  </Typography>
-                  <Chip
-                    label="CHAIN VERIFIED"
-                    size="small"
-                    sx={{ bgcolor: '#ECFDF5', color: '#047857', border: '1px solid #6EE7B7', fontWeight: 700 }}
-                  />
-                </Box>
-
-                <TableContainer
-                  component={Paper}
-                  variant="outlined"
-                  sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Version</TableCell>
-                        <TableCell>Timestamp</TableCell>
-                        <TableCell>User</TableCell>
-                        <TableCell>Operation (Hành động)</TableCell>
-                        <TableCell>Merkle Root Hash (SHA-256)</TableCell>
-                        <TableCell>Trạng thái</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {[
-                        {
-                          version: 3,
-                          time: 'Hôm nay, 19:40',
-                          user: 'dpo_admin',
-                          op: 'PUBLISH_DATASET',
-                          hash: '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4',
-                          status: 'VALID',
-                        },
-                        {
-                          version: 2,
-                          time: 'Hôm nay, 19:35',
-                          user: 'dpo_admin',
-                          op: 'CREATE_SNAPSHOT_METASTORE',
-                          hash: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
-                          status: 'VALID',
-                        },
-                        {
-                          version: 1,
-                          time: 'Hôm nay, 19:30',
-                          user: 'dpo_admin',
-                          op: 'SAVE_POLICY_DECISIONS',
-                          hash: 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',
-                          status: 'VALID',
-                        },
-                        {
-                          version: 0,
-                          time: 'Hôm nay, 19:25',
-                          user: 'system_scanner',
-                          op: 'SCAN_PII_SOURCE',
-                          hash: '4e1243bd22c66e76c2ba9eddc1f91394e57f9f835f8d5516086bbdf4f97159c3',
-                          status: 'VALID',
-                        },
-                      ].map((log) => (
-                        <TableRow key={log.version} hover>
-                          <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{log.version}</TableCell>
-                          <TableCell sx={{ fontSize: '0.8rem' }}>{log.time}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{log.user}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={log.op}
-                              size="small"
-                              sx={{
-                                height: 20,
-                                fontSize: '0.68rem',
-                                fontFamily: 'monospace',
-                                bgcolor: '#F3F4F6',
-                                color: '#1F2937',
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#4B5563' }}>
-                            {log.hash.slice(0, 16)}...{log.hash.slice(-8)}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={log.status}
-                              size="small"
-                              color="success"
-                              sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Stack>
+              {currentRunId ? (
+                <AuditTrail entityType="run" entityId={currentRunId} />
+              ) : (
+                <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
+              )}
             </Box>
           )}
 
@@ -1667,35 +1399,37 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined" sx={{ p: 2.5, borderRadius: '8px', height: '100%' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Tuân thủ Nghị định 13/2023/NĐ-CP
+                      Mức bảo vệ theo quyết định hiện tại
                     </Typography>
                     <Stack spacing={2}>
-                      <Box>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                          <Typography variant="body2">Tỷ lệ bảo vệ dữ liệu nhạy cảm (L3):</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#16A34A' }}>
-                            100% (Đạt chuẩn)
-                          </Typography>
-                        </Stack>
-                        <LinearProgress variant="determinate" value={100} color="success" sx={{ height: 6, borderRadius: 3 }} />
-                      </Box>
-
-                      <Box>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                          <Typography variant="body2">Tỷ lệ bảo vệ dữ liệu cơ bản (L2):</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#1B51A4' }}>
-                            100% (Đạt chuẩn)
-                          </Typography>
-                        </Stack>
-                        <LinearProgress variant="determinate" value={100} sx={{ height: 6, borderRadius: 3 }} />
-                      </Box>
-
-                      <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-                        <Typography variant="caption" sx={{ color: '#4B5563', lineHeight: 1.5, display: 'block' }}>
-                          ✓ Tất cả các trường dữ liệu cá nhân nhạy cảm đã bị cưỡng chế thuật toán che giấu, băm HMAC hoặc
-                          loại bỏ hoàn toàn khỏi tầm nhìn của chuyên viên phân tích.
-                        </Typography>
-                      </Box>
+                      {[
+                        { label: 'Dữ liệu nhạy cảm (L3)', rate: protectionRates.sensitive },
+                        { label: 'Dữ liệu cơ bản (L2)', rate: protectionRates.basic },
+                      ].map(({ label, rate }) => (
+                        <Box key={label}>
+                          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                            <Typography variant="body2">{label}:</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {rate.percent === null
+                                ? 'Không có cột'
+                                : `${rate.percent}% (${rate.protectedCount}/${rate.total} cột)`}
+                            </Typography>
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={rate.percent ?? 100}
+                            color={rate.percent === null || rate.percent === 100 ? 'success' : 'warning'}
+                            sx={{ height: 6, borderRadius: 3 }}
+                          />
+                        </Box>
+                      ))}
+                      <Typography variant="caption" color="text.secondary">
+                        Cột được tính là đã bảo vệ khi được MASK, HMAC hoặc DROP. Cột cá nhân giữ nguyên (KEEP) chỉ được
+                        phép dưới dạng ngoại lệ có thời hạn.
+                        {riskScore?.row_count_estimated
+                          ? ' Điểm rủi ro dùng số dòng ước lượng vì không đếm được nguồn.'
+                          : ''}
+                      </Typography>
                     </Stack>
                   </Card>
                 </Grid>
@@ -1703,7 +1437,7 @@ export function DpoReviewExperienceMVP(): JSX.Element {
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined" sx={{ p: 2.5, borderRadius: '8px', height: '100%' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Phân bổ chính sách che giấu (Masking Distribution)
+                      Phân bổ chính sách che giấu
                     </Typography>
                     <Stack spacing={1.5}>
                       {POLICY_ACTIONS.map((action) => (

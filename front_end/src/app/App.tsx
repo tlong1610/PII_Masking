@@ -4,9 +4,20 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { AppProviders } from '@/app/providers/AppProviders';
 import { RequireRole } from '@/features/auth';
 
+const DpoLayout = lazy(() => import('@/pages/DpoLayout').then((module) => ({ default: module.DpoLayout })));
 const DpoWorkspacePage = lazy(() =>
   import('@/pages/DpoWorkspacePage').then((module) => ({ default: module.DpoWorkspacePage })),
 );
+const DpoRunHistoryPage = lazy(() =>
+  import('@/pages/DpoRunHistoryPage').then((module) => ({ default: module.DpoRunHistoryPage })),
+);
+const DpoDatasetsPage = lazy(() =>
+  import('@/pages/DpoDatasetsPage').then((module) => ({ default: module.DpoDatasetsPage })),
+);
+const DpoDatasetDetailPage = lazy(() =>
+  import('@/pages/DpoDatasetDetailPage').then((module) => ({ default: module.DpoDatasetDetailPage })),
+);
+const DpoAuditPage = lazy(() => import('@/pages/DpoAuditPage').then((module) => ({ default: module.DpoAuditPage })));
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((module) => ({ default: module.LoginPage })),
 );
@@ -27,10 +38,17 @@ export function App(): JSX.Element {
             path="/dpo"
             element={
               <RequireRole role="DPO">
-                <DpoWorkspacePage />
+                <DpoLayout />
               </RequireRole>
             }
-          />
+          >
+            <Route index element={<DpoWorkspacePage />} />
+            <Route path="runs" element={<DpoRunHistoryPage />} />
+            <Route path="runs/:runId" element={<DpoWorkspacePage />} />
+            <Route path="datasets" element={<DpoDatasetsPage />} />
+            <Route path="datasets/:datasetId" element={<DpoDatasetDetailPage />} />
+            <Route path="audit" element={<DpoAuditPage />} />
+          </Route>
           <Route
             path="/analyst"
             element={

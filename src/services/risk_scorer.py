@@ -15,20 +15,16 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-# Canonical L3 (Sensitive / Critical under Decree 13/2023/ND-CP)
+# Canonical L3 (sensitive personal data). Kept in line with src/detection/taxonomy.py:
+# identity numbers (CCCD/CMND/passport) and free text are *basic* data there, so they are L2 below.
 _L3_KEYWORDS = frozenset(
     {
-        "CCCD",
-        "CMND",
-        "IDENTITY",
-        "PASSPORT",
         "BHYT",
         "HEALTH",
         "MEDICAL",
         "ICD10",
         "OCR_TEXT",
         "OCR_IDENTITY_DOC",
-        "FREE_TEXT_PII",
         "BANK_ACCOUNT",
         "FINANCIAL",
         "BIOMETRIC",
@@ -42,6 +38,11 @@ _L3_KEYWORDS = frozenset(
 # Canonical L2 (Direct Identifiers / Basic PII)
 _L2_KEYWORDS = frozenset(
     {
+        "CCCD",
+        "CMND",
+        "IDENTITY",
+        "PASSPORT",
+        "FREE_TEXT_PII",
         "FULL_NAME",
         "NAME",
         "PHONE",
@@ -73,6 +74,15 @@ _L1_KEYWORDS = frozenset(
         "QUASI_IDENTIFIER",
     }
 )
+
+# Scanner/DPO classifications that already state the level. When one is present it wins over
+# taxonomy/path keywords, so the review screen, the risk score and the report never disagree.
+_CLASSIFICATION_LEVELS = {
+    "PERSONAL_SENSITIVE": "L3",
+    "PERSONAL_BASIC": "L2",
+    "PERSONAL_CONTEXT": "L2",
+    "QUASI_IDENTIFIER": "L1",
+}
 
 # Canonical L0 (Non-personal / System data)
 _L0_KEYWORDS = frozenset(
@@ -141,24 +151,20 @@ def resolve_sensitivity_level(
     }:
         return "L0"
 
-    # Priority 1: Direct L3 match
+    # Priority 1: the classification assigned by the scanner (or corrected by the DPO)
+    if c_upper in _CLASSIFICATION_LEVELS:
+        return _CLASSIFICATION_LEVELS[c_upper]
+
+    # Fallback for unclassified/UNKNOWN fields: infer from taxonomy id and column name.
     if any(k in tax_upper for k in _L3_KEYWORDS) or any(
         _match_path_keyword(k, path_tokens) for k in _L3_KEYWORDS
     ):
         return "L3"
-    if c_upper == "PERSONAL_SENSITIVE":
-        return "L3"
-
-    # Quasi-identifiers (city, IP) are L1 even when the path contains an L2 word such as "name".
-    if c_upper == "QUASI_IDENTIFIER":
-        return "L1"
 
     # Priority 2: Direct L2 match
     if any(k in tax_upper for k in _L2_KEYWORDS) or any(
         _match_path_keyword(k, path_tokens) for k in _L2_KEYWORDS
     ):
-        return "L2"
-    if c_upper in {"PERSONAL_BASIC", "PERSONAL_CONTEXT"}:
         return "L2"
 
     # Priority 3: Direct L1 match

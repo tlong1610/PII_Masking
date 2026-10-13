@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,6 +23,7 @@ def get_audit_logs(
     actor_id: int | None = Query(None, description="Lọc theo ID người dùng"),
     action: str | None = Query(None, description="Lọc theo hành động"),
     entity_type: str | None = Query(None, description="Lọc theo loại thực thể (run, dataset, source)"),
+    entity_id: str | None = Query(None, description="Lọc theo ID thực thể (kết hợp với entity_type)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     _user: SessionUser = Depends(require_dpo),
@@ -34,10 +37,29 @@ def get_audit_logs(
         stmt = stmt.where(db_models.AuditEvent.action == action)
     if entity_type is not None:
         stmt = stmt.where(db_models.AuditEvent.entity_type == entity_type)
+    if entity_id is not None:
+        stmt = stmt.where(db_models.AuditEvent.entity_id == entity_id)
 
     stmt = stmt.offset(offset).limit(limit)
     rows = db.scalars(stmt).all()
-    return [AuditEventOut.model_validate(r) for r in rows]
+    return _with_usernames(db, rows)
+
+
+def _with_usernames(db: Session, rows: Sequence[db_models.AuditEvent]) -> list[AuditEventOut]:
+    actor_ids = {r.actor_id for r in rows}
+    usernames: dict[int, str] = {}
+    if actor_ids:
+        usernames = dict(
+            db.execute(
+                select(db_models.DemoUser.id, db_models.DemoUser.username).where(
+                    db_models.DemoUser.id.in_(actor_ids)
+                )
+            ).all()
+        )
+    return [
+        AuditEventOut.model_validate(r).model_copy(update={"actor_username": usernames.get(r.actor_id)})
+        for r in rows
+    ]
 
 
 @router.get("/my", response_model=list[AuditEventOut])
@@ -62,7 +84,7 @@ def get_my_audit_logs(
 
     stmt = stmt.offset(offset).limit(limit)
     rows = db.scalars(stmt).all()
-    return [AuditEventOut.model_validate(r) for r in rows]
+    return _with_usernames(db, rows)
 
 
 @router.get("/verify", response_model=AuditVerifyResponse)

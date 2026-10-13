@@ -16,65 +16,30 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from src.config import get_settings
 from src.db import models as db_models
 from src.services.risk_scorer import calculate_risk_score, resolve_sensitivity_level
 
-TAXONOMY_VERSION = "v1.2-vn-nd13"
+TAXONOMY_VERSION = "v1.3-vn-luat91"
 RECOGNIZER_VERSION = "v1.0-regex+bm25+llm"
-REPORT_SPEC_VERSION = "1.0.0"
+REPORT_SPEC_VERSION = "1.1.0"
+LEGAL_BASIS = "Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 & Nghị định 356/2025/NĐ-CP"
 
-_MASKED_ARCHETYPES = {
-    "CCCD": "079***384912",
-    "VN_CCCD": "079***384912",
-    "CMND": "025***891",
-    "PHONE": "098***7654",
-    "PHONE_VN": "098***7654",
-    "VN_PHONE": "098***7654",
-    "EMAIL": "u***r@company.vn",
-    "FULL_NAME": "Nguyễn *** An",
-    "NAME": "Trần *** Bình",
-    "ADDRESS": "*** Phường Bến Nghé, Quận 1, TP.HCM",
-    "STREET_ADDRESS": "*** Nguyễn Huệ, Quận 1, TP.HCM",
-    "DOB": "1990-**-**",
-    "DATE_OF_BIRTH": "1990-**-**",
-    "BANK_ACCOUNT": "**** **** **** 8899",
-    "SO_TK": "**** **** **** 8899",
-    "TAX_CODE_PERSONAL": "802***3491",
-    "TAX_CODE_ORG": "010***4567-001",
-    "BHYT": "DN401***7890",
-    "VN_HEALTH_INS": "DN401***7890",
-    "PATIENT_ID": "HMAC:8a4f...3c91",
-    "MEDICAL_RECORD_ID": "HMAC:8a4f...3c91",
-    "ICD10": "A00.*** (Masked ICD)",
-    "OCR_TEXT": "[REDACTED IDENTITY DOCUMENT CONTENT]",
-    "OCR_IDENTITY_DOC": "[REDACTED IDENTITY DOCUMENT CONTENT]",
-    "FREE_TEXT_PII": "[REDACTED CLINICAL / FREE-TEXT PII]",
-    "CLINICAL_TEXT": "[REDACTED CLINICAL TEXT]",
-    "IP_ADDRESS": "192.168.***.***",
-    "GENDER": "M/F",
-}
+# Runs whose decisions are not yet approved: the report then shows system recommendations only.
+_DRAFT_RUN_STATUSES = frozenset({"NEW", "SCANNING", "REVIEW_REQUIRED"})
 
-
-def _masked_sample_for(taxonomy_id: str | None, field_path: str, action: str) -> str:
-    """Generate safe, illustrative masked archetype without exposing raw PII."""
+def _snapshot_output_for(action: str, key_version: str, exception_until: Any = None) -> str:
+    """What the protected snapshot holds for this column (mask_engine.apply_action) — never a value."""
     act = (action or "KEEP").upper()
     if act == "DROP":
-        return "[DROPPED_FROM_SCHEMA]"
+        return "Không có trong snapshot (cột bị loại bỏ)"
+    if act == "MASK":
+        return "Toàn bộ giá trị thay bằng ***"
     if act == "HMAC":
-        # Deterministic HMAC-like representation
-        h = hashlib.sha256(f"sample:{taxonomy_id}:{field_path}".encode()).hexdigest()[:12]
-        return f"HMAC:{h}..."
-
-    key = (taxonomy_id or "").upper()
-    if key in _MASKED_ARCHETYPES:
-        return _MASKED_ARCHETYPES[key]
-
-    f_lower = field_path.lower()
-    for k, v in _MASKED_ARCHETYPES.items():
-        if k.lower() in f_lower:
-            return v
-
-    return "***REDACTED***"
+        return f"HMAC-SHA256 (khoá {key_version}): không đảo ngược, vẫn JOIN được"
+    if exception_until:
+        return f"Giữ nguyên giá trị (ngoại lệ đến {str(exception_until)[:10]})"
+    return "Giữ nguyên giá trị"
 
 
 def build_report_data(
@@ -105,6 +70,8 @@ def build_report_data(
         approvers = ["Chưa phê duyệt (Pending DPO Review)"]
 
     is_self_approved = bool(run.created_by in approver_ids)
+    is_draft = run.status in _DRAFT_RUN_STATUSES or not run.field_decisions
+    key_version = get_settings().hmac_key_version
 
     # 2. Decisions map & Risk score
     decision_map = {d.field_profile_id: d.action for d in run.field_decisions}
@@ -134,7 +101,8 @@ def build_report_data(
         if dec and dec.action != p.recommended_action:
             dpo_overrides += 1
 
-        masked_sample = _masked_sample_for(p.taxonomy_id, p.field_path, effective_action)
+        exception_until = getattr(dec, "exception_until", None)
+        snapshot_output = _snapshot_output_for(effective_action, key_version, exception_until)
 
         inventory.append(
             {
@@ -150,9 +118,9 @@ def build_report_data(
                 "effective_action": effective_action,
                 "is_dpo_override": bool(dec and dec.action != p.recommended_action),
                 "is_exception": getattr(dec, "is_exception", False),
-                "exception_until": getattr(dec, "exception_until", None),
-                "decision_reason": dec.reason if dec else "Theo khuyến nghị tự động của hệ thống",
-                "masked_sample": masked_sample,
+                "exception_until": exception_until,
+                "decision_reason": dec.reason if dec else "Đề xuất tự động, DPO chưa duyệt",
+                "snapshot_output": snapshot_output,
                 "coverage_status": p.coverage_status,
                 "summary": p.profile_summary,
             }
@@ -166,7 +134,9 @@ def build_report_data(
     verifier_items: list[dict[str, Any]] = []
     dataset_status = None
     dataset_name = None
-    for ds in run.datasets:
+    # Only the latest build counts: earlier snapshots of the same run were replaced.
+    latest = max(run.datasets, key=lambda d: d.id, default=None)
+    for ds in [latest] if latest is not None else []:
         dataset_status = ds.status
         dataset_name = ds.dataset_name
         v_results = db.scalars(
@@ -186,6 +156,15 @@ def build_report_data(
 
     now_iso = datetime.now(UTC).isoformat()
     total_fields = len(run.field_profiles)
+    egress_checks = [v for v in verifier_items if v["check_name"] == "zero_raw_pii_egress"]
+    if latest is None:
+        egress_statement = "Chưa kiểm chứng: run chưa tạo snapshot"
+    elif not egress_checks:
+        egress_statement = "Verifier của nguồn này không có bước kiểm tra rò rỉ giá trị gốc"
+    elif all(v["status"] == "PASSED" for v in egress_checks):
+        egress_statement = "Đạt: verifier không tìm thấy giá trị gốc trong snapshot"
+    else:
+        egress_statement = "KHÔNG ĐẠT: verifier phát hiện giá trị gốc trong snapshot"
     pii_count = risk_result["drivers"]["total_pii_fields"]
     protected_count = risk_result["drivers"]["protected_pii_fields"]
 
@@ -206,6 +185,8 @@ def build_report_data(
     return {
         "report_id": f"REP-RUN-{run.id:04d}-{content_hash[:8].upper()}",
         "report_type": "SUMMARY" if summary_only else "FULL",
+        "is_draft": is_draft,
+        "legal_basis": LEGAL_BASIS,
         "summary_view": summary_only,
         "is_self_approved": is_self_approved,
         "run_id": run.id,
@@ -244,38 +225,21 @@ def build_report_data(
             "dpo_overrides_count": dpo_overrides,
             "sensitivity_breakdown": risk_result["level_counts"],
             "actions_breakdown": risk_result["action_counts"],
-            "sampling_confidence": "95% (Wilson score interval, 500 mẫu đại diện/bảng)",
-            "coverage_statement": "100% trường dữ liệu thuộc bảng được cấp phép quét",
-            "actual_cost": "$0.00 (In-Memory Processing Engine)",
-            "residual_leak_rate": "0.0% (Zero Raw-PII Egress Verified)",
+            "coverage_statement": (
+                f"{total_fields} trường trên {len(source_paths)} bảng/collection trong phạm vi DPO đã chọn"
+            ),
+            "raw_pii_egress": egress_statement,
+            "row_count": risk_result["drivers"]["row_count"],
+            "row_count_estimated": row_count is None,
         },
         "inventory": [] if summary_only else inventory,
         "verification_checks": verifier_items,
-        "residual_risks": [
-            {
-                "risk_title": "Rủi ro tấn công dò từ điển đối với Hash tất định (HMAC)",
-                "level": "Medium",
-                "description": (
-                    "HMAC-SHA256 giữ được tính toàn vẹn quan hệ JOIN trên các cột khóa (CCCD, SĐT) "
-                    "nhưng có thể bị dò từ điển nếu không gian mẫu nhỏ. Khuyến nghị lưu trữ salt "
-                    "trong Secret Manager và định kỳ xoay vòng khóa."
-                ),
-            },
-            {
-                "risk_title": "Rủi ro bỏ sót PII thưa (< 1% bản ghi) do lấy mẫu",
-                "level": "Low-to-Medium",
-                "description": (
-                    "Lấy mẫu ngẫu nhiên có thể bỏ lọt các ô PII xuất hiện rải rác trong văn bản tự do. "
-                    "Khuyến nghị kích hoạt pushdown pattern count toàn bảng đối với các cột văn bản nhạy cảm."
-                ),
-            },
-        ],
+        "residual_risks": _residual_risks(inventory),
         "limitations": (
-            "LƯU Ý PHÁP LÝ & HẠN CHẾ KỸ THUẬT: Báo cáo tuân thủ này được lập tự động từ siêu dữ liệu "
-            "(metadata) và quy trình quét bảo vệ dữ liệu theo tiêu chuẩn Nghị định 13/2023/NĐ-CP. "
-            "Kết quả thử nghiệm và kiểm chứng được tiến hành trên tập dữ liệu mẫu/dữ liệu mô phỏng; "
-            "không suy diễn tuyệt đối độ bao phủ với các trường hợp dữ liệu bất thường ngoài phạm vi đã lấy mẫu. "
-            "Mọi thay đổi chính sách đều cần sự phê duyệt có trách nhiệm từ Cán bộ Bảo vệ Dữ liệu (DPO)."
+            "Báo cáo được lập tự động từ siêu dữ liệu (metadata) của lượt quét, đối chiếu "
+            f"{LEGAL_BASIS}. Phân loại dựa trên mẫu dữ liệu đọc trong bộ nhớ lúc quét, nên có thể bỏ sót "
+            "PII xuất hiện thưa trong các bản ghi không được lấy mẫu. Báo cáo không chứa giá trị dữ liệu gốc. "
+            "Mọi thay đổi chính sách cần Cán bộ Bảo vệ Dữ liệu (DPO) phê duyệt."
         ),
         "audit_proof": {
             "content_hash": content_hash,
@@ -283,6 +247,69 @@ def build_report_data(
             "tamper_evident": True,
         },
     }
+
+
+def _residual_risks(inventory: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Residual risks that actually apply to this run's protected output."""
+    risks: list[dict[str, str]] = []
+    hmac_cols = [f"{i['table']}.{i['column']}" for i in inventory if i["effective_action"] == "HMAC"]
+    if hmac_cols:
+        risks.append(
+            {
+                "risk_title": "Dò từ điển trên giá trị HMAC",
+                "level": "Trung bình",
+                "description": (
+                    f"{len(hmac_cols)} cột dùng HMAC-SHA256 để giữ khả năng JOIN. Nếu tập giá trị nhỏ "
+                    "(ví dụ số điện thoại, CCCD) và khoá bị lộ, có thể dò ngược. Giữ khoá trong Secret Manager "
+                    "và xoay khoá định kỳ."
+                ),
+            }
+        )
+    def _names(items: list[dict[str, Any]]) -> str:
+        more = "…" if len(items) > 5 else ""
+        return ", ".join(f"{i['table']}.{i['column']}" for i in items[:5]) + more
+
+    kept = [i for i in inventory if i["effective_action"] == "KEEP"]
+    kept_pii = [i for i in kept if i["sensitivity_level"] in ("L2", "L3")]
+    if kept_pii:
+        risks.append(
+            {
+                "risk_title": "Cột PII được giữ nguyên theo ngoại lệ",
+                "level": "Cao" if any(i["sensitivity_level"] == "L3" for i in kept_pii) else "Trung bình",
+                "description": (
+                    f"{len(kept_pii)} cột PII không được che ({_names(kept_pii)}). "
+                    "Analyst sẽ thấy giá trị thật cho tới khi ngoại lệ hết hạn."
+                ),
+            }
+        )
+    kept_quasi = [i for i in kept if i["sensitivity_level"] == "L1"]
+    if kept_quasi:
+        risks.append(
+            {
+                "risk_title": "Định danh gián tiếp (L1) được giữ nguyên",
+                "level": "Thấp",
+                "description": (
+                    f"{len(kept_quasi)} cột ({_names(kept_quasi)}) được giữ để phân tích. Riêng lẻ chúng không "
+                    "định danh được ai, nhưng kết hợp nhiều cột có thể tái định danh."
+                ),
+            }
+        )
+    free_text = [i for i in inventory if (i["taxonomy_id"] or "").upper() == "FREE_TEXT_PII"]
+    if free_text:
+        risks.append(
+            {
+                "risk_title": "PII ẩn trong văn bản tự do",
+                "level": "Thấp đến trung bình",
+                "description": (
+                    f"{len(free_text)} cột văn bản tự do (ghi chú, nội dung trao đổi) có thể chứa PII rải rác "
+                    "mà việc lấy mẫu không bắt được. Nên DROP hoặc MASK thay vì giữ nguyên."
+                ),
+            }
+        )
+    return risks
+
+
+_TIER_LABELS = {"Critical": "Nghiêm trọng", "High": "Cao", "Medium": "Trung bình", "Low": "Thấp"}
 
 
 def render_html_report(data: dict[str, Any]) -> str:
@@ -350,7 +377,7 @@ def render_html_report(data: dict[str, Any]) -> str:
                     <td><span style="font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700; {lvl_badge_color}">{_esc(lvl)}</span></td>
                     <td><span style="font-size:12px; font-weight:600; color:#334155;">{_esc(item['taxonomy_id'])}</span></td>
                     <td><span style="font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700; {act_badge_color}">{_esc(act)}</span> {override_marker}</td>
-                    <td style="font-family:monospace; font-size:12px; color:#475569; background:#f8fafc;">{_esc(item['masked_sample'])}</td>
+                    <td style="font-size:12px; color:#475569; background:#f8fafc;">{_esc(item.get('snapshot_output', ''))}</td>
                     <td style="font-size:12px; color:#64748b;">{_esc(item['decision_reason'])}</td>
                 </tr>"""
             )
@@ -363,9 +390,9 @@ def render_html_report(data: dict[str, Any]) -> str:
         for chk in data["verification_checks"]:
             is_pass = chk["status"] == "PASSED"
             badge = (
-                '<span style="background:#dcfce7; color:#166534; font-weight:700; padding:2px 8px; border-radius:12px; font-size:11px;">PASSED</span>'
+                '<span style="background:#dcfce7; color:#166534; font-weight:700; padding:2px 8px; border-radius:12px; font-size:11px;">Đạt</span>'
                 if is_pass
-                else '<span style="background:#fee2e2; color:#991b1b; font-weight:700; padding:2px 8px; border-radius:12px; font-size:11px;">FAILED</span>'
+                else '<span style="background:#fee2e2; color:#991b1b; font-weight:700; padding:2px 8px; border-radius:12px; font-size:11px;">Không đạt</span>'
             )
             checks_html.append(
                 f"""<tr>
@@ -390,11 +417,26 @@ def render_html_report(data: dict[str, Any]) -> str:
         sod_warning_html = """
         <div style="background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 16px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; color: #92400e;">
             <strong style="color: #b45309; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                ⚠️ Cảnh báo Segregation of Duties (SoD) — Tự Duyệt (Self-Approved)
+                ⚠️ Cảnh báo phân tách nhiệm vụ — cùng một người yêu cầu và phê duyệt
             </strong>
-            Quá trình yêu cầu quét và phê duyệt quyết định được thực hiện bởi cùng một người dùng. Hệ thống tự động ghi nhận cảnh báo kiểm toán theo Nghị định 13/2023/NĐ-CP và yêu cầu rà soát độc lập (§3).
+            Quá trình yêu cầu quét và phê duyệt quyết định được thực hiện bởi cùng một người dùng. Hệ thống ghi nhận cảnh báo kiểm toán và yêu cầu rà soát độc lập (§3).
         </div>
         """
+
+    draft_banner_html = ""
+    if data.get("is_draft"):
+        draft_banner_html = """
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #2563eb; padding: 14px 16px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; color: #1e3a8a;">
+            <strong style="display: block; margin-bottom: 4px;">BẢN NHÁP — DPO chưa phê duyệt</strong>
+            Chính sách và tỷ lệ bảo vệ bên dưới là đề xuất tự động của hệ thống. Báo cáo chỉ có giá trị làm
+            bằng chứng sau khi DPO lưu quyết định và tạo snapshot.
+        </div>
+        """
+
+    residual_items = "".join(
+        f"<li style='margin-bottom:8px;'><strong>{_esc(r['risk_title'])} ({_esc(r['level'])}):</strong> {_esc(r['description'])}</li>"
+        for r in data.get("residual_risks", [])
+    ) or "<li>Không ghi nhận rủi ro tồn dư đặc thù cho lượt quét này.</li>"
 
     return f"""<!DOCTYPE html>
 <html lang="vi">
@@ -640,16 +682,17 @@ def render_html_report(data: dict[str, Any]) -> str:
                 <div class="brand-icon">🛡️</div>
                 <div>
                     <h1>BÁO CÁO TUÂN THỦ BẢO VỆ DỮ LIỆU CÁ NHÂN (PII)</h1>
-                    <p>Hệ Thống PII Guardian Agent • Đối Chiếu Nghị Định 13/2023/NĐ-CP</p>
+                    <p>PIIGuard Shield • Đối chiếu {_esc(data.get('legal_basis', LEGAL_BASIS))}</p>
                 </div>
             </div>
             <div class="badge-versions">
-                <span class="version-tag">Taxonomy: {_esc(data['versions']['taxonomy_version'])}</span>
-                <span class="version-tag">Recognizer: {_esc(data['versions']['recognizer_version'])}</span>
-                <span class="version-tag">Policy: {_esc(data['versions']['policy_version'])}</span>
+                <span class="version-tag">Phân loại: {_esc(data['versions']['taxonomy_version'])}</span>
+                <span class="version-tag">Bộ nhận diện: {_esc(data['versions']['recognizer_version'])}</span>
+                <span class="version-tag">Chính sách: {_esc(data['versions']['policy_version'])}</span>
             </div>
         </div>
 
+        {draft_banner_html}
         {sod_warning_html}
 
         <!-- Executive Summary -->
@@ -681,7 +724,7 @@ def render_html_report(data: dict[str, Any]) -> str:
                 </div>
             </div>
             <div class="risk-card">
-                <span class="risk-tier">{_esc(tier)} Risk</span>
+                <span class="risk-tier">Rủi ro {_esc(_TIER_LABELS.get(tier, tier)).lower()}</span>
                 <div class="risk-score">{score}</div>
                 <span class="risk-action">{_esc(data['risk_assessment']['action_required'])}</span>
             </div>
@@ -699,7 +742,7 @@ def render_html_report(data: dict[str, Any]) -> str:
             </div>
             <div class="stat-card">
                 <div class="stat-value" style="color:#16a34a;">{data['metrics']['protection_pct']}%</div>
-                <div class="stat-label">Tỷ Lệ Đã Che / Bảo Vệ</div>
+                <div class="stat-label">Tỷ Lệ Cột PII Được Bảo Vệ{' (theo đề xuất)' if data.get('is_draft') else ''}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" style="color:#dc2626;">{data['metrics']['sensitivity_breakdown'].get('L3', 0)}</div>
@@ -708,7 +751,7 @@ def render_html_report(data: dict[str, Any]) -> str:
         </div>
 
         <!-- PII Inventory Section -->
-        <div class="section-title">📋 Bảng Kiểm Kê & Biện Pháp Xử Lý PII (Zero Raw-PII Egress)</div>
+        <div class="section-title">📋 Bảng Kiểm Kê & Biện Pháp Xử Lý PII</div>
         <table>
             <thead>
                 <tr>
@@ -716,8 +759,8 @@ def render_html_report(data: dict[str, Any]) -> str:
                     <th>Cột / Trường</th>
                     <th>Mức Nhạy Cảm</th>
                     <th>Thực Thể PII</th>
-                    <th>Chính Sách Áp Dụng</th>
-                    <th>Mẫu Che Minh Họa</th>
+                    <th>{'Chính Sách Đề Xuất' if data.get('is_draft') else 'Chính Sách Áp Dụng'}</th>
+                    <th>Dữ Liệu Trong Snapshot</th>
                     <th>Lý Do / Căn Cứ</th>
                 </tr>
             </thead>
@@ -727,7 +770,7 @@ def render_html_report(data: dict[str, Any]) -> str:
         </table>
 
         <!-- Verification Results -->
-        <div class="section-title">✅ Kết Quả Kiểm Chứng Tự Động (Verifier Engine)</div>
+        <div class="section-title">✅ Kết Quả Kiểm Chứng Tự Động</div>
         <table>
             <thead>
                 <tr>
@@ -750,9 +793,9 @@ def render_html_report(data: dict[str, Any]) -> str:
         </div>
 
         <!-- Residual Risks -->
-        <div class="section-title">🛡️ Đánh Giá Rủi Ro Tồn Dư (Residual Risks)</div>
+        <div class="section-title">🛡️ Đánh Giá Rủi Ro Tồn Dư</div>
         <ul style="font-size:13px; color:#475569; margin-left:20px; margin-bottom:32px;">
-            {''.join(f"<li style='margin-bottom:8px;'><strong>{_esc(r['risk_title'])} ({_esc(r['level'])}):</strong> {_esc(r['description'])}</li>" for r in data.get('residual_risks', []))}
+            {residual_items}
         </ul>
 
         <!-- Footer / Hash Proof -->
