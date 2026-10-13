@@ -1,6 +1,6 @@
 # PIIGuard Shield - Kiến Trúc Hệ Thống
 
-Tài liệu này là bản kiến trúc ngắn gọn của PIIGuard Shield. Bản chi tiết hơn nằm ở [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
+Tài liệu này là bản kiến trúc ngắn gọn của PIIGuard Shield. Bản chi tiết hơn nằm ở [docs/core/SYSTEM_ARCHITECTURE.md](docs/core/SYSTEM_ARCHITECTURE.md).
 
 ## 1. Tổng Quan
 

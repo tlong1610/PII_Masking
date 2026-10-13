@@ -1,6 +1,6 @@
 # PIIGuard Shield - System Architecture
 
-Tài liệu này mô tả luồng MVP của PIIGuard Shield. MVP chỉ hỗ trợ **PostgreSQL** và **MongoDB**. Các database khác để sau khi demo end-to-end đã ổn định.
+Tài liệu này mô tả luồng hệ thống hiện tại của PIIGuard Shield sau MVP. P1 vẫn tập trung **PostgreSQL** và **MongoDB**; các database khác để sau.
 
 ## 1. Ý tưởng chính
 
@@ -23,7 +23,7 @@ MongoDB output    : mydatabase_protected.customers
 
 ## 2. Cách cắm database
 
-MVP không ưu tiên upload file database. Cách đúng là dùng **connection string** để backend kết nối vào database đang chạy.
+Hệ thống không ưu tiên upload file database. Cách đúng là dùng **connection string** để backend kết nối vào database đang chạy.
 
 PostgreSQL:
 
@@ -54,7 +54,7 @@ ENABLE_MONGO=true
 
 API không được trả password, URI có credential, raw PII hoặc HMAC secret ra frontend.
 
-## 3. Luồng MVP
+## 3. Luồng Chính
 
 ```mermaid
 flowchart LR
@@ -90,7 +90,7 @@ flowchart TB
 
     RUNS --> SCAN[Scanner]
     SCAN --> RULES[Rules/regex/BM25]
-    SCAN --> LLM[Optional LLM<br/>sanitized profile only]
+    SCAN --> LLM[Optional LangGraph/LLM<br/>metadata/statistics only]
 
     SOURCES --> PG[(PostgreSQL source)]
     SOURCES --> MG[(MongoDB source)]
@@ -115,6 +115,8 @@ flowchart TB
 | Datasets API | Publish, revoke, list, preview |
 | App DB | Lưu metadata, không lưu raw source value |
 
+Chi tiết AI detection nằm ở [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md). Tóm tắt: `ENABLE_AI_SCAN=false` chạy rules-only; `ENABLE_AI_SCAN=true` mới gọi LLM qua provider fallback OpenRouter → OpenAI → Gemini. Prompt LLM chỉ nhận metadata/statistics đã lọc, không nhận raw `sample_value`.
+
 ## 5. PostgreSQL branch
 
 ```mermaid
@@ -131,7 +133,7 @@ flowchart TD
     I -->|no| K[FAILED]
 ```
 
-P0 dùng fixture tại `data/fixtures/seed.sql`. Source phải là read-only. Snapshot nằm ở database/schema đích riêng. Backend không scan toàn bộ PostgreSQL schema nếu DPO chỉ chọn một số bảng.
+PostgreSQL fixture nằm tại `data/fixtures/seed.sql`. Source phải là read-only. Snapshot nằm ở database/schema đích riêng. Backend không scan toàn bộ PostgreSQL schema nếu DPO chỉ chọn một số bảng.
 
 ## 6. MongoDB branch
 
@@ -149,7 +151,7 @@ flowchart TD
     I -->|no| K[FAILED]
 ```
 
-P0 dùng `customers` và `orders`. Field lồng nhau giữ path dạng dấu chấm:
+MongoDB fixture dùng `customers` và `orders`. Field lồng nhau giữ path dạng dấu chấm:
 
 ```text
 identity.cccd
@@ -202,7 +204,7 @@ Backend phải kiểm tra quyền và trạng thái, không chỉ ẩn nút ở 
 | List datasets | `GET /datasets` | DPO/Analyst |
 | Preview output | `GET /datasets/{id}/preview` | DPO/Analyst |
 
-P0 hiện có `sql-demo` và `nosql-demo`. Source động cho doanh nghiệp là bước tiếp theo: user nhập connection string, backend test connection, đọc scope, rồi chạy cùng flow trên.
+Hiện có `sql-demo` và `nosql-demo`. Source động cho doanh nghiệp: user nhập connection string, backend test connection, đọc scope, rồi chạy cùng flow trên.
 
 ## 10. Trạng thái cần nhớ
 

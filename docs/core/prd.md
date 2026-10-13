@@ -11,16 +11,16 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/tokenization), s
 | Analyst | Chuyên viên phân tích | Dùng dữ liệu để phân tích | Chỉ xem được các dataset/snapshot đã được che an toàn |
 
 ## 3. User stories
-- Là DPO, tôi muốn hệ thống tự động quét dataset để phát hiện và phân loại PII. (P0)
-- Là DPO, tôi muốn nhận được đề xuất chính sách che (DROP/MASK/HMAC) phù hợp cho từng trường. (P0)
-- Là DPO, tôi muốn tự tay duyệt (HITL) phân loại và chính sách che trước khi hệ thống áp dụng. (P0)
-- Là DPO, tôi muốn hệ thống chạy các test downstream tự động để kiểm tra ảnh hưởng của việc che dữ liệu trước khi phát hành. (P1)
-- Là DPO, tôi muốn xem log audit đầy đủ của các hành động duyệt/phát hành. (P1)
+- Là DPO, tôi muốn hệ thống tự động quét dataset để phát hiện và phân loại PII. (đã có)
+- Là DPO, tôi muốn nhận được đề xuất chính sách che (DROP/MASK/HMAC) phù hợp cho từng trường. (đã có)
+- Là DPO, tôi muốn tự tay duyệt (HITL) phân loại và chính sách che trước khi hệ thống áp dụng. (đã có)
+- Là DPO, tôi muốn hệ thống chạy downstream verifier trước khi phát hành. (đã có, P1 cần quét sâu edge cases trong dataset hiện có)
+- Là DPO, tôi muốn audit/eval/report đủ bằng chứng để review P1. (P1 control)
 
 ## 4. Luồng chính (happy path)
 1. DPO đăng nhập, chọn dataset cần rà soát.
-2. LangGraph Agent quét schema/metadata, phát hiện và phân loại PII.
-3. Agent đề xuất chính sách masking/tokenization.
+2. Scanner quét schema/metadata/statistics; rules chạy mặc định, LangGraph/LLM chỉ hỗ trợ khi `ENABLE_AI_SCAN=true`.
+3. Hệ thống đề xuất chính sách MASK/HMAC/DROP/KEEP.
 4. DPO rà soát trên màn hình, chỉnh sửa nếu cần và bấm xác nhận duyệt.
 5. Hệ thống sinh ra bản sao (Snapshot) đã che dữ liệu ở vùng Staging và chạy Verifier (Downstream tests).
 6. DPO xem báo cáo tuân thủ và kết quả Verifier, sau đó bấm "Phát hành" (Publish).
@@ -32,7 +32,7 @@ Các hành động rủi ro bắt buộc có sự can thiệp của người dù
 - **Phát hành dữ liệu:** Hệ thống KHÔNG tự động phát hành. DPO phải kiểm tra báo cáo test (Pass/Fail) và tự tay bấm nút Publish, kèm theo lưu log audit đầy đủ.
 
 ## 6. Xử lý lỗi & giới hạn
-- **LLM lỗi hoặc tốn kém:** Có giới hạn chi phí. Tự động fallback sử dụng regex/NER (Presidio). Báo lỗi rõ ràng trên UI nếu API LLM sập.
+- **LLM lỗi hoặc tốn kém:** Có giới hạn chi phí. Rules/regex là baseline mặc định; LLM chỉ là nhánh optional. Nếu API LLM sập, field mập mờ được đưa về proposal an toàn để DPO duyệt, không chặn toàn bộ luồng nếu scan vẫn hoàn tất.
 - **Độ chính xác & Downstream:** Nếu Agent phân loại sai dẫn đến hỏng phép liên kết (SQL Join), Downstream test sẽ Fail và chặn luồng phát hành.
 - **Giới hạn cứng:** Nghiêm cấm hiển thị raw data PII thật trên giao diện duyệt. Hệ thống chỉ xử lý dựa trên metadata, schema hoặc công cụ ẩn danh.
 
@@ -43,11 +43,11 @@ Các hành động rủi ro bắt buộc có sự can thiệp của người dù
 
 ## 8. Tech stack (dự kiến)
 - **Backend:** Python 3.11, FastAPI, Pydantic, SQLAlchemy, PyMongo.
-- **AI/LLM:** LangGraph agent, LLM + Regex/NER (Presidio).
+- **AI/LLM:** Rules/regex + BM25/hybrid; LangGraph/LLM optional với provider fallback OpenRouter → OpenAI → Gemini; không dùng Presidio trong source hiện tại.
 - **Frontend:** React + TypeScript + Vite.
 - **Deploy/Lưu trữ:** Docker Compose, Github Actions.
 
 ## 9. Known Ambiguities & Scope Deviations
-- **Data Source & Masking (Scope Deviation):** Đề bài gốc yêu cầu dùng Data Warehouse (Snowflake/BigQuery) và tính năng Dynamic Masking. Tuy nhiên, để tối ưu tốc độ triển khai MVP, đội quyết định sử dụng PostgreSQL/MongoDB và cơ chế sinh Snapshot tĩnh. Hướng đi này giúp dễ demo và test downstream hơn. Sẽ cân nhắc migrate sang Data Warehouse ở Phase 2.
+- **Data Source & Masking (Scope Deviation):** Đề bài gốc yêu cầu dùng Data Warehouse (Snowflake/BigQuery) và tính năng Dynamic Masking. Team chọn PostgreSQL/MongoDB và cơ chế sinh Snapshot tĩnh để giữ app chạy thật, dễ demo và test downstream. Sẽ cân nhắc migrate sang Data Warehouse ở Phase 2.
 - **Downstream Testing:** Tính năng tự động kiểm tra tác vụ phân tích (downstream) sau khi che dữ liệu được bổ sung so với đề gốc để tăng tính thực tiễn (tránh việc che xong data không join được nữa).
-- **Mức độ nâng cao (Phase 1+):** Tính năng audit log, multi-agent đánh giá rủi ro, và chạy evaluation sẽ được hoàn thiện trong giai đoạn tiếp theo (P1).
+- **Mức độ nâng cao (Phase 1+):** Quét sâu hơn các field/value patterns trong PostgreSQL/MongoDB hiện có, hỗ trợ gateway OpenAI-compatible tùy chỉnh (`OPENAI_BASE_URL`) và hoàn thiện audit/evaluation. Không ưu tiên mở thêm cấu trúc dữ liệu mới trong P1.

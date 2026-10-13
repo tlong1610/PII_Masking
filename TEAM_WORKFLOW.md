@@ -433,9 +433,9 @@ git push
 
 **4 deliverables bắt buộc đi qua PR:**
 
-1. `docs/brief.md` → PR: `docs/add-one-page-brief`
-2. `docs/prd.md` → PR: `docs/add-prd-for-gate-1`
-3. `docs/ui-flow.md` → PR: `docs/add-wireframe-and-ui-flow`
+1. `docs/archive/brief.md` → PR: `docs/add-one-page-brief`
+2. `docs/core/prd.md` → PR: `docs/add-prd-for-gate-1`
+3. `docs/archive/ui-flow.md` → PR: `docs/add-wireframe-and-ui-flow`
 4. `README.md` (cập nhật) → PR: `docs/update-readme-project-info`
 
 **⚠️ Yêu cầu đặc biệt:**
@@ -643,8 +643,8 @@ git cherry-pick <commit-hash-2>
 - [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) — Bản đồ cây thư mục & phân chia trách nhiệm chi tiết cho 4 thành viên
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — Hướng dẫn đóng góp chung
 - [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — Template PR
-- [`docs/prd.md`](docs/prd.md) — Product Requirements Document
-- [`docs/brief.md`](docs/brief.md) — One-page brief
+- [`docs/core/prd.md`](docs/core/prd.md) — Product Requirements Document
+- [`docs/archive/brief.md`](docs/archive/brief.md) — One-page brief
 - [`README.md`](README.md) — Tổng quan dự án
 
 ### External:
@@ -652,7 +652,7 @@ git cherry-pick <commit-hash-2>
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Flow](https://guides.github.com/introduction/flow/)
 - [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf)
-- [AI20K Gate 1 Requirements](docs/gate-1-requirements.md) — Chi tiết yêu cầu Gate 1
+- [AI20K Gate 1 Requirements](docs/core/prd.md) — Chi tiết yêu cầu Gate 1
 
 ---
 

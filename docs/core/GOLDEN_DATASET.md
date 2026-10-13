@@ -5,7 +5,7 @@
 **Golden Dataset** (hay **Gold Standard Dataset**) là tập dữ liệu test **đã được gán nhãn chuẩn** bởi chuyên gia, dùng để:
 
 1. **Đánh giá độ chính xác** của hệ thống PII detection
-2. **So sánh kết quả** giữa các phương pháp (rule-based vs LLM)
+2. **So sánh kết quả** giữa các phương pháp (rules-only vs AI-assisted)
 3. **Regression testing** - đảm bảo code mới không làm giảm accuracy
 4. **Minh chứng** cho mentor/khách hàng về chất lượng
 
@@ -44,8 +44,8 @@ Mỗi test case trong `golden_labels.json`:
 
 ### Các Trường Quan Trọng
 
-- **taxonomy_id**: Loại PII (CCCD, EMAIL, PHONE_VN, DATE_OF_BIRTH...)
-- **expected_action**: Hành động đúng (HMAC, MASK, DROP, ENCRYPT, ALLOW)
+- **taxonomy_id**: Loại PII (CCCD, EMAIL, PHONE, DOB...)
+- **expected_action**: Hành động đúng theo code hiện tại (HMAC, MASK, DROP, KEEP)
 - **legal_basis**: Căn cứ pháp lý (Luật 91/2025/QH15...)
 - **reason**: Giải thích tại sao chọn action này
 - **is_edge_case**: True nếu là trường hợp khó (edge case)
@@ -56,16 +56,16 @@ Mỗi test case trong `golden_labels.json`:
 |------------|-------|----------------|-------|
 | CCCD | Số CMND/CCCD 12 số | HMAC | 033254456184 |
 | EMAIL | Email cá nhân | MASK | user@example.vn |
-| PHONE_VN | SĐT Việt Nam | MASK | 0327540543 |
-| DATE_OF_BIRTH | Ngày sinh | MASK | 1990-07-12 |
+| PHONE | SĐT Việt Nam | MASK | 0327540543 |
+| DOB | Ngày sinh | MASK | 1990-07-12 |
 | TAX_CODE | Mã số thuế | MASK | 0123456789 |
 | ADDRESS | Địa chỉ nhà | MASK | 123 Lê Lợi, Q1... |
-| ORDER_ID | Mã đơn hàng | ALLOW | ORD-2024-001 |
-| AMOUNT | Số tiền | ALLOW | 1250000 |
+| ORDER_ID / TRACKING_CODE | Mã đơn hàng / mã vận đơn | KEEP | ORD-2024-001 |
+| AMOUNT / MONEY_ALONE | Số tiền đứng riêng | KEEP | 1250000 |
 
 ## 🧪 Chạy Evaluation
 
-### Full Evaluation (Rule + BM25 + LLM)
+### Full Evaluation (rules/BM25 + AI-assisted nếu bật)
 ```bash
 cd /Users/phucnguyen/Desktop/AI/team_build_phase/P-138
 source .venv/bin/activate
@@ -125,10 +125,9 @@ Action Accuracy = Correct Actions / Total Detected
    - Timestamps
    - Amounts
 
-3. **Thêm ảnh/voice data**:
-   - Ảnh CCCD → OCR text
-   - Voice recordings → transcript
-   - (Lưu ở data center, không cloud)
+3. **Không mở rộng sang cấu trúc dữ liệu mới trong P1**:
+   - Ảnh/voice chỉ ghi nhận là rủi ro tương lai
+   - P1 tập trung quét sâu các field/value patterns trong PostgreSQL và MongoDB hiện có
 
 ## 🚀 Next Steps
 
@@ -151,8 +150,8 @@ Action Accuracy = Correct Actions / Total Detected
   "category": "non_sensitive",  # NOT sensitive!
   "taxonomy_id": "PRODUCT_CODE",
   "legal_basis": "N/A",
-  "expected_action": "ALLOW",
-  "reason": "Mã sản phẩm không phải PII, cho phép lưu trữ bình thường",
+  "expected_action": "KEEP",
+  "reason": "Mã sản phẩm không phải PII, cho phép giữ nguyên trong snapshot phân tích",
   "is_edge_case": false,
   "split": "dev"
 }
@@ -163,4 +162,5 @@ Action Accuracy = Correct Actions / Total Detected
 - `tests/test_api/test_datasets.py` - API tests
 - `data/fixtures/postgres/compute/audit_postgres_golden_labels.py` - Generate script
 - `eval/results/postgres_golden_evidence.json` - Kết quả chạy eval
+- `docs/core/AI_ARCHITECTURE.md` - Giải thích rules/AI/LLM và nguyên tắc không gửi raw sample vào LLM
 

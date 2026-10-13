@@ -141,5 +141,5 @@ Hiển thị bước lỗi, phần đã xong, việc cần sửa và trạng th�
 - Đủ loading, lỗi, empty, review, hai xác nhận và kết quả cho cả PostgreSQL/MongoDB.
 - Quy trình có thể hoàn thành với trường chưa rõ được DROP; báo cáo vẫn ghi chưa phân loại.
 - Trường mới/nhánh object chưa duyệt không xuất hiện nguyên vẹn trong đầu ra.
-- Nút bấm và URL không thể vượt qua trạng thái backend trong [PRD](prd.md).
+- Nút bấm và URL không thể vượt qua trạng thái backend trong [PRD](../core/prd.md).
 - Nội dung UI dùng ngôn ngữ nghiệp vụ; thuật toán, credential và cấu hình hạ tầng không biến thành bước bắt buộc đối với Analyst.
