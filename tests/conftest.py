@@ -24,6 +24,10 @@ from src.main import app  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def _clean_sessions():
+    from src.api.auth import reset_auth_rate_limiter
+
+    # Each test logs in on its own; a shared login window would make the suite order-dependent.
+    reset_auth_rate_limiter()
     clear_sessions()
     yield
     clear_sessions()

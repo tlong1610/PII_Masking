@@ -1,21 +1,17 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/features/auth';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DpoReviewExperienceMVP } from '@/features/piiReview';
 import { routes } from '@/shared/config/routes';
-import { AppShell } from '@/shared/ui';
 
 export function DpoWorkspacePage(): JSX.Element {
-  const { user, logout } = useAuth();
+  const { runId } = useParams();
   const navigate = useNavigate();
-
-  const handleLogout = (): void => {
-    logout();
-    navigate(routes.login);
-  };
+  const parsedRunId = runId !== undefined && /^\d+$/.test(runId) ? Number(runId) : null;
 
   return (
-    <AppShell activeRole="DPO" currentUser={user} onLogout={handleLogout}>
-      <DpoReviewExperienceMVP />
-    </AppShell>
+    <DpoReviewExperienceMVP
+      initialRunId={parsedRunId}
+      // Put the new run in the URL so a reload (or a shared link) reopens the same review.
+      onRunCreated={(id) => navigate(routes.dpoRun(id))}
+    />
   );
 }

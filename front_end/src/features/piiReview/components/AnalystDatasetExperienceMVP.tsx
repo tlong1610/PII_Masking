@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
   Chip,
   CircularProgress,
   IconButton,
@@ -28,16 +27,14 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SearchIcon from '@mui/icons-material/Search';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
-import CodeIcon from '@mui/icons-material/Code';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 
 import '@xyflow/react/dist/style.css';
 
+import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
 import { previewDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
@@ -47,6 +44,7 @@ import {
   TransformChip,
 } from './PolicyChips';
 import { getTransformAnalystHint } from '../model/policyLabels';
+import { buildJoinSnippets } from '../model/joinSnippets';
 
 const ROW_LIMIT_OPTIONS = [20, 50, 100, 200] as const;
 const DOWNLOAD_ROW_LIMIT = 200;
@@ -96,13 +94,50 @@ function downloadCsv(preview: DatasetPreview): void {
   URL.revokeObjectURL(url);
 }
 
+/** Copyable JOIN examples built from the dataset's real relationships (never executed here). */
+function JoinExamples({ preview }: { preview: DatasetPreview }): JSX.Element {
+  const snippets = buildJoinSnippets(preview.relationships, preview.columns);
+  return (
+    <Stack spacing={1.5} sx={{ mt: 3 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        Cách nối các bảng trong dataset
+      </Typography>
+      {snippets.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          Dataset này không có cặp khoá nối nào được giữ lại (KEEP hoặc HMAC ở cả hai đầu).
+        </Typography>
+      ) : (
+        snippets.map((snippet) => (
+          <Paper key={snippet.key} variant="outlined" sx={{ p: 1.5 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+              <Typography variant="caption" color="text.secondary">
+                {snippet.description}
+              </Typography>
+              <Tooltip title="Sao chép SQL">
+                <IconButton
+                  size="small"
+                  aria-label="Sao chép SQL"
+                  onClick={() => void navigator.clipboard.writeText(snippet.sql)}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Box component="pre" sx={{ m: 0, mt: 1, fontFamily: 'monospace', typography: 'body2', overflowX: 'auto' }}>
+              {snippet.sql}
+            </Box>
+          </Paper>
+        ))
+      )}
+    </Stack>
+  );
+}
+
 export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [datasetSearch, setDatasetSearch] = useState<string>('');
   const [collapsedPreviewSources, setCollapsedPreviewSources] = useState<Record<string, boolean>>({});
-  const [isQueryRunning, setIsQueryRunning] = useState<boolean>(false);
-  const [queryRunTime, setQueryRunTime] = useState<number | null>(null);
   const [downloadingDatasetId, setDownloadingDatasetId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -192,15 +227,6 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     }
   };
 
-  const handleRunSampleQuery = () => {
-    setIsQueryRunning(true);
-    setQueryRunTime(null);
-    setTimeout(() => {
-      setIsQueryRunning(false);
-      setQueryRunTime(0.42);
-    }, 600);
-  };
-
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -232,8 +258,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           Chưa có dataset nào được phát hành
         </Typography>
         <Typography variant="body2" sx={{ color: '#6B7280', lineHeight: 1.6 }}>
-          DPO sẽ phát hành (PUBLISH) các bộ dữ liệu sau khi hoàn tất quy trình quét PII và áp dụng quy tắc sàn bảo mật
-          Minimum Masking Floor.
+          DPO sẽ phát hành các bộ dữ liệu sau khi hoàn tất quét PII và áp dụng mức che tối thiểu.
         </Typography>
       </Box>
     );
@@ -255,41 +280,23 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           overflow: 'hidden',
           display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
-          height: 'calc(100vh - 90px)',
+          height: STICKY_PANEL_HEIGHT,
           position: 'sticky',
-          top: 70,
+          top: STICKY_PANEL_TOP,
         }}
       >
         {/* Header */}
         <Box sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
-            Published Metastore
+            Dataset đã phát hành
           </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              mt: 1,
-              px: 1,
-              py: 0.4,
-              borderRadius: '4px',
-              bgcolor: '#EFF6FF',
-              border: '1px solid #BFDBFE',
-            }}
-          >
-            <VerifiedUserIcon sx={{ fontSize: 13, color: '#1D4ED8' }} />
-            <Typography variant="caption" sx={{ color: '#1E40AF', fontWeight: 600, fontSize: '0.7rem' }}>
-              Zero Raw-PII Verified
-            </Typography>
-          </Box>
         </Box>
 
         {/* Search */}
         <Box sx={{ p: 1, borderBottom: '1px solid #E5E7EB' }}>
           <TextField
             size="small"
-            placeholder="Type to search datasets..."
+            placeholder="Tìm dataset..."
             value={datasetSearch}
             onChange={(e) => setDatasetSearch(e.target.value)}
             fullWidth
@@ -351,18 +358,6 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                         {dataset.dataset_name}
                       </Typography>
                       <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
-                        <Chip
-                          label="PUBLISHED"
-                          size="small"
-                          sx={{
-                            height: 16,
-                            fontSize: '0.62rem',
-                            fontWeight: 700,
-                            bgcolor: '#ECFDF5',
-                            color: '#065F46',
-                            border: '1px solid #A7F3D0',
-                          }}
-                        />
                         <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.68rem' }}>
                           ID: {dataset.id}
                         </Typography>
@@ -392,7 +387,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           {/* Header Row */}
           <Box sx={{ p: { xs: 2, md: 3 }, borderBottom: '1px solid #E5E7EB' }}>
             <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem', mb: 1, display: 'block' }}>
-              Catalog Explorer &gt; Published Metastore &gt;{' '}
+              Dataset đã phát hành &gt;{' '}
               <strong style={{ color: '#111827' }}>{activeDataset?.dataset_name || 'dataset'}</strong>
             </Typography>
 
@@ -423,29 +418,22 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                     <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.01em' }}>
                       {activeDataset?.dataset_name}
                     </Typography>
-                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Sao chép tên dataset">
-                      <ContentCopyIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                    <IconButton size="small" sx={{ color: '#9CA3AF' }} aria-label="Yêu thích">
-                      <StarBorderIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                    <Chip
-                      label="PUBLISHED • MASKED"
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        bgcolor: '#ECFDF5',
-                        color: '#065F46',
-                        border: '1px solid #A7F3D0',
-                      }}
-                    />
+                    {preview?.verification ? (
+                      <Chip
+                        icon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
+                        label={`Kiểm định đạt ${preview.verification.passed}/${preview.verification.total}`}
+                        size="small"
+                        color={preview.verification.passed === preview.verification.total ? 'success' : 'warning'}
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Chip label="Chưa có kết quả kiểm định" size="small" variant="outlined" />
+                    )}
                     <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                      Output: {activeDataset?.output_location || 'local_vault_storage'}
+                      Vị trí snapshot: {activeDataset?.output_location || '—'}
                     </Typography>
                   </Stack>
                 </Box>
@@ -485,7 +473,6 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             <Tab label="Dữ liệu đã bảo vệ" />
             <Tab label="Các cột & cách dùng" />
             <Tab label="Quan hệ giữa các bảng" />
-            <Tab label="Truy vấn mẫu (demo)" />
           </Tabs>
 
           {/* TAB 0: SAMPLE DATA */}
@@ -702,167 +689,17 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  Sơ đồ quan hệ thực thể (ERD Data Lineage)
+                  Sơ đồ quan hệ giữa các bảng
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Trực quan hóa cấu trúc bảng, kiểu dữ liệu, khóa chính (PK), khóa ngoại (FK) và liên kết khóa băm HMAC an toàn theo Nghị định 13.
+                  Trực quan hóa cấu trúc bảng, kiểu dữ liệu, khóa chính (PK), khóa ngoại (FK) và liên kết khóa băm HMAC an toàn.
                 </Typography>
               </Box>
               <ErdLineageDiagram preview={preview} />
+              <JoinExamples preview={preview} />
             </Box>
           )}
 
-          {/* TAB 3: QUERY NOTEBOOK (DATABRICKS STYLE - Databricks web Aug 2025 200.png) */}
-          {activeTab === 3 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              <Stack spacing={2.5}>
-                <Alert severity="warning" sx={{ borderRadius: '6px' }}>
-                  Màn hình minh hoạ: câu truy vấn và kết quả bên dưới là ví dụ cố định, chưa chạy trên dataset thật. Để
-                  phân tích, hãy tải CSV ở tab &quot;Dữ liệu đã bảo vệ&quot;.
-                </Alert>
-                {/* Notebook Action Bar */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 1.5,
-                    borderRadius: '6px',
-                    bgcolor: '#F9FAFB',
-                    border: '1px solid #E5E7EB',
-                  }}
-                >
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <CodeIcon sx={{ color: '#1B51A4', fontSize: 20 }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Interactive Query Notebook (Python / SQL)
-                    </Typography>
-                    <Chip
-                      label="Connected: piiguard-vault-secure"
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.68rem',
-                        bgcolor: '#ECFDF5',
-                        color: '#065F46',
-                        border: '1px solid #A7F3D0',
-                        fontWeight: 600,
-                      }}
-                    />
-                  </Stack>
-
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={
-                      isQueryRunning ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 16 }} />
-                    }
-                    onClick={handleRunSampleQuery}
-                    disabled={isQueryRunning}
-                    sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
-                  >
-                    {isQueryRunning ? 'Đang chạy truy vấn...' : 'Run Query'}
-                  </Button>
-                </Box>
-
-                {/* SQL Editor Cell (Databricks style) */}
-                <Card
-                  variant="outlined"
-                  sx={{
-                    borderRadius: '6px',
-                    border: '1px solid #BFDBFE',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Box sx={{ bgcolor: '#F8FAFC', p: 1, borderBottom: '1px solid #E5E7EB' }}>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#1B51A4' }}>
-                      SQL Cell 1 — Aggregated Analytics
-                    </Typography>
-                  </Box>
-                  <Box
-                    component="pre"
-                    sx={{
-                      m: 0,
-                      p: 2,
-                      bgcolor: '#FFFFFF',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                      fontSize: '0.8125rem',
-                      color: '#1E293B',
-                      lineHeight: 1.6,
-                      overflowX: 'auto',
-                    }}
-                  >
-                    {`-- Truy vấn dữ liệu phân tích khách hàng đã khử định danh
-SELECT 
-    CASE 
-        WHEN age BETWEEN 18 AND 30 THEN '18-30'
-        WHEN age BETWEEN 31 AND 50 THEN '31-50'
-        ELSE '51+' 
-    END AS age_bracket,
-    COUNT(*) AS total_customers,
-    ROUND(AVG(transaction_amount), 2) AS avg_spending
-FROM ${activeDataset?.dataset_name || 'customer_analytics_published'}
-GROUP BY age_bracket
-ORDER BY total_customers DESC;`}
-                  </Box>
-                </Card>
-
-                {/* Execution Result Grid */}
-                {queryRunTime !== null && (
-                  <Card variant="outlined" sx={{ borderRadius: '6px', border: '1px solid #E5E7EB' }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        bgcolor: '#F9FAFB',
-                        borderBottom: '1px solid #E5E7EB',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#111827' }}>
-                          Kết quả truy vấn (3 rows | {queryRunTime}s runtime)
-                        </Typography>
-                        <Chip
-                          label="0 Raw PII Leak"
-                          size="small"
-                          sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#ECFDF5', color: '#16A34A', fontWeight: 700 }}
-                        />
-                      </Stack>
-                    </Box>
-
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={{ width: 40, color: '#9CA3AF' }}>#</TableCell>
-                            <TableCell>Nhóm độ tuổi (age_bracket)</TableCell>
-                            <TableCell>Tổng số khách hàng (total_customers)</TableCell>
-                            <TableCell>Chi tiêu trung bình (avg_spending)</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {[
-                            { id: 1, bracket: '31-50', count: 1420, avg: '1,850,000 VND' },
-                            { id: 2, bracket: '18-30', count: 980, avg: '1,240,000 VND' },
-                            { id: 3, bracket: '51+', count: 560, avg: '2,120,000 VND' },
-                          ].map((r) => (
-                            <TableRow key={r.id} hover>
-                              <TableCell sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>{r.id}</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>{r.bracket}</TableCell>
-                              <TableCell sx={{ fontFamily: 'monospace' }}>{r.count.toLocaleString()}</TableCell>
-                              <TableCell sx={{ fontFamily: 'monospace', color: '#1B51A4' }}>{r.avg}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Card>
-                )}
-              </Stack>
-            </Box>
-          )}
         </Paper>
       </Box>
     </Box>

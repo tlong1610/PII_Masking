@@ -73,14 +73,6 @@ export function useSourceScope(sourceId: string | null) {
 // RUNS
 // ============================================================================
 
-export function useRuns(sourceId?: string) {
-  return useQuery({
-    queryKey: [...piiReviewQueryKeys.runs, sourceId],
-    queryFn: () => api.listRuns(sourceId),
-    staleTime: 10000,
-  });
-}
-
 export function useRun(runId: number | null) {
   return useQuery({
     queryKey: piiReviewQueryKeys.run(runId!),
@@ -153,6 +145,8 @@ export function usePublishDataset() {
     mutationFn: (datasetId: number) => api.publishDataset(datasetId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      // Publishing also moves the run to PUBLISHED.
+      void queryClient.invalidateQueries({ queryKey: ['pii-review', 'run'] });
     },
   });
 }

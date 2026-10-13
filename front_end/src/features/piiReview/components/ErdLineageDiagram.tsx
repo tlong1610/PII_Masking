@@ -450,7 +450,7 @@ const TableNode = memo(({ data }: NodeProps<TableNodeType>) => {
         }}
       >
         <Typography sx={{ fontSize: '0.625rem', color: '#64748B', fontWeight: 600 }}>
-          PostgreSQL Relational Schema
+          Lược đồ quan hệ
         </Typography>
         <Stack direction="row" spacing={0.5} alignItems="center">
           <SecurityIcon sx={{ fontSize: 13, color: '#16A34A' }} />
@@ -740,7 +740,7 @@ function ErdFlowCanvas({
         <Stack direction="row" spacing={1} alignItems="center">
           <SchemaIcon sx={{ fontSize: 18, color: '#1B51A4' }} />
           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>
-            PostgreSQL Relational ERD
+            Sơ đồ quan hệ giữa các bảng
           </Typography>
         </Stack>
         <Box sx={{ width: 1, height: 16, bgcolor: '#CBD5E1' }} />
@@ -750,19 +750,19 @@ function ErdFlowCanvas({
           <Stack direction="row" spacing={0.5} alignItems="center">
             <VpnKeyIcon sx={{ fontSize: 14, color: '#D97706' }} />
             <Typography sx={{ fontSize: '0.72rem', color: '#334155', fontWeight: 600 }}>
-              Primary Key (PK)
+              Khoá chính (PK)
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <LinkIcon sx={{ fontSize: 14, color: '#2563EB' }} />
             <Typography sx={{ fontSize: '0.72rem', color: '#334155', fontWeight: 600 }}>
-              Foreign Key (FK)
+              Khoá ngoại (FK)
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: '#0284C7' }} />
             <Typography sx={{ fontSize: '0.72rem', color: '#0284C7', fontWeight: 700 }}>
-              HMAC Link
+              Liên kết HMAC
             </Typography>
           </Stack>
         </Stack>
@@ -787,17 +787,17 @@ function ErdFlowCanvas({
         }}
       >
         <Tooltip title="Phóng to">
-          <IconButton size="small" onClick={() => zoomIn()} sx={{ color: '#334155' }}>
+          <IconButton size="small" onClick={() => void zoomIn()} sx={{ color: '#334155' }}>
             <ZoomInIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Thu nhỏ">
-          <IconButton size="small" onClick={() => zoomOut()} sx={{ color: '#334155' }}>
+          <IconButton size="small" onClick={() => void zoomOut()} sx={{ color: '#334155' }}>
             <ZoomOutIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Căn giữa sơ đồ (Fit View)">
-          <IconButton size="small" onClick={() => fitView({ padding: 0.2, duration: 400 })} sx={{ color: '#334155' }}>
+        <Tooltip title="Căn giữa sơ đồ">
+          <IconButton size="small" onClick={() => void fitView({ padding: 0.2, duration: 400 })} sx={{ color: '#334155' }}>
             <CenterFocusStrongIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>

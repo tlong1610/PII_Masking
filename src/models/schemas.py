@@ -102,11 +102,21 @@ class SourceScopeItem(BaseModel):
     document_count: int | None = None
 
 
+class ScopeRelationship(BaseModel):
+    """Join between two tables/collections (declared FK, logical key or inferred Mongo reference)."""
+
+    source_table: str
+    source_column: str
+    target_table: str
+    target_column: str
+
+
 class SourceScope(BaseModel):
     source_id: str
     source_type: SourceType
     engine: str
     items: list[SourceScopeItem]
+    relationships: list[ScopeRelationship] = Field(default_factory=list)
 
 
 # --- Runs / field review / build ---
@@ -243,6 +253,13 @@ class DatasetOut(BaseModel):
     dataset_name: str
     status: DatasetStatus
     output_location: str
+    created_at: datetime | None = None
+    published_at: datetime | None = None
+    revoked_at: datetime | None = None
+    source_id: str | None = None
+    source_name: str | None = None
+    engine: str | None = None
+    grant_count: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -261,6 +278,13 @@ class DatasetRelationship(BaseModel):
     target_column: str
 
 
+class DatasetVerification(BaseModel):
+    """Outcome of the downstream verifier for a dataset: counts only, safe to show an Analyst."""
+
+    passed: int
+    total: int
+
+
 class DatasetPreview(BaseModel):
     dataset_id: int
     dataset_name: str
@@ -271,6 +295,7 @@ class DatasetPreview(BaseModel):
     selected_table: str = Field(default="", description="Table/collection the rows belong to")
     note: str = "Processed output only; raw source values are never included"
     relationships: list[DatasetRelationship] = Field(default_factory=list)
+    verification: DatasetVerification | None = None
 
 
 class RunOut(BaseModel):
@@ -302,6 +327,40 @@ class VerifierResultOut(BaseModel):
     details: str
 
     model_config = {"from_attributes": True}
+
+
+class RunSummaryOut(BaseModel):
+    """Lightweight run row for the DPO run history list (no field profiles, no values)."""
+
+    id: int
+    source_id: str
+    source_type: SourceType
+    source_name: str
+    engine: str
+    status: RunStatus
+    created_by: int
+    created_by_username: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    field_count: int = 0
+    pii_field_count: int = 0
+    decided_count: int = 0
+    latest_dataset_id: int | None = None
+    latest_dataset_status: DatasetStatus | None = None
+
+
+class DatasetDetailOut(DatasetOut):
+    """Dataset plus verifier checks and per-action column counts (metadata only)."""
+
+    run_status: RunStatus | None = None
+    verifier_results: list[VerifierResultOut] = Field(default_factory=list)
+    action_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    role: UserRole
 
 
 class BuildResponse(BaseModel):
@@ -406,6 +465,7 @@ class AuditEventOut(BaseModel):
     entry_hash: str
     request_id: str | None = None
     client_ip: str | None = None
+    actor_username: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -460,5 +520,6 @@ class DatasetGrantOut(BaseModel):
     user_id: int
     granted_by: int
     created_at: datetime
+    username: str | None = None
 
     model_config = {"from_attributes": True}
