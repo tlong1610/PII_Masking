@@ -38,7 +38,7 @@ Dự án đã hoàn thành MVP/Gate 2. P1 không phải mở thêm loại databa
 
 | Đã có từ MVP | P1 đang control | Để sau |
 | --- | --- | --- |
-| PostgreSQL + MongoDB live flow | Quét sâu field/value patterns trong dataset hiện có | Snowflake/BigQuery |
+| PostgreSQL + MongoDB live flow | Quét sâu field/value patterns trong dataset hiện có | — (Chỉ tập trung PostgreSQL + MongoDB) |
 | MASK/DROP/HMAC + verifier | Đồng bộ risk chip/report/evidence | Realtime CDC |
 | DPO review + Analyst preview | Golden dataset nhiều ca khó hơn; AI fallback rõ hơn | KMS/SSO/production hardening |
 

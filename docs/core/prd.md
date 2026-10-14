@@ -2,52 +2,81 @@
 
 ## 1. Bối cảnh & Mục tiêu
 Hệ thống giúp tự động rà soát, phát hiện và phân loại dữ liệu cá nhân (PII) nằm rải rác trong các dataset của doanh nghiệp/hệ thống y tế.
-Mục tiêu: Đề xuất chính sách che dữ liệu (masking/tokenization), sinh view/snapshot an toàn, tạo báo cáo tuân thủ nghị định bảo vệ dữ liệu và đảm bảo dữ liệu đầu ra vẫn dùng được cho các tác vụ phân tích.
+Mục tiêu: Đề xuất chính sách che dữ liệu (masking/tokenization), sinh view/snapshot an toàn, tạo báo cáo tuân thủ nghị định bảo vệ dữ liệu (Luật BV DLCN 2025, Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP) và đảm bảo dữ liệu đầu ra vẫn dùng được cho các tác vụ phân tích.
 
-## 2. User personas
-| Vai trò | Mô tả | Mục tiêu chính | Quyền hạn |
+## 2. User Personas & Phân quyền
+
+| Vai trò | Mô tả | Mục tiêu chính | Quyền hạn dữ liệu & Thao tác |
 |---|---|---|---|
-| DPO | Người rà soát tuân thủ | Đảm bảo không lộ PII thật, quản trị nghiêm ngặt, audit đầy đủ | Quét dataset, duyệt phân loại & policy, kiểm tra downstream, phát hành snapshot |
-| Analyst | Chuyên viên phân tích | Dùng dữ liệu để phân tích | Chỉ xem được các dataset/snapshot đã được che an toàn |
+| **DPO** (Data Protection Officer) | Người chịu trách nhiệm rà soát tuân thủ & quản trị dữ liệu | Đánh giá chính xác mức độ rủi ro, phê duyệt chính sách che, kiểm tra toàn vẹn, bảo vệ an toàn pháp lý | **Toàn quyền quản trị:** Quét dataset, **được quyền xem data (sample/raw data & preview)** để đánh giá rủi ro, duyệt/sửa/từ chối policy, kiểm tra downstream verifier, phát hành (Publish) & thu hồi (Revoke) snapshot, xem audit log đầy đủ. |
+| **Analyst** (Data Analyst) | Chuyên viên phân tích dữ liệu | Khai thác dữ liệu an toàn phục vụ nghiệp vụ | **Chỉ đọc dữ liệu đã che:** Chỉ truy cập các dataset ở trạng thái `PUBLISHED`. **Tuyệt đối KHÔNG được xem raw PII**, không được xem staging/chính sách nội bộ, không có quyền duyệt hay can thiệp pipeline. |
 
-## 3. User stories
-- Là DPO, tôi muốn hệ thống tự động quét dataset để phát hiện và phân loại PII. (đã có)
-- Là DPO, tôi muốn nhận được đề xuất chính sách che (DROP/MASK/HMAC) phù hợp cho từng trường. (đã có)
-- Là DPO, tôi muốn tự tay duyệt (HITL) phân loại và chính sách che trước khi hệ thống áp dụng. (đã có)
-- Là DPO, tôi muốn hệ thống chạy downstream verifier trước khi phát hành. (đã có, P1 cần quét sâu edge cases trong dataset hiện có)
-- Là DPO, tôi muốn audit/eval/report đủ bằng chứng để review P1. (P1 control)
+## 3. User Stories
 
-## 4. Luồng chính (happy path)
-1. DPO đăng nhập, chọn dataset cần rà soát.
-2. Scanner quét schema/metadata/statistics; rules chạy mặc định, LangGraph/LLM chỉ hỗ trợ khi `ENABLE_AI_SCAN=true`.
-3. Hệ thống đề xuất chính sách MASK/HMAC/DROP/KEEP.
-4. DPO rà soát trên màn hình, chỉnh sửa nếu cần và bấm xác nhận duyệt.
-5. Hệ thống sinh ra bản sao (Snapshot) đã che dữ liệu ở vùng Staging và chạy Verifier (Downstream tests).
-6. DPO xem báo cáo tuân thủ và kết quả Verifier, sau đó bấm "Phát hành" (Publish).
-7. Analyst truy cập vào snapshot để làm việc an toàn.
+### DPO
+- Là DPO, tôi muốn kết nối linh hoạt tới các cơ sở dữ liệu **PostgreSQL và MongoDB lưu trữ trên Cloud** (Cloud SQL, AWS RDS, Supabase, Neon, MongoDB Atlas) thông qua Connection URL.
+- Là DPO, tôi muốn xem sơ đồ quan hệ trực quan (**Source Scope Picker Diagram**) với layout tự động để chọn đúng phạm vi bảng/collection cần quét.
+- Là DPO, tôi muốn hệ thống tự động quét và phân loại PII (L1/L2/L3) dựa trên Rules/Regex và AI/LLM.
+- **Là DPO, tôi muốn xem dữ liệu (sample data / split view) để đánh giá rủi ro chính xác**, thẩm định các trường nhạy cảm hoặc trường mơ hồ (`UNKNOWN`) trước khi chốt chính sách.
+- Là DPO, tôi muốn có Drawer điều chỉnh chính sách chi tiết cho từng cột: xem căn cứ pháp lý, tự động đồng bộ hành động cho khóa nối (Join Keys), xác nhận trường Non-PII kèm lý do, hoặc thiết lập thời hạn ngoại lệ (`exceptionUntil`) nếu tạm giữ nguyên PII.
+- Là DPO, tôi muốn xem sơ đồ **ERD Lineage Diagram** thể hiện rõ kiểu biến đổi (MASK, HMAC, DROP, KEEP) và quan hệ khóa chính/khóa ngoại của snapshot được sinh ra.
+- Là DPO, tôi muốn kiểm tra kết quả downstream verifier và điểm rủi ro tất định (Deterministic Risk Score 0–100) trước khi bấm "Phát hành" (Publish).
+- Là DPO, tôi muốn theo dõi sổ cái kiểm toán bất biến (**Hash-Chain Merkle Root SHA-256**) để chứng minh tính toàn vẹn khi kiểm toán.
 
-## 5. Human-in-the-loop
-Các hành động rủi ro bắt buộc có sự can thiệp của người dùng:
-- **Duyệt phân loại & policy che dữ liệu:** DPO phải duyệt từng đề xuất của AI. Màn hình phải tuân thủ tuyệt đối nguyên tắc không lộ giá trị PII thật (No-raw-value UI).
-- **Phát hành dữ liệu:** Hệ thống KHÔNG tự động phát hành. DPO phải kiểm tra báo cáo test (Pass/Fail) và tự tay bấm nút Publish, kèm theo lưu log audit đầy đủ.
+### Analyst
+- Là Analyst, tôi muốn xem danh sách các dataset đã được DPO duyệt và phát hành (`PUBLISHED`).
+- Là Analyst, tôi muốn xem preview dữ liệu theo từng bảng với tùy chọn giới hạn dòng (20, 50, 100, 200 dòng) mà hoàn toàn không lộ PII thô.
+- Là Analyst, tôi muốn xem sơ đồ ERD của dataset đã xử lý để hiểu quan hệ giữa các bảng phục vụ viết truy vấn phân tích.
+- Là Analyst, tôi muốn xuất dữ liệu an toàn ra file CSV (tự động loại bỏ cột `DROPPED` và giữ nguyên định dạng đã che).
 
-## 6. Xử lý lỗi & giới hạn
-- **LLM lỗi hoặc tốn kém:** Có giới hạn chi phí. Rules/regex là baseline mặc định; LLM chỉ là nhánh optional. Nếu API LLM sập, field mập mờ được đưa về proposal an toàn để DPO duyệt, không chặn toàn bộ luồng nếu scan vẫn hoàn tất.
-- **Độ chính xác & Downstream:** Nếu Agent phân loại sai dẫn đến hỏng phép liên kết (SQL Join), Downstream test sẽ Fail và chặn luồng phát hành.
-- **Giới hạn cứng:** Nghiêm cấm hiển thị raw data PII thật trên giao diện duyệt. Hệ thống chỉ xử lý dựa trên metadata, schema hoặc công cụ ẩn danh.
+## 4. Luồng Chính (Happy Path)
 
-## 7. Dữ liệu
-- **Đầu vào (Thực tế triển khai):** PostgreSQL và MongoDB.
-- **Cơ chế che:** Sinh Snapshot Data đã được xử lý (MASK/DROP/HMAC) sang cơ sở dữ liệu hoặc schema đích an toàn.
-- **Cam kết:** Chỉ dùng dữ liệu công khai, mock data đã ẩn danh để test/demo. Quét metadata là chính.
+1. **Kết nối & Chọn phạm vi (Scope Selection):**
+   - DPO chọn hoặc thêm mới nguồn **Cloud PostgreSQL / MongoDB** (hỗ trợ `postgresql://`, `mongodb+srv://`).
+   - Hệ thống đọc introspection schema; DPO quan sát sơ đồ quan hệ trực quan trên `SourceScopePickerDiagram` và chọn các bảng/collection cần quét.
+2. **Quét & Phân loại PII:**
+   - Scanner quét metadata, thống kê và pattern; rule engine chạy mặc định, LLM hỗ trợ phân loại nâng cao khi được kích hoạt.
+   - Hệ thống đề xuất hành động: `MASK` (che một phần/toàn phần), `HMAC` (băm một chiều cho khóa nối), `DROP` (loại bỏ trường rủi ro/không cần thiết), `KEEP` (giữ nguyên cho dữ liệu phi cá nhân hoặc ngoại lệ).
+3. **DPO Đánh giá rủi ro & Phê duyệt (HITL Review):**
+   - DPO truy cập Workspace với 5 Tab chức năng:
+     - *Overview & PII Schema:* Bảng danh sách cột, phân loại NĐ 13, sàn bảo mật tối thiểu, hành động đề xuất.
+     - *Sample Data:* **DPO xem dữ liệu mẫu thực tế** để đánh giá rủi ro, đối chiếu giữa dữ liệu trước và sau khi áp dụng che mờ.
+     - *Permissions & Grants:* Xem và kiểm soát quyền truy cập RBAC.
+     - *Audit History & Hash-Chain:* Kiểm chứng chuỗi băm Merkle Root.
+     - *Risk & Insights:* Theo dõi điểm rủi ro hệ thống (FR-10) và tỷ lệ bảo vệ L2/L3.
+   - DPO mở Inspector Drawer để tinh chỉnh chính sách từng cột: ghi đè action (bắt buộc nhập lý do), đồng bộ khóa nối, chuyển `UNKNOWN` thành Non-PII, hoặc đặt hạn chót ngoại lệ.
+4. **Xây dựng Protected Snapshot & Downstream Verification:**
+   - Hệ thống thực thi transform pipeline sinh bản sao dữ liệu an toàn ở vùng Staging.
+   - Downstream Verifier chạy các bài test kiểm tra tính toàn vẹn (SQL JOIN, `$lookup`, aggregate) nhằm đảm bảo việc che mờ không làm gãy logic phân tích.
+5. **Phát hành (Publish):**
+   - DPO xem báo cáo Verifier Pass/Fail. Chỉ khi Pass, DPO mới kích hoạt nút "Phát hành" (Publish).
+6. **Analyst Khai thác:**
+   - Analyst đăng nhập, xem dataset đã publish qua Data Grid, ERD Diagram, hoặc tải file CSV đã được bảo vệ an toàn.
 
-## 8. Tech stack (dự kiến)
-- **Backend:** Python 3.11, FastAPI, Pydantic, SQLAlchemy, PyMongo.
-- **AI/LLM:** Rules/regex + BM25/hybrid; LangGraph/LLM optional với provider fallback OpenRouter → OpenAI → Gemini; không dùng Presidio trong source hiện tại.
-- **Frontend:** React + TypeScript + Vite.
-- **Deploy/Lưu trữ:** Docker Compose, Github Actions.
+## 5. Nguyên Tắc Quản Trị & Bảo Mật Dữ Liệu
 
-## 9. Known Ambiguities & Scope Deviations
-- **Data Source & Masking (Scope Deviation):** Đề bài gốc yêu cầu dùng Data Warehouse (Snowflake/BigQuery) và tính năng Dynamic Masking. Team chọn PostgreSQL/MongoDB và cơ chế sinh Snapshot tĩnh để giữ app chạy thật, dễ demo và test downstream. Sẽ cân nhắc migrate sang Data Warehouse ở Phase 2.
-- **Downstream Testing:** Tính năng tự động kiểm tra tác vụ phân tích (downstream) sau khi che dữ liệu được bổ sung so với đề gốc để tăng tính thực tiễn (tránh việc che xong data không join được nữa).
-- **Mức độ nâng cao (Phase 1+):** Quét sâu hơn các field/value patterns trong PostgreSQL/MongoDB hiện có, hỗ trợ gateway OpenAI-compatible tùy chỉnh (`OPENAI_BASE_URL`) và hoàn thiện audit/evaluation. Không ưu tiên mở thêm cấu trúc dữ liệu mới trong P1.
+- **Nguyên tắc bất di bất dịch đối với DPO:**
+  - DPO là người chịu trách nhiệm pháp lý cao nhất về bảo vệ dữ liệu. **DPO CÓ QUYỀN XEM DATA (Sample data / Preview / Split view)** trong quá trình review để đánh giá đúng mức độ rủi ro, xác thực các trường dữ liệu mơ hồ (`UNKNOWN`) và quyết định phương án che mờ tối ưu.
+- **Nguyên tắc bất di bất dịch đối với Analyst:**
+  - **Zero Raw-PII cho Analyst:** Analyst tuyệt đối không bao giờ được tiếp cận giá trị PII gốc. Toàn bộ dữ liệu hiển thị cho Analyst bắt buộc phải qua xử lý (MASK, HMAC, DROP).
+- **Human-in-the-Loop (HITL):**
+  - AI chỉ đóng vai trò khuyến nghị. Không có bất kỳ thay đổi nào được tự động áp dụng hoặc phát hành nếu chưa có xác nhận và chữ ký phê duyệt của DPO.
+- **Đồng bộ khóa nối (Join Key Integrity):**
+  - Hai đầu của một quan hệ khóa nối (PK/FK hoặc `$lookup`) bắt buộc phải áp dụng cùng hành động (`HMAC` hoặc `KEEP`). Không được phép áp dụng `MASK` hoặc `DROP` làm phá vỡ khả năng join của Analyst.
+
+## 6. Xử lý Lỗi & Giới Hạn
+
+- **LLM lỗi hoặc hết quota:** Rules/regex là nền tảng cốt lõi luôn chạy độc lập. Nếu LLM gặp sự cố, các trường mơ hồ sẽ được gán nhãn `REVIEW_REQUIRED` để DPO tự tay thẩm định dữ liệu và ra quyết định qua Drawer.
+- **Lệch khóa nối / Hỏng Downstream:** Nếu chính sách của DPO làm sai lệch kết quả join hoặc aggregate vượt ngưỡng sai số cho phép, Verifier sẽ đánh dấu FAIL và chặn không cho phát hành.
+- **Bảo mật kết nối:** Tuyệt đối không trả mật khẩu, URI thô chứa credential hoặc khóa HMAC bí mật ra ngoài giao diện frontend.
+
+## 7. Cơ Sở Dữ Liệu & Hạ Tầng
+
+- **Data Source Đầu Vào:**
+  - **PostgreSQL trên Cloud** (AWS RDS, GCP Cloud SQL, Supabase, Neon...) qua URL `postgresql://` hoặc `postgres://`.
+  - **MongoDB trên Cloud** (MongoDB Atlas, Self-hosted Cloud Replica Set) qua URI `mongodb://` hoặc `mongodb+srv://`.
+- **Cơ chế che:** Sinh Snapshot Data vật lý đã được xử lý (MASK/DROP/HMAC) sang database hoặc schema đích an toàn.
+- **Frontend Architecture:**
+  - React 18+, TypeScript strict, Vite, MUI.
+  - Sơ đồ tương tác: `@xyflow/react` (React Flow) kết hợp thuật toán bố cục `dagre`.
+  - State Management: TanStack Query cho server state, React Hook Form + Zod cho form validation.

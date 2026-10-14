@@ -24,7 +24,6 @@ MVP/Gate 2 đã hoàn thành. File này chỉ giữ trạng thái ngắn để t
 
 ## Không Làm Trong P1 Nếu Chưa Có Thời Gian
 
-- Snowflake/BigQuery.
 - Realtime CDC.
 - KMS/SSO production.
-- Mở rộng sang ảnh/voice hoặc cấu trúc dữ liệu mới.
+- Mở rộng sang ảnh/voice hoặc cấu trúc dữ liệu mới (chỉ tập trung PostgreSQL + MongoDB).
