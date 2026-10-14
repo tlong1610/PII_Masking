@@ -130,9 +130,6 @@ type DpoReviewExperienceProps = {
   onRunCreated?: (runId: number) => void;
 };
 
-/** Snapshot statuses that still have rows to preview and grants to manage. */
-const LIVE_DATASET_STATUSES = new Set(['VERIFIED', 'PUBLISHED']);
-
 const RISK_TIER_LABELS: Record<'Critical' | 'High' | 'Medium' | 'Low', string> = {
   Critical: 'Nghiêm trọng',
   High: 'Cao',
@@ -202,7 +199,6 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }, [currentRun]);
 
   const datasetStatus = currentRun?.datasets.find((dataset) => dataset.id === datasetId)?.status ?? null;
-  const datasetIsLive = datasetStatus !== null && LIVE_DATASET_STATUSES.has(datasetStatus);
 
   // Auto-select first source if none selected
   useMemo(() => {
@@ -589,19 +585,26 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', minHeight: 'calc(100vh - 100px)' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        gap: catalogCollapsed ? 0 : 3,
+        alignItems: 'flex-start',
+        minHeight: 'calc(100vh - 100px)',
+      }}
+    >
       {/* ========================================================================= */}
       {/* DATABRICKS SECONDARY CATALOG EXPLORER SIDEBAR (260px)                     */}
       {/* ========================================================================= */}
-      {/* One panel that animates its width; collapsed it keeps only a rail of icons. */}
+      {/* One panel that animates its width; collapsed it leaves no dead rail. */}
       <Box
         component="aside"
         aria-label="Nguồn dữ liệu"
         sx={(theme) => ({
-          width: catalogCollapsed ? 48 : 270,
+          width: catalogCollapsed ? 0 : 270,
           flexShrink: 0,
           bgcolor: 'background.paper',
-          border: 1,
+          border: catalogCollapsed ? 0 : 1,
           borderColor: 'divider',
           borderRadius: 2,
           overflow: 'hidden',
@@ -610,22 +613,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           height: STICKY_PANEL_HEIGHT,
           position: 'sticky',
           top: STICKY_PANEL_TOP,
-          transition: theme.transitions.create('width', { duration: theme.transitions.duration.shorter }),
+          pointerEvents: catalogCollapsed ? 'none' : 'auto',
+          opacity: catalogCollapsed ? 0 : 1,
+          transition: theme.transitions.create(['width', 'opacity'], {
+            duration: theme.transitions.duration.shorter,
+          }),
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         })}
       >
-        {catalogCollapsed ? (
-          <Stack alignItems="center" spacing={1} sx={{ py: 1 }}>
-            <Tooltip title="Mở danh sách nguồn" placement="right">
-              <IconButton size="small" onClick={() => setCatalogCollapsed(false)} aria-label="Mở danh sách nguồn">
-                <ChevronRightIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={activeSource ? `Nguồn: ${activeSource.name}` : 'Chưa chọn nguồn'} placement="right">
-              <StorageOutlinedIcon fontSize="small" color={activeSource ? 'primary' : 'disabled'} />
-            </Tooltip>
-          </Stack>
-        ) : (
+        {!catalogCollapsed && (
         <Box sx={{ minWidth: 268, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Catalog Explorer Header */}
         <Box sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
@@ -755,7 +751,35 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       {/* ========================================================================= */}
       {/* MAIN DATABRICKS TABLE GOVERNANCE & SCHEMA WORKSPACE                       */}
       {/* ========================================================================= */}
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+      <Box sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }}>
+        {catalogCollapsed && (
+          <Tooltip
+            title={activeSource ? `Mở nguồn dữ liệu: ${activeSource.name}` : 'Mở danh sách nguồn dữ liệu'}
+            placement="right"
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ChevronRightIcon fontSize="small" />}
+              onClick={() => setCatalogCollapsed(false)}
+              sx={{
+                position: 'sticky',
+                top: STICKY_PANEL_TOP,
+                zIndex: 5,
+                mb: 1.5,
+                minHeight: 32,
+                px: 1.25,
+                borderRadius: 999,
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                textTransform: 'none',
+                fontWeight: 700,
+              }}
+            >
+              Nguồn dữ liệu
+            </Button>
+          </Tooltip>
+        )}
         {sourceError && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSourceError(null)}>
             {sourceError}
