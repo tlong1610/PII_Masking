@@ -1,7 +1,7 @@
 # FE-11: Sổ Cái Hash-Chain & Merkle Root Audit Center
 
 **Sprint**: Sprint 04  
-**Trạng thái**: In Progress (Cần tái thiết kế UI vì click vào chưa ưng ý)  
+**Trạng thái**: Done (Đã hoàn thiện giao diện Chuỗi khối kết nối trực quan, drawer xem chi tiết SHA-256 hex và banner kiểm chứng Merkle root)  
 **Phân hệ**: `src/shared/ui/AppShell.tsx`, `src/features/auditLog/components/`, `src/pages/DpoAuditPage.tsx`
 
 ---

@@ -1,8 +1,8 @@
 # FE-10: Nghị Định 13 Interactive Compliance Rules Drawer
 
 **Sprint**: Sprint 04  
-**Trạng thái**: In Progress  
-**Phân hệ**: `src/shared/ui/AppShell.tsx`, `src/features/piiReview/components/`
+**Trạng thái**: Done  
+**Phân hệ**: `src/features/compliance/components/Nd13RulesView.tsx`, `src/pages/DpoRulesPage.tsx`
 
 ---
 

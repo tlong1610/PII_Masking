@@ -1,7 +1,7 @@
 # FE-14: DPO Workspace Tabs Cleanup & Exception Until Lifecycle
 
 **Sprint**: Sprint 04  
-**Trạng thái**: In Progress  
+**Trạng thái**: Done  
 **Phân hệ**: `src/features/piiReview/components/DpoReviewExperienceMVP.tsx`, `src/features/piiReview/components/FieldPolicyDrawerContent.tsx`
 
 ---
