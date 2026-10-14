@@ -20,7 +20,7 @@ Tài liệu này ghi nhận bằng chứng hệ thống phân loại PII và đ�
 - **Hành động đề xuất (Action):** `MASK`
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1
 - **Bằng chứng:**
-![Evidence 1 - Name](../../front_end/screenshots/tc1_name.png)
+![Evidence 1 - Name](../../../front_end/screenshots/tc1_name.png)
 
 ---
 
@@ -30,7 +30,7 @@ Tài liệu này ghi nhận bằng chứng hệ thống phân loại PII và đ�
 - **Hành động đề xuất (Action):** `HMAC` (để giữ khả năng JOIN mapping)
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 2; NĐ 356/2025/NĐ-CP Điều 4
 - **Bằng chứng:**
-![Evidence 2 - CCCD](../../front_end/screenshots/tc2_cccd.png)
+![Evidence 2 - CCCD](../../../front_end/screenshots/tc2_cccd.png)
 
 ---
 
@@ -40,7 +40,7 @@ Tài liệu này ghi nhận bằng chứng hệ thống phân loại PII và đ�
 - **Hành động đề xuất (Action):** `MASK`
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1
 - **Bằng chứng:**
-![Evidence 3 - Phone](../../front_end/screenshots/tc3_phone.png)
+![Evidence 3 - Phone](../../../front_end/screenshots/tc3_phone.png)
 
 ---
 
@@ -50,7 +50,7 @@ Tài liệu này ghi nhận bằng chứng hệ thống phân loại PII và đ�
 - **Hành động đề xuất (Action):** `MASK`
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 9 Khoản 1 & 2
 - **Bằng chứng:**
-![Evidence 4 - Notes](../../front_end/screenshots/tc4_notes.png)
+![Evidence 4 - Notes](../../../front_end/screenshots/tc4_notes.png)
 
 ---
 
@@ -60,7 +60,7 @@ Tài liệu này ghi nhận bằng chứng hệ thống phân loại PII và đ�
 - **Hành động đề xuất (Action):** `KEEP`
 - **Căn cứ pháp lý:** Luật 91/2025/QH15 Điều 2 (Mã logistics nghiệp vụ)
 - **Bằng chứng:**
-![Evidence 5 - Tracking](../../front_end/screenshots/tc5_tracking.png)
+![Evidence 5 - Tracking](../../../front_end/screenshots/tc5_tracking.png)
 
 ---
 

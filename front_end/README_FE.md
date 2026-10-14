@@ -1,6 +1,6 @@
 # PIIGuard Shield Frontend
 
-React + TypeScript + Vite frontend for the PIIGuard Shield MVP demo.
+React 18 + TypeScript + Vite frontend for PIIGuard Shield.
 
 ## Quick Start
 
@@ -15,8 +15,8 @@ npm run dev
 Open:
 
 - `http://localhost:5173/login` - demo role login
-- `http://localhost:5173/dpo` - DPO review workflow
-- `http://localhost:5173/analyst` - Analyst published dataset view
+- `http://localhost:5173/dpo` - DPO review and policy governance workflow
+- `http://localhost:5173/analyst` - Analyst published dataset preview and export
 
 If port `5173` is busy, Vite will suggest another port in the terminal.
 
@@ -59,12 +59,10 @@ Auth demo accounts:
 Auth flow:
 
 ```text
-POST /sessions -> store token -> send Authorization: Bearer <token> on API calls
+POST /sessions -> store token in memory -> send Authorization: Bearer <token> on API calls
 ```
 
-The login screen keeps a local demo fallback only when the backend is unreachable. API integration is not considered complete until the backend E2E flow passes.
-
-## Architecture
+## Architecture & Features
 
 The app follows the feature-sliced structure described in `AGENTS.md`:
 
@@ -73,28 +71,35 @@ src/
   app/                  # providers, routing, theme
   pages/                # route-level composition
   features/
-    auth/               # demo login
+    auth/               # demo login & RBAC guards
     piiReview/          # DPO and Analyst workflows
   shared/               # reusable UI and config
 ```
 
-Important rules:
+### Key Frontend Capabilities
 
-- Components do not call network APIs directly.
-- Feature hooks own TanStack Query orchestration.
-- Feature `api/` validates boundary data with Zod.
-- `model/` stays pure TypeScript.
-- UI does not display raw PII.
-
-## Demo Screenshots
-
-Screenshots are stored in:
-
-```text
-screenshots/login.png
-screenshots/dpo-source.png
-screenshots/analyst.png
-```
+1. **Cloud Data Sources & Dynamic Introspection:**
+   - Supports **Cloud PostgreSQL** (`postgresql://`, `postgres://`) and **Cloud MongoDB** (`mongodb://`, `mongodb+srv://` for Atlas).
+   - Dialog `AddSourceDialog` allows testing connections and fetching database scope dynamically.
+2. **Interactive Visualizations (React Flow + Dagre):**
+   - `SourceScopePickerDiagram`: Visual table dependency graph for selecting scan scope with automatic hierarchical layout.
+   - `ErdLineageDiagram`: Full lineage and ERD diagram showing database tables, column types, transformations (`MASK`, `HMAC`, `KEEP`, `DROPPED`), and PK/FK links.
+3. **DPO Governance & Risk Assessment Workspace (`DpoReviewExperienceMVP`):**
+   - **5-Tab Layout:**
+     - *Overview & PII Schema:* Field classification table, detection source, and masking actions.
+     - *Sample Data:* **DPO can inspect data (sample data / preview)** to assess risk and verify ambiguous fields.
+     - *Permissions & Grants:* RBAC management for metastores and snapshots.
+     - *Audit History & Hash-Chain:* Merkle Root SHA-256 cryptographic audit trail.
+     - *Risk & Insights:* Deterministic Risk Score (FR-10, 0–100), sensitivity levels, and protection ratios.
+   - **Inspector Drawer (`FieldPolicyDrawerContent`):**
+     - Detailed legal basis breakdown (Decree 13/2023/NĐ-CP & Personal Data Protection Law 2025).
+     - Join key partner alerts and automatic action synchronization.
+     - Confirmation of `UNKNOWN` fields as non-personal data (`notPersonal: true`).
+     - Mandatory justifications for AI overrides and exception deadlines (`exceptionUntil`).
+4. **Analyst Experience (`AnalystDatasetExperienceMVP`):**
+   - Table-based data preview (`previewDataset`) with limit selection (20, 50, 100, 200 rows).
+   - Safe CSV download with automatic exclusion of `DROPPED` columns.
+   - **Zero Raw-PII for Analyst:** Strictly displays only transformed/masked data.
 
 ## Verification Checklist
 

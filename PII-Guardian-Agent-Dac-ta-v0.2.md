@@ -1,33 +1,34 @@
 # ĐẶC TẢ TRIỂN KHAI — PII GUARDIAN AGENT (v0.2, phạm vi 6 tuần)
 
-> Agent tự động quét dataset trên **BigQuery**, phát hiện & phân loại PII, đề xuất chính sách masking/tokenization, sinh view đã che dữ liệu, lập báo cáo tuân thủ và cảnh báo dataset rủi ro cao. **Mọi thay đổi chỉ được áp dụng sau khi DPO duyệt (Human-in-the-loop).**
+> Agent tự động quét dataset trên **PostgreSQL & MongoDB**, phát hiện & phân loại PII, đề xuất chính sách masking/tokenization, sinh view/snapshot đã che dữ liệu, lập báo cáo tuân thủ và cảnh báo dataset rủi ro cao. **DPO có thẩm quyền xem data để đánh giá rủi ro trước khi phê duyệt (Human-in-the-loop).**
 
 | Mục | Giá trị |
 |---|---|
-| Tên dự án (tạm) | PII Guardian Agent |
+| Tên dự án (tạm) | PII Guardian Agent / PIIGuard Shield |
 | Phiên bản | **0.2** — thay thế v0.1 (bản 8 tuần) |
-| Ngày lập | 02/10/2026 |
+| Ngày lập | 02/10/2026 (Cập nhật 13/10/2026) |
 | Thời gian / nhân lực | 6 tuần / 1 developer |
-| Warehouse | **Chỉ BigQuery** (Snowflake chuyển sang backlog) |
+| Cơ sở dữ liệu nguồn | **Chỉ PostgreSQL & MongoDB trên Cloud** (AWS RDS, GCP Cloud SQL, Supabase, Neon; MongoDB Atlas qua `mongodb+srv://`) |
 | Quy ước | `[ĐỀ XUẤT]` = giá trị khởi điểm cần hiệu chỉnh · `[CẦN XÁC NHẬN]` = cần quyết định từ chủ dự án/pháp chế · `[STRETCH]` = làm nếu còn thời gian |
 
 ---
 
 ## 0. Thay đổi so với v0.1
 
-| Hạng mục | v0.1 | v0.2 |
+| Hạng mục | v0.1 | v0.2 (Thực tế triển khai) |
 |---|---|---|
 | Thời gian | ~8 tuần, 1–2 dev | **6 tuần, 1 dev** (có dự phòng ở tuần 6) |
-| Warehouse | BigQuery + Snowflake | **Chỉ BigQuery**; giữ interface adapter + `FakeAdapter` để test |
-| Hạng mục Nâng cao | Multi-agent, eval, tự học pattern, audit nâng cao | **Chỉ eval harness gọn**; điểm rủi ro tất định thay multi-agent; pattern learning → backlog |
-| Cách che dữ liệu | Masked view + dynamic masking (policy tag) | **Masked/authorized view**; dynamic masking → backlog |
-| Tokenization | Envelope KMS + CMEK | AES-GCM, khoá ở Secret Manager; `TOKENIZE` hàng loạt là `[STRETCH]` (mặc định dùng `HASH`) |
-| Phát hiện | T0–T3, NER, phát hiện theo span | T0–T3, **không NER tiếng Việt, không span**; văn bản tự do xử lý mức cột |
-| Vector DB | pgvector + embeddings | `pg_trgm` tra cứu pattern theo tên cột; pgvector → backlog |
-| Frontend | 14 màn hình, SSE | **7 màn hình**, polling |
-| Triển khai | 3 service, staging, Terraform | **1 service (API + web tĩnh) + 1 Job**, 1 môi trường, script/GitHub Actions |
-| Báo cáo | HTML/PDF/JSON/CSV | HTML + JSON (PDF: in từ trình duyệt) |
-| Quy mô | Kịch bản S/M/L | Dataset demo ~30 bảng / ~500 cột; bỏ quét tăng dần, cache, drift |
+| Database nguồn | BigQuery + Snowflake | **Chỉ PostgreSQL & MongoDB** (loại bỏ hoàn toàn BigQuery/Snowflake để tối ưu chi phí) |
+| Quyền xem dữ liệu | Cấm xem tuyệt đối | **DPO có quyền xem data (sample/raw preview)** để đánh giá rủi ro và xác thực trường mơ hồ; **Analyst tuyệt đối không thấy raw PII** |
+| Hạng mục Nâng cao | Multi-agent, eval, tự học pattern, audit nâng cao | **Chỉ eval harness gọn**; điểm rủi ro tất định (FR-10) |
+| Cách che dữ liệu | Dynamic masking (policy tag) | **Protected Snapshot vật lý** sang database/schema an toàn riêng biệt |
+| Tokenization | Envelope KMS + CMEK | AES-GCM / HMAC-SHA-256 có salt và key version |
+| Phát hiện | T0–T3, NER, phát hiện theo span | T0–T3, Rules/Regex mặc định + LLM metadata classifier, văn bản tự do xử lý mức cột |
+| Sơ đồ trực quan | Chưa có | **Source Scope Picker Diagram** & **ERD Lineage Diagram** (React Flow + layout `dagre`) |
+| Frontend | 14 màn hình, SSE | **DPO Workspace 5 Tabs** (Overview, Sample Data, Grants, Audit Hash-Chain, Risk) + Inspector Drawer + Analyst Workspace |
+| Triển khai | 3 service, staging, Terraform | **1 service (API + web tĩnh) + 1 Job**, Docker Compose / script / GitHub Actions |
+| Báo cáo | HTML/PDF/JSON/CSV | HTML + JSON + CSV xuất an toàn từ UI |
+| Quy mô | Kịch bản S/M/L | Dataset thực nghiệm PostgreSQL & MongoDB; bỏ quét tăng dần |
 
 ---
 
@@ -45,9 +46,9 @@ Agent có khả năng: (1) quét dataset; (2) phát hiện & phân loại PII; (
 |---|---|---|---|
 | G1 | Tự động hoá rà soát | Tỉ lệ đề xuất được DPO chấp nhận nguyên trạng (trên dataset demo) | ≥ 80% |
 | G2 | Độ chính xác cao | Recall mức cột cho L3; Precision tổng thể (tập eval giữ riêng) | Recall ≥ 0,95; Precision ≥ 0,90 |
-| G3 | Không lộ PII thật | Số lần PII thô xuất hiện trong prompt LLM / log / API / UI / DB vận hành | 0 (canary test 100% pass) |
-| G4 | Hiệu năng | Thời gian quét dataset demo (~30 bảng / ~500 cột) | ≤ 10 phút |
-| G5 | Chi phí | Chi phí BigQuery + LLM mỗi lần quét so với ngân sách đặt trước | Không vượt (hard stop 100%) |
+| G3 | Không lộ PII thật cho Analyst | Số lần PII thô xuất hiện trong prompt LLM / log / UI của Analyst / DB đích | 0 (canary test 100% pass) |
+| G4 | Hiệu năng | Thời gian quét dataset demo PostgreSQL / MongoDB | ≤ 10 phút |
+| G5 | Chi phí | Chi phí tài nguyên DB + LLM mỗi lần quét so với ngân sách đặt trước | Không vượt (hard stop 100%) |
 | G6 | Truy vết | Tỉ lệ thay đổi masking có `approval_id` + audit entry | 100% |
 
 ### 1.4 Ràng buộc (từ brief) → cách đáp ứng
@@ -55,34 +56,35 @@ Agent có khả năng: (1) quét dataset; (2) phát hiện & phân loại PII; (
 | Ràng buộc | Cách đáp ứng |
 |---|---|
 | HITL: DPO duyệt trước khi áp dụng | LangGraph `interrupt()` tại `human_review`; chặn áp dụng ở **tầng DB** (`applied_policies.approval_id NOT NULL`) và ở tầng worker |
-| Không lộ giá trị PII thật ra ngoài | *Zero Raw-PII Egress* (§6.3): LLM chỉ nhận metadata + chữ ký trừu tượng; DB vận hành không lưu giá trị thô; UI/log/báo cáo chỉ có mẫu đã che |
+| Không lộ PII cho Analyst; DPO đánh giá rủi ro | DPO có thẩm quyền xem data (sample/raw preview) để thẩm định rủi ro và phân loại PII. Đối với Analyst: Zero Raw-PII Egress (§6.3) — UI/API Analyst chỉ nhận dữ liệu đã che; LLM chỉ nhận metadata + chữ ký |
 | Log audit đầy đủ | `audit_log` append-only + hash-chain (§14.3) |
 | Độ chính xác phát hiện cao | Pipeline nhiều tầng + validator + eval harness (§16) |
-| Hiệu năng quét, giới hạn chi phí | Pushdown regex (chỉ trả số đếm), lấy mẫu, ước tính chi phí trước, ngân sách cứng (§15) |
+| Hiệu năng quét, giới hạn chi phí | Quét introspection theo bảng đã chọn, lấy mẫu, ngân sách cứng (§15) |
 
 ### 1.5 Phạm vi
 
 **Trong phạm vi:**
 - Web app deploy được, 2 vai trò **DPO** / **Analyst**.
-- Quét → phát hiện & phân loại → đề xuất masking → HITL duyệt → masked view + báo cáo tuân thủ + cảnh báo.
-- Hashing; tokenization vault (detokenize có kiểm soát).
+- Hỗ trợ cơ sở dữ liệu **PostgreSQL và MongoDB trên Cloud** (AWS RDS, GCP Cloud SQL, Supabase, Neon; MongoDB Atlas).
+- Quét → phát hiện & phân loại → đề xuất masking → HITL duyệt → protected snapshot + báo cáo tuân thủ + cảnh báo.
+- Hashing (HMAC); tokenization vault (detokenize có kiểm soát).
 - Audit log hash-chain.
 - Eval harness gọn (precision/recall) trên dữ liệu tổng hợp tiếng Việt.
 
-**Ngoài phạm vi (backlog — §22):** Snowflake, multi-agent, tự học pattern, dynamic masking bằng policy tag, NER/span, quét tăng dần/drift, PDF, staging/Terraform, i18n.
+**Ngoài phạm vi:** Data Warehouse đắt tiền (Snowflake/BigQuery), multi-agent, tự học pattern, dynamic masking bằng policy tag, NER/span, quét tăng dần/drift, PDF, staging/Terraform, i18n.
 
 ### 1.6 Điểm lệch so với brief gốc & cách bù
 
-| Brief nêu | v0.2 | Cách bù / đường nâng cấp |
+| Brief nêu | v0.2 (Thực tế triển khai) | Cách bù / Lý do |
 |---|---|---|
-| Snowflake/BigQuery dynamic masking | Masked view trên BigQuery | View che đã đáp ứng "sinh view đã che"; thêm policy tag/data policy ở backlog |
+| Data Warehouse đắt tiền | Snapshot trên PostgreSQL & MongoDB | Tiết kiệm chi phí, dễ kiểm thử verifier, thực tế với ngân sách |
 | Vector DB lưu pattern | Bảng `pattern_store` + `pg_trgm` | Bật pgvector + embedding tên cột (~1–2 ngày) nếu bắt buộc |
-| Multi-agent đánh giá rủi ro | Hàm điểm rủi ro tất định | Tách thành agent ở backlog; dữ liệu đầu vào đã sẵn |
-| Tự học pattern | Chỉ lưu quyết định DPO | Dữ liệu đã thu thập từ tuần 3 |
+| Multi-agent đánh giá rủi ro | Hàm điểm rủi ro tất định (FR-10) | Dữ liệu đầu vào đã sẵn; tính toán minh bạch, khách quan |
+| Tự học pattern | Chỉ lưu quyết định DPO | Thu thập dữ liệu phục vụ huấn luyện sau này |
 
 ### 1.7 Giả định
 - A1. Một developer, 6 tuần; dữ liệu demo là **tổng hợp** (không dùng PII thật khi phát triển).
-- A2. Một project GCP, một region; BigQuery là nguồn duy nhất.
+- A2. Nguồn dữ liệu cam kết là Cloud PostgreSQL và MongoDB Atlas.
 - A3. Dữ liệu chủ yếu tiếng Việt (có/không dấu), lẫn tiếng Anh.
 - A4. LLM qua *LLM Gateway* trừu tượng, bật/tắt bằng feature flag.
 - A5. Có ít nhất một người đóng vai DPO để duyệt khi demo.
