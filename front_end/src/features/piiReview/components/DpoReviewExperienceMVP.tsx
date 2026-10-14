@@ -16,6 +16,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   Stack,
   Tab,
   Table,
@@ -61,6 +62,9 @@ import { AddSourceDialog } from './AddSourceDialog';
 import { CollapsibleTableGroup, FixedColumns } from './CollapsibleTableGroup';
 import { FieldPolicyDrawerContent } from './FieldPolicyDrawerContent';
 import { ActionChip, SensitivityChip, DetectorBadge } from './PolicyChips';
+import { ScopeLinkWarnings } from './ScopeLinkWarnings';
+import { SourceScopePickerDiagram } from './SourceScopePickerDiagram';
+import { analyzeScopeLinks, effectiveLinkScope } from '../model/scopeLinks';
 import {
   POLICY_ACTIONS,
   type PolicyAction,
@@ -144,7 +148,8 @@ const RISK_TIER_LABELS: Record<'Critical' | 'High' | 'Medium' | 'Low', string> =
 export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: DpoReviewExperienceProps): JSX.Element {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<string[]>([]);
-  const [currentRunId, setCurrentRunId] = useState<number | null>(null);
+  const [linkScope, setLinkScope] = useState<string[]>([]);
+  const [currentRunId, setCurrentRunId] = useState<number | null>(initialRunId);
   const [datasetId, setDatasetId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [columnSearch, setColumnSearch] = useState<string>('');
@@ -170,6 +175,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
   const { data: sourceScope } = useSourceScope(selectedSourceId);
   const { data: currentRun } = useRun(currentRunId);
+  // Run created by the scan button: the URL change that follows must not reset or re-collapse the screen.
+  const justCreatedRunId = useRef<number | null>(null);
   const { data: riskScore } = useRiskScore(currentRunId);
 
   const createScan = useCreateScanRun();
@@ -181,6 +188,10 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   // The URL decides which run is open: /dpo starts fresh, /dpo/runs/:id reopens a saved run.
   const hydratedRunId = useRef<number | null>(null);
   useEffect(() => {
+    if (initialRunId !== null && initialRunId === justCreatedRunId.current) {
+      justCreatedRunId.current = null;
+      return;
+    }
     hydratedRunId.current = null;
     setCurrentRunId(initialRunId);
     setDatasetId(null);
@@ -344,7 +355,35 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   useEffect(() => {
     setSelectedScope(scopeNames);
+    setLinkScope([]);
   }, [scopeNames]);
+
+  const activeLinkScope = useMemo(
+    () => effectiveLinkScope(linkScope, selectedScope, scopeNames),
+    [linkScope, selectedScope, scopeNames],
+  );
+  const scopeLinkAnalysis = useMemo(
+    () => analyzeScopeLinks(selectedScope, activeLinkScope, sourceScope?.relationships ?? []),
+    [selectedScope, activeLinkScope, sourceScope?.relationships],
+  );
+
+  const handleToggleScopeItem = (name: string) => {
+    setSelectedScope((current) =>
+      current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
+    );
+  };
+
+  const handleSelectAllScope = () => {
+    setSelectedScope((current) => (current.length === scopeNames.length ? [] : scopeNames));
+  };
+
+  const handleAddLinkTable = (table: string) => {
+    setLinkScope((current) => (current.includes(table) ? current : [...current, table]));
+  };
+
+  const handleRemoveLinkTable = (table: string) => {
+    setLinkScope((current) => current.filter((item) => item !== table));
+  };
 
   const handleStartScan = async () => {
     if (!selectedSourceId || selectedScope.length === 0) return;
@@ -360,7 +399,10 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       const run = await createScan.mutateAsync({
         sourceId: selectedSourceId,
         selectedScope,
+        linkScope: activeLinkScope,
       });
+      justCreatedRunId.current = run.id;
+      hydratedRunId.current = run.id;
       setCurrentRunId(run.id);
       setActiveTab(0);
       onRunCreated?.(run.id);
@@ -818,7 +860,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                 <Box>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.01em' }}>
-                      {currentRun ? `Run #${currentRun.id}` : activeSource?.name ?? 'Chọn nguồn dữ liệu'}
+                      {currentRunId !== null ? `Run #${currentRunId}` : activeSource?.name ?? 'Chọn nguồn dữ liệu'}
                     </Typography>
                   </Stack>
 
@@ -922,6 +964,58 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                     Đối sánh mẫu nhận diện tiếng Việt và phân loại bằng AI theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP.
                   </Typography>
                 </Box>
+              ) : currentRunId !== null && !currentRun ? (
+                /* Opening a saved run: keep a placeholder instead of flashing the empty state */
+                <Stack spacing={2} aria-busy="true" aria-label="Đang tải run">
+                  <Skeleton variant="rounded" height={88} />
+                  <Skeleton variant="rounded" height={44} />
+                  <Skeleton variant="rounded" height={320} />
+                </Stack>
+              ) : !currentRun && sourceScope && sourceScope.items.length > 0 ? (
+                /* Scope selection: only selected tables (and link tables) end up in the snapshot */
+                <Stack spacing={2}>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={2}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'stretch', md: 'center' }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          Chọn phạm vi quét
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Đã chọn {selectedScope.length}/{sourceScope.items.length} bảng
+                          {activeLinkScope.length > 0 ? ` • ${activeLinkScope.length} bảng liên kết` : ''}. Chỉ các
+                          bảng này mới có trong snapshot phát hành cho Analyst.
+                        </Typography>
+                      </Box>
+                      <Button
+                        variant="contained"
+                        startIcon={<PlayArrowIcon />}
+                        onClick={() => void handleStartScan()}
+                        disabled={!selectedSourceId || selectedScope.length === 0}
+                        sx={{ flexShrink: 0 }}
+                      >
+                        Bắt đầu quét PII
+                      </Button>
+                    </Stack>
+                  </Paper>
+                  <ScopeLinkWarnings
+                    analysis={scopeLinkAnalysis}
+                    linkTables={activeLinkScope}
+                    onAddLink={handleAddLinkTable}
+                    onRemoveLink={handleRemoveLinkTable}
+                  />
+                  <SourceScopePickerDiagram
+                    items={sourceScope.items}
+                    selectedNames={selectedScope}
+                    relationships={sourceScope.relationships}
+                    onToggle={handleToggleScopeItem}
+                    onSelectAll={handleSelectAllScope}
+                  />
+                </Stack>
               ) : !currentRun ? (
                 /* Databricks Empty State (Databricks web Aug 2025 65.png) */
                 <Box sx={{ py: 8, px: 2, textAlign: 'center', maxWidth: 520, mx: 'auto' }}>
@@ -953,7 +1047,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                     size="medium"
                     startIcon={<PlayArrowIcon />}
                     onClick={() => void handleStartScan()}
-                    disabled={!selectedSourceId}
+                    disabled={!selectedSourceId || selectedScope.length === 0}
                     sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
                   >
                     Bắt đầu quét PII

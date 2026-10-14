@@ -33,6 +33,7 @@ from src.services.source_validation import (
     assert_not_snapshot_target,
     parse_source_url,
     probe_connection,
+    probe_namespace,
 )
 
 router = APIRouter(tags=["sources"])
@@ -166,6 +167,7 @@ def get_source_scope(
             schema_name=conn.namespace,
             sample_size=1,
         )
+        tables = _allowed_tables(profile.tables, conn)
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
@@ -185,15 +187,16 @@ def get_source_scope(
                         for column in table.columns
                     ],
                 )
-                for table in profile.tables
+                for table in tables
             ],
-            relationships=_scope_relationships(source.engine, conn, {t.table_name for t in profile.tables}),
+            relationships=_scope_relationships(source.engine, conn, {t.table_name for t in tables}),
         )
 
     if source.engine == "mongodb" and conn.live:
         from src.connectors.mongo_connector import MongoConnector
 
         profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
+        collections = _allowed_tables(profile.tables, conn)
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
@@ -213,9 +216,9 @@ def get_source_scope(
                         for column in collection.columns
                     ],
                 )
-                for collection in profile.tables
+                for collection in collections
             ],
-            relationships=_scope_relationships(source.engine, conn, {c.table_name for c in profile.tables}),
+            relationships=_scope_relationships(source.engine, conn, {c.table_name for c in collections}),
         )
 
     if source.source_type == SourceType.SQL:
@@ -279,6 +282,14 @@ def get_source_scope(
         items=items,
         relationships=[_STUB_RELATIONSHIP],
     )
+
+
+def _allowed_tables(tables: list, conn: SourceConnection) -> list:
+    """Restrict profiled tables/collections to the source allowlist registered by the DPO (if any)."""
+    if not conn.tables:
+        return list(tables)
+    allowed = set(conn.tables)
+    return [t for t in tables if t.table_name in allowed]
 
 
 # Demo stub scope: orders.customer_id -> customers.customer_id (same for SQL and NoSQL stubs).
@@ -440,6 +451,10 @@ def create_source(
         raise HTTPException(
             status_code=422, detail="Mongo database name is required (in URL path or namespace)"
         )
+    try:
+        probe_namespace(body.url, parsed.engine, namespace)
+    except SourceUrlError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
     try:
         encrypted = secret_box.encrypt(body.url.strip())
     except secret_box.SecretBoxError as exc:

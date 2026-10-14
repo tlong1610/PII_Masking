@@ -32,7 +32,7 @@ Các hành động rủi ro bắt buộc có sự can thiệp của người dù
 - **Phát hành dữ liệu:** Hệ thống KHÔNG tự động phát hành. DPO phải kiểm tra báo cáo test (Pass/Fail) và tự tay bấm nút Publish, kèm theo lưu log audit đầy đủ.
 
 ## 6. Xử lý lỗi & giới hạn
-- **LLM lỗi hoặc tốn kém:** Có giới hạn chi phí. Tự động fallback sử dụng regex/NER (Presidio). Báo lỗi rõ ràng trên UI nếu API LLM sập.
+- **LLM lỗi hoặc tốn kém:** Có giới hạn chi phí. Tự động fallback sử dụng regex/rule (tầng 1) khi tắt AI scan; Presidio chưa được tích hợp. Báo lỗi rõ ràng trên UI nếu API LLM sập.
 - **Độ chính xác & Downstream:** Nếu Agent phân loại sai dẫn đến hỏng phép liên kết (SQL Join), Downstream test sẽ Fail và chặn luồng phát hành.
 - **Giới hạn cứng:** Nghiêm cấm hiển thị raw data PII thật trên giao diện duyệt. Hệ thống chỉ xử lý dựa trên metadata, schema hoặc công cụ ẩn danh.
 
@@ -43,7 +43,7 @@ Các hành động rủi ro bắt buộc có sự can thiệp của người dù
 
 ## 8. Tech stack (dự kiến)
 - **Backend:** Python 3.11, FastAPI, Pydantic, SQLAlchemy, PyMongo.
-- **AI/LLM:** LangGraph agent, LLM + Regex/NER (Presidio).
+- **AI/LLM:** LangGraph agent, LLM + Regex/rule + BM25/hybrid (Presidio mới ở mức tham khảo, chưa dùng trong code).
 - **Frontend:** React + TypeScript + Vite.
 - **Deploy/Lưu trữ:** Docker Compose, Github Actions.
 

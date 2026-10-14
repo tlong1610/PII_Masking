@@ -11,7 +11,7 @@
 - All API endpoints tested
 
 ### AI Detection - Tùng (17/17 ✓)
-- Rules (regex) + AI (Presidio + LangGraph agent) pipeline
+- Rules (regex) + AI (LangGraph agent) pipeline (Presidio chưa tích hợp)
 - Eval: 72 test cases, **Precision 95.65%**, **Recall 100%**
 - Vietnamese PII taxonomy: CCCD, phone, email, MST, OCR text, address
 - No further P0 tasks needed

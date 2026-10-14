@@ -444,6 +444,8 @@ export function SourceScopePickerDiagram({
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge<RelationshipEdgeData>>([]);
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  // Bumped when delayed edges land so the selection styling below is applied to them too.
+  const [edgesVersion, setEdgesVersion] = useState(0);
 
   // Tính relationships từ items, không phụ thuộc selection
   const relationships = useMemo(() => {
@@ -527,18 +529,18 @@ export function SourceScopePickerDiagram({
       };
     });
 
-    setNodes(initialNodes);
+    // Layout needs no DOM: place nodes at their final position at once so they never jump
+    // and fitView frames the real layout.
+    const layouted = getLayoutedElements(initialNodes, initialEdges);
+    setNodes(layouted.nodes);
+    setEdges([]);
 
-    // FIX Bug 1: Delay setting edges AFTER nodes mount
-    // Đảm bảo TableNode đã render handles trước khi React Flow tìm chúng
-    setTimeout(() => {
-      setEdges(initialEdges);
-      
-      // Auto-layout sau khi edges set
-      const layouted = getLayoutedElements(initialNodes, initialEdges);
-      setNodes(layouted.nodes);
+    // Edges wait until TableNode has rendered its handles, otherwise React Flow cannot attach them.
+    const timer = setTimeout(() => {
       setEdges(layouted.edges);
-    }, 200); // Tăng lên 200ms
+      setEdgesVersion((version) => version + 1);
+    }, 200);
+    return () => clearTimeout(timer);
   }, [items, relationships, theme, setNodes, setEdges]); // BỎ selectedSet khỏi deps
 
   // Effect 2: Chỉ update selection state, KHÔNG rebuild nodes
@@ -584,7 +586,7 @@ export function SourceScopePickerDiagram({
         };
       }),
     );
-  }, [highlightedFieldKeys, hoveredEdgeId, hoveredField, selectedSet, theme, setNodes, setEdges]);
+  }, [edgesVersion, highlightedFieldKeys, hoveredEdgeId, hoveredField, selectedSet, theme, setNodes, setEdges]);
 
   // Auto layout callback
   const onLayout = useCallback(() => {
@@ -642,7 +644,7 @@ export function SourceScopePickerDiagram({
         variant="outlined"
         sx={{
           flex: 1,
-          height: { xs: 500, md: 700 },
+          height: { xs: 420, md: 560 },
           minWidth: 0,
           overflow: 'hidden',
           bgcolor: 'background.default',
