@@ -1,6 +1,6 @@
 # PIIGuard Shield - Architecture Diagram
 
-File này là bản diagram rút gọn để nhìn nhanh. Bản giải thích chi tiết nằm ở [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) và [../ARCHITECTURE.md](../ARCHITECTURE.md).
+File này là bản diagram rút gọn để nhìn nhanh. Bản giải thích chi tiết nằm ở [SYSTEM_ARCHITECTURE.md](../core/SYSTEM_ARCHITECTURE.md) và [../ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ## Overview
 

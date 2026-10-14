@@ -79,7 +79,7 @@ P-138/
 │   ├── src/
 │   │   ├── api/                       # Client gọi backend API (/api/v1/...)
 │   │   ├── components/                # UI components (Header, Modal, Badge, Loading)
-│   │   ├── pages/                     # Màn hình DPO & Analyst theo docs/ui-flow.md
+│   │   ├── pages/                     # Màn hình DPO & Analyst theo docs/archive/ui-flow.md
 │   │   │   ├── Login.tsx              # Chọn tài khoản demo (DPO / Analyst)
 │   │   │   ├── dpo/                   # Dashboard duyệt PII & phát hành snapshot
 │   │   │   └── analyst/               # Dashboard xem preview & chạy tác vụ
@@ -164,7 +164,7 @@ P-138/
 - **Stack:** React, TypeScript, Vite, TailwindCSS (nếu dùng) / Vanilla CSS, Lucide icons.
 - **Nhiệm vụ cụ thể:**
   1. Khởi tạo project trong `frontend/` bằng Vite.
-  2. Xây dựng 2 luồng trải nghiệm người dùng theo đúng [docs/ui-flow.md](docs/ui-flow.md):
+  2. Xây dựng 2 luồng trải nghiệm người dùng theo đúng [docs/archive/ui-flow.md](docs/archive/ui-flow.md):
      - **DPO:** Xem danh sách nguồn (`/sources`) $\rightarrow$ Khởi động quét $\rightarrow$ Bảng HITL duyệt đề xuất PII $\rightarrow$ Xem báo cáo kiểm tra downstream $\rightarrow$ Bấm Publish/Revoke.
      - **Analyst:** Xem danh sách Dataset đã duyệt $\rightarrow$ Preview dữ liệu đã che $\rightarrow$ Chạy tác vụ phân tích cố định.
   3. Bắt buộc có đủ các trạng thái giao diện: *Loading, Error, Empty state, Confirm Modal thao tác rủi ro cao* (Tiêu chí chấm Gate 1).

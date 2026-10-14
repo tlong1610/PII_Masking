@@ -54,7 +54,7 @@ Cần bổ sung:
 2. **Negative cases**: product code, invoice number (không phải PII)
 3. **Multimodal**: ảnh CCCD, voice recordings
 
-Xem chi tiết: [docs/GOLDEN_DATASET.md](./GOLDEN_DATASET.md)
+Xem chi tiết: [docs/core/GOLDEN_DATASET.md](../core/GOLDEN_DATASET.md)
 
 ---
 
@@ -210,7 +210,7 @@ pytest tests/
 
 ## 📚 Tài Liệu Liên Quan
 
-- [CI_RUNNER_GUIDE.md](./CI_RUNNER_GUIDE.md) - Chi tiết về CI runner
-- [GOLDEN_DATASET.md](./GOLDEN_DATASET.md) - Giải thích golden dataset
+- [CI_RUNNER_GUIDE.md](../ops/CI_RUNNER_GUIDE.md) - Chi tiết về CI runner
+- [GOLDEN_DATASET.md](../core/GOLDEN_DATASET.md) - Giải thích golden dataset
 - [TUNG_TASKS.md](./TUNG_TASKS.md) - Checklist cho Tùng
-- [README.md](../README.md) - Tổng quan dự án
+- [README.md](../../README.md) - Tổng quan dự án
