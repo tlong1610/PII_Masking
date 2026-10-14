@@ -207,7 +207,13 @@ Màn hình DPO trên frontend (`front_end/`):
 | `/dpo/datasets/:id`     | Chi tiết: verifier, xem trước dữ liệu đã bảo vệ, phát hành / thu hồi, cấp quyền Analyst      |
 | `/dpo/audit`            | Nhật ký kiểm toán và trạng thái chuỗi hash                                                   |
 
-`sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Source động cho doanh nghiệp phải nhận connection string, test connection, đọc scope, cho DPO chọn bảng/collection, rồi mới scan PII trong phạm vi đã chọn.
+`sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Nguồn do DPO đăng ký (`POST /sources`) nhận connection string, test connection, kiểm tra schema/database tồn tại, rồi cho DPO chọn bảng/collection trước khi quét:
+
+- **Schema**: trường `namespace`; để trống thì lấy từ URL (`?options=-csearch_path%3Dsales` hoặc `?currentSchema=sales`), không có thì `public`. Mongo lấy database từ path của URL.
+- **Allowlist** (`tables`): `/scope` chỉ liệt kê các bảng này và `POST /runs` từ chối (422) bảng ngoài danh sách.
+- **Quét gì thì publish nấy**: snapshot chỉ chứa các bảng đã quét. Quan hệ chỉ được kiểm tra/verify khi cả hai đầu nằm trong run.
+- **Bảng liên kết** (`link_scope`): khi bỏ bảng cha hoặc bảng trung gian (N–N), màn chọn phạm vi cảnh báo và cho thêm bảng đó dạng liên kết — chỉ giữ cột khóa nối (đề xuất HMAC, đầu kia cũng HMAC), cột khác đề xuất DROP. Analyst vẫn JOIN được mà không lộ thêm PII. Liên kết bị cắt (`cut_links`) và bảng liên kết được ghi vào audit của run.
+- **Verifier** cho nguồn Postgres đăng ký: số dòng + `join_matched:<from>-><to>` (số dòng JOIN khớp trên snapshot phải bằng nguồn) + quét rò rỉ PII.
 
 ## GitHub Actions self-hosted runner (máy Phúc)
 
@@ -255,13 +261,14 @@ Các endpoint chính:
 | ----------------------------------------- | --------------- | ------------------------------------------------------------------------------------ |
 | `POST /sessions`                          | Tài khoản demo  | Xác thực; role do server quyết định                                                  |
 | `GET /sources`                            | DPO             | Liệt kê nguồn demo + nguồn do DPO đăng ký, không trả credential                      |
-| `GET /sources/{id}/scope`                 | DPO             | Bảng/collection, cột và `relationships` (FK, khoá logic, tham chiếu Mongo suy luận) |
-| `POST /runs`                              | DPO             | Tạo run và quét chỉ các bảng/collection đã chọn                                      |
+| `POST /sources`, `POST /sources/test`     | DPO             | Đăng ký nguồn (URL mã hoá, không trả lại); kiểm tra kết nối và schema/database tồn tại |
+| `GET /sources/{id}/scope`                 | DPO             | Bảng/collection (lọc theo allowlist), cột và `relationships` (FK, khoá logic, tham chiếu Mongo suy luận) |
+| `POST /runs`                              | DPO             | Tạo run và quét `selected_scope` + bảng liên kết `link_scope`; 422 nếu ngoài allowlist |
 | `GET /runs`                               | DPO             | Lịch sử run (mới nhất trước), lọc `?status=&source_id=`; chỉ trả số đếm              |
 | `GET /runs/{id}`                          | DPO             | Tiến độ, field profile, quyết định đã lưu và trạng thái                              |
 | `DELETE /runs/{id}`                       | DPO             | Xoá run và metadata; bị chặn (409) khi còn dataset VERIFIED/PUBLISHED; giữ nhật ký audit |
 | `PUT /runs/{id}/decisions`                | DPO             | Review mọi trường; lưu phiên quyết định                                              |
-| `POST /runs/{id}/build`                   | DPO             | Xác nhận, kiểm tra trạng thái, tạo staging và verifier                               |
+| `POST /runs/{id}/build`                   | DPO             | Xác nhận, kiểm tra trạng thái và khóa nối trong phạm vi run, tạo staging và verifier |
 | `GET /runs/{id}/report`                   | DPO             | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII                      |
 | `GET /runs/{id}/risk-score`               | DPO             | Điểm rủi ro; số dòng đếm từ nguồn, `row_count_estimated=true` nếu không đếm được     |
 | `GET /datasets`                           | DPO / Analyst   | DPO: mọi dataset (trừ FAILED) kèm thời điểm và số grant; Analyst: chỉ PUBLISHED được cấp quyền; lọc `?status=` |

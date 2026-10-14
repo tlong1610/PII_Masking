@@ -34,6 +34,7 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/tokenization), s
 1. **Kết nối & Chọn phạm vi (Scope Selection):**
    - DPO chọn hoặc thêm mới nguồn **Cloud PostgreSQL / MongoDB** (hỗ trợ `postgresql://`, `mongodb+srv://`).
    - Hệ thống đọc introspection schema; DPO quan sát sơ đồ quan hệ trực quan trên `SourceScopePickerDiagram` và chọn các bảng/collection cần quét.
+   - Snapshot chỉ chứa các bảng đã quét. Nếu bỏ bảng cha hoặc bảng trung gian (N–N), hệ thống cảnh báo và cho thêm bảng đó dạng **bảng liên kết** (chỉ giữ khóa nối dạng HMAC, cột khác DROP) để Analyst vẫn JOIN được; liên kết bị cắt được ghi audit.
 2. **Quét & Phân loại PII:**
    - Scanner quét metadata, thống kê và pattern; rule engine chạy mặc định, LLM hỗ trợ phân loại nâng cao khi được kích hoạt.
    - Hệ thống đề xuất hành động: `MASK` (che một phần/toàn phần), `HMAC` (băm một chiều cho khóa nối), `DROP` (loại bỏ trường rủi ro/không cần thiết), `KEEP` (giữ nguyên cho dữ liệu phi cá nhân hoặc ngoại lệ).

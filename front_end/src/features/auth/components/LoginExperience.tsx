@@ -7,7 +7,6 @@ import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
@@ -22,6 +21,8 @@ import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import GppGoodOutlinedIcon from '@mui/icons-material/GppGoodOutlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { Controller, useForm } from 'react-hook-form';
@@ -29,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { loginSchema, type LoginFormValues } from '../model/loginSchema';
 import { routes } from '@/shared/config/routes';
+import loginBackground from '@/assets/login-background.svg';
 
 interface DemoAccountPreset {
   role: 'DPO' | 'Analyst';
@@ -57,6 +59,82 @@ const DEMO_PRESETS: DemoAccountPreset[] = [
     icon: <AnalyticsOutlinedIcon sx={{ fontSize: 20, color: '#0E7490' }} />,
   },
 ];
+
+const HIGHLIGHTS = [
+  {
+    icon: <GppGoodOutlinedIcon />,
+    title: 'Phân quyền nghiêm ngặt',
+    text: 'Đối chiếu Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP, triển khai trên hạ tầng nội bộ.',
+  },
+  {
+    icon: <VisibilityOffOutlinedIcon />,
+    title: 'Không hiển thị dữ liệu cá nhân gốc',
+    text: 'DPO và Analyst chỉ làm việc với dữ liệu đã che hoặc băm; mọi thao tác được ghi vào sổ cái chuỗi băm.',
+  },
+];
+
+function BrandMark({ size }: { size: number }): JSX.Element {
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: 2,
+        bgcolor: 'primary.main',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'common.white',
+        flexShrink: 0,
+      }}
+    >
+      <LayersOutlinedIcon sx={{ fontSize: size * 0.58 }} />
+    </Box>
+  );
+}
+
+/** Left side, drawn over the background image (wide screens only). */
+function BrandPanel(): JSX.Element {
+  return (
+    <Stack spacing={5} sx={{ color: 'common.white', display: { xs: 'none', md: 'flex' }, maxWidth: 480 }}>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <BrandMark size={52} />
+        <Box>
+          <Typography variant="h3" component="p" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+            PIIGuard Shield
+          </Typography>
+          <Typography sx={{ opacity: 0.8 }}>Nền tảng bảo vệ dữ liệu cho doanh nghiệp</Typography>
+        </Box>
+      </Stack>
+      <Stack spacing={3}>
+        {HIGHLIGHTS.map((item) => (
+          <Stack key={item.title} direction="row" spacing={2} alignItems="flex-start">
+            <Box
+              sx={{
+                p: 1,
+                borderRadius: 2,
+                display: 'flex',
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+              }}
+            >
+              {item.icon}
+            </Box>
+            <Box>
+              <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.75, mt: 0.5, lineHeight: 1.6 }}>
+                {item.text}
+              </Typography>
+            </Box>
+          </Stack>
+        ))}
+      </Stack>
+      <Typography variant="caption" sx={{ color: 'inherit', opacity: 0.55 }}>
+        Phiên bản v0.2 · triển khai nội bộ
+      </Typography>
+    </Stack>
+  );
+}
 
 export function LoginExperience(): JSX.Element {
   const navigate = useNavigate();
@@ -98,135 +176,73 @@ export function LoginExperience(): JSX.Element {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        bgcolor: '#F8F9FA',
+        // One screen, no page scroll. Very short windows (landscape phones) still get a scrollbar
+        // so the form never becomes unreachable.
+        height: '100dvh',
+        overflow: 'hidden',
+        '@media (max-height: 620px)': { height: 'auto', minHeight: '100dvh', overflow: 'auto' },
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        py: { xs: 4, md: 8 },
-        px: 2,
+        px: { xs: 2, md: 6 },
+        py: 2,
+        bgcolor: 'primary.dark',
+        backgroundImage: `url(${loginBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       }}
     >
-      {/* Databricks Branding Header */}
-      <Stack alignItems="center" spacing={1} sx={{ mb: 4 }}>
-        <Box
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: '8px',
-            bgcolor: '#1B51A4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(27, 81, 164, 0.25)',
-          }}
-        >
-          <LayersOutlinedIcon sx={{ fontSize: 28 }} />
-        </Box>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>
-          PIIGuard Shield
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#4B5563', fontSize: '0.85rem' }}>
-          Nền tảng bảo vệ dữ liệu cho doanh nghiệp
-        </Typography>
-      </Stack>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1160,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 500px' },
+          gap: { md: 8 },
+          alignItems: 'center',
+        }}
+      >
+        <BrandPanel />
 
-      <Container maxWidth="md">
         <Card
           sx={{
-            bgcolor: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-            boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-            overflow: 'hidden',
+            borderRadius: 3,
+            boxShadow: '0 24px 60px -12px rgba(2, 6, 23, 0.55)',
+            width: '100%',
+            maxWidth: 500,
+            justifySelf: 'center',
           }}
         >
-          <Grid container>
-            {/* Left Context Column */}
-            <Grid
-              item
-              xs={12}
-              md={5}
-              sx={{
-                p: { xs: 3, md: 4 },
-                bgcolor: '#F9FAFB',
-                borderRight: { md: '1px solid #E5E7EB' },
-                borderBottom: { xs: '1px solid #E5E7EB', md: 'none' },
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
+          <Box sx={{ p: { xs: 3, md: 4 } }}>
+            {/* Brand inside the card on small screens, where the left panel is hidden */}
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3, display: { xs: 'flex', md: 'none' } }}>
+              <BrandMark size={40} />
+              <Box>
+                <Typography sx={{ fontWeight: 800 }}>PIIGuard Shield</Typography>
+                <Typography variant="caption">Nền tảng bảo vệ dữ liệu cho doanh nghiệp</Typography>
+              </Box>
+            </Stack>
+
+            {user && (
+              <Alert
+                severity="info"
+                sx={{ mb: 2 }}
+                action={
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" onClick={() => navigate(user.role === 'DPO' ? routes.dpo : routes.analyst)}>
+                      Vào tiếp
+                    </Button>
+                    <Button size="small" color="inherit" onClick={logout}>
+                      Đăng xuất
+                    </Button>
+                  </Stack>
+                }
+              >
+                Đang đăng nhập: <strong>{user.username}</strong> ({user.role})
+              </Alert>
+            )}
+
               <Stack spacing={2.5}>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }}>
-                    Phân quyền nghiêm ngặt
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5, lineHeight: 1.6 }}>
-                    Đối chiếu Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP, triển khai trên hạ tầng nội bộ. Cả DPO và
-                    Analyst đều không bao giờ thấy giá trị dữ liệu cá nhân gốc.
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: '8px',
-                    bgcolor: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E3A8A', display: 'block', mb: 0.5 }}>
-                    Không hiển thị dữ liệu cá nhân gốc
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#1E40AF', display: 'block', lineHeight: 1.5 }}>
-                    Không lưu trữ hoặc truyền dữ liệu PII nguồn thô qua giao diện người dùng. Mọi truy cập được xác minh qua
-                    sổ cái chuỗi băm.
-                  </Typography>
-                </Box>
-
-                {user && (
-                  <Box sx={{ p: 2, borderRadius: '8px', border: '1px solid #E5E7EB', bgcolor: '#FFFFFF' }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Phiên đăng nhập hiện tại:
-                    </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, mb: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {user.username}
-                      </Typography>
-                      <Chip
-                        label={user.role}
-                        size="small"
-                        color={user.role === 'DPO' ? 'primary' : 'secondary'}
-                        sx={{ height: 20, fontSize: '0.68rem' }}
-                      />
-                    </Stack>
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() => navigate(user.role === 'DPO' ? routes.dpo : routes.analyst)}
-                      >
-                        Vào workspace {user.role}
-                      </Button>
-                      <Button variant="outlined" size="small" color="inherit" onClick={logout}>
-                        Đăng xuất
-                      </Button>
-                    </Stack>
-                  </Box>
-                )}
-              </Stack>
-
-              <Typography variant="caption" sx={{ color: '#9CA3AF', mt: 3, display: 'block' }}>
-                Phiên bản v0.2 · triển khai nội bộ
-              </Typography>
-            </Grid>
-
-            {/* Right Form Column */}
-            <Grid item xs={12} md={7} sx={{ p: { xs: 3, md: 4 } }}>
-              <Stack spacing={3}>
                 <Box>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: '#111827' }}>
                     Đăng nhập tài khoản
@@ -421,10 +437,9 @@ export function LoginExperience(): JSX.Element {
                   </Stack>
                 </Box>
               </Stack>
-            </Grid>
-          </Grid>
+          </Box>
         </Card>
-      </Container>
+      </Box>
     </Box>
   );
 }

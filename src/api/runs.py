@@ -112,6 +112,46 @@ def _stub_field_specs(source_type: SourceType, selected_scope: tuple[str, ...]) 
     return specs
 
 
+def _clean_names(names: list[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(name.strip() for name in names if name.strip()))
+
+
+Relation = tuple[str, str, str, str]
+
+
+def _relations_in_scope(relations: list[Relation], tables: set[str]) -> list[Relation]:
+    """Joins whose both ends were scanned; joins to tables outside the run are not checked or verified."""
+    return list(dict.fromkeys(r for r in relations if r[0] in tables and r[2] in tables))
+
+
+def _cut_relations(relations: list[Relation], tables: set[str]) -> list[str]:
+    """Joins with exactly one end in the run: linkage the DPO chose to leave out (names only)."""
+    return sorted(
+        {f"{r[0]}.{r[1]}->{r[2]}.{r[3]}" for r in relations if (r[0] in tables) != (r[2] in tables)}
+    )
+
+
+def _apply_link_table_defaults(specs: list[dict], link_tables: set[str], relations: list[Relation]) -> None:
+    """Link-only tables keep just their join keys (HMAC); every other field defaults to DROP.
+
+    The other end of a join to a link table is also proposed as HMAC so the snapshot still joins.
+    DPO still reviews every field.
+    """
+    if not link_tables:
+        return
+    keys: set[tuple[str, str]] = set()
+    for from_table, from_col, to_table, to_col in relations:
+        if from_table in link_tables or to_table in link_tables:
+            keys.add((from_table, from_col))
+            keys.add((to_table, to_col))
+    for spec in specs:
+        key = (spec["source_path"], spec["field_path"])
+        if key in keys:
+            spec["recommended_action"] = PolicyAction.HMAC.value
+        elif spec["source_path"] in link_tables:
+            spec["recommended_action"] = PolicyAction.DROP.value
+
+
 def _write_audit(
     db: Session,
     *,
@@ -232,7 +272,16 @@ async def _execute_create_run(
     conn = _connection_for(source, db)
     use_pg = source.engine == "postgresql" and conn.live
     use_mongo = source.engine == "mongodb" and conn.live
-    selected_scope = tuple(dict.fromkeys(item.strip() for item in body.selected_scope if item.strip()))
+    selected_scope = _clean_names(body.selected_scope)
+    # Link tables only make sense next to an explicit selection (an empty selection scans everything).
+    link_scope = tuple(t for t in _clean_names(body.link_scope) if t not in selected_scope) if selected_scope else ()
+    outside = [t for t in (*selected_scope, *link_scope) if conn.tables and t not in conn.tables]
+    if outside:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "Selected tables are outside the source allowlist", "tables": outside},
+        )
+    scan_scope = (*selected_scope, *link_scope)
 
     run = db_models.Run(
         source_id=source.id,
@@ -250,7 +299,7 @@ async def _execute_create_run(
         if use_pg:
             from src.services.run_scanner import scan_postgres_source
 
-            pg_tables = selected_scope if selected_scope else conn.tables
+            pg_tables = scan_scope if scan_scope else conn.tables
             specs = await scan_postgres_source(
                 conn.url,
                 use_ai=settings.enable_ai_scan,
@@ -263,7 +312,7 @@ async def _execute_create_run(
         elif use_mongo:
             from src.services.run_scanner import scan_mongo_source
 
-            mongo_cols = selected_scope if selected_scope else None
+            mongo_cols = scan_scope if scan_scope else conn.tables
             specs = await scan_mongo_source(
                 conn.url,
                 conn.namespace,
@@ -275,9 +324,19 @@ async def _execute_create_run(
             scope_str = ','.join(mongo_cols) if mongo_cols else 'all'
             scan_reason = f"source={source.id}; scope={scope_str}; scan=mongo-{mode}"
         else:
-            specs = _stub_field_specs(source.source_type, selected_scope or ("customers",))
+            specs = _stub_field_specs(source.source_type, scan_scope or ("customers",))
             scope_str = ','.join(selected_scope) if selected_scope else 'default'
             scan_reason = f"source={source.id}; scope={scope_str}; scan=stub"
+
+        if use_pg or use_mongo:
+            relations = _mongo_join_relations(conn) if use_mongo else _postgres_join_relations(conn)
+            scanned = {spec["source_path"] for spec in specs}
+            _apply_link_table_defaults(specs, set(link_scope), _relations_in_scope(relations, scanned))
+            cut = _cut_relations(relations, scanned)
+            if link_scope:
+                scan_reason += f"; link_tables={','.join(link_scope)}"
+            if cut:
+                scan_reason += f"; cut_links={','.join(cut)}"
 
         for spec in specs:
             db.add(db_models.FieldProfile(run_id=run.id, **spec))
@@ -1073,6 +1132,8 @@ def build_run(
     mongo_scanned = run.engine == "mongodb" and any(
         p.coverage_status != "stub" for p in run.field_profiles
     )
+    scanned_tables = {p.source_path for p in run.field_profiles}
+    pg_relations: list[Relation] = []
     if pg_scanned:
         from src.transform.pg_pipeline import (
             actions_from_run_decisions as pg_actions_from_decisions,
@@ -1080,8 +1141,8 @@ def build_run(
         from src.transform.pg_pipeline import pg_join_key_violations
 
         pg_table_actions = pg_actions_from_decisions(run.field_profiles, run.field_decisions)
-        all_pg_relations = _postgres_join_relations(conn)
-        pg_violations = pg_join_key_violations(pg_table_actions, relations=tuple(all_pg_relations))
+        pg_relations = _relations_in_scope(_postgres_join_relations(conn), scanned_tables)
+        pg_violations = pg_join_key_violations(pg_table_actions, relations=tuple(pg_relations))
         if pg_violations:
             raise HTTPException(
                 status_code=422,
@@ -1105,9 +1166,10 @@ def build_run(
 
         mongo_actions = mongo_actions_from_decisions(run.field_profiles, run.field_decisions)
         try:
-            mongo_relations = MongoConnector(
-                conn.url, conn.namespace, client=mongo_client()
-            ).list_relations()
+            mongo_relations = _relations_in_scope(
+                MongoConnector(conn.url, conn.namespace, client=mongo_client()).list_relations(),
+                scanned_tables,
+            )
         except Exception as exc:
             mongo_connect_error = exc
         violations = join_key_violations(mongo_actions, mongo_relations)
@@ -1154,6 +1216,7 @@ def build_run(
                 source_schema=conn.namespace,
                 default_action=PolicyAction.DROP.value,
                 generic_verify=conn.user_supplied,
+                relations=tuple(pg_relations),
             )
             dataset.output_location = (
                 f"postgres://{conn.pg_snapshot_schema(run.id)}/"
