@@ -51,7 +51,6 @@ import PinIcon from '@mui/icons-material/Pin';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 import { AuditTrail } from '@/features/auditLog';
-import { DatasetGrantsPanel, DatasetPreviewTable } from '@/features/datasets';
 import { RunStatusBadge } from '@/features/runHistory';
 import { ApiError } from '@/shared/api/client';
 import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
@@ -895,17 +894,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
             </Stack>
           </Box>
 
-          {/* Databricks Horizontal Tab Navigation */}
+          {/* 3 Core Tabs for DPO */}
           <Tabs
             value={activeTab}
             onChange={(_, val: number) => setActiveTab(val)}
             sx={{ px: 3, bgcolor: '#FFFFFF', minHeight: 44 }}
           >
             <Tab label="Tổng quan & phân loại PII" />
-            <Tab label="Dữ liệu đã bảo vệ" />
-            <Tab label="Quyền truy cập" />
+            <Tab label="Rủi ro & Đánh giá" />
             <Tab label="Nhật ký kiểm toán" />
-            <Tab label="Rủi ro" />
           </Tabs>
 
           {/* TAB 0: OVERVIEW & PII SCHEMA */}
@@ -1354,46 +1351,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
             </Box>
           )}
 
-          {/* TAB 1: rows read back from the protected snapshot */}
+          {/* TAB 1: RISK & INSIGHTS */}
           {activeTab === 1 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {datasetId ? (
-                <DatasetPreviewTable datasetId={datasetId} available={datasetIsLive} />
-              ) : (
-                <Alert severity="info">
-                  Chưa có snapshot cho lượt quét này. Bấm “Tạo Snapshot” để xem dữ liệu sau khi áp dụng MASK / HMAC /
-                  DROP.
-                </Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 2: dataset grants */}
-          {activeTab === 2 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {datasetId ? (
-                <DatasetGrantsPanel datasetId={datasetId} editable={datasetIsLive} />
-              ) : (
-                <Alert severity="info">
-                  Quyền truy cập được cấp trên từng dataset. Tạo snapshot trước để quản lý quyền của Analyst.
-                </Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 3: audit events of this run + hash-chain check */}
-          {activeTab === 3 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {currentRunId ? (
-                <AuditTrail entityType="run" entityId={currentRunId} />
-              ) : (
-                <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 4: RISK & INSIGHTS - Databricks web Aug 2025 49.png */}
-          {activeTab === 4 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -1452,6 +1411,17 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                   </Card>
                 </Grid>
               </Grid>
+            </Box>
+          )}
+
+          {/* TAB 2: AUDIT EVENTS OF THIS RUN + HASH-CHAIN */}
+          {activeTab === 2 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              {currentRunId ? (
+                <AuditTrail entityType="run" entityId={currentRunId} />
+              ) : (
+                <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
+              )}
             </Box>
           )}
         </Paper>

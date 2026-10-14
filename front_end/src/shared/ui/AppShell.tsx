@@ -31,7 +31,8 @@ export interface AppShellUser {
 
 export interface AppShellNavItem {
   label: string;
-  to: string;
+  to?: string;
+  onClick?: () => void;
   icon: ReactNode;
   /** Match the path exactly (for index routes such as `/dpo`). */
   end?: boolean;
@@ -104,12 +105,30 @@ const navButtonSx = {
 } as const;
 
 function NavButton({ item, collapsed }: { item: AppShellNavItem; collapsed: boolean }): JSX.Element {
+  if (item.onClick) {
+    return (
+      <Tooltip title={collapsed ? item.label : ''} placement="right">
+        <Button
+          onClick={item.onClick}
+          aria-label={item.label}
+          fullWidth
+          startIcon={item.icon}
+          sx={navButtonSx}
+        >
+          <Box component="span" sx={fadingLabelSx(collapsed)}>
+            {item.label}
+          </Box>
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
     // aria-label keeps the link named while only icons show; the tooltip names it for sighted users.
     <Tooltip title={collapsed ? item.label : ''} placement="right">
       <Button
         component={NavLink}
-        to={item.to}
+        to={item.to ?? '#'}
         end={item.end}
         aria-label={item.label}
         fullWidth
