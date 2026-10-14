@@ -175,6 +175,10 @@ class RunCreate(BaseModel):
         default_factory=list,
         description="Selected table/collection names to scan",
     )
+    link_scope: list[str] = Field(
+        default_factory=list,
+        description="Link-only tables (missing parent/bridge tables): join keys default to HMAC, other fields DROP",
+    )
 
 
 class FieldProfileOut(BaseModel):

@@ -234,7 +234,12 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                   label={engine === 'mongodb' ? 'Database (tùy chọn)' : 'Schema (tùy chọn)'}
                   placeholder={engine === 'mongodb' ? 'Mặc định lấy từ URL' : 'Mặc định: public'}
                   error={Boolean(errors.namespace)}
-                  helperText={errors.namespace?.message}
+                  helperText={
+                    errors.namespace?.message ??
+                    (engine === 'mongodb'
+                      ? 'Để trống = database trong đường dẫn URL. Phải tồn tại trên nguồn.'
+                      : 'Để trống = search_path / currentSchema trong URL, nếu không có thì public. Phải tồn tại trên nguồn.')
+                  }
                   size="small"
                   fullWidth
                 />

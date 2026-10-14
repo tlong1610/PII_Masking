@@ -38,6 +38,7 @@ def enc(monkeypatch):
 @pytest.fixture
 def reachable(monkeypatch):
     monkeypatch.setattr("src.api.sources.probe_connection", lambda url, engine: None)
+    monkeypatch.setattr("src.api.sources.probe_namespace", lambda url, engine, namespace: None)
 
 
 @pytest.mark.asyncio

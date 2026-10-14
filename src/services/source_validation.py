@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 import socket
 from dataclasses import dataclass
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from src.config import get_settings
 
@@ -22,7 +23,7 @@ class ParsedSource:
     engine: str  # postgresql | mongodb
     source_type: str  # SQL | NOSQL
     host_hint: str  # host[:port]/db — no credentials
-    default_namespace: str  # Postgres: "public"; Mongo: db from URL path or ""
+    default_namespace: str  # Postgres: schema from URL query or "public"; Mongo: db from URL path or ""
 
 
 def _is_private_host(host: str) -> bool:
@@ -37,6 +38,21 @@ def _is_private_host(host: str) -> bool:
         if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
             return True
     return False
+
+
+_SEARCH_PATH = re.compile(r"-c\s*search_path\s*=\s*([^\s]+)", re.IGNORECASE)
+
+
+def _pg_schema_from_query(query: str) -> str:
+    """First schema of `options=-c search_path=...` or `currentSchema=...` (JDBC style), else ""."""
+    params = parse_qs(query)
+    candidates = [m.group(1) for v in params.get("options", []) if (m := _SEARCH_PATH.search(v))]
+    candidates += params.get("currentSchema", [])
+    for value in candidates:
+        for schema in (s.strip().strip('"') for s in value.split(",")):
+            if schema and schema != "$user":
+                return schema
+    return ""
 
 
 def parse_source_url(url: str) -> ParsedSource:
@@ -62,7 +78,7 @@ def parse_source_url(url: str) -> ParsedSource:
 
     db = unquote(parsed.path.strip("/").split("/")[0]) if parsed.path.strip("/") else ""
     hint = host + (f":{port}" if port else "") + (f"/{db}" if db else "")
-    default_ns = "public" if engine == "postgresql" else db
+    default_ns = (_pg_schema_from_query(parsed.query) or "public") if engine == "postgresql" else db
     return ParsedSource(engine, source_type, hint, default_ns)
 
 
@@ -91,3 +107,32 @@ def probe_connection(url: str, engine: str) -> None:
                 client.close()
     except Exception as exc:  # driver messages can echo the URL/password — report the type only
         raise SourceUrlError(f"Cannot connect to source ({type(exc).__name__})") from None
+
+
+def probe_namespace(url: str, engine: str, namespace: str) -> None:
+    """The Postgres schema / Mongo database must exist. Messages name only the namespace."""
+    try:
+        if engine == "postgresql":
+            import psycopg
+
+            with psycopg.connect(url, connect_timeout=5) as conn:
+                found = conn.execute(
+                    "SELECT 1 FROM information_schema.schemata WHERE schema_name = %s", (namespace,)
+                ).fetchone()
+        else:
+            from pymongo import MongoClient
+
+            client = MongoClient(url, serverSelectionTimeoutMS=5000)
+            try:
+                try:
+                    names = client.list_database_names()
+                except Exception:  # user may lack listDatabases; fall back to the db itself
+                    names = [namespace] if client[namespace].list_collection_names() else []
+            finally:
+                client.close()
+            found = namespace in names
+    except Exception as exc:  # driver messages can echo the URL/password — report the type only
+        raise SourceUrlError(f"Cannot inspect source ({type(exc).__name__})") from None
+    if not found:
+        kind = "Schema" if engine == "postgresql" else "Database"
+        raise SourceUrlError(f"{kind} '{namespace}' not found in source")

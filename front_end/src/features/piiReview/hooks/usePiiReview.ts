@@ -86,9 +86,18 @@ export function useCreateScanRun() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ sourceId, selectedScope }: { sourceId: string; selectedScope: string[] }) =>
-      api.createScanRun(sourceId, selectedScope),
-    onSuccess: () => {
+    mutationFn: ({
+      sourceId,
+      selectedScope,
+      linkScope = [],
+    }: {
+      sourceId: string;
+      selectedScope: string[];
+      linkScope?: string[];
+    }) => api.createScanRun(sourceId, selectedScope, linkScope),
+    onSuccess: (run) => {
+      // Seed the run so the review renders at once instead of refetching it.
+      queryClient.setQueryData(piiReviewQueryKeys.run(run.id), run);
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
     },
   });

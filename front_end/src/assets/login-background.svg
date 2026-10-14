@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081733"/>
+      <stop offset="0.55" stop-color="#0F2F63"/>
+      <stop offset="1" stop-color="#0B4F6C"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="0.22" cy="0.25" r="0.45">
+      <stop offset="0" stop-color="#2563EB" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2563EB" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowTeal" cx="0.85" cy="0.85" r="0.5">
+      <stop offset="0" stop-color="#06B6D4" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#06B6D4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0.6" cy="0.1" r="0.35">
+      <stop offset="0" stop-color="#7C3AED" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#FFFFFF" fill-opacity="0.09"/>
+    </pattern>
+    <linearGradient id="shieldStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#93C5FD" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <rect width="1600" height="1000" fill="url(#glowBlue)"/>
+  <rect width="1600" height="1000" fill="url(#glowTeal)"/>
+  <rect width="1600" height="1000" fill="url(#glowViolet)"/>
+  <rect width="1600" height="1000" fill="url(#dots)"/>
+
+  <!-- Data network: nodes linked by thin lines -->
+  <g stroke="#BFDBFE" stroke-opacity="0.16" stroke-width="1.2" fill="none">
+    <path d="M120 760 L300 640 L470 700 L620 560 L760 620"/>
+    <path d="M300 640 L360 470 L540 420 L620 560"/>
+    <path d="M360 470 L210 380 L120 470"/>
+    <path d="M540 420 L700 330 L860 380"/>
+    <path d="M470 700 L520 860 L700 900"/>
+    <path d="M1180 150 L1320 230 L1460 170"/>
+    <path d="M1320 230 L1380 380 L1520 420"/>
+  </g>
+  <g fill="#BFDBFE">
+    <circle cx="120" cy="760" r="3.5" fill-opacity="0.45"/>
+    <circle cx="300" cy="640" r="5" fill-opacity="0.6"/>
+    <circle cx="470" cy="700" r="3.5" fill-opacity="0.45"/>
+    <circle cx="620" cy="560" r="5" fill-opacity="0.6"/>
+    <circle cx="760" cy="620" r="3" fill-opacity="0.4"/>
+    <circle cx="360" cy="470" r="4" fill-opacity="0.5"/>
+    <circle cx="540" cy="420" r="4.5" fill-opacity="0.55"/>
+    <circle cx="210" cy="380" r="3" fill-opacity="0.4"/>
+    <circle cx="120" cy="470" r="2.5" fill-opacity="0.35"/>
+    <circle cx="700" cy="330" r="3.5" fill-opacity="0.45"/>
+    <circle cx="860" cy="380" r="2.5" fill-opacity="0.35"/>
+    <circle cx="520" cy="860" r="3" fill-opacity="0.4"/>
+    <circle cx="700" cy="900" r="2.5" fill-opacity="0.35"/>
+    <circle cx="1180" cy="150" r="3" fill-opacity="0.4"/>
+    <circle cx="1320" cy="230" r="4.5" fill-opacity="0.5"/>
+    <circle cx="1460" cy="170" r="3" fill-opacity="0.4"/>
+    <circle cx="1380" cy="380" r="3.5" fill-opacity="0.45"/>
+    <circle cx="1520" cy="420" r="2.5" fill-opacity="0.35"/>
+  </g>
+
+  <!-- Shield with concentric rings, the "protected" motif -->
+  <g transform="translate(420 600)">
+    <circle r="210" fill="none" stroke="#93C5FD" stroke-opacity="0.07" stroke-width="1.5"/>
+    <circle r="290" fill="none" stroke="#93C5FD" stroke-opacity="0.05" stroke-width="1.5"/>
+    <circle r="370" fill="none" stroke="#93C5FD" stroke-opacity="0.035" stroke-width="1.5"/>
+    <path d="M0 -150 L120 -105 L120 10 C120 90 65 140 0 170 C-65 140 -120 90 -120 10 L-120 -105 Z"
+          fill="#1D4ED8" fill-opacity="0.08" stroke="url(#shieldStroke)" stroke-width="3"/>
+    <path d="M-48 10 L-12 46 L56 -30" fill="none" stroke="#67E8F9" stroke-opacity="0.35" stroke-width="10"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

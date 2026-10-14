@@ -8,6 +8,7 @@ from src.connectors.postgres_snapshot import DEMO_SNAPSHOT_TABLES, build_protect
 from src.verifier.sql_verifier import (
     CheckResult,
     run_postgres_verifiers,
+    verify_relation_joins,
     verify_row_counts,
     verify_zero_raw_pii_egress,
 )
@@ -99,11 +100,12 @@ def run_protected_postgres_pipeline(
     source_schema: str = "public",
     default_action: str = "KEEP",
     generic_verify: bool = False,
+    relations: tuple[tuple[str, str, str, str], ...] = (),
 ) -> tuple[dict[str, str], list[CheckResult]]:
     """table_actions=None runs the demo policy; otherwise only tables in table_actions are built.
 
-    generic_verify=True (user-supplied sources) checks row-count parity instead of the
-    demo-only customers/orders join baseline.
+    generic_verify=True (user-supplied sources) checks row-count parity plus, for every join in
+    `relations` whose both tables were built, that the snapshot still matches the source rows.
     """
     actions = table_actions or DEFAULT_DEMO_ACTIONS
     tables = tuple(table_actions) if table_actions else DEMO_SNAPSHOT_TABLES
@@ -125,6 +127,15 @@ def run_protected_postgres_pipeline(
             source_schema=source_schema,
             snapshot_schema=snapshot_schema,
             tables=sorted(written),
+        )
+        checks.extend(
+            verify_relation_joins(
+                source_url,
+                snapshot_url,
+                source_schema=source_schema,
+                snapshot_schema=snapshot_schema,
+                relations=[r for r in relations if r[0] in written and r[2] in written],
+            )
         )
         checks.append(
             verify_zero_raw_pii_egress(

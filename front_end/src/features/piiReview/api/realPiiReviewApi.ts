@@ -202,10 +202,11 @@ export async function fetchSourceScope(sourceId: string): Promise<SourceScope> {
 // RUNS API
 // ============================================================================
 
-export async function createScanRun(sourceId: string, selectedScope: string[]): Promise<Run> {
+/** linkScope: link-only tables (missing parent/bridge) — backend keeps only their join keys, as HMAC. */
+export async function createScanRun(sourceId: string, selectedScope: string[], linkScope: string[] = []): Promise<Run> {
   const data = await apiRequest<Run>('/runs', {
     method: 'POST',
-    body: JSON.stringify({ source_id: sourceId, selected_scope: selectedScope }),
+    body: JSON.stringify({ source_id: sourceId, selected_scope: selectedScope, link_scope: linkScope }),
   });
   return runSchema.parse(data);
 }
