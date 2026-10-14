@@ -234,6 +234,7 @@ async def test_create_run_ai_scan_path(client, monkeypatch):
     """When ENABLE_AI_SCAN is on, create_run uses scanner (mocked) not stub."""
     from src.config import get_settings
 
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: bool(get_settings().enable_pg_snapshot))
     monkeypatch.setenv("ENABLE_AI_SCAN", "true")
     monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv(
@@ -289,6 +290,7 @@ async def test_create_run_ai_scan_path(client, monkeypatch):
 async def test_create_run_ai_scan_failure_marks_failed(client, monkeypatch):
     from src.config import get_settings
 
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: bool(get_settings().enable_pg_snapshot))
     monkeypatch.setenv("ENABLE_AI_SCAN", "true")
     monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv(

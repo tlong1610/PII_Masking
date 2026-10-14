@@ -143,7 +143,7 @@ def _visible_columns(columns: list[DatasetPreviewColumn], table: str) -> list[st
 
 def _preview_value(value: Any) -> str | int | float | bool | None:
     """Snapshot values are already protected; stringify anything non-JSON (ObjectId, datetime...)."""
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, str | int | float | bool):
         return value
     return str(value)
 
