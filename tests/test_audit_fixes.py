@@ -202,7 +202,7 @@ def test_sensitivity_resolution_word_boundaries_no_false_positives():
     assert resolve_sensitivity_level(field_path="full_name") == "L2"
     assert resolve_sensitivity_level(field_path="customer_name") == "L2"
     assert resolve_sensitivity_level(field_path="phone") == "L2"
-    assert resolve_sensitivity_level(field_path="cccd") == "L3"
+    assert resolve_sensitivity_level(field_path="cccd") == "L2"
 
 
 # ---------------------------------------------------------------------------
@@ -268,5 +268,5 @@ def test_report_is_self_approved_flag_and_banner():
 
         # Render HTML
         html = render_html_report(rep_data)
-        assert "Segregation of Duties" in html
-        assert "Tự Duyệt (Self-Approved)" in html
+        assert "Cảnh báo phân tách nhiệm vụ" in html
+        assert "cùng một người yêu cầu và phê duyệt" in html

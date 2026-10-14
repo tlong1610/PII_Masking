@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 
 /**
  * Databricks Web UI Design System (Aug 2025 Unity Catalog & Data Governance)

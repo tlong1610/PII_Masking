@@ -83,37 +83,6 @@ function normalizeDataType(dataType: string): string {
     .replace(/integer/gi, 'int');
 }
 
-function knownRelationshipPairs(sourceType: SourceScope['source_type']): Relationship[] {
-  if (sourceType === 'NOSQL') {
-    return [{ source: 'customers', target: 'orders', sourceField: 'customer_id', targetField: 'customer_id' }];
-  }
-
-  return [
-    { source: 'orders', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'orders', target: 'employees', sourceField: 'employee_id', targetField: 'employee_id' },
-    { source: 'orders', target: 'shippers', sourceField: 'ship_via', targetField: 'shipper_id' },
-    { source: 'order_details', target: 'orders', sourceField: 'order_id', targetField: 'order_id' },
-    { source: 'order_details', target: 'products', sourceField: 'product_id', targetField: 'product_id' },
-    { source: 'products', target: 'categories', sourceField: 'category_id', targetField: 'category_id' },
-    { source: 'products', target: 'suppliers', sourceField: 'supplier_id', targetField: 'supplier_id' },
-    { source: 'employee_territories', target: 'employees', sourceField: 'employee_id', targetField: 'employee_id' },
-    { source: 'employee_territories', target: 'territories', sourceField: 'territory_id', targetField: 'territory_id' },
-    { source: 'territories', target: 'region', sourceField: 'region_id', targetField: 'region_id' },
-    { source: 'support_tickets', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'support_tickets', target: 'orders', sourceField: 'order_id', targetField: 'order_id' },
-    { source: 'kyc_documents', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'runs', target: 'demo_users', sourceField: 'created_by', targetField: 'id' },
-    { source: 'audit_events', target: 'demo_users', sourceField: 'actor_id', targetField: 'id' },
-    { source: 'data_sources', target: 'demo_users', sourceField: 'created_by', targetField: 'id' },
-    { source: 'field_profiles', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'datasets', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'field_profiles', sourceField: 'field_profile_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'demo_users', sourceField: 'decided_by', targetField: 'id' },
-    { source: 'verifier_results', target: 'datasets', sourceField: 'dataset_id', targetField: 'id' },
-  ];
-}
-
 function calculateNodeHeight(fieldCount: number): number {
   return HEADER_HEIGHT + Math.min(fieldCount, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
 }
@@ -455,7 +424,8 @@ const edgeTypes = { relationship: RelationshipEdge } satisfies EdgeTypes;
 interface SourceScopePickerDiagramProps {
   items: SourceScopeItem[];
   selectedNames: string[];
-  sourceType: SourceScope['source_type'];
+  /** Joins reported by the backend (declared FKs, logical keys, inferred Mongo references). */
+  relationships: SourceScope['relationships'];
   onToggle: (name: string) => void;
   onSelectAll: () => void;
 }
@@ -463,7 +433,7 @@ interface SourceScopePickerDiagramProps {
 export function SourceScopePickerDiagram({
   items,
   selectedNames,
-  sourceType,
+  relationships: scopeRelationships,
   onToggle,
   onSelectAll,
 }: SourceScopePickerDiagramProps): JSX.Element {
@@ -481,13 +451,20 @@ export function SourceScopePickerDiagram({
     const hasField = (tableName: string, fieldName: string): boolean =>
       itemByName.get(tableName)?.fields.some((field) => field.name === fieldName) ?? false;
 
-    return knownRelationshipPairs(sourceType).filter((rel) => (
-      itemByName.has(rel.source) &&
-      itemByName.has(rel.target) &&
-      hasField(rel.source, rel.sourceField) &&
-      hasField(rel.target, rel.targetField)
-    ));
-  }, [sourceType, items]);
+    return scopeRelationships
+      .map<Relationship>((rel) => ({
+        source: rel.source_table,
+        target: rel.target_table,
+        sourceField: rel.source_column,
+        targetField: rel.target_column,
+      }))
+      .filter((rel) => (
+        itemByName.has(rel.source) &&
+        itemByName.has(rel.target) &&
+        hasField(rel.source, rel.sourceField) &&
+        hasField(rel.target, rel.targetField)
+      ));
+  }, [scopeRelationships, items]);
 
   const highlightedFieldKeys = useMemo(() => {
     const keys = new Set<string>();

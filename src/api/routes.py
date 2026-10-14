@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.api import audit, auth, datasets, health, runs, sources, vault
+from src.api import audit, auth, datasets, health, runs, sources, users, vault
 from src.api.deps import get_current_user, require_analyst_or_dpo, require_dpo
 from src.api.session_store import SessionUser
 from src.models.schemas import ChatRequest, ChatResponse
@@ -15,6 +15,7 @@ router.include_router(sources.router)
 router.include_router(runs.router)
 router.include_router(datasets.router)
 router.include_router(audit.router)
+router.include_router(users.router)
 router.include_router(vault.router)
 router.include_router(health.router)
 

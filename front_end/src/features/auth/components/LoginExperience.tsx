@@ -5,7 +5,6 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
-import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
@@ -45,7 +44,7 @@ const DEMO_PRESETS: DemoAccountPreset[] = [
     role: 'DPO',
     username: 'dpo',
     password: 'dpo123',
-    title: 'DPO / Data Reviewer',
+    title: 'DPO / Người duyệt dữ liệu',
     description: 'Quét nguồn dữ liệu, review phân loại PII, tạo snapshot, phê duyệt phát hành.',
     icon: <AdminPanelSettingsOutlinedIcon sx={{ fontSize: 20, color: '#1B51A4' }} />,
   },
@@ -53,7 +52,7 @@ const DEMO_PRESETS: DemoAccountPreset[] = [
     role: 'Analyst',
     username: 'analyst',
     password: 'analyst123',
-    title: 'Data Analyst',
+    title: 'Chuyên viên phân tích (Analyst)',
     description: 'Chỉ đọc snapshot đã phát hành (PUBLISHED), truy vấn tác vụ đã được duyệt.',
     icon: <AnalyticsOutlinedIcon sx={{ fontSize: 20, color: '#0E7490' }} />,
   },
@@ -130,7 +129,7 @@ export function LoginExperience(): JSX.Element {
           PIIGuard Shield
         </Typography>
         <Typography variant="body2" sx={{ color: '#4B5563', fontSize: '0.85rem' }}>
-          On-Premise Data Intelligence & PII Governance Platform
+          Nền tảng bảo vệ dữ liệu cho doanh nghiệp
         </Typography>
       </Stack>
 
@@ -166,8 +165,8 @@ export function LoginExperience(): JSX.Element {
                     Phân quyền nghiêm ngặt
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5, lineHeight: 1.6 }}>
-                    Hệ thống tuân thủ Nghị định 13/2023/NĐ-CP với kiến trúc on-premise an toàn tuyệt đối. Cả DPO và Analyst
-                    đều được quản trị qua ranh giới no-raw-value.
+                    Đối chiếu Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP, triển khai trên hạ tầng nội bộ. Cả DPO và
+                    Analyst đều không bao giờ thấy giá trị dữ liệu cá nhân gốc.
                   </Typography>
                 </Box>
 
@@ -180,11 +179,11 @@ export function LoginExperience(): JSX.Element {
                   }}
                 >
                   <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E3A8A', display: 'block', mb: 0.5 }}>
-                    Zero Raw-PII Leak UI
+                    Không hiển thị dữ liệu cá nhân gốc
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#1E40AF', display: 'block', lineHeight: 1.5 }}>
                     Không lưu trữ hoặc truyền dữ liệu PII nguồn thô qua giao diện người dùng. Mọi truy cập được xác minh qua
-                    sổ cái Hash-Chain.
+                    sổ cái chuỗi băm.
                   </Typography>
                 </Box>
 
@@ -221,7 +220,7 @@ export function LoginExperience(): JSX.Element {
               </Stack>
 
               <Typography variant="caption" sx={{ color: '#9CA3AF', mt: 3, display: 'block' }}>
-                Phiên bản v0.2 On-Premise Enterprise
+                Phiên bản v0.2 · triển khai nội bộ
               </Typography>
             </Grid>
 

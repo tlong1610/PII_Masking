@@ -30,6 +30,7 @@ from src.models.schemas import (
     RunCreate,
     RunOut,
     RunStatus,
+    RunSummaryOut,
     SourceType,
     UserRole,
     VerifierCheckStatus,
@@ -208,6 +209,9 @@ def _run_to_out(run: db_models.Run) -> RunOut:
                 dataset_name=ds.dataset_name,
                 status=DatasetStatus(ds.status),
                 output_location=ds.output_location,
+                created_at=ds.created_at,
+                published_at=ds.published_at,
+                revoked_at=ds.revoked_at,
             )
             for ds in run.datasets
         ],
@@ -335,6 +339,66 @@ async def request_run(
 
 
 
+def _run_summary(run: db_models.Run, usernames: dict[int, str]) -> RunSummaryOut:
+    decided = {d.field_profile_id for d in run.field_decisions}
+    latest = max(run.datasets, key=lambda ds: ds.id, default=None)
+    return RunSummaryOut(
+        id=run.id,
+        source_id=run.source_id,
+        source_type=SourceType(run.source_type),
+        source_name=run.source_name,
+        engine=run.engine,
+        status=RunStatus(run.status),
+        created_by=run.created_by,
+        created_by_username=usernames.get(run.created_by),
+        created_at=run.created_at,
+        updated_at=run.updated_at,
+        field_count=len(run.field_profiles),
+        pii_field_count=sum(1 for p in run.field_profiles if p.classification not in _RECLASSIFIABLE),
+        decided_count=len(decided),
+        latest_dataset_id=latest.id if latest is not None else None,
+        latest_dataset_status=DatasetStatus(latest.status) if latest is not None else None,
+    )
+
+
+@router.get("/runs", response_model=list[RunSummaryOut])
+def list_runs(
+    source_id: str | None = Query(default=None, description="Lọc theo source"),
+    status_filter: RunStatus | None = Query(default=None, alias="status", description="Lọc theo trạng thái"),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> list[RunSummaryOut]:
+    """Run history for the DPO, newest first — counts only, no field values."""
+    stmt = (
+        select(db_models.Run)
+        .options(
+            selectinload(db_models.Run.field_profiles),
+            selectinload(db_models.Run.field_decisions),
+            selectinload(db_models.Run.datasets),
+        )
+        .order_by(db_models.Run.id.desc())
+    )
+    if source_id is not None:
+        stmt = stmt.where(db_models.Run.source_id == source_id)
+    if status_filter is not None:
+        stmt = stmt.where(db_models.Run.status == status_filter.value)
+    runs = db.scalars(stmt.offset(offset).limit(limit)).all()
+    creator_ids = {r.created_by for r in runs}
+    usernames: dict[int, str] = {}
+    if creator_ids:
+        usernames = {
+            uid: name
+            for uid, name in db.execute(
+                select(db_models.DemoUser.id, db_models.DemoUser.username).where(
+                    db_models.DemoUser.id.in_(creator_ids)
+                )
+            ).all()
+        }
+    return [_run_summary(r, usernames) for r in runs]
+
+
 @router.get("/runs/{run_id}", response_model=RunOut)
 def get_run(
     run_id: int,
@@ -345,6 +409,38 @@ def get_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return _run_to_out(run)
+
+
+# A run whose snapshot still exists must be revoked first, so the physical snapshot is dropped
+# and Analyst grants are withdrawn through the normal, audited path.
+_LIVE_DATASET_STATUSES = frozenset({DatasetStatus.VERIFIED.value, DatasetStatus.PUBLISHED.value})
+
+
+@router.delete("/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_run(
+    run_id: int,
+    user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> None:
+    """Delete a run and its metadata (profiles, decisions, revoked/failed datasets). Audit events stay."""
+    from src.services.run_cleanup import delete_run_metadata
+
+    run = _load_run(db, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    live = [ds for ds in run.datasets if ds.status in _LIVE_DATASET_STATUSES]
+    if live:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Run còn dataset #{live[0].id} ({live[0].status}). Thu hồi dataset trước khi xoá run "
+                "để snapshot vật lý và quyền của Analyst được huỷ."
+            ),
+        )
+    reason = f"source={run.source_id}; status={run.status}; datasets={len(run.datasets)}"
+    delete_run_metadata(db, run.id)
+    _write_audit(db, actor=user, action="delete_run", entity_type="run", entity_id=str(run_id), reason=reason)
+    db.commit()
 
 
 @router.post("/runs/{run_id}/cancel", response_model=RunOut)
@@ -445,6 +541,7 @@ def get_run_report(
         db=db,
         requester_name=user.username,
         summary_only=summary_only,
+        row_count=_run_row_count(run, db),
     )
 
     _write_audit(
@@ -520,6 +617,67 @@ def get_run_join_keys(
     return out
 
 
+# Volume assumed when the source cannot be counted (demo stub or unreachable source).
+DEFAULT_RISK_ROW_COUNT = 5000
+
+
+def _pg_row_count(url: str, schema: str, tables: list[str]) -> int:
+    from psycopg import connect, sql
+
+    total = 0
+    with connect(url, connect_timeout=3) as conn, conn.cursor() as cur:
+        for table in tables:
+            # Planner estimate first (cheap); exact count only for never-analyzed tables.
+            cur.execute(
+                "SELECT c.reltuples FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'r'",
+                (schema, table),
+            )
+            row = cur.fetchone()
+            if row is None:
+                continue
+            if row[0] is not None and row[0] >= 0:
+                total += int(row[0])
+                continue
+            cur.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(schema, table)))
+            total += int(cur.fetchone()[0])
+    return total
+
+
+def _mongo_row_count(conn: SourceConnection, collections: list[str]) -> int:
+    from pymongo import MongoClient
+
+    client = mongo_client()
+    owned = client is None
+    if owned:
+        client = MongoClient(conn.url, serverSelectionTimeoutMS=3000)
+    try:
+        database = client[conn.namespace]
+        return sum(int(database[name].estimated_document_count()) for name in collections)
+    finally:
+        if owned:
+            client.close()
+
+
+def _run_row_count(run: db_models.Run, db: Session) -> int | None:
+    """Rows/documents across the scanned tables, or None when the source cannot be counted."""
+    tables = sorted({p.source_path for p in run.field_profiles if p.source_path})
+    source = get_source_by_id(run.source_id, db)
+    if source is None or not tables:
+        return None
+    try:
+        conn = resolve_connection(source, db)
+        if not conn.live:
+            return None
+        if run.engine == "postgresql":
+            return _pg_row_count(conn.url, conn.namespace or "public", tables)
+        if run.engine == "mongodb":
+            return _mongo_row_count(conn, tables)
+    except Exception:
+        return None
+    return None
+
+
 @router.get("/runs/{run_id}/risk-score")
 def get_run_risk_score(
     run_id: int,
@@ -534,11 +692,14 @@ def get_run_risk_score(
     _check_analyst_access_to_run(user, run, db)
 
     decision_map = {d.field_profile_id: d.action for d in run.field_decisions}
-    return calculate_risk_score(
+    row_count = _run_row_count(run, db)
+    result = calculate_risk_score(
         field_profiles=run.field_profiles,
         decisions=decision_map,
-        row_count=5000,
+        row_count=row_count if row_count is not None else DEFAULT_RISK_ROW_COUNT,
     )
+    result["row_count_estimated"] = row_count is None
+    return result
 
 
 @router.put("/runs/{run_id}/decisions", response_model=RunOut)
