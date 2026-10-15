@@ -8,14 +8,15 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import { MASKING_DEMO_ITEMS } from '../model/maskingDemos';
 
 export function MaskingMatrixTable(): JSX.Element {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2 }}>
-      <CardContent sx={{ p: 3 }}>
+    <Card variant="outlined" sx={{ borderRadius: 1.5 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={1} alignItems="center">
             <TableChartOutlinedIcon color="primary" fontSize="small" />
@@ -31,12 +32,12 @@ export function MaskingMatrixTable(): JSX.Element {
             <Table size="small" aria-label="Bảng đối chiếu ma trận che mờ">
               <TableHead sx={{ bgcolor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, width: '18%' }}>Loại dữ liệu</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: '10%' }}>Cấp độ</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: '20%' }}>Loại dữ liệu</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '8%' }}>Cấp độ</TableCell>
                   <TableCell sx={{ fontWeight: 700, width: '16%' }}>Dữ liệu gốc (RAW)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: '18%' }}>Che mờ (MASK ***)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: '18%' }}>Mã băm nối (HMAC)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: '20%' }}>Cơ chế bảo vệ</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '10%' }}>Che mờ (MASK ***)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: '16%' }}>Mã băm nối (HMAC)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: '30%' }}>Cơ chế bảo vệ</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -46,11 +47,11 @@ export function MaskingMatrixTable(): JSX.Element {
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {item.dataTypeName.split('(')[0]}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
                         {item.description}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <Chip
                         label={item.piiLevel}
                         size="small"
@@ -61,14 +62,16 @@ export function MaskingMatrixTable(): JSX.Element {
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'error.main' }}>
                       {item.rawValue}
                     </TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'primary.main', fontWeight: 600 }}>
+                    <TableCell align="center" sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'primary.main', fontWeight: 700 }}>
                       {item.maskValue}
                     </TableCell>
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'success.dark', wordBreak: 'break-all' }}>
-                      {item.hmacValue.slice(0, 16)}...
+                      <Tooltip title={`Toàn văn mã HMAC SHA-256: ${item.hmacValue}`}>
+                        <span>{item.hmacValue.slice(0, 14)}...</span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.45 }}>
                         {item.algorithmNote}
                       </Typography>
                     </TableCell>
