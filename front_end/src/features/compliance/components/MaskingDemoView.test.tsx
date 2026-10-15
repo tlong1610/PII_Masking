@@ -32,9 +32,16 @@ describe('MaskingDemoView', () => {
     expect(input).toHaveValue('phuc.nguyen@enterprise.vn');
   });
 
-  it('displays *** mask for full name in sandbox and matrix table', () => {
+  it('renders all 4 transformation cards and copy button for HMAC hash', () => {
     render(<MaskingDemoView />);
 
-    expect(screen.getAllByText('***').length).toBeGreaterThan(0);
+    expect(screen.getByText('1. GỐC (RAW)')).toBeInTheDocument();
+    expect(screen.getByText('2. CHE MỜ (MASK ***)')).toBeInTheDocument();
+    expect(screen.getByText('3. BĂM MẬT MÃ (HMAC)')).toBeInTheDocument();
+    expect(screen.getByText('4. LOẠI BỎ (DROP)')).toBeInTheDocument();
+
+    const copyBtn = screen.getByRole('button', { name: 'Sao chép mã HMAC' });
+    expect(copyBtn).toBeInTheDocument();
   });
 });
+
