@@ -58,21 +58,25 @@ _L2_KEYWORDS = frozenset(
         "PERSONAL_CONTEXT",
         "SO_DT",
         "SHIP_PHONE",
+        # NĐ 13/2023 Điều 2 khoản 3 điểm b, c: ngày sinh và giới tính là dữ liệu cá nhân cơ bản
+        "DOB",
+        "DATE_OF_BIRTH",
+        "BIRTH",
+        "NGAY_SINH",
+        "GENDER",
+        "GIOI_TINH",
     }
 )
 
 # Canonical L1 (Indirect Identifiers / Quasi-Identifiers)
 _L1_KEYWORDS = frozenset(
     {
-        "DOB",
-        "DATE_OF_BIRTH",
-        "GENDER",
-        "GIOI_TINH",
         "CITY",
         "DISTRICT",
         "IP_ADDRESS",
         "POSTAL_CODE",
         "QUASI_IDENTIFIER",
+        "JOB_TITLE",
     }
 )
 
@@ -111,6 +115,9 @@ _NON_PERSONAL_FIELD_TOKENS = frozenset(
 
 
 def _match_path_keyword(keyword: str, path_tokens: set[str]) -> bool:
+    # Paths are split on "_", so a compound keyword (GIOI_TINH, SO_DT) matches when all its parts are present.
+    if "_" in keyword:
+        return all(part in path_tokens for part in keyword.split("_"))
     if keyword not in path_tokens:
         return False
     if keyword == "NAME":

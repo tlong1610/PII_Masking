@@ -79,6 +79,22 @@ ChromaDB ở đây là knowledge base phân loại PII. Không dùng để lưu 
 
 Mỗi tầng ghi `confidence_score` (rule = 1.0, BM25 chuẩn hoá, hybrid fusion, LLM từ logprobs hoặc tự khai). Điểm này được lưu vào `field_profiles.confidence_score` và hiển thị "Độ tin cậy" trên màn hình duyệt.
 
+### Thống kê phân bố cho tầng LLM
+
+Khi lấy profile, connector đếm trong DB (Postgres: `COUNT(*)`, `COUNT(col)`, `COUNT(DISTINCT col::text)` trên tối đa
+10.000 dòng đầu; Mongo: trên các document đã đọc để dò schema, chỉ giữ `hash()` của giá trị). Chỉ ba con số đi ra
+khỏi DB; `src/detection/column_stats.py` đổi chúng thành mức gần đúng trước khi đưa vào prompt cùng tên bảng:
+không gửi số dòng chính xác, không bao giờ dùng min/max/giá trị phổ biến (đó là giá trị thật).
+
+| Số giá trị khác NULL | Gửi gì |
+|---|---|
+| Dưới 5 | Không gửi |
+| 5-49 | Chỉ khi lặp nhiều (tỷ lệ khác nhau < 0.5); còn lại "chưa kết luận được" |
+| Từ 50 | Mức tỷ lệ khác nhau (rất thấp / thấp / trung bình / rất cao) và mức ô trống |
+
+Thống kê chỉ là gợi ý: prompt nhắc rằng họ/tên riêng lẻ cũng lặp nhiều nhưng vẫn là `FULL_NAME`. Nhãn `JOB_TITLE`
+(chức danh, vị trí, phòng ban) là định danh gián tiếp L1, đề xuất `KEEP`.
+
 ### HITL: học từ quyết định DPO
 
 Khi `ENABLE_AI_SCAN=true`, mỗi lần DPO lưu quyết định (`PUT /runs/{id}/decisions`) khác đề xuất của scanner (đổi action hoặc xác nhận "không phải PII"), backend ghi một ví dụ `{table_name, column_name, dpo_decision, action}` vào `HITL_MEMORY_PATH` (mặc định `data/hitl/dpo_few_shot_memory.json`, không commit). Quyết định mới hơn cho cùng bảng + cột thay thế bản cũ. Tầng LLM ghép file seed `src/detection/dpo_few_shot_memory.json` với file runtime và chọn 3 ví dụ có tên cột gần nhất làm few-shot. Không lưu sample hay data shape.

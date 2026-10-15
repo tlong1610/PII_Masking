@@ -19,10 +19,11 @@ _NUMERIC_TYPES = frozenset(
 )
 
 _PERSONAL_BASIC_TYPES = frozenset(
-    {"CCCD", "PHONE", "ADDRESS", "DOB", "TAX_CODE", "FULL_NAME", "NAME", "FREE_TEXT_PII"}
+    {"CCCD", "PHONE", "ADDRESS", "DOB", "GENDER", "TAX_CODE", "FULL_NAME", "NAME", "FREE_TEXT_PII"}
 )
 # Định danh gián tiếp (L1): chỉ nhận ra người khi ghép với dữ liệu khác; DPO được Giữ nguyên để phân tích.
-_QUASI_IDENTIFIER_TYPES = frozenset({"CITY", "DISTRICT", "IP_ADDRESS", "GENDER", "QUASI_IDENTIFIER"})
+# Giới tính KHÔNG ở đây: NĐ 13/2023 Điều 2 khoản 3 điểm c liệt kê đích danh là dữ liệu cá nhân cơ bản (L2).
+_QUASI_IDENTIFIER_TYPES = frozenset({"CITY", "DISTRICT", "IP_ADDRESS", "JOB_TITLE", "QUASI_IDENTIFIER"})
 _PERSONAL_CONTEXT_TYPES = frozenset({"EMAIL", "OCR_TEXT"})
 _NON_PERSONAL_TYPES = frozenset(
     {"NOT_PERSONAL_DATA", "TRACKING_CODE", "MONEY_ALONE", "NON_PERSONAL", "TAX_CODE_ORG", "EMPTY_COLUMN"}
