@@ -56,7 +56,8 @@ export const fieldProfileSchema = z.object({
   taxonomy_id: z.string().nullable(),
   detector_source: z.enum(['rule', 'ai', 'dpo', 'unknown']),
   coverage_status: z.string(),
-  recommended_action: z.enum(['MASK', 'DROP', 'HMAC', 'KEEP']),
+  recommended_action: z.enum(['MASK', 'REDACT', 'DROP', 'HMAC', 'KEEP']),
+  confidence_score: z.number().nullable().optional(),
 });
 
 export const datasetSchema = z.object({
@@ -70,7 +71,7 @@ export const datasetSchema = z.object({
 export const fieldDecisionSchema = z.object({
   id: z.number(),
   field_profile_id: z.number(),
-  action: z.enum(['MASK', 'DROP', 'HMAC', 'KEEP']),
+  action: z.enum(['MASK', 'REDACT', 'DROP', 'HMAC', 'KEEP']),
   reason: z.string(),
   is_exception: z.boolean().optional(),
   exception_until: z.string().nullable().optional(),
@@ -111,7 +112,7 @@ export const datasetPreviewSchema = z.object({
     name: z.string(),
     source_path: z.string().default('unknown'),
     data_type: z.string(),
-    transform: z.enum(['MASK', 'HMAC', 'KEEP', 'DROPPED']),
+    transform: z.enum(['MASK', 'REDACT', 'HMAC', 'KEEP', 'DROPPED']),
   })),
   rows: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))),
   tables: z.array(z.string()).default([]),
@@ -218,7 +219,7 @@ export async function getRunById(runId: number): Promise<Run> {
 
 export interface FieldDecisionInput {
   field_profile_id: number;
-  action: 'MASK' | 'DROP' | 'HMAC' | 'KEEP';
+  action: 'MASK' | 'REDACT' | 'DROP' | 'HMAC' | 'KEEP';
   reason?: string;
   is_exception?: boolean;
   exception_until?: string | null;

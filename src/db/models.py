@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
@@ -77,6 +77,8 @@ class FieldProfile(Base):
     detector_source: Mapped[str] = mapped_column(String(32), nullable=False, default="unknown")
     coverage_status: Mapped[str] = mapped_column(String(32), nullable=False, default="partial")
     recommended_action: Mapped[str] = mapped_column(String(16), nullable=False, default="DROP")
+    # Confidence (0-1) of the detector tier that decided: rule, BM25, hybrid or LLM; None for stubs/keys
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     run: Mapped["Run"] = relationship(back_populates="field_profiles")
     decisions: Mapped[list["FieldDecision"]] = relationship(back_populates="field_profile")

@@ -192,6 +192,7 @@ class FieldProfileOut(BaseModel):
     detector_source: DetectorSource
     coverage_status: str
     recommended_action: PolicyAction
+    confidence_score: float | None = None
 
     model_config = {"from_attributes": True}
 

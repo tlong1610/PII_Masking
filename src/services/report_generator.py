@@ -37,6 +37,8 @@ def _snapshot_output_for(action: str, key_version: str, exception_until: Any = N
         return "Toàn bộ giá trị thay bằng ***"
     if act == "HMAC":
         return f"HMAC-SHA256 (khoá {key_version}): không đảo ngược, vẫn JOIN được"
+    if act == "REDACT":
+        return "Văn bản giữ lại, từng thực thể PII thay bằng nhãn (vd. [PHONE], [PERSON_NAME])"
     if exception_until:
         return f"Giữ nguyên giá trị (ngoại lệ đến {str(exception_until)[:10]})"
     return "Giữ nguyên giá trị"

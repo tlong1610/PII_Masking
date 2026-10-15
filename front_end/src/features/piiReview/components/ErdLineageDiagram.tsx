@@ -71,7 +71,7 @@ function getTableColor(tableName: string) {
 export interface TableColumnDef {
   name: string;
   data_type: string;
-  transform: 'MASK' | 'HMAC' | 'KEEP' | 'DROPPED';
+  transform: 'MASK' | 'REDACT' | 'HMAC' | 'KEEP' | 'DROPPED';
   isPk?: boolean;
   isFk?: boolean;
 }

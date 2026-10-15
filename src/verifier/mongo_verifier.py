@@ -452,7 +452,9 @@ class MongoVerifier:
 
                 parent[leaf] = generalize_value(parent[leaf])
             elif act == "REDACT":
-                parent[leaf] = "[REDACTED]" if parent[leaf] is not None else None
+                from src.transform.mask_engine import redact_value
+
+                parent[leaf] = redact_value(parent[leaf])
             elif act == "NULLIFY":
                 parent[leaf] = None
         return out

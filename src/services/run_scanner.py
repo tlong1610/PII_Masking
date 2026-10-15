@@ -118,6 +118,7 @@ def field_profile_spec(
     action, note = enforce_proposal_consistency(classification, normalize_action(result.recommended_action))
     if note:
         summary = f"{summary} [{note}]"
+    confidence = result.confidence_score if result.confidence_score is not None else result.confidence
     return {
         "source_path": table,
         "field_path": result.field_name or column.column_name,
@@ -128,6 +129,71 @@ def field_profile_spec(
         "detector_source": detector_from_tier(result.tier),
         "coverage_status": coverage_from_result(result),
         "recommended_action": action,
+        "confidence_score": round(max(0.0, min(1.0, float(confidence))), 4),
+    }
+
+
+_TEXT_TYPES = frozenset({"text", "string", "str", "citext", "character varying", "varchar", "nvarchar"})
+_FREE_TEXT_NAME_TOKENS = frozenset(
+    {"notes", "note", "body", "description", "comment", "comments", "message", "remark", "remarks", "content",
+     "feedback", "memo", "chu"}
+)
+# NER only refines columns the scanner could not pin to one identifier type; an ADDRESS or FULL_NAME
+# column keeps its whole-value proposal (redacting entities would leave house numbers etc. behind).
+_NER_REFINABLE_TAXONOMIES = frozenset({None, "", "FREE_TEXT_PII", "NOT_PERSONAL_DATA", "UNKNOWN"})
+# Entities that are not personal data on their own: redacted for safety but never decide a PII label.
+_NON_PERSONAL_ENTITIES = frozenset({"ORGANIZATION", "TAX_CODE_ORG"})
+
+
+def is_free_text_column(column: ColumnProfile) -> bool:
+    """Prose rather than a single value: text type plus a note-like name or long, multi-word samples."""
+    from src.detection.regex_patterns import name_tokens
+
+    data_type = (column.data_type or "").lower()
+    if data_type not in _TEXT_TYPES and not data_type.startswith(("character varying", "varchar")):
+        return False
+    if set(name_tokens(column.column_name)) & _FREE_TEXT_NAME_TOKENS:
+        return True
+    texts = [s for s in column.samples if isinstance(s, str) and s.strip()]
+    if not texts:
+        return False
+    wordy = sum(1 for s in texts if len(s.split()) >= 4)
+    return sum(len(s) for s in texts) / len(texts) >= 30 and wordy * 2 >= len(texts)
+
+
+def apply_free_text_ner(spec: dict[str, Any], column: ColumnProfile) -> dict[str, Any]:
+    """Run entity NER over a free-text column's in-memory samples; PII found -> propose REDACT.
+
+    Only entity types and counts reach the spec. Sensitive (L3) free text keeps its stricter proposal,
+    since redacting names would still leave health/financial context behind.
+    """
+    if spec.get("classification") == "PERSONAL_SENSITIVE" or spec.get("taxonomy_id") not in _NER_REFINABLE_TAXONOMIES:
+        return spec
+    if not is_free_text_column(column):
+        return spec
+    from src.config import get_settings
+    from src.detection.ner_orchestrator import detect_entity_types
+
+    try:
+        types, hits = detect_entity_types(column.samples)
+    except Exception:
+        logger.exception("Free-text NER failed for %s", column.column_name)
+        return spec
+    pii_types = [t for t in types if t not in _NON_PERSONAL_ENTITIES]
+    if not pii_types:
+        return spec
+    total = sum(1 for s in column.samples if isinstance(s, str) and s.strip())
+    return {
+        **spec,
+        "classification": "PERSONAL_BASIC",
+        "taxonomy_id": "FREE_TEXT_PII",
+        "detector_source": "ai" if get_settings().enable_ner else "rule",
+        "coverage_status": "partial",
+        "recommended_action": PolicyAction.REDACT.value,
+        "profile_summary": (
+            f"Văn bản tự do chứa PII nhúng ({', '.join(pii_types)}) trong {hits}/{total} mẫu; "
+            "đề xuất che từng thực thể (NER), giữ phần chữ còn lại."
+        ),
     }
 
 
@@ -265,6 +331,7 @@ async def scan_postgres_source(
             spec = _numeric_measure_spec(table_name, column)
         else:
             spec = _fallback_spec(table_name, column)
+        spec = apply_free_text_ner(spec, column)
         if (table_name, column.column_name) in join_fields:
             spec["recommended_action"] = PolicyAction.HMAC.value
         specs.append(spec)
@@ -363,6 +430,7 @@ async def scan_mongo_source(
         else:
             spec = field_profile_spec(table=table_name, column=column, result=result)
         spec["field_path"] = column.column_name
+        spec = apply_free_text_ner(spec, scanner_col)
         if (table_name, column.column_name) in join_fields:
             spec["recommended_action"] = PolicyAction.HMAC.value
         specs.append(spec)

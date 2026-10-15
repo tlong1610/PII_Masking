@@ -21,6 +21,7 @@ type Transform = DatasetPreview['columns'][number]['transform'];
 
 const TRANSFORM_COLORS: Record<Transform, 'warning' | 'secondary' | 'default' | 'error'> = {
   MASK: 'warning',
+  REDACT: 'warning',
   HMAC: 'secondary',
   KEEP: 'default',
   DROPPED: 'error',

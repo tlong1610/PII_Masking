@@ -1,3 +1,7 @@
+import type { TransformKind } from './policyLabels';
+
+const JOINABLE: ReadonlySet<TransformKind> = new Set<TransformKind>(['HMAC', 'KEEP']);
+
 export interface SnippetRelationship {
   source_table: string;
   source_column: string;
@@ -8,7 +12,7 @@ export interface SnippetRelationship {
 export interface SnippetColumn {
   name: string;
   source_path: string;
-  transform: 'MASK' | 'HMAC' | 'KEEP' | 'DROPPED';
+  transform: TransformKind;
 }
 
 export interface JoinSnippet {
@@ -31,7 +35,8 @@ export function buildJoinSnippets(relationships: SnippetRelationship[], columns:
   for (const rel of relationships) {
     const from = transformOf.get(`${rel.source_table}.${rel.source_column}`);
     const to = transformOf.get(`${rel.target_table}.${rel.target_column}`);
-    if (!from || !to || from === 'DROPPED' || to === 'DROPPED' || from === 'MASK' || to === 'MASK') continue;
+    // Only HMAC and KEEP values still match across tables; masked or redacted ones never join.
+    if (!from || !to || !JOINABLE.has(from) || !JOINABLE.has(to)) continue;
     const key = `${rel.source_table}.${rel.source_column}->${rel.target_table}.${rel.target_column}`;
     const hashed = from === 'HMAC' && to === 'HMAC';
     snippets.push({

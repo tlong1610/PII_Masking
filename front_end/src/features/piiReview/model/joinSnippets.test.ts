@@ -6,6 +6,7 @@ const columns: SnippetColumn[] = [
   { name: 'customer_id', source_path: 'orders', transform: 'HMAC' },
   { name: 'email', source_path: 'customers', transform: 'MASK' },
   { name: 'notes', source_path: 'orders', transform: 'DROPPED' },
+  { name: 'remark', source_path: 'orders', transform: 'REDACT' },
 ];
 
 describe('buildJoinSnippets', () => {
@@ -20,13 +21,14 @@ describe('buildJoinSnippets', () => {
     expect(snippet?.description).toContain('HMAC');
   });
 
-  it('skips relationships with a dropped, masked or unknown end', () => {
+  it('skips relationships with a dropped, masked, redacted or unknown end', () => {
     expect(
       buildJoinSnippets(
         [
           { source_table: 'orders', source_column: 'notes', target_table: 'customers', target_column: 'customer_id' },
           { source_table: 'orders', source_column: 'customer_id', target_table: 'customers', target_column: 'email' },
           { source_table: 'orders', source_column: 'customer_id', target_table: 'piiguard_vault', target_column: 'token_id' },
+          { source_table: 'orders', source_column: 'remark', target_table: 'customers', target_column: 'customer_id' },
         ],
         columns,
       ),

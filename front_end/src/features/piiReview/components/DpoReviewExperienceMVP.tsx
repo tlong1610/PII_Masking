@@ -52,6 +52,7 @@ import PinIcon from '@mui/icons-material/Pin';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 import { AuditTrail } from '@/features/auditLog';
+import { DatasetPreviewTable } from '@/features/datasets';
 import { RunStatusBadge } from '@/features/runHistory';
 import { ApiError } from '@/shared/api/client';
 import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
@@ -275,7 +276,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           const action = getFieldAction(field.id, field.recommended_action);
           return { ...counts, [action]: counts[action] + 1 };
         },
-        { MASK: 0, HMAC: 0, DROP: 0, KEEP: 0 },
+        { MASK: 0, REDACT: 0, HMAC: 0, DROP: 0, KEEP: 0 },
       ),
     [fields, getFieldAction],
   );
@@ -969,6 +970,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
             <Tab label="Tổng quan & phân loại PII" />
             <Tab label="Rủi ro & Đánh giá" />
             <Tab label="Nhật ký kiểm toán" />
+            <Tab label="Dữ liệu sau xử lý" />
           </Tabs>
 
           {/* TAB 0: OVERVIEW & PII SCHEMA */}
@@ -1395,6 +1397,11 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                                   {/* Detector Source */}
                                   <TableCell>
                                     <DetectorBadge source={field.detector_source} />
+                                    {field.confidence_score != null && (
+                                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+                                        Độ tin cậy {Math.round(field.confidence_score * 100)}%
+                                      </Typography>
+                                    )}
                                   </TableCell>
 
                                   {/* Column Masking Rule (Dropdown) */}
@@ -1540,6 +1547,35 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
               ) : (
                 <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
               )}
+            </Box>
+          )}
+
+          {/* TAB 3: PROTECTED SNAPSHOT ROWS (already MASK/REDACT/HMAC/DROP, never raw) */}
+          {activeTab === 3 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Dữ liệu đọc lại từ snapshot đã bảo vệ của lượt quét này, đúng như Analyst sẽ nhận sau khi phát hành.
+                  Giá trị gốc không bao giờ được hiển thị.
+                </Typography>
+                {datasetId === null ? (
+                  <Alert severity="info">
+                    Chưa có snapshot. Lưu quyết định cho mọi trường rồi bấm Build để tạo dữ liệu đã bảo vệ.
+                  </Alert>
+                ) : datasetStatus === 'FAILED' ? (
+                  <Alert severity="error">
+                    Snapshot #{datasetId} không qua bước xác minh nên không được xem trước. Điều chỉnh quyết định và
+                    build lại.
+                  </Alert>
+                ) : datasetStatus === 'STAGING' ? (
+                  <Alert severity="info">Snapshot #{datasetId} đang được tạo và xác minh.</Alert>
+                ) : (
+                  <DatasetPreviewTable
+                    datasetId={datasetId}
+                    available={datasetStatus === 'VERIFIED' || datasetStatus === 'PUBLISHED'}
+                  />
+                )}
+              </Stack>
             </Box>
           )}
         </Paper>

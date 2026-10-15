@@ -11,7 +11,6 @@ Uses persistent checkpointer (PostgreSQL/SQLite) and HITL interrupt/resume (§7.
 
 from __future__ import annotations
 
-import math
 import uuid
 from typing import Any, TypedDict
 
@@ -57,6 +56,8 @@ class OrchestratorState(TypedDict, total=False):
     # 8. alert: deterministic risk score and alert notification
     risk: dict[str, Any] | None
     alert_emitted: bool
+    # Source row count for the risk volume factor (None -> estimate)
+    row_count: int | None
 
     status: str
     errors: list[str]
@@ -71,10 +72,10 @@ def scan_node(state: OrchestratorState) -> dict[str, Any]:
     if not columns and state.get("run_id"):
         try:
             from src.db import models as db_models
-            from src.db.session import SessionLocal
+            from src.db.session import get_session_factory
             r_id = int(state["run_id"]) if str(state["run_id"]).isdigit() else None
             if r_id is not None:
-                with SessionLocal() as db:
+                with get_session_factory()() as db:
                     profiles = db.query(db_models.FieldProfile).filter_by(run_id=r_id).all()
                     if profiles:
                         columns = [
@@ -401,46 +402,37 @@ def report_node(state: OrchestratorState) -> dict[str, Any]:
 # Node 8: alert
 # ---------------------------------------------------------------------------
 def alert_node(state: OrchestratorState) -> dict[str, Any]:
-    """Compute deterministic risk score and emit alert if High/Critical (§9.4, FR-10)."""
-    classifications = state.get("classifications", [])
-    applied = state.get("applied", [])
-    applied_fields = {a["field_path"] for a in applied if a.get("action") in ("MASK", "HMAC", "DROP")}
+    """Compute the risk score and emit an alert if High/Critical (§9.4, FR-10).
 
-    # 1. Sens factor: max sensitivity
-    sens_map = {"L3": 1.0, "L2": 0.7, "L1": 0.3, "L0": 0.0}
-    max_sens = max((sens_map.get(c.get("sensitivity_level", "L0"), 0.0) for c in classifications), default=0.0)
+    Uses the same calculate_risk_score as GET /runs/{id}/risk-score, so both report the same number.
+    """
+    from src.services.risk_scorer import calculate_risk_score
 
-    # 2. Cov factor: ratio of unmasked PII columns (0..1)
-    pii_cols = [c for c in classifications if c.get("sensitivity_level", "L0") != "L0"]
-    if not pii_cols:
-        cov = 0.0
-    else:
-        unmasked = [c for c in pii_cols if c.get("field_path") not in applied_fields]
-        cov = len(unmasked) / len(pii_cols)
-
-    # 3. Vol factor: rows volume
-    vol = min(1.0, math.log10(1000 + 1) / 8.0)
-
-    # Score: R = 100 * Sens * (0.2 + 0.8 * Cov) * (0.7 + 0.3 * Vol)
-    score = round(100.0 * max_sens * (0.2 + 0.8 * cov) * (0.7 + 0.3 * vol), 2)
-
-    if score >= 80:
-        tier = "Critical"
-    elif score >= 60:
-        tier = "High"
-    elif score >= 30:
-        tier = "Medium"
-    else:
-        tier = "Low"
-
-    alert_emitted = tier in ("Critical", "High") and cov > 0
+    columns = state.get("columns", [])
+    applied_actions = {a["field_path"]: a.get("action", "KEEP") for a in state.get("applied", [])}
+    profiles = [
+        {
+            "id": idx,
+            "classification": col.get("classification") or "",
+            "taxonomy_id": col.get("taxonomy_id"),
+            "field_path": col.get("column_name", ""),
+            "recommended_action": "KEEP",
+        }
+        for idx, col in enumerate(columns)
+    ]
+    decisions = {idx: applied_actions.get(col.get("column_name", ""), "KEEP") for idx, col in enumerate(columns)}
+    result = calculate_risk_score(profiles, decisions, row_count=state.get("row_count") or 1000)
+    drivers = result["drivers"]
+    tier = result["tier"]
+    alert_emitted = tier in ("Critical", "High") and drivers["unmasked_pii_fields"] > 0
 
     risk_info = {
-        "score": score,
+        "score": result["score"],
         "tier": tier,
-        "sens_factor": max_sens,
-        "cov_factor": round(cov, 4),
-        "vol_factor": round(vol, 4),
+        "sens_factor": drivers["sens_factor"],
+        "cov_factor": drivers["cov_factor"],
+        "vol_factor": drivers["vol_factor"],
+        "row_count": drivers["row_count"],
     }
 
     if state.get("verification") and not state.get("verification", {}).get("passed", True):

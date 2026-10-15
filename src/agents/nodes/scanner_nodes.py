@@ -138,7 +138,7 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     data_shape = state.get("data_shape", [])
 
     # Lấy Few-shot examples từ lịch sử DPO để đưa vào System Prompt
-    few_shot_examples = get_few_shot_examples(limit=3)
+    few_shot_examples = get_few_shot_examples(limit=3, column_name=col_profile.column_name)
     few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
 
     try:
