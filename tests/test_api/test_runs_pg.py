@@ -70,6 +70,10 @@ def pg_live(monkeypatch):
         return [dict(s) for s in FAKE_SPECS]
 
     monkeypatch.setattr("src.services.run_scanner.scan_postgres_source", fake_scan)
+    monkeypatch.setattr(
+        "src.connectors.postgres_connector.PostgresConnector.list_relations",
+        lambda self, schema_name="public": [],
+    )
     import os
     monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: os.getenv("ENABLE_PG_SNAPSHOT") == "true")
     yield calls

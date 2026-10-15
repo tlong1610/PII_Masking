@@ -62,8 +62,8 @@ def tier2_bm25_node(state: AgentState) -> dict[str, Any]:
     score, reject_result = bm25_engine.calculate_lexical_score(col_profile, threshold=0.95)
 
     if reject_result:
-        # Bị loại ngay tại Tầng 2
-        return {"bm25_score": score, "final_proposal": reject_result}
+        # Bị loại ngay tại Tầng 2 — confidence_score = normalized BM25 score
+        return {"bm25_score": score, "final_proposal": reject_result, "confidence_score": score}
 
     return {"bm25_score": score}
 
@@ -98,24 +98,26 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
             field_name=col_profile.column_name,
             inferred_pii_type=PIIType.UNKNOWN.value, # Cần LLM hoặc mapping lại để biết type chính xác, tạm để UNKNOWN
             confidence=hybrid_score,
+            confidence_score=hybrid_score,
             recommended_action=action,
             reasoning=f"Vector Semantic Score: {hybrid_score:.2f} > Threshold 0.85",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
-        return {"hybrid_score": hybrid_score, "final_proposal": res}
+        return {"hybrid_score": hybrid_score, "final_proposal": res, "confidence_score": hybrid_score}
 
     if hybrid_score < 0.15:
         res = FieldScanResult(
             field_name=col_profile.column_name,
             inferred_pii_type="NOT_PERSONAL_DATA",
             confidence=1.0 - hybrid_score,
+            confidence_score=hybrid_score,
             recommended_action="KEEP",
             reasoning=f"Vector Semantic Score: {hybrid_score:.2f} < Threshold 0.15",
             tier="TIER_3_HYBRID",
             hybrid_score=hybrid_score
         )
-        return {"hybrid_score": hybrid_score, "final_proposal": res}
+        return {"hybrid_score": hybrid_score, "final_proposal": res, "confidence_score": hybrid_score}
 
     # Vùng xám (0.1 - 0.75): Cần Data Shape để đẩy sang LLM
     data_shape = RuleBasedScanner.transform_to_data_shape(col_profile.samples)
@@ -125,6 +127,7 @@ def tier3_hybrid_node(state: AgentState) -> dict[str, Any]:
 def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     """Node Tầng 3.2: LLM Context Reasoning."""
     import json
+    import math
 
     from langchain_core.output_parsers import PydanticOutputParser
     from langchain_core.prompts import ChatPromptTemplate
@@ -191,9 +194,25 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
         # Closed label set: an invented label (e.g. GEOGRAPHIC_REGION) becomes UNKNOWN for DPO review.
         result.inferred_pii_type = normalize_llm_pii_type(result.inferred_pii_type)
 
+        # --- Trích xuất LLM softmax confidence score ---
+        # Ưu tiên: logprobs > model self-reported confidence > default
+        llm_confidence = result.confidence  # Giá trị tự khai báo bởi LLM trong JSON
+        meta = getattr(raw_response, "response_metadata", {}) or {}
+
+        # Thử lấy logprobs nếu có (OpenAI-compatible API)
+        logprobs_data = meta.get("logprobs")
+        if logprobs_data and isinstance(logprobs_data, dict):
+            token_logprobs = logprobs_data.get("content", [])
+            if token_logprobs:
+                # Tính average softmax probability từ log-probs
+                probs = [math.exp(t.get("logprob", 0.0)) for t in token_logprobs if isinstance(t, dict) and "logprob" in t]
+                if probs:
+                    llm_confidence = sum(probs) / len(probs)
+
         # Ghi đè tier logic
         result.tier = "TIER_3_LLM"
-        return {"tier3_result": result}
+        result.confidence_score = llm_confidence
+        return {"tier3_result": result, "confidence_score": llm_confidence}
     except Exception as e:
         import logging
 
@@ -206,11 +225,12 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
             # UNKNOWN is never proposed as KEEP: mask until a DPO confirms it is not personal data.
             recommended_action=PolicyAction.MASK.value,
             confidence=0.0,
+            confidence_score=0.0,
             # Error type only: provider messages are not persisted into field metadata.
             reasoning=f"LLM unavailable ({type(e).__name__}); cần DPO xem xét.",
             tier="TIER_3_LLM"
         )
-        return {"tier3_result": fallback_result}
+        return {"tier3_result": fallback_result, "confidence_score": 0.0}
 
 
 def proposal_node(state: AgentState) -> dict[str, Any]:
@@ -222,6 +242,14 @@ def proposal_node(state: AgentState) -> dict[str, Any]:
     if not final_res:
         final_res = state.get("tier1_result") or state.get("tier3_result")
 
+    # Confidence score: lấy từ state (đã được set bởi các tier), fallback sang confidence của result
+    confidence_score = state.get("confidence_score")
+    if confidence_score is None and final_res:
+        confidence_score = final_res.confidence
+
+    if final_res and final_res.confidence_score is None:
+        final_res.confidence_score = confidence_score
+
     # Quyết định có cần DPO/Data Steward review không
     # (Trường hợp LLM có độ tự tin thấp)
     requires_dpo = False
@@ -231,7 +259,8 @@ def proposal_node(state: AgentState) -> dict[str, Any]:
 
     return {
         "final_proposal": final_res,
-        "requires_dpo_review": requires_dpo
+        "requires_dpo_review": requires_dpo,
+        "confidence_score": confidence_score,
     }
 
 

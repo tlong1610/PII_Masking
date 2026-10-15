@@ -15,6 +15,9 @@ class AgentState(TypedDict, total=False):
     hybrid_score: float | None
     tier3_result: FieldScanResult | None
 
+    # Confidence score của tier đã ra quyết định (BM25 normalized, hybrid fusion, LLM softmax)
+    confidence_score: float | None
+
     # Kết quả cuối cùng
     final_proposal: FieldScanResult | None
 

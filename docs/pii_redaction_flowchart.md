@@ -14,7 +14,9 @@ flowchart TD
     
     DPODecision -- "Chọn Che/Xóa nhanh\n(Tránh tốn tài nguyên)" --> NormalAction["Gắn Action:\nMASK / DROP cả cột"]
     
-    DPODecision -- "Chọn Quét sâu (Deep Scan)\n(Giữ lại text, che từng PII)" --> RowLevelJob[["Kích hoạt Background Job:\nDuyệt qua MỌI DÒNG trong cột"]]
+    DPODecision -- "Chọn Quét sâu (Deep Scan)\n(Giữ lại text, che từng PII)" 
+    
+    --> RowLevelJob[["Kích hoạt Background Job:\nDuyệt qua MỌI DÒNG trong cột"]]
     
     subgraph FlowB ["Luồng B: Entity-Level Redaction (Tối ưu cho Văn bản dài)"]
         direction TB
