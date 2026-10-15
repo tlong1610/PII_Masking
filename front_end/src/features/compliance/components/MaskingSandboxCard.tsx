@@ -95,13 +95,13 @@ export function MaskingSandboxCard(): JSX.Element {
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                       2. CHE MỜ (MASK ***)
                     </Typography>
-                    <Chip label="Bảo tồn format" color="primary" size="small" sx={{ height: 20, fontSize: '0.625rem' }} />
+                    <Chip label="Chuẩn MASK ***" color="primary" size="small" sx={{ height: 20, fontSize: '0.625rem' }} />
                   </Stack>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all', fontWeight: 700, color: 'primary.dark' }}>
                     {masked}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Thay thế bằng dấu sao (*), giữ format nhận diện nhưng giấu danh tính cá nhân.
+                    Thay thế bằng ký tự đại diện (***), giấu hoàn toàn dữ liệu theo chuẩn MASK_PLACEHOLDER.
                   </Typography>
                 </Stack>
               </Paper>

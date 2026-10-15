@@ -20,7 +20,6 @@ import Typography from '@mui/material/Typography';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import GavelIcon from '@mui/icons-material/Gavel';
 import SearchIcon from '@mui/icons-material/Search';
-import SecurityIcon from '@mui/icons-material/Security';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { SectionHeader } from '@/shared/ui';
 import { ND13_KEY_ARTICLES, PII_CLASSIFICATION_RULES, type PiiClassificationRule } from '../model/nd13Rules';
