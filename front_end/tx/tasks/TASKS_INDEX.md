@@ -10,11 +10,11 @@
 | **FE-06** | Redesign DPO decision workspace | Sprint 03 | **done** | Không gian thẩm định DPO chuyên sâu ([chi tiết](details/FE-06-dpo-decision-workspace.md)) |
 | **FE-07** | Harden API error and edge states | Sprint 03 | **done** | Xử lý lỗi 401, 403, 404, 409, 422, 500 an toàn ([chi tiết](details/FE-07-api-error-edge-states.md)) |
 | **FE-08** | Add dynamic database source UI | Sprint 03 | **done** | Hỗ trợ PostgreSQL & MongoDB Cloud ([chi tiết](details/FE-08-dynamic-database-source.md)) |
-| **FE-09** | Runtime evidence and video demo | Sprint 03 | **ready** | Kịch bản demo và bằng chứng kiểm thử ([chi tiết](details/FE-09-runtime-evidence-video.md)) |
-| **FE-10** | Nghị định 13 Compliance Rules Drawer | Sprint 04 | **in-progress** | Drawer tra cứu pháp lý tương tác từ Sidebar ([chi tiết](details/FE-10-nd13-compliance-rules.md)) |
-| **FE-11** | Sổ cái Hash-Chain & Merkle Root Audit | Sprint 04 | **in-progress** | Trung tâm kiểm toán mật mã & kiểm chứng toàn vẹn ([chi tiết](details/FE-11-hash-chain-audit-center.md)) |
-| **FE-12** | Sidebar Masking Showcase (Demo che) | Sprint 04 | **in-progress** | Showcase so sánh đa chiều đặt dưới Sổ cái ([chi tiết](details/FE-12-masking-showcase-sidebar.md)) |
+| **FE-09** | Runtime evidence and video demo | Sprint 03 | **done** | Kịch bản demo và bằng chứng kiểm thử hoàn chỉnh ([chi tiết](details/FE-09-runtime-evidence-video.md)) |
+| **FE-10** | Nghị định 13 Compliance Rules Page | Sprint 04 | **done** | Trang toàn màn hình `/dpo/rules` tra cứu pháp lý NĐ 13 3 tabs ([chi tiết](details/FE-10-nd13-compliance-rules.md)) |
+| **FE-11** | Sổ cái Hash-Chain & Merkle Root Audit | Sprint 04 | **done** | Chuỗi khối kết nối trực quan, drawer xem chi tiết SHA-256 hex 64 ký tự & kiểm chứng Merkle root ([chi tiết](details/FE-11-hash-chain-audit-center.md)) |
+| **FE-12** | Sidebar Masking Showcase (Demo che) | Sprint 04 | **done** | Màn hình đối chiếu đa chiều đặt ngay dưới Sổ cái trên Sidebar ([chi tiết](details/FE-12-masking-showcase-sidebar.md)) |
 | **FE-13** | DPO Catalog Explorer & Revocation UI | Sprint 04 | **in-progress** | Phương án 1: Data Sources vs Snapshots & Thu hồi ([chi tiết](details/FE-13-published-snapshots-revoke.md)) |
-| **FE-14** | DPO Tabs Cleanup & Exception Lifecycle | Sprint 04 | **in-progress** | 3 tabs cốt lõi, hạn ngoại lệ `exceptionUntil` ([chi tiết](details/FE-14-dpo-tabs-cleanup-exception-lifecycle.md)) |
+| **FE-14** | DPO Tabs Cleanup & Exception Lifecycle | Sprint 04 | **done** | Tối giản 3 tabs cốt lõi, loại bỏ tab thừa, hỗ trợ exceptionUntil ([chi tiết](details/FE-14-dpo-tabs-cleanup-exception-lifecycle.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

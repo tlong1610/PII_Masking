@@ -1,8 +1,8 @@
 # FE-12: Sidebar Masking Showcase ("Demo Che Dữ Liệu")
 
 **Sprint**: Sprint 04  
-**Trạng thái**: In Progress  
-**Phân hệ**: `src/shared/ui/AppShell.tsx`, `src/features/piiReview/components/MaskingShowcaseDialog.tsx`
+**Trạng thái**: Done  
+**Phân hệ**: `src/pages/DpoLayout.tsx`, `src/features/compliance/components/MaskingShowcaseDialog.tsx`
 
 ---
 

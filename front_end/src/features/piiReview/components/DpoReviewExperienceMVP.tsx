@@ -52,7 +52,6 @@ import PinIcon from '@mui/icons-material/Pin';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 import { AuditTrail } from '@/features/auditLog';
-import { DatasetGrantsPanel, DatasetPreviewTable } from '@/features/datasets';
 import { RunStatusBadge } from '@/features/runHistory';
 import { ApiError } from '@/shared/api/client';
 import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
@@ -135,9 +134,6 @@ type DpoReviewExperienceProps = {
   onRunCreated?: (runId: number) => void;
 };
 
-/** Snapshot statuses that still have rows to preview and grants to manage. */
-const LIVE_DATASET_STATUSES = new Set(['VERIFIED', 'PUBLISHED']);
-
 const RISK_TIER_LABELS: Record<'Critical' | 'High' | 'Medium' | 'Low', string> = {
   Critical: 'Nghiêm trọng',
   High: 'Cao',
@@ -214,7 +210,6 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }, [currentRun]);
 
   const datasetStatus = currentRun?.datasets.find((dataset) => dataset.id === datasetId)?.status ?? null;
-  const datasetIsLive = datasetStatus !== null && LIVE_DATASET_STATUSES.has(datasetStatus);
 
   // Auto-select first source if none selected
   useMemo(() => {
@@ -632,19 +627,26 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', minHeight: 'calc(100vh - 100px)' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        gap: catalogCollapsed ? 0 : 3,
+        alignItems: 'flex-start',
+        minHeight: 'calc(100vh - 100px)',
+      }}
+    >
       {/* ========================================================================= */}
       {/* DATABRICKS SECONDARY CATALOG EXPLORER SIDEBAR (260px)                     */}
       {/* ========================================================================= */}
-      {/* One panel that animates its width; collapsed it keeps only a rail of icons. */}
+      {/* One panel that animates its width; collapsed it leaves no dead rail. */}
       <Box
         component="aside"
         aria-label="Nguồn dữ liệu"
         sx={(theme) => ({
-          width: catalogCollapsed ? 48 : 270,
+          width: catalogCollapsed ? 0 : 270,
           flexShrink: 0,
           bgcolor: 'background.paper',
-          border: 1,
+          border: catalogCollapsed ? 0 : 1,
           borderColor: 'divider',
           borderRadius: 2,
           overflow: 'hidden',
@@ -653,22 +655,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           height: STICKY_PANEL_HEIGHT,
           position: 'sticky',
           top: STICKY_PANEL_TOP,
-          transition: theme.transitions.create('width', { duration: theme.transitions.duration.shorter }),
+          pointerEvents: catalogCollapsed ? 'none' : 'auto',
+          opacity: catalogCollapsed ? 0 : 1,
+          transition: theme.transitions.create(['width', 'opacity'], {
+            duration: theme.transitions.duration.shorter,
+          }),
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         })}
       >
-        {catalogCollapsed ? (
-          <Stack alignItems="center" spacing={1} sx={{ py: 1 }}>
-            <Tooltip title="Mở danh sách nguồn" placement="right">
-              <IconButton size="small" onClick={() => setCatalogCollapsed(false)} aria-label="Mở danh sách nguồn">
-                <ChevronRightIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={activeSource ? `Nguồn: ${activeSource.name}` : 'Chưa chọn nguồn'} placement="right">
-              <StorageOutlinedIcon fontSize="small" color={activeSource ? 'primary' : 'disabled'} />
-            </Tooltip>
-          </Stack>
-        ) : (
+        {!catalogCollapsed && (
         <Box sx={{ minWidth: 268, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Catalog Explorer Header */}
         <Box sx={{ p: 1.5, borderBottom: '1px solid #E5E7EB', bgcolor: '#F9FAFB' }}>
@@ -798,7 +793,35 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       {/* ========================================================================= */}
       {/* MAIN DATABRICKS TABLE GOVERNANCE & SCHEMA WORKSPACE                       */}
       {/* ========================================================================= */}
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+      <Box sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }}>
+        {catalogCollapsed && (
+          <Tooltip
+            title={activeSource ? `Mở nguồn dữ liệu: ${activeSource.name}` : 'Mở danh sách nguồn dữ liệu'}
+            placement="right"
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ChevronRightIcon fontSize="small" />}
+              onClick={() => setCatalogCollapsed(false)}
+              sx={{
+                position: 'sticky',
+                top: STICKY_PANEL_TOP,
+                zIndex: 5,
+                mb: 1.5,
+                minHeight: 32,
+                px: 1.25,
+                borderRadius: 999,
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                textTransform: 'none',
+                fontWeight: 700,
+              }}
+            >
+              Nguồn dữ liệu
+            </Button>
+          </Tooltip>
+        )}
         {sourceError && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSourceError(null)}>
             {sourceError}
@@ -937,17 +960,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
             </Stack>
           </Box>
 
-          {/* Databricks Horizontal Tab Navigation */}
+          {/* 3 Core Tabs for DPO */}
           <Tabs
             value={activeTab}
             onChange={(_, val: number) => setActiveTab(val)}
             sx={{ px: 3, bgcolor: '#FFFFFF', minHeight: 44 }}
           >
             <Tab label="Tổng quan & phân loại PII" />
-            <Tab label="Dữ liệu đã bảo vệ" />
-            <Tab label="Quyền truy cập" />
+            <Tab label="Rủi ro & Đánh giá" />
             <Tab label="Nhật ký kiểm toán" />
-            <Tab label="Rủi ro" />
           </Tabs>
 
           {/* TAB 0: OVERVIEW & PII SCHEMA */}
@@ -1448,46 +1469,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
             </Box>
           )}
 
-          {/* TAB 1: rows read back from the protected snapshot */}
+          {/* TAB 1: RISK & INSIGHTS */}
           {activeTab === 1 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {datasetId ? (
-                <DatasetPreviewTable datasetId={datasetId} available={datasetIsLive} />
-              ) : (
-                <Alert severity="info">
-                  Chưa có snapshot cho lượt quét này. Bấm “Tạo Snapshot” để xem dữ liệu sau khi áp dụng MASK / HMAC /
-                  DROP.
-                </Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 2: dataset grants */}
-          {activeTab === 2 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {datasetId ? (
-                <DatasetGrantsPanel datasetId={datasetId} editable={datasetIsLive} />
-              ) : (
-                <Alert severity="info">
-                  Quyền truy cập được cấp trên từng dataset. Tạo snapshot trước để quản lý quyền của Analyst.
-                </Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 3: audit events of this run + hash-chain check */}
-          {activeTab === 3 && (
-            <Box sx={{ p: { xs: 2, md: 3 } }}>
-              {currentRunId ? (
-                <AuditTrail entityType="run" entityId={currentRunId} />
-              ) : (
-                <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
-              )}
-            </Box>
-          )}
-
-          {/* TAB 4: RISK & INSIGHTS - Databricks web Aug 2025 49.png */}
-          {activeTab === 4 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -1546,6 +1529,17 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
                   </Card>
                 </Grid>
               </Grid>
+            </Box>
+          )}
+
+          {/* TAB 2: AUDIT EVENTS OF THIS RUN + HASH-CHAIN */}
+          {activeTab === 2 && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              {currentRunId ? (
+                <AuditTrail entityType="run" entityId={currentRunId} />
+              ) : (
+                <Alert severity="info">Chưa có lượt quét nào được mở.</Alert>
+              )}
             </Box>
           )}
         </Paper>

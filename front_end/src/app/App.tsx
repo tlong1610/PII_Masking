@@ -18,6 +18,7 @@ const DpoDatasetDetailPage = lazy(() =>
   import('@/pages/DpoDatasetDetailPage').then((module) => ({ default: module.DpoDatasetDetailPage })),
 );
 const DpoAuditPage = lazy(() => import('@/pages/DpoAuditPage').then((module) => ({ default: module.DpoAuditPage })));
+const DpoRulesPage = lazy(() => import('@/pages/DpoRulesPage').then((module) => ({ default: module.DpoRulesPage })));
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((module) => ({ default: module.LoginPage })),
 );
@@ -48,6 +49,7 @@ export function App(): JSX.Element {
             <Route path="datasets" element={<DpoDatasetsPage />} />
             <Route path="datasets/:datasetId" element={<DpoDatasetDetailPage />} />
             <Route path="audit" element={<DpoAuditPage />} />
+            <Route path="rules" element={<DpoRulesPage />} />
           </Route>
           <Route
             path="/analyst"
