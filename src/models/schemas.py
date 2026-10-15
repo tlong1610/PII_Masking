@@ -424,6 +424,7 @@ class FieldScanResult(BaseModel):
     tier: str = Field(default="", description="Tầng ra quyết định (TIER_1, TIER_2, TIER_3)")
     bm25_score: float | None = Field(default=None, description="Điểm tần suất từ khóa BM25 (Tầng 2)")
     hybrid_score: float | None = Field(default=None, description="Điểm hỗn hợp Hybrid (Tầng 3.1)")
+    confidence_score: float | None = Field(default=None, description="Điểm tin cậy của tier (BM25 normalized, hybrid fusion, hoặc LLM softmax)")
     provider_meta: dict | None = Field(default=None, description="LLM provider metadata (usage/model), no data")
 
 # --- Schema cho Luồng Enterprise (Gate 2 - Không chứa raw PII) ---

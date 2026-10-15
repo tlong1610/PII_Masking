@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     openrouter_api_key: str = ""
     cerebras_api_key: str = ""
-    model_name: str = "gpt-oss-120b"
+    model_name: str = "gpt-4o-mini"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Database (app metadata)

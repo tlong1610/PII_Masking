@@ -100,6 +100,7 @@ class BM25Engine:
                 field_name=col_profile.column_name,
                 inferred_pii_type=pii_type,
                 confidence=max_score,
+                confidence_score=max_score,
                 recommended_action=action,
                 reasoning=f"BM25 Score: {max_score:.2f} > Threshold {threshold}, khớp nhất với loại {pii_type}",
                 tier="TIER_2",
