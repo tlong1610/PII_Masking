@@ -239,8 +239,8 @@ export function Nd13RulesView(): JSX.Element {
           />
         </Stack>
 
-        <Box sx={{ p: { xs: 2, md: 3 } }}>
-          {activeTab === 0 && (
+        {activeTab === 0 && (
+          <Box sx={{ p: { xs: 2, md: 2.5 } }}>
             <Grid container spacing={2.5}>
               {filteredRules.map((rule) => (
                 <Grid item xs={12} md={4} key={rule.level}>
@@ -248,9 +248,11 @@ export function Nd13RulesView(): JSX.Element {
                 </Grid>
               ))}
             </Grid>
-          )}
+          </Box>
+        )}
 
-          {activeTab === 1 && (
+        {activeTab === 1 && (
+          <Box sx={{ p: { xs: 2, md: 2.5 } }}>
             <Grid container spacing={2.5}>
               {filteredArticles.map((article) => (
                 <Grid item xs={12} md={6} key={article.id}>
@@ -296,54 +298,54 @@ export function Nd13RulesView(): JSX.Element {
                 </Grid>
               ))}
             </Grid>
-          )}
+          </Box>
+        )}
 
-          {activeTab === 2 && (
-            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
-              <Table size="small" aria-label="Ma trận hành động bảo vệ PII">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'background.default' }}>
-                    <TableCell sx={{ fontWeight: 700, width: '20%' }}>Cấp độ PII</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: '32%' }}>Định nghĩa pháp lý</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>MASK (Che mờ)</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>HMAC (Băm bí mật)</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>DROP (Loại bỏ)</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>KEEP (Ngoại lệ)</TableCell>
+        {activeTab === 2 && (
+          <TableContainer>
+            <Table size="small" aria-label="Ma trận hành động bảo vệ PII">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'background.default' }}>
+                  <TableCell sx={{ fontWeight: 700, width: '20%' }}>Cấp độ PII</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: '32%' }}>Định nghĩa pháp lý</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>MASK (Che mờ)</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>HMAC (Băm bí mật)</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>DROP (Loại bỏ)</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>KEEP (Ngoại lệ)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {PII_ACTION_MATRIX.map((row) => (
+                  <TableRow key={row.level} hover>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label={row.level} color={row.badgeColor} size="small" sx={{ fontWeight: 700, minWidth: 32 }} />
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {row.levelLabel}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                      {row.definition}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={row.mask.label} color={row.mask.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={row.hmac.label} color={row.hmac.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={row.drop.label} color={row.drop.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={row.keep.label} color={row.keep.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {PII_ACTION_MATRIX.map((row) => (
-                    <TableRow key={row.level} hover>
-                      <TableCell sx={{ fontWeight: 700 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip label={row.level} color={row.badgeColor} size="small" sx={{ fontWeight: 700, minWidth: 32 }} />
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {row.levelLabel}
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
-                        {row.definition}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={row.mask.label} color={row.mask.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={row.hmac.label} color={row.hmac.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={row.drop.label} color={row.drop.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={row.keep.label} color={row.keep.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Box>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
     </Stack>
   );
