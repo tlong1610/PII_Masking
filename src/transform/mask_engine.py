@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from typing import Any
 
 from src.transform.hmac_hasher import hash_value
 
 MASK_PLACEHOLDER = "***"
+
+logger = logging.getLogger(__name__)
 
 
 def partial_mask(value: Any) -> Any:
@@ -65,6 +68,26 @@ def generalize_value(value: Any) -> Any:
     return s[: len(s) // 2] + "..." if len(s) > 6 else s
 
 
+def redact_value(value: Any) -> Any:
+    """Entity-level redaction (NER) for free text: keeps the sentence, replaces each PII entity by its tag.
+
+    Non-text values carry no surrounding context worth keeping, so they are replaced whole.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return "[REDACTED]"
+    from src.detection.ner_orchestrator import redact_free_text
+
+    try:
+        return redact_free_text(value)
+    except Exception as exc:
+        # Fail closed: a cell NER cannot process is withheld whole, never written raw, and one bad
+        # cell does not abort the snapshot. Only the error type is logged, never the value.
+        logger.warning("NER redaction failed (%s); cell replaced whole", type(exc).__name__)
+        return "[REDACTED]"
+
+
 def apply_action(
     value: Any,
     action: str,
@@ -79,9 +102,7 @@ def apply_action(
     if action_u == "NULLIFY":
         return True, None
     if action_u == "REDACT":
-        if value is None:
-            return True, None
-        return True, "[REDACTED]"
+        return True, redact_value(value)
     if action_u == "MASK":
         if value is None:
             return True, None

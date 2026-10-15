@@ -104,7 +104,7 @@ Agent có khả năng: (1) quét dataset; (2) phát hiện & phân loại PII; (
 | Nhóm | Ví dụ |
 |---|---|
 | `DI` — định danh trực tiếp | Họ tên, CCCD/CMND, hộ chiếu, SĐT, email, MST, BHXH/BHYT, biển số xe, địa chỉ chi tiết, số tài khoản/thẻ |
-| `QI` — định danh gián tiếp | Ngày sinh, giới tính, tỉnh/thành, nghề nghiệp |
+| `QI` — định danh gián tiếp | Tỉnh/thành, nghề nghiệp (ngày sinh và giới tính vẫn xếp L2: NĐ 13/2023 Điều 2 khoản 3 điểm b, c liệt kê đích danh là dữ liệu cá nhân cơ bản) |
 | `SENS` — nhạy cảm | Hồ sơ bệnh án, chẩn đoán/ICD-10, kết quả xét nghiệm, tài chính–tín dụng… (theo danh mục luật hiện hành) |
 | `NONE` | Mã đơn hàng, timestamp, SKU… |
 
@@ -849,12 +849,12 @@ Precision, Recall, F1 **mức cột** theo entity (micro/macro); **Recall@L3** �
 | `BANK_ACCOUNT` | Số tài khoản | 6–19 chữ số | Chỉ khi context: `stk, so_tai_khoan, account` | L3 |
 | `PERSON_NAME` | Họ tên | Ngữ cảnh + chữ ký `Aaa Aaa Aaa` + T3 | Có/không dấu; loại tên sản phẩm/địa danh | L2 |
 | `VN_ADDRESS` | Địa chỉ | Ngữ cảnh + từ khoá hành chính (đường, phường/xã, quận/huyện, tỉnh/thành) + T3 | Chi tiết → L2; chỉ cấp tỉnh/thành → L1 | L1–L2 |
-| `DATE_OF_BIRTH` | Ngày sinh | `dd/mm/yyyy`, `yyyy-mm-dd` | **Bắt buộc** context (`ngay_sinh, dob`) | L1 |
+| `DATE_OF_BIRTH` | Ngày sinh | `dd/mm/yyyy`, `yyyy-mm-dd` | **Bắt buộc** context (`ngay_sinh, dob`); dữ liệu cá nhân cơ bản (NĐ 13/2023 Điều 2 khoản 3 điểm b) | L2 |
 | `MEDICAL_RECORD_ID` | Mã bệnh nhân / hồ sơ | Định dạng HIS (cấu hình) | Context + bảng cha (`patients`) | L3 |
 | `ICD10` | Mã chẩn đoán | `\b[A-TV-Z]\d{2}(?:\.\d{1,2})?\b` | Chỉ khi context cột chẩn đoán | L3 |
 | `CLINICAL_TEXT` | Ghi chú lâm sàng tự do | T0 (tên cột) + T3 | Mặc định `REDACT` cả cột | L3 |
 | `IP_ADDRESS` | IPv4/IPv6 | Mẫu chuẩn | — | L1 |
-| `GENDER` | Giới tính | Tập giá trị đóng | Theo danh mục pháp lý hiện hành | L1 |
+| `GENDER` | Giới tính | Tập giá trị đóng | Dữ liệu cá nhân cơ bản (NĐ 13/2023 Điều 2 khoản 3 điểm c) | L2 |
 
 ## Phụ lục B — Prompt phân loại (T3) & schema đầu ra
 
@@ -1034,7 +1034,7 @@ pii-guardian/
 
 | Bảng mẫu | Cột (ví dụ) → nhãn kỳ vọng |
 |---|---|
-| `patients` | `patient_id` → MEDICAL_RECORD_ID (L3) · `full_name` → PERSON_NAME (L2) · `dob` → DATE_OF_BIRTH (L1) · `cccd` → VN_CCCD (L3) · `so_dt` → VN_PHONE (L2) · `email` → EMAIL (L2) · `dia_chi` → VN_ADDRESS (L2) · `bhyt` → VN_HEALTH_INS (L3) · `gioi_tinh` → GENDER (L1) |
+| `patients` | `patient_id` → MEDICAL_RECORD_ID (L3) · `full_name` → PERSON_NAME (L2) · `dob` → DATE_OF_BIRTH (L2) · `cccd` → VN_CCCD (L3) · `so_dt` → VN_PHONE (L2) · `email` → EMAIL (L2) · `dia_chi` → VN_ADDRESS (L2) · `bhyt` → VN_HEALTH_INS (L3) · `gioi_tinh` → GENDER (L2) |
 | `visits` | `visit_id` → NONE · `patient_id` → MEDICAL_RECORD_ID (L3) · `icd10` → ICD10 (L3) · `ghi_chu` → CLINICAL_TEXT (L3) · `ngay_kham` → NONE |
 | `billing` | `invoice_no` (12 số) → **NONE (hard negative)** · `so_tk` → BANK_ACCOUNT (L3) · `amount` → NONE |
 | `app_users` | `email` → EMAIL · `phone` → VN_PHONE · `c1` (tên mơ hồ, giá trị SĐT) → VN_PHONE · `c2` (tên mơ hồ, giá trị CCCD) → VN_CCCD · `ip_address` → IP_ADDRESS (L1) |

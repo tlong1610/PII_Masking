@@ -57,7 +57,7 @@ export const datasetPreviewSchema = z.object({
       name: z.string(),
       source_path: z.string().default(''),
       data_type: z.string(),
-      transform: z.enum(['MASK', 'HMAC', 'KEEP', 'DROPPED']),
+      transform: z.enum(['MASK', 'REDACT', 'HMAC', 'KEEP', 'DROPPED']),
     }),
   ),
   rows: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))),

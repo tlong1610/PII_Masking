@@ -52,9 +52,9 @@ Provider fallback nằm trong `src/services/llm.py`:
 
 | Thứ tự | Env cần có | Model dùng |
 |---|---|---|
-| 1 | `OPENROUTER_API_KEY` | `MODEL_NAME`, mặc định `gpt-oss-120b` |
-| 2 | `OPENAI_API_KEY` | `OPENAI_MODEL`, mặc định `gpt-4o-mini` |
-| 3 | `GOOGLE_API_KEY` | hard-code `gemini-3.5-flash-lite` |
+| 1 | `OPENAI_API_KEY` | `OPENAI_MODEL`, mặc định `gpt-4o-mini` (bật `logprobs` để tính `confidence_score`) |
+| 2 | `OPENROUTER_API_KEY` | `MODEL_NAME`, mặc định `gpt-4o-mini` (OpenRouter thường cần id dạng `openai/gpt-4o-mini`) |
+| 3 | `GOOGLE_API_KEY` | hard-code `gemini-2.0-flash` |
 
 Nếu không có key nào, `get_llm()` raise lỗi. Với scan live, lỗi LLM được bắt để field mập mờ không làm sập toàn bộ run.
 
@@ -76,6 +76,36 @@ Luồng `ColumnProfile` dùng thêm:
 - HuggingFace embedding `sentence-transformers/all-MiniLM-L6-v2`, load lazy khi thật sự cần.
 
 ChromaDB ở đây là knowledge base phân loại PII. Không dùng để lưu source database hoặc raw PII.
+
+Mỗi tầng ghi `confidence_score` (rule = 1.0, BM25 chuẩn hoá, hybrid fusion, LLM từ logprobs hoặc tự khai). Điểm này được lưu vào `field_profiles.confidence_score` và hiển thị "Độ tin cậy" trên màn hình duyệt.
+
+### Thống kê phân bố cho tầng LLM
+
+Khi lấy profile, connector đếm trong DB (Postgres: `COUNT(*)`, `COUNT(col)`, `COUNT(DISTINCT col::text)` trên tối đa
+10.000 dòng đầu; Mongo: trên các document đã đọc để dò schema, chỉ giữ `hash()` của giá trị). Chỉ ba con số đi ra
+khỏi DB; `src/detection/column_stats.py` đổi chúng thành mức gần đúng trước khi đưa vào prompt cùng tên bảng:
+không gửi số dòng chính xác, không bao giờ dùng min/max/giá trị phổ biến (đó là giá trị thật).
+
+| Số giá trị khác NULL | Gửi gì |
+|---|---|
+| Dưới 5 | Không gửi |
+| 5-49 | Chỉ khi lặp nhiều (tỷ lệ khác nhau < 0.5); còn lại "chưa kết luận được" |
+| Từ 50 | Mức tỷ lệ khác nhau (rất thấp / thấp / trung bình / rất cao) và mức ô trống |
+
+Thống kê chỉ là gợi ý: prompt nhắc rằng họ/tên riêng lẻ cũng lặp nhiều nhưng vẫn là `FULL_NAME`. Nhãn `JOB_TITLE`
+(chức danh, vị trí, phòng ban) là định danh gián tiếp L1, đề xuất `KEEP`.
+
+### HITL: học từ quyết định DPO
+
+Khi `ENABLE_AI_SCAN=true`, mỗi lần DPO lưu quyết định (`PUT /runs/{id}/decisions`) khác đề xuất của scanner (đổi action hoặc xác nhận "không phải PII"), backend ghi một ví dụ `{table_name, column_name, dpo_decision, action}` vào `HITL_MEMORY_PATH` (mặc định `data/hitl/dpo_few_shot_memory.json`, không commit). Quyết định mới hơn cho cùng bảng + cột thay thế bản cũ. Tầng LLM ghép file seed `src/detection/dpo_few_shot_memory.json` với file runtime và chọn 3 ví dụ có tên cột gần nhất làm few-shot. Không lưu sample hay data shape.
+
+Tự cập nhật RAG corpus/ChromaDB (`update_rag_corpus`) chưa nối vào API: hàm này ghi đè file corpus đã commit và embed lại toàn bộ ChromaDB đồng bộ, còn BM25 chỉ đọc corpus lúc khởi động.
+
+### Văn bản tự do: NER (Luồng B)
+
+Cột văn bản tự do (kiểu text và tên giống `notes`/`comment`/`ghi_chu`, hoặc mẫu là câu dài nhiều từ) mà scanner chưa gắn được loại PII cụ thể sẽ chạy thêm NER trên sample trong bộ nhớ (`src/detection/ner_orchestrator.py`): Regex -> Từ điển (tuỳ chọn) -> GLiNER zero-shot `urchade/gliner_multi_pii-v1` (khi `ENABLE_NER=true`, cần `gliner`; văn bản dài được quét theo đoạn ≤ 300 từ vì GLiNER tự cắt bỏ phần vượt giới hạn). Có thực thể PII thì đề xuất `REDACT`, `taxonomy_id=FREE_TEXT_PII`; metadata chỉ ghi loại thực thể và số mẫu, không ghi giá trị. Cột L3 (sức khoẻ, tài chính) và cột đã xác định loại cụ thể (ADDRESS, FULL_NAME...) giữ đề xuất cũ.
+
+Khi build snapshot, `REDACT` giữ câu và thay từng thực thể bằng nhãn (`Gọi 0912345678` -> `Gọi [PHONE]`); giá trị không phải chuỗi bị thay cả ô bằng `[REDACTED]`. Verifier Postgres tìm SĐT/CCCD/email còn sót ở bất kỳ vị trí nào trong cột `REDACT`. Benchmark Luồng B (`performance/B_test`) cho recall 67.68%, nên `REDACT` chỉ là lựa chọn khi Analyst cần nội dung văn bản; nếu không, `DROP` vẫn an toàn hơn.
 
 ## 5. Zero Raw PII
 
@@ -101,6 +131,7 @@ Với luồng enterprise `FieldProfile`, prompt LLM chỉ dùng metadata/statist
 | Action | Ý nghĩa |
 |---|---|
 | `MASK` | Che giá trị khi không cần join trực tiếp |
+| `REDACT` | Văn bản tự do: giữ câu, thay từng thực thể PII bằng nhãn (NER) |
 | `HMAC` | Băm một chiều có key để giữ join/lookup/mapping ổn định |
 | `DROP` | Không đưa field vào snapshot phân tích |
 | `KEEP` | Chỉ dùng cho non-personal hoặc trường đã có lý do nghiệp vụ rõ |

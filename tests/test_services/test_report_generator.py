@@ -30,10 +30,11 @@ def test_sensitivity_level_resolution():
     assert resolve_sensitivity_level(taxonomy_id="PHONE") == "L2"
     assert resolve_sensitivity_level(taxonomy_id="EMAIL") == "L2"
     assert resolve_sensitivity_level(classification="PERSONAL_BASIC") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="GENDER") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="DOB") == "L2"
+    assert resolve_sensitivity_level(field_path="ngay_sinh") == "L2"
 
     # L1 checks
-    assert resolve_sensitivity_level(taxonomy_id="DOB") == "L1"
-    assert resolve_sensitivity_level(taxonomy_id="GENDER") == "L1"
     assert resolve_sensitivity_level(classification="UNKNOWN") == "L1"
 
     # L0 checks

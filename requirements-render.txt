@@ -8,3 +8,8 @@ python-dotenv>=1.0.0
 sqlalchemy>=2.0.0
 psycopg[binary]>=3.2.0
 pymongo>=4.8.0
+# Imported at startup (vault, run graph) / by the rule scanner for live sources
+cryptography>=43.0.0
+langgraph>=0.2.0
+flashtext>=2.7
+rank_bm25>=0.2.2

@@ -192,6 +192,7 @@ class FieldProfileOut(BaseModel):
     detector_source: DetectorSource
     coverage_status: str
     recommended_action: PolicyAction
+    confidence_score: float | None = None
 
     model_config = {"from_attributes": True}
 
@@ -390,6 +391,10 @@ class ColumnProfile(BaseModel):
     )
     length_mean: float | None = Field(default=None, description="Trung bình chiều dài dữ liệu cột")
     length_variance: float | None = Field(default=None, description="Phương sai chiều dài dữ liệu cột")
+    # Distribution stats computed inside the source DB (counts only, never values). In-memory only.
+    profiled_values: int | None = Field(default=None, description="Số giá trị khác NULL đã thống kê")
+    distinct_ratio: float | None = Field(default=None, description="Số giá trị khác nhau / số giá trị khác NULL")
+    null_ratio: float | None = Field(default=None, description="Tỷ lệ NULL trên số dòng đã thống kê")
 
 
 class TableRelation(BaseModel):

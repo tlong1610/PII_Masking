@@ -18,6 +18,7 @@ except ImportError:
     MongoClient = None
     PyMongoError = Exception
 
+from src.detection.column_stats import ratios_from_counts
 from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation
 
 logger = logging.getLogger(__name__)
@@ -206,10 +207,13 @@ class MongoConnector:
                                 "type": _infer_data_type(val) if val is not None else "string",
                                 "samples": set(),
                                 "lengths": [],
+                                # hash() of each value only: enough to count distinct values, keeps no value
+                                "value_hashes": set(),
                             }
                         if val is not None:
                             val_str = str(val).strip()
                             field_metadata[field_path]["lengths"].append(len(val_str))
+                            field_metadata[field_path]["value_hashes"].add(hash(val_str))
                             if len(field_metadata[field_path]["samples"]) < sample_size:
                                 if val_str:
                                     field_metadata[field_path]["samples"].add(val_str)
@@ -234,6 +238,11 @@ class MongoConnector:
                         else:
                             length_variance = 0.0
 
+                    # Missing fields count as empty: every scanned document either has a value or not.
+                    profiled_values, distinct_ratio, null_ratio = ratios_from_counts(
+                        len(flattened_docs), len(lengths), len(meta["value_hashes"])
+                    )
+
                     col_prof = ColumnProfile(
                         table_name=coll_name,
                         column_name=field_path,
@@ -244,6 +253,9 @@ class MongoConnector:
                         system_recommendation=system_rec,
                         length_mean=length_mean,
                         length_variance=length_variance,
+                        profiled_values=profiled_values,
+                        distinct_ratio=distinct_ratio,
+                        null_ratio=null_ratio,
                     )
                     column_profiles.append(col_prof)
 

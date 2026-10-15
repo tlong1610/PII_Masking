@@ -249,6 +249,11 @@ def verify_zero_raw_pii_egress(
     cccd_regex = re.compile(r"^[0-9]{12}$")
     phone_regex = re.compile(r"^(?:0|\+84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$")
     email_regex = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    # REDACT keeps the surrounding free text, so an identifier left anywhere inside it is a leak.
+    embedded_regex = re.compile(
+        r"(?<!\d)(?:\d{12}|(?:0|\+84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7})(?!\d)"
+        r"|[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+    )
 
     leaks: list[str] = []
     try:
@@ -271,7 +276,13 @@ def verify_zero_raw_pii_egress(
                                 rows = cur.fetchall()
                                 for r in rows:
                                     val = str(r[col]).strip()
-                                    if cccd_regex.match(val) or phone_regex.match(val) or email_regex.match(val):
+                                    if act == "REDACT":
+                                        leaked = embedded_regex.search(val) is not None
+                                    else:
+                                        leaked = bool(
+                                            cccd_regex.match(val) or phone_regex.match(val) or email_regex.match(val)
+                                        )
+                                    if leaked:
                                         leaks.append(f"{table}.{col}")
                                         break
                             except Exception:

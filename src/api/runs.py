@@ -209,6 +209,7 @@ def _run_to_out(run: db_models.Run) -> RunOut:
                 detector_source=DetectorSource(p.detector_source),
                 coverage_status=p.coverage_status,
                 recommended_action=PolicyAction(p.recommended_action),
+                confidence_score=p.confidence_score,
             )
             for p in run.field_profiles
         ],
@@ -928,17 +929,32 @@ def put_decisions(
     # Replace decisions for submitted field_profile_ids (upsert by profile id) + record history.
     existing = {d.field_profile_id: d for d in run.field_decisions}
     audit_changes: list[str] = []
+    # DPO corrections of the scanner's proposal, fed back to the LLM tier as few-shot examples (HITL).
+    corrections: list[dict] = []
 
     for item in body.decisions:
         profile = profiles_by_id[item.field_profile_id]
         field_label = f"{profile.source_path}.{profile.field_path}"
-        if item.classification_override is not None and profile.classification != item.classification_override:
+        reclassified = (
+            item.classification_override is not None and profile.classification != item.classification_override
+        )
+        if reclassified:
             audit_changes.append(
                 f"{field_label}: reclassified {profile.classification} -> {item.classification_override} by DPO"
             )
             profile.classification = item.classification_override
             profile.taxonomy_id = "NOT_PERSONAL_DATA"
             profile.detector_source = DetectorSource.DPO.value
+        if reclassified or item.action.value != profile.recommended_action:
+            corrections.append(
+                {
+                    "table_name": profile.source_path,
+                    # The scanner sees Mongo dot paths in snake_case, so learn under that name.
+                    "column_name": profile.field_path.replace(".", "_"),
+                    "dpo_decision": profile.taxonomy_id or profile.classification,
+                    "action": item.action.value,
+                }
+            )
         effective_reason = (
             item.reason.strip()
             if (item.reason and item.reason.strip())
@@ -1034,6 +1050,11 @@ def put_decisions(
         reason=detailed_audit_reason,
     )
     db.commit()
+    # Only the LLM tier reads this memory, so learn only when the AI scan is on.
+    if corrections and settings.enable_ai_scan:
+        from src.detection.hitl_feedback import record_dpo_corrections
+
+        record_dpo_corrections(corrections)
     loaded = _load_run(db, run_id)
     assert loaded is not None
     return _run_to_out(loaded)
@@ -1428,10 +1449,12 @@ def orchestrate_run(
                 })
 
     graph = build_orchestrator_graph()
+    row_count = _run_row_count(run, db)
     initial_state = {
         "run_id": str(run.id),
         "review_status": "approved" if approvals else "pending",
         "approvals": approvals,
+        "row_count": row_count if row_count is not None else DEFAULT_RISK_ROW_COUNT,
     }
 
     config = {"configurable": {"thread_id": f"api_run_{run.id}"}}

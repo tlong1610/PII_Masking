@@ -86,6 +86,7 @@ LLM_PII_TYPES: dict[str, str] = {
     "PHONE": "Số điện thoại, fax, số máy lẻ của cá nhân.",
     "EMAIL": "Địa chỉ email.",
     "ADDRESS": "Địa chỉ cụ thể (số nhà, đường, phường).",
+    "GENDER": "Giới tính của một người (dữ liệu cá nhân cơ bản theo NĐ 13/2023).",
     "DOB": "Ngày sinh. CHỈ dùng khi cột thực sự là ngày sinh; ngày sự kiện (đặt hàng, tuyển dụng, tạo) KHÔNG phải DOB.",
     "CCCD": "Số CCCD/CMND/hộ chiếu/định danh cá nhân.",
     "TAX_CODE": "Mã số thuế cá nhân.",
@@ -94,6 +95,7 @@ LLM_PII_TYPES: dict[str, str] = {
     "BIOMETRIC": "Ảnh khuôn mặt, vân tay, dữ liệu sinh trắc (nhạy cảm).",
     "FREE_TEXT_PII": "Văn bản tự do có thể chứa thông tin cá nhân (ghi chú, nội dung trao đổi).",
     "CITY": "Thành phố, quận/huyện, phường/xã nơi một người sống: định danh gián tiếp.",
+    "JOB_TITLE": "Chức danh, vị trí công việc, phòng ban của một người (nhân viên, người liên hệ): định danh gián tiếp.",
     "IP_ADDRESS": "Địa chỉ IP/MAC: định danh gián tiếp.",
     "NOT_PERSONAL_DATA": (
         "Không phải dữ liệu cá nhân: số lượng, giá, trạng thái, mô tả sản phẩm/danh mục, quốc gia, vùng, "

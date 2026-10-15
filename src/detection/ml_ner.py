@@ -1,9 +1,17 @@
 import os
+import re
 
 # Khắc phục lỗi OpenMP duplicate runtime trên môi trường Windows
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 from src.detection.regex_ner import EntityMatch
+
+# GLiNER reads at most max_len words (384 for gliner_multi_pii) and drops the rest; chunks stay well below
+# that so the subword count also fits the encoder's 512-token window.
+MAX_CHUNK_TOKENS = 300
+_GLINER_WORD = re.compile(r"\w+(?:[-_]\w+)*|\S")
+_SENTENCE = re.compile(r"[^.!?\n]+[.!?\n]*\s*|[.!?\n]+\s*")
+_WORD = re.compile(r"\S+\s*|\s+")
 
 
 class MLNERScanner:
@@ -75,10 +83,12 @@ class MLNERScanner:
         if not text:
             return matches
 
-        # Dự đoán thực thể với ngưỡng confidence
-        entities = self.model.predict_entities(
-            text, self.labels, threshold=self.threshold
-        )
+        # Dự đoán thực thể với ngưỡng confidence. GLiNER silently truncates input past its length limit,
+        # so long text is scanned chunk by chunk and offsets are shifted back to the full text.
+        entities = []
+        for offset, chunk in self._chunks(text):
+            for ent in self.model.predict_entities(chunk, self.labels, threshold=self.threshold):
+                entities.append({**ent, "start": ent["start"] + offset, "end": ent["end"] + offset})
 
         for ent in entities:
             word = ent.get("text", "")
@@ -108,3 +118,32 @@ class MLNERScanner:
         # Sắp xếp kết quả theo thứ tự xuất hiện
         matches.sort(key=lambda x: x.start)
         return matches
+
+    def _token_count(self, text: str) -> int:
+        # GLiNER counts words (punctuation is a word of its own), not subword tokens.
+        return len(_GLINER_WORD.findall(text))
+
+    def _chunks(self, text: str) -> list[tuple[int, str]]:
+        """(offset, chunk) pieces of text, each under MAX_CHUNK_TOKENS, cut at sentence ends.
+
+        A sentence that is itself too long is cut between words, so an entity is only split when one
+        sentence alone exceeds the model limit.
+        """
+        if self._token_count(text) <= MAX_CHUNK_TOKENS:
+            return [(0, text)]
+        units: list[tuple[int, int]] = []
+        for sentence in _SENTENCE.finditer(text):
+            if self._token_count(sentence.group()) <= MAX_CHUNK_TOKENS:
+                units.append(sentence.span())
+            else:
+                units.extend((sentence.start() + w.start(), sentence.start() + w.end())
+                             for w in _WORD.finditer(sentence.group()))
+        chunks: list[tuple[int, str]] = []
+        start = end = units[0][0]
+        for unit_start, unit_end in units:
+            if end > start and self._token_count(text[start:unit_end]) > MAX_CHUNK_TOKENS:
+                chunks.append((start, text[start:end]))
+                start = unit_start
+            end = unit_end
+        chunks.append((start, text[start:end]))
+        return chunks

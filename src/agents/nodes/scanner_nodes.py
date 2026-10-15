@@ -132,13 +132,14 @@ def tier3_llm_node(state: AgentState) -> dict[str, Any]:
     from langchain_core.output_parsers import PydanticOutputParser
     from langchain_core.prompts import ChatPromptTemplate
 
+    from src.detection.column_stats import describe_distribution
     from src.services.llm import get_llm
 
     col_profile = state.get("column_profile")
     data_shape = state.get("data_shape", [])
 
     # Lấy Few-shot examples từ lịch sử DPO để đưa vào System Prompt
-    few_shot_examples = get_few_shot_examples(limit=3)
+    few_shot_examples = get_few_shot_examples(limit=3, column_name=col_profile.column_name)
     few_shot_str = json.dumps(few_shot_examples, ensure_ascii=False, indent=2) if few_shot_examples else "Không có ví dụ nào."
 
     try:
@@ -155,9 +156,14 @@ inferred_pii_type BẮT BUỘC là MỘT giá trị trong danh sách sau (không
 {allowed_types}
 
 recommended_action phải NHẤT QUÁN với inferred_pii_type:
-- NOT_PERSONAL_DATA hoặc CITY -> KEEP
+- NOT_PERSONAL_DATA, CITY hoặc JOB_TITLE (định danh gián tiếp, giữ để phân tích) -> KEEP
 - Khóa chính/khóa ngoại (PK/FK) -> HMAC
 - Mọi loại PII còn lại và UNKNOWN -> MASK (DPO sẽ quyết định nới lỏng nếu cần)
+
+Cách đọc thông tin cột:
+- Trước hết xét cột mô tả AI qua tên bảng và tên cột: thuộc tính của sản phẩm, đơn hàng, hệ thống là NOT_PERSONAL_DATA; chỉ thuộc tính của một con người mới có thể là PII.
+- Thống kê phân bố chỉ là gợi ý. Họ tên đầy đủ gần như mỗi dòng một giá trị (tỷ lệ khác nhau rất cao); cột chỉ có ít giá trị lặp lại nhiều thường là thuộc tính phân loại (chức danh, trạng thái, danh mục, thành phố), không phải họ tên đầy đủ.
+- NGOẠI LỆ BẮT BUỘC: họ hoặc tên riêng lẻ (ho, ten, first_name, last_name, surname...) cũng lặp lại nhiều nhưng vẫn là FULL_NAME. Không bao giờ dùng tỷ lệ thấp để kết luận một cột có dấu hiệu tên người là không phải PII.
 
 {format_instructions}
 
@@ -166,10 +172,12 @@ QUAN TRỌNG: Trường 'reasoning' TRONG JSON PHẢI CỰC KỲ NGẮN GỌN (T
 {few_shot_examples}
 
 THÔNG TIN CỘT CẦN PHÂN TÍCH:
+- Bảng/collection: {table_name}
 - Tên cột: {column_name}
 - Kiểu dữ liệu SQL: {data_type}
 - Là Khóa (Key): {system_rec}
 - Data Shapes (Mẫu dữ liệu đã được biến đổi thành dạng ký tự X và C): {data_shapes}
+- Thống kê phân bố (mức gần đúng): {distribution}
 
 Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu cầu (không thêm bất kỳ văn bản giải thích nào khác).""")
         ])
@@ -177,10 +185,15 @@ Hãy đưa ra quyết định cuối cùng dưới dạng JSON theo schema yêu 
         # Gọi API thật. Bắt kết quả thô để lấy response_metadata
         raw_response = llm.invoke(prompt.format_prompt(**{
             "few_shot_examples": few_shot_str,
+            "table_name": col_profile.table_name or "không rõ",
             "column_name": col_profile.column_name,
             "data_type": col_profile.data_type,
             "system_rec": col_profile.system_recommendation or "Không",
             "data_shapes": json.dumps(data_shape),
+            # Coarse buckets only: no exact counts, no values (see column_stats).
+            "distribution": describe_distribution(
+                col_profile.profiled_values, col_profile.distinct_ratio, col_profile.null_ratio
+            ) or "không có (quá ít dữ liệu)",
             "format_instructions": parser.get_format_instructions(),
             "allowed_types": allowed_types,
         }).to_messages())

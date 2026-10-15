@@ -164,8 +164,10 @@ def test_apply_action_all_policy_actions():
     keep, val = apply_action("sensitive_data", "NULLIFY", secret=secret, key_version=ver)
     assert keep is True and val is None
 
-    # REDACT
-    keep, val = apply_action("secret_text", "REDACT", secret=secret, key_version=ver)
+    # REDACT: entity-level (NER) on text, whole value for non-text
+    keep, val = apply_action("Gọi 0912345678 sau 5h", "REDACT", secret=secret, key_version=ver)
+    assert keep is True and val == "Gọi [PHONE] sau 5h"
+    keep, val = apply_action(12345, "REDACT", secret=secret, key_version=ver)
     assert keep is True and val == "[REDACTED]"
 
     # PARTIAL
