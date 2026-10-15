@@ -18,7 +18,8 @@ describe('MaskingDemoView', () => {
     const input = screen.getByLabelText('Dữ liệu thử nghiệm');
     fireEvent.change(input, { target: { value: '0987654321' } });
 
-    expect(screen.getByText('098****321')).toBeInTheDocument();
+    expect(screen.getByText('0987654321')).toBeInTheDocument();
+    expect(screen.getAllByText('***').length).toBeGreaterThan(0);
   });
 
   it('allows selecting quick sample chips to populate input', () => {
@@ -27,7 +28,13 @@ describe('MaskingDemoView', () => {
     const emailChip = screen.getByRole('button', { name: 'Địa chỉ Email' });
     fireEvent.click(emailChip);
 
-    const input = screen.getByLabelText('Dữ liệu thử nghiệm') as HTMLInputElement;
-    expect(input.value).toBe('phuc.nguyen@enterprise.vn');
+    const input = screen.getByLabelText('Dữ liệu thử nghiệm');
+    expect(input).toHaveValue('phuc.nguyen@enterprise.vn');
+  });
+
+  it('displays *** mask for full name in sandbox and matrix table', () => {
+    render(<MaskingDemoView />);
+
+    expect(screen.getAllByText('***').length).toBeGreaterThan(0);
   });
 });

@@ -18,5 +18,6 @@
 | **FE-14** | DPO Tabs Cleanup & Exception Lifecycle | Sprint 04 | **done** | Tối giản 3 tabs cốt lõi, loại bỏ tab thừa, hỗ trợ exceptionUntil ([chi tiết](details/FE-14-dpo-tabs-cleanup-exception-lifecycle.md)) |
 | **FE-15** | Streamline Masking Demo Tab | Sprint 04 | **done** | Trang `/dpo/masking` tinh gọn, loại bỏ sub-tabs rườm rà, tập trung ma trận che mờ và sandbox thử nghiệm ([chi tiết](details/FE-15-streamline-masking-demo.md)) |
 | **FE-16** | Legal Compliance Framework & PII Ordering | Sprint 04 | **done** | Cập nhật tab Quy định pháp luật, sắp xếp chuẩn L1 ➔ L2 ➔ L3, chuẩn hóa văn bản luật ([chi tiết](details/FE-16-compliance-legal-framework-and-levels-reorder.md)) |
+| **FE-17** | Standardize All Masking to `***` | Sprint 04 | **done** | Đổi cơ chế che mờ họ tên và mọi trường dữ liệu thành `***` bảo mật, đồng nhất chuẩn MASK_PLACEHOLDER ([chi tiết](details/FE-17-standardize-name-masking-placeholder.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

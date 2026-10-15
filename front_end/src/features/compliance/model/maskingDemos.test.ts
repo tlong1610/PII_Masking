@@ -30,11 +30,19 @@ describe('maskingDemos model', () => {
     }
   });
 
-  it('masks various types of strings effectively', () => {
-    expect(maskString('phuc.nguyen@enterprise.vn')).toContain('@enterprise.vn');
-    expect(maskString('0912345678')).toBe('091****678');
-    expect(maskString('Nguyễn Văn Phúc')).toContain('*');
+  it('masks various types of strings uniformly as ***', () => {
+    expect(maskString('phuc.nguyen@enterprise.vn')).toBe('***');
+    expect(maskString('0912345678')).toBe('***');
+    expect(maskString('Nguyễn Văn Phúc')).toBe('***');
     expect(maskString('')).toBe('***');
+  });
+
+  it('masks full-name and all demo items strictly as *** placeholder', () => {
+    const nameItem = MASKING_DEMO_ITEMS.find((item) => item.id === 'full-name');
+    expect(nameItem?.maskValue).toBe('***');
+    for (const item of MASKING_DEMO_ITEMS) {
+      expect(item.maskValue).toMatch(/^\*\*\*/);
+    }
   });
 
   it('generates 64-char pseudo-HMAC hex string', () => {
