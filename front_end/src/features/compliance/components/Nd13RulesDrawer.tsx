@@ -76,10 +76,10 @@ export function Nd13RulesDrawer({ open, onClose }: Nd13RulesDrawerProps): JSX.El
             <GavelIcon color="primary" />
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                Cẩm nang Nghị định 13
+                Căn cứ pháp lý & Quy định
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Luật BV DLCN 2025 & NĐ 13/2023/NĐ-CP
+                Luật BV DLCN & Quy chuẩn bảo vệ dữ liệu cá nhân
               </Typography>
             </Box>
           </Stack>
@@ -104,7 +104,7 @@ export function Nd13RulesDrawer({ open, onClose }: Nd13RulesDrawerProps): JSX.El
         />
 
         <Tabs value={tabIndex} onChange={(_, next: number) => setTabIndex(next)} variant="fullWidth">
-          <Tab icon={<ShieldOutlinedIcon fontSize="small" />} iconPosition="start" label="Phân loại PII" />
+          <Tab icon={<ShieldOutlinedIcon fontSize="small" />} iconPosition="start" label="Phân loại PII (L1 ➔ L2 ➔ L3)" />
           <Tab icon={<GavelIcon fontSize="small" />} iconPosition="start" label="Điều khoản luật" />
         </Tabs>
         <Divider />

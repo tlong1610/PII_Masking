@@ -6,7 +6,7 @@ describe('Nd13RulesDrawer', () => {
   it('renders title and tabs when open', () => {
     render(<Nd13RulesDrawer open={true} onClose={vi.fn()} />);
 
-    expect(screen.getByText('Cẩm nang Nghị định 13')).toBeInTheDocument();
+    expect(screen.getByText('Căn cứ pháp lý & Quy định')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Phân loại PII/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Điều khoản luật/i })).toBeInTheDocument();
   });
@@ -17,7 +17,7 @@ describe('Nd13RulesDrawer', () => {
     const searchInput = screen.getByPlaceholderText(/Tìm quy định/i);
     fireEvent.change(searchInput, { target: { value: 'Nhạy cảm' } });
 
-    expect(screen.getByText(/Dữ liệu cá nhân Nhạy cảm/i)).toBeInTheDocument();
+    expect(screen.getByText('Dữ liệu cá nhân Nhạy cảm (Sensitive PII)')).toBeInTheDocument();
     expect(screen.queryByText(/Dữ liệu cá nhân Cơ bản/i)).not.toBeInTheDocument();
   });
 

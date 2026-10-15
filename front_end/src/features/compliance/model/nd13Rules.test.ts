@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ND13_KEY_ARTICLES, PII_CLASSIFICATION_RULES } from './nd13Rules';
 
 describe('nd13Rules model', () => {
-  it('defines rules for L1, L2, and L3 PII levels', () => {
+  it('defines rules for L1, L2, and L3 PII levels and strictly orders them as L1 -> L2 -> L3', () => {
     const levels = PII_CLASSIFICATION_RULES.map((rule) => rule.level);
-    expect(levels).toContain('L1');
-    expect(levels).toContain('L2');
-    expect(levels).toContain('L3');
+    expect(levels).toEqual(['L1', 'L2', 'L3']);
   });
 
   it('mandates MASK or DROP for sensitive PII (L3)', () => {

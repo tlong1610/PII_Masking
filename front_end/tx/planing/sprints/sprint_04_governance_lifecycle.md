@@ -1,7 +1,7 @@
 # Sprint 04: Governance Hub, Audit Ledger & Dataset Lifecycle Management
 
-**Trạng thái**: Đang triển khai (IN PROGRESS)  
-**Mục tiêu**: Nâng cấp PIIGuard Shield thành nền tảng quản trị tuân thủ toàn diện: tích hợp cẩm nang pháp lý Nghị định 13, Trung tâm kiểm toán Sổ cái Hash-Chain, Showcase Demo che dữ liệu trực quan trên Sidebar, và quản lý vòng đời Snapshot đã phát hành (Option 1 Catalog Explorer & Revocation).
+**Trạng thái**: Hoàn thành (DONE)  
+**Mục tiêu**: Nâng cấp PIIGuard Shield thành nền tảng quản trị tuân thủ toàn diện: tích hợp cẩm nang pháp lý và quy định bảo vệ DLCN (L1 ➔ L2 ➔ L3), Trung tâm kiểm toán Sổ cái Hash-Chain, Showcase Demo che dữ liệu trực quan trên Sidebar (/dpo/masking), và tinh giản DPO Workspace 3 tabs cùng quản lý vòng đời ngoại lệ exceptionUntil.
 
 ---
 
@@ -56,15 +56,18 @@ Sau khi hoàn thành Sprint 03 với các sơ đồ trực quan (Source Scope Di
 - Loại bỏ hệ thống tab con phân mảnh (họ tên, sđt, địa chỉ...) vì bản chất mask là `***`.
 - Xây dựng bảng đối chiếu ma trận duy nhất (RAW vs MASK `***` vs HMAC vs DROP) và hộp tương tác thử nghiệm real-time.
 
+### Task 7: Cập Nhật Tab Quy Định Pháp Luật & Chuẩn Hóa L1 ➔ L2 ➔ L3 (`FE-16`)
+- Đổi tên tab Sidebar thành "Quy định pháp luật" và chuẩn hóa văn bản bao quát Luật Bảo vệ DLCN & các Nghị định quy định chi tiết.
+- Tái sắp xếp thứ tự phân loại dữ liệu theo đúng trật tự logic: L1 (Gián tiếp / Khóa nối) ➔ L2 (Cơ bản) ➔ L3 (Nhạy cảm).
+
 ---
 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 
-- [ ] Click "Nghị định 13 Rules" trên Sidebar mở Drawer tra cứu chuẩn xác, có thể đóng mở mượt mà.
-- [ ] Click "Sổ cái Hash-Chain" trên Sidebar mở Trung tâm kiểm toán mật mã với đầy đủ Merkle Root và nút kiểm chứng toàn vẹn.
-- [ ] Mục "Demo che dữ liệu" hiển thị ngay dưới "Sổ cái Hash-Chain" trên Sidebar, cho phép tương tác so sánh các chế độ che cho mọi loại PII.
-- [ ] DPO Catalog phân tách rõ 2 nhóm Data Sources và Published Snapshots.
-- [ ] DPO có thể xem lịch sử các snapshot và bấm nút Revoke để chuyển trạng thái sang `REVOKED`.
-- [ ] DPO Workspace chỉ còn 3 tabs hoạt động mượt mà, không còn tab mockup tĩnh.
-- [ ] Khi chọn ngoại lệ `KEEP`, bắt buộc nhập lý do và thời hạn `exceptionUntil`.
-- [ ] Không có lỗi lint, typecheck; toàn bộ tests cũ và mới đều pass.
+- [x] Click "Quy định pháp luật" trên Sidebar mở trang toàn màn hình tra cứu chuẩn xác, hiển thị đầy đủ L1 ➔ L2 ➔ L3.
+- [x] Click "Sổ cái Hash-Chain" trên Sidebar mở Trung tâm kiểm toán mật mã với đầy đủ Merkle Root, chuỗi khối trực quan và nút kiểm chứng toàn vẹn.
+- [x] Mục "Demo che dữ liệu" hiển thị ngay dưới "Sổ cái Hash-Chain" trên Sidebar, mở trang toàn màn hình `/dpo/masking` với sandbox tương tác real-time và ma trận đối chiếu thống nhất.
+- [x] DPO Workspace chỉ còn 3 tabs hoạt động mượt mà, không còn tab mockup tĩnh.
+- [x] Khi chọn ngoại lệ `KEEP`, bắt buộc nhập lý do và thời hạn `exceptionUntil`.
+- [x] Không có lỗi lint, typecheck; toàn bộ tests cũ và mới đều pass 100% (123/123 tests pass).
+- [x] Phân chia ranh giới rõ ràng: FE-13 chuyển giao dev khác, FE-05 đóng do out of scope.

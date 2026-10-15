@@ -6,8 +6,8 @@ describe('Nd13RulesView', () => {
   it('renders page header and tabs', () => {
     render(<Nd13RulesView />);
 
-    expect(screen.getByText('Nghị định 13 & Luật BV DLCN 2025')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Phân loại PII & Sàn kỹ thuật/i })).toBeInTheDocument();
+    expect(screen.getByText('Quy Định Pháp Luật & Chuẩn Bảo Vệ Dữ Liệu')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Phân loại PII \(L1 ➔ L2 ➔ L3\)/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Điều khoản luật trọng yếu/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Ma trận hành động bảo vệ/i })).toBeInTheDocument();
   });
@@ -15,10 +15,10 @@ describe('Nd13RulesView', () => {
   it('filters rules using search input', () => {
     render(<Nd13RulesView />);
 
-    const searchInput = screen.getByPlaceholderText(/Tìm kiếm điều khoản/i);
+    const searchInput = screen.getByPlaceholderText(/Tìm kiếm quy định pháp luật/i);
     fireEvent.change(searchInput, { target: { value: 'Nhạy cảm' } });
 
-    expect(screen.getByText(/Dữ liệu cá nhân Nhạy cảm/i)).toBeInTheDocument();
+    expect(screen.getByText('Dữ liệu cá nhân Nhạy cảm (Sensitive PII)')).toBeInTheDocument();
     expect(screen.queryByText(/Dữ liệu cá nhân Cơ bản/i)).not.toBeInTheDocument();
   });
 
