@@ -36,7 +36,7 @@ Sau khi hoàn thành Sprint 03 với các sơ đồ trực quan (Source Scope Di
   - So sánh trực quan dạng Side-by-side: `Raw Value` vs `MASK` vs `HMAC` vs `DROP` vs `KEEP`.
   - Giải thích thuật toán ứng dụng (Format-Preserving Masking, SHA-256 HMAC với Secret Salt).
 
-### Task 4: DPO Catalog Explorer — Option 1 & Thu Hồi Dataset (`FE-13`)
+### Task 4: DPO Catalog Explorer — Option 1 & Thu Hồi Dataset (`FE-13`) — *[Đã chuyển giao dev khác phụ trách]*
 - Tái cấu trúc Catalog bên trái DPO Workspace thành 2 phân hệ:
   - 📂 **Data Sources**: Quản lý kết nối PostgreSQL & MongoDB, chọn nguồn để quét mới.
   - 📦 **Published Snapshots**: Xem toàn bộ lịch sử dataset đã phát hành với nhãn trạng thái `PUBLISHED` (Xanh) hoặc `REVOKED` (Đỏ).
