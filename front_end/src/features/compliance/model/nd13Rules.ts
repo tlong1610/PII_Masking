@@ -175,3 +175,55 @@ export const ND13_KEY_ARTICLES: readonly Nd13Article[] = [
     sourceUrl: 'https://thuvienphapluat.vn/van-ban/Cong-nghe-thong-tin/Nghi-dinh-356-2025-ND-CP-huong-dan-Luat-Bao-ve-du-lieu-ca-nhan-628392.aspx',
   },
 ] as const;
+
+export type ActionBadgeColor = 'default' | 'success' | 'info' | 'warning' | 'error';
+
+export interface ActionBadge {
+  label: string;
+  color?: ActionBadgeColor;
+}
+
+export interface PiiActionMatrixRow {
+  level: 'L1' | 'L2' | 'L3';
+  levelLabel: string;
+  badgeColor: 'info' | 'warning' | 'error';
+  definition: string;
+  mask: ActionBadge;
+  hmac: ActionBadge;
+  drop: ActionBadge;
+  keep: ActionBadge;
+}
+
+export const PII_ACTION_MATRIX: readonly PiiActionMatrixRow[] = [
+  {
+    level: 'L1',
+    levelLabel: 'L1 — Gián tiếp',
+    badgeColor: 'info',
+    definition: 'User ID, Session ID, Khóa nối liên kết',
+    mask: { label: 'Tùy chọn', color: 'default' },
+    hmac: { label: 'Khuyến nghị', color: 'success' },
+    drop: { label: 'Tùy chọn', color: 'default' },
+    keep: { label: 'Cho phép', color: 'info' },
+  },
+  {
+    level: 'L2',
+    levelLabel: 'L2 — Cơ bản',
+    badgeColor: 'warning',
+    definition: 'Họ tên, SĐT, CCCD, Email, Nơi cư trú',
+    mask: { label: 'Khuyến nghị', color: 'success' },
+    hmac: { label: 'Hợp lệ', color: 'info' },
+    drop: { label: 'Hợp lệ', color: 'default' },
+    keep: { label: 'Có thời hạn', color: 'warning' },
+  },
+  {
+    level: 'L3',
+    levelLabel: 'L3 — Nhạy cảm',
+    badgeColor: 'error',
+    definition: 'Bệnh án, tài chính, tôn giáo, sinh trắc học',
+    mask: { label: 'Bắt buộc', color: 'success' },
+    hmac: { label: 'Tùy chọn', color: 'default' },
+    drop: { label: 'Bắt buộc', color: 'success' },
+    keep: { label: 'Cấm tuyệt đối', color: 'error' },
+  },
+] as const;
+

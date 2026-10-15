@@ -62,4 +62,30 @@ describe('Nd13RulesView', () => {
     expect(articleLinks[0]).toHaveAttribute('href', expect.stringContaining('thuvienphapluat.vn'));
     expect(articleLinks[0]).toHaveAttribute('target', '_blank');
   });
+
+  it('renders protection matrix table ordered strictly as L1 -> L2 -> L3 with action chips', () => {
+    render(<Nd13RulesView />);
+
+    const matrixTab = screen.getByRole('tab', { name: /Ma trận hành động bảo vệ/i });
+    fireEvent.click(matrixTab);
+
+    expect(screen.getByRole('table', { name: /Ma trận hành động bảo vệ PII/i })).toBeInTheDocument();
+
+    const cells = screen.getAllByRole('cell');
+    const cellTexts = cells.map((cell) => cell.textContent ?? '');
+
+    const l1Index = cellTexts.findIndex((t) => t.includes('L1 — Gián tiếp'));
+    const l2Index = cellTexts.findIndex((t) => t.includes('L2 — Cơ bản'));
+    const l3Index = cellTexts.findIndex((t) => t.includes('L3 — Nhạy cảm'));
+
+    expect(l1Index).toBeGreaterThan(-1);
+    expect(l2Index).toBeGreaterThan(l1Index);
+    expect(l3Index).toBeGreaterThan(l2Index);
+
+    // Verify key action chips are present in the table
+    expect(screen.getByText('Cấm tuyệt đối')).toBeInTheDocument();
+    expect(screen.getByText('Cho phép')).toBeInTheDocument();
+    expect(screen.getByText('Có thời hạn')).toBeInTheDocument();
+  });
 });
+

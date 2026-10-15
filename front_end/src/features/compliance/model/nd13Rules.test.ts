@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ND13_KEY_ARTICLES, OFFICIAL_LEGAL_DOCUMENTS, PII_CLASSIFICATION_RULES } from './nd13Rules';
+import {
+  ND13_KEY_ARTICLES,
+  OFFICIAL_LEGAL_DOCUMENTS,
+  PII_ACTION_MATRIX,
+  PII_CLASSIFICATION_RULES,
+} from './nd13Rules';
 
 describe('nd13Rules model', () => {
   it('defines rules for L1, L2, and L3 PII levels and strictly orders them as L1 -> L2 -> L3', () => {
@@ -50,4 +55,28 @@ describe('nd13Rules model', () => {
       expect(article.sourceUrl).toMatch(/^https:\/\/thuvienphapluat\.vn\//);
     }
   });
+
+  it('strictly orders PII action matrix from L1 -> L2 -> L3 and defines accurate protection rules', () => {
+    const levels = PII_ACTION_MATRIX.map((row) => row.level);
+    expect(levels).toEqual(['L1', 'L2', 'L3']);
+
+    const l1 = PII_ACTION_MATRIX.find((row) => row.level === 'L1');
+    expect(l1?.mask.label).toBe('Tùy chọn');
+    expect(l1?.hmac.label).toBe('Khuyến nghị');
+    expect(l1?.drop.label).toBe('Tùy chọn');
+    expect(l1?.keep.label).toBe('Cho phép');
+
+    const l2 = PII_ACTION_MATRIX.find((row) => row.level === 'L2');
+    expect(l2?.mask.label).toBe('Khuyến nghị');
+    expect(l2?.hmac.label).toBe('Hợp lệ');
+    expect(l2?.drop.label).toBe('Hợp lệ');
+    expect(l2?.keep.label).toBe('Có thời hạn');
+
+    const l3 = PII_ACTION_MATRIX.find((row) => row.level === 'L3');
+    expect(l3?.mask.label).toBe('Bắt buộc');
+    expect(l3?.hmac.label).toBe('Tùy chọn');
+    expect(l3?.drop.label).toBe('Bắt buộc');
+    expect(l3?.keep.label).toBe('Cấm tuyệt đối');
+  });
 });
+
