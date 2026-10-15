@@ -11,7 +11,7 @@ Tài liệu quản lý lộ trình phát triển giao diện người dùng (Fro
 | **Sprint 01** | UI MVP Baseline | **Hoàn thành (DONE)** | Screens `/login`, `/dpo`, `/analyst`, phân quyền theo role, trạng thái loading/empty/error |
 | **Sprint 02** | Real API Integration | **Hoàn thành (DONE)** | Tích hợp `realPiiReviewApi`, Zod validation tại boundary, DPO Scan/Review/Build, Analyst Preview |
 | **Sprint 03** | Visual Hardening & Dynamic Sources | **Hoàn thành (DONE)** | `SourceScopePickerDiagram` (dagre layout), `ErdLineageDiagram`, `AddSourceDialog` (PostgreSQL/MongoDB Cloud), Field Policy Drawer, Collapsible Table Groups |
-| **Sprint 04** | Governance Hub & Lifecycle | **Đang thực hiện (IN PROGRESS)** | Nghị định 13 Rules Drawer, Sổ cái Hash-Chain Audit Center, Masking Demo Showcase (dưới Sổ cái trên Sidebar), Option 1 Catalog Explorer (Data Sources vs Published Snapshots) & Revoke UI |
+| **Sprint 04** | Governance Hub & Lifecycle | **Hoàn thành (DONE)** | Quy định pháp luật (L1 ➔ L2 ➔ L3), Sổ cái Hash-Chain Audit Center, Demo Che Dữ Liệu (/dpo/masking), Tinh giản 3 tabs DPO & Exception Lifecycle |
 
 ---
 
