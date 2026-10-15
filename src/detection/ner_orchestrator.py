@@ -35,7 +35,7 @@ class NERPipelines:
         dict_matches = self.dict_scanner.scan_text(text_t1)
         text_t2 = TextRedactor.redact(text_t1, dict_matches)
 
-        # TẦNG 3: AI / ML NER (PhoBERT)
+        # TẦNG 3: AI / ML NER (GLiNER Zero-Shot)
         ml_matches = self.ml_scanner.scan_text(text_t2)
         final_text = TextRedactor.redact(text_t2, ml_matches)
 
