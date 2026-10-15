@@ -30,4 +30,13 @@ describe('Nd13RulesDrawer', () => {
 
     expect(handleClose).toHaveBeenCalledOnce();
   });
+
+  it('renders web links to legal source documents in drawer', () => {
+    render(<Nd13RulesDrawer open={true} onClose={vi.fn()} />);
+
+    const sourceLinks = screen.getAllByRole('link', { name: /Xem nguồn luật/i });
+    expect(sourceLinks.length).toBeGreaterThan(0);
+    expect(sourceLinks[0]).toHaveAttribute('href', expect.stringContaining('thuvienphapluat.vn'));
+    expect(sourceLinks[0]).toHaveAttribute('target', '_blank');
+  });
 });
