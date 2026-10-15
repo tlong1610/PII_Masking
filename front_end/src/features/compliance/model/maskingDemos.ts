@@ -118,3 +118,54 @@ export const MASKING_DEMO_ITEMS: readonly MaskingDemoItem[] = [
     joinable: true,
   },
 ] as const;
+
+/**
+ * Transforms any raw input into formatted asterisks (***) mask.
+ */
+export function maskString(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return '***';
+
+  // Email format
+  if (trimmed.includes('@')) {
+    const [local, domain] = trimmed.split('@');
+    if (!local || !domain) return '***@***';
+    const maskedLocal = local.length <= 2 ? `${local[0]}*` : `${local[0]}***${local[local.length - 1]}`;
+    return `${maskedLocal}@${domain}`;
+  }
+
+  // Numeric (Phone, CCCD, Card)
+  if (/^\d+$/.test(trimmed)) {
+    if (trimmed.length <= 4) return '***';
+    const prefix = trimmed.slice(0, Math.min(3, Math.floor(trimmed.length / 3)));
+    const suffix = trimmed.slice(-Math.min(3, Math.floor(trimmed.length / 3)));
+    const stars = '*'.repeat(Math.max(3, trimmed.length - prefix.length - suffix.length));
+    return `${prefix}${stars}${suffix}`;
+  }
+
+  // Full name / multi-word
+  const words = trimmed.split(/\s+/);
+  if (words.length > 1) {
+    return words
+      .map((w) => (w.length <= 1 ? '*' : `${w[0]}${'*'.repeat(Math.max(2, w.length - 1))}`))
+      .join(' ');
+  }
+
+  // Single word
+  if (trimmed.length <= 2) return `${trimmed[0]}*`;
+  return `${trimmed[0]}${'*'.repeat(Math.max(3, trimmed.length - 2))}${trimmed[trimmed.length - 1]}`;
+}
+
+/**
+ * Deterministic pseudo-HMAC SHA-256 hex generator for demo visualization.
+ */
+export function simulateHmacSha256(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const hex32 = (hash >>> 0).toString(16).padStart(8, '0');
+  return `${hex32}e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d${hex32}`.slice(0, 64);
+}
+

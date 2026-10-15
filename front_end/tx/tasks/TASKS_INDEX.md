@@ -6,7 +6,7 @@
 | **FE-02** | Connect real backend APIs | Sprint 02 | **done** | Tích hợp `realPiiReviewApi` & Zod validation ([chi tiết](details/FE-02-api-integration.md)) |
 | **FE-03** | Harden auth/session flow | Sprint 02 | **done** | Định tuyến phân quyền DPO vs Analyst ([chi tiết](details/FE-03-auth-session.md)) |
 | **FE-04** | Add tests and quality gates | Sprint 02 | **done** | Vitest, RTL, Typecheck strict, Boundaries ([chi tiết](details/FE-04-tests-quality.md)) |
-| **FE-05** | Add image scan flow | Post-MVP | **blocked** | Tạm hoãn: Đợi backend bổ sung OCR/Image AI API ([chi tiết](details/FE-05-image-scan.md)) |
+| **FE-05** | Add image scan flow | Post-MVP | **closed** | Đã đóng: Out of scope (không triển khai tính năng quét ảnh OCR) ([chi tiết](details/FE-05-image-scan.md)) |
 | **FE-06** | Redesign DPO decision workspace | Sprint 03 | **done** | Không gian thẩm định DPO chuyên sâu ([chi tiết](details/FE-06-dpo-decision-workspace.md)) |
 | **FE-07** | Harden API error and edge states | Sprint 03 | **done** | Xử lý lỗi 401, 403, 404, 409, 422, 500 an toàn ([chi tiết](details/FE-07-api-error-edge-states.md)) |
 | **FE-08** | Add dynamic database source UI | Sprint 03 | **done** | Hỗ trợ PostgreSQL & MongoDB Cloud ([chi tiết](details/FE-08-dynamic-database-source.md)) |
@@ -14,7 +14,8 @@
 | **FE-10** | Nghị định 13 Compliance Rules Page | Sprint 04 | **done** | Trang toàn màn hình `/dpo/rules` tra cứu pháp lý NĐ 13 3 tabs ([chi tiết](details/FE-10-nd13-compliance-rules.md)) |
 | **FE-11** | Sổ cái Hash-Chain & Merkle Root Audit | Sprint 04 | **done** | Chuỗi khối kết nối trực quan, drawer xem chi tiết SHA-256 hex 64 ký tự & kiểm chứng Merkle root ([chi tiết](details/FE-11-hash-chain-audit-center.md)) |
 | **FE-12** | Sidebar Masking Showcase (Demo che) | Sprint 04 | **done** | Màn hình đối chiếu đa chiều đặt ngay dưới Sổ cái trên Sidebar ([chi tiết](details/FE-12-masking-showcase-sidebar.md)) |
-| **FE-13** | DPO Catalog Explorer & Revocation UI | Sprint 04 | **in-progress** | Phương án 1: Data Sources vs Snapshots & Thu hồi ([chi tiết](details/FE-13-published-snapshots-revoke.md)) |
+| **FE-13** | DPO Catalog Explorer & Revocation UI | Sprint 04 | **closed** | Đã đóng: Chuyển giao dev khác phụ trách ([chi tiết](details/FE-13-published-snapshots-revoke.md)) |
 | **FE-14** | DPO Tabs Cleanup & Exception Lifecycle | Sprint 04 | **done** | Tối giản 3 tabs cốt lõi, loại bỏ tab thừa, hỗ trợ exceptionUntil ([chi tiết](details/FE-14-dpo-tabs-cleanup-exception-lifecycle.md)) |
+| **FE-15** | Streamline Masking Demo Tab | Sprint 04 | **done** | Trang `/dpo/masking` tinh gọn, loại bỏ sub-tabs rườm rà, tập trung ma trận che mờ và sandbox thử nghiệm ([chi tiết](details/FE-15-streamline-masking-demo.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

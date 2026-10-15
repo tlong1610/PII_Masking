@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MASKING_DEMO_ITEMS } from './maskingDemos';
+import { MASKING_DEMO_ITEMS, maskString, simulateHmacSha256 } from './maskingDemos';
 
 describe('maskingDemos model', () => {
   it('covers essential personal data types', () => {
@@ -29,4 +29,19 @@ describe('maskingDemos model', () => {
       expect(item.keepValue.length).toBeGreaterThan(0);
     }
   });
+
+  it('masks various types of strings effectively', () => {
+    expect(maskString('phuc.nguyen@enterprise.vn')).toContain('@enterprise.vn');
+    expect(maskString('0912345678')).toBe('091****678');
+    expect(maskString('Nguyễn Văn Phúc')).toContain('*');
+    expect(maskString('')).toBe('***');
+  });
+
+  it('generates 64-char pseudo-HMAC hex string', () => {
+    const hash = simulateHmacSha256('test');
+    expect(hash).toHaveLength(64);
+    expect(/^[0-9a-f]{64}$/.test(hash)).toBe(true);
+  });
 });
+
+

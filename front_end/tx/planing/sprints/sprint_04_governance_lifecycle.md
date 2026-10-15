@@ -51,6 +51,11 @@ Sau khi hoàn thành Sprint 03 với các sơ đồ trực quan (Source Scope Di
 - Loại bỏ Tab Permissions & Grants cũ (mockup tĩnh).
 - Quy trình hết hạn ngoại lệ: Đánh dấu vi phạm cảnh báo đỏ khi `now > exceptionUntil`, hướng dẫn luồng Thu hồi (Revoke) ➔ Tái xuất bản v2.
 
+### Task 6: Tinh Giản Tab Demo Che Dữ Liệu (`FE-15`)
+- Chuyển "Demo che dữ liệu" thành một Tab / Route toàn màn hình chuẩn trên Sidebar (`/dpo/masking`).
+- Loại bỏ hệ thống tab con phân mảnh (họ tên, sđt, địa chỉ...) vì bản chất mask là `***`.
+- Xây dựng bảng đối chiếu ma trận duy nhất (RAW vs MASK `***` vs HMAC vs DROP) và hộp tương tác thử nghiệm real-time.
+
 ---
 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
