@@ -6,6 +6,7 @@ export const routes = {
   dpoDatasets: '/dpo/datasets',
   dpoDataset: (datasetId: number): string => `/dpo/datasets/${datasetId}`,
   dpoAudit: '/dpo/audit',
+  dpoMasking: '/dpo/masking',
   dpoRules: '/dpo/rules',
   analyst: '/analyst',
 } as const;
