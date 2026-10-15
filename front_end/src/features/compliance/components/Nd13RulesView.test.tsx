@@ -31,4 +31,35 @@ describe('Nd13RulesView', () => {
     expect(screen.getByText('Điều 9')).toBeInTheDocument();
     expect(screen.getByText('Quyền của chủ thể dữ liệu')).toBeInTheDocument();
   });
+
+  it('renders 2 primary legal sources with external links opening in new tab', () => {
+    render(<Nd13RulesView />);
+
+    expect(screen.getByText('Văn Bản Pháp Luật Nguồn & Dẫn Chứng Trực Tiếp')).toBeInTheDocument();
+    expect(screen.getByText('2 Luật Chủ Lực')).toBeInTheDocument();
+    expect(screen.getByText('Luật số 91/2025/QH15')).toBeInTheDocument();
+    expect(screen.getByText('Nghị định 356/2025/NĐ-CP')).toBeInTheDocument();
+
+    const lawLink = screen.getByRole('link', { name: /Đọc toàn văn Luật số 91\/2025\/QH15 trên web/i });
+    expect(lawLink).toHaveAttribute('href', expect.stringContaining('thuvienphapluat.vn'));
+    expect(lawLink).toHaveAttribute('target', '_blank');
+    expect(lawLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const decreeLink = screen.getByRole('link', { name: /Đọc toàn văn Nghị định 356\/2025\/NĐ-CP trên web/i });
+    expect(decreeLink).toHaveAttribute('href', expect.stringContaining('thuvienphapluat.vn'));
+    expect(decreeLink).toHaveAttribute('target', '_blank');
+    expect(decreeLink).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('renders citation and web source links on key articles tab', () => {
+    render(<Nd13RulesView />);
+
+    const articlesTab = screen.getByRole('tab', { name: /Điều khoản luật trọng yếu/i });
+    fireEvent.click(articlesTab);
+
+    const articleLinks = screen.getAllByRole('link', { name: /Xem văn bản gốc/i });
+    expect(articleLinks.length).toBeGreaterThan(0);
+    expect(articleLinks[0]).toHaveAttribute('href', expect.stringContaining('thuvienphapluat.vn'));
+    expect(articleLinks[0]).toHaveAttribute('target', '_blank');
+  });
 });

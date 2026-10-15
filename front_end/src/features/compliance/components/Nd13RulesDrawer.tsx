@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
@@ -13,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import GavelIcon from '@mui/icons-material/Gavel';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SearchIcon from '@mui/icons-material/Search';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { ND13_KEY_ARTICLES, PII_CLASSIFICATION_RULES, type PiiClassificationRule } from '../model/nd13Rules';
@@ -45,6 +47,24 @@ function ClassificationCard({ rule }: { rule: PiiClassificationRule }): JSX.Elem
           <Typography variant="caption" color="text.secondary">
             {rule.exceptionPolicy}
           </Typography>
+          <Divider sx={{ my: 0.75 }} />
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              Căn cứ: {rule.legalBasis}
+            </Typography>
+            <Button
+              size="small"
+              component="a"
+              href={rule.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              endIcon={<OpenInNewIcon fontSize="inherit" />}
+              sx={{ minHeight: 28, fontSize: '0.6875rem', textTransform: 'none', p: 0.25 }}
+              aria-label={`Xem nguồn luật cho ${rule.badgeLabel}`}
+            >
+              Xem nguồn
+            </Button>
+          </Stack>
         </Box>
       </Stack>
     </Paper>
@@ -58,6 +78,7 @@ export function Nd13RulesDrawer({ open, onClose }: Nd13RulesDrawerProps): JSX.El
   const filteredRules = PII_CLASSIFICATION_RULES.filter((rule) =>
     searchQuery === '' ||
     rule.categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    rule.legalBasis.toLowerCase().includes(searchQuery.toLowerCase()) ||
     rule.examples.some((ex) => ex.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -65,7 +86,8 @@ export function Nd13RulesDrawer({ open, onClose }: Nd13RulesDrawerProps): JSX.El
     searchQuery === '' ||
     article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     article.articleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    article.summary.toLowerCase().includes(searchQuery.toLowerCase())
+    article.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    article.legalBasis.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -123,14 +145,31 @@ export function Nd13RulesDrawer({ open, onClose }: Nd13RulesDrawerProps): JSX.El
               {filteredArticles.map((article) => (
                 <Paper key={article.id} variant="outlined" sx={{ p: 2 }}>
                   <Stack spacing={1}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Chip label={article.articleNumber} color="primary" size="small" variant="outlined" />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        {article.title}
-                      </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip label={article.articleNumber} color="primary" size="small" variant="outlined" />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {article.title}
+                        </Typography>
+                      </Stack>
+                      <Button
+                        size="small"
+                        component="a"
+                        href={article.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        endIcon={<OpenInNewIcon fontSize="inherit" />}
+                        sx={{ minHeight: 28, fontSize: '0.6875rem', textTransform: 'none', p: 0.25 }}
+                        aria-label={`Xem văn bản gốc ${article.articleNumber}`}
+                      >
+                        Toàn văn
+                      </Button>
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
                       {article.summary}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      Căn cứ: {article.legalBasis}
                     </Typography>
                     <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
                       {article.details.map((detail, idx) => (
