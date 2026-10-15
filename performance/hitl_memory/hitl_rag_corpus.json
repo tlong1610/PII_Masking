@@ -1,0 +1,690 @@
+[
+  {
+    "id": "ENT-CCCD",
+    "content": "Bản thân số CCCD (số định danh cá nhân) là dữ liệu cơ bản. Quy tắc kết hợp: Nếu số CCCD đi cùng ảnh CCCD hoặc hồ sơ tài chính thì toàn bộ tập dữ liệu phải được bảo vệ theo mức nhạy cảm cao hơn.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số CCCD",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 7 Điều 3 NĐ 356",
+      "keywords": [
+        "số cccd",
+        "cccd",
+        "cmnd",
+        "chứng minh nhân dân",
+        "số định danh cá nhân"
+      ],
+      "pii_type": "CCCD"
+    }
+  },
+  {
+    "id": "ENT-NAME",
+    "content": "Họ tên của cá nhân thuộc nhóm dữ liệu cá nhân cơ bản. Bao gồm họ, chữ đệm, tên khai sinh và tên gọi khác.",
+    "metadata": {
+      "type": "entity",
+      "name": "Họ tên",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 3 NĐ 356",
+      "keywords": [
+        "họ tên",
+        "họ và tên",
+        "tên khai sinh",
+        "tên gọi khác",
+        "full name",
+        "first name",
+        "last name",
+        "middle name",
+        "contact name",
+        "customer name",
+        "employee name",
+        "person name",
+        "ho ten",
+        "ten khach hang"
+      ],
+      "pii_type": "FULL_NAME"
+    }
+  },
+  {
+    "id": "ENT-DOB",
+    "content": "Bao gồm ngày, tháng, năm sinh. Thuộc nhóm dữ liệu cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Ngày sinh",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 2 Điều 3 NĐ 356",
+      "keywords": [
+        "ngày sinh",
+        "tháng sinh",
+        "năm sinh",
+        "dob",
+        "sinh nhật",
+        "date of birth",
+        "birth date",
+        "birth"
+      ],
+      "pii_type": "DOB"
+    }
+  },
+  {
+    "id": "ENT-ADDRESS",
+    "content": "Dữ liệu địa chỉ bao gồm thường trú, tạm trú, nơi ở hiện tại và địa chỉ liên hệ. Thuộc nhóm dữ liệu cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 4 Điều 3 NĐ 356",
+      "keywords": [
+        "địa chỉ",
+        "thường trú",
+        "tạm trú",
+        "nơi ở",
+        "địa chỉ liên hệ",
+        "address",
+        "city",
+        "country",
+        "postal code",
+        "region",
+        "zip",
+        "street address",
+        "residential address"
+      ],
+      "pii_type": "ADDRESS"
+    }
+  },
+  {
+    "id": "ENT-PHONE",
+    "content": "Số điện thoại được liệt kê trực tiếp trong luật là dữ liệu cá nhân cơ bản.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số điện thoại",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 7 Điều 3 NĐ 356",
+      "keywords": [
+        "số điện thoại",
+        "phone",
+        "sđt",
+        "mobile",
+        "fax",
+        "telephone"
+      ],
+      "pii_type": "PHONE"
+    }
+  },
+  {
+    "id": "ENT-EMAIL",
+    "content": "Email không được gọi tên riêng nhưng thuộc nhóm thông tin gắn với hoặc giúp xác định một người. Quy tắc ngữ cảnh: Là dữ liệu cơ bản nếu xác định được người. Email chung của tổ chức (như support@company.vn) có thể không phải dữ liệu cá nhân.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Email",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 11 Điều 3 NĐ 356; khoản 1 Điều 2 Luật 91",
+      "keywords": [
+        "email",
+        "thư điện tử",
+        "mail address"
+      ],
+      "pii_type": "EMAIL"
+    }
+  },
+  {
+    "id": "ENT-CCCD-IMG",
+    "content": "Hình ảnh thẻ căn cước (Ảnh CCCD) được liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Ảnh CCCD",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm i khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "ảnh cccd",
+        "hình ảnh thẻ căn cước",
+        "ảnh chứng minh"
+      ],
+      "pii_type": "BIOMETRIC_FILE"
+    }
+  },
+  {
+    "id": "ENT-FACE-IMG",
+    "content": "Hình ảnh của cá nhân là dữ liệu cơ bản nếu nó chỉ là ảnh chụp thông thường (chưa qua xử lý trích xuất đặc trưng sinh trắc học).",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Ảnh khuôn mặt thông thường",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 6 Điều 3 NĐ 356",
+      "keywords": [
+        "ảnh khuôn mặt",
+        "hình ảnh cá nhân",
+        "ảnh chụp",
+        "face image"
+      ],
+      "pii_type": "FACE_IMAGE"
+    }
+  },
+  {
+    "id": "ENT-FACE-VECTOR",
+    "content": "Khi dữ liệu khuôn mặt được xử lý thành đặc trưng (vector/template) phục vụ nhận dạng/xác thực thì nó trở thành dữ liệu sinh trắc học và thuộc mức Nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Vector/template khuôn mặt",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356; khoản 2 Điều 31 Luật 91",
+      "keywords": [
+        "vector khuôn mặt",
+        "template khuôn mặt",
+        "nhận dạng khuôn mặt",
+        "fingerprint template",
+        "biometric template",
+        "face vector",
+        "fingerprint"
+      ],
+      "pii_type": "BIOMETRIC",
+      "recommended_action": "DROP"
+    }
+  },
+  {
+    "id": "ENT-BIOMETRICS",
+    "content": "Vân tay, mống mắt, giọng nói hoặc đặc điểm sinh học dùng nhận dạng thuộc dữ liệu sinh trắc học và là dữ liệu Nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Sinh trắc học",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm đ khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "vân tay",
+        "mống mắt",
+        "giọng nói",
+        "đặc điểm sinh học",
+        "sinh trắc học",
+        "biometrics",
+        "fingerprint template",
+        "biometric template",
+        "face vector",
+        "fingerprint"
+      ],
+      "pii_type": "BIOMETRIC",
+      "recommended_action": "DROP"
+    }
+  },
+  {
+    "id": "ENT-BANK-ACCOUNT",
+    "content": "Thông tin tài khoản số (Số tài khoản ngân hàng) thường thuộc dữ liệu cơ bản. Quy tắc kết hợp: Tuy nhiên, nếu tài khoản ngân hàng đặt trong hồ sơ khách hàng/tài chính thì có thể bị xem là thông tin tài chính nhạy cảm. Hệ thống nên bảo vệ nó như dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Số tài khoản ngân hàng",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "TB",
+      "legal_basis": "Khoản 10 Điều 3; điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "số tài khoản ngân hàng",
+        "thông tin tài khoản số",
+        "số tài khoản",
+        "bank account",
+        "source account",
+        "destination account",
+        "account number",
+        "so tai khoan",
+        "tai khoan"
+      ],
+      "pii_type": "BANK_ACCOUNT"
+    }
+  },
+  {
+    "id": "ENT-BANK-LOGIN",
+    "content": "Tên đăng nhập và mật khẩu ngân hàng được pháp luật liệt kê trực tiếp là dữ liệu tài chính nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Tên đăng nhập/mật khẩu ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "tên đăng nhập ngân hàng",
+        "mật khẩu ngân hàng",
+        "password",
+        "đăng nhập"
+      ],
+      "pii_type": "FINANCIAL"
+    }
+  },
+  {
+    "id": "ENT-BANK-CARD",
+    "content": "Thông tin thẻ ngân hàng được pháp luật liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Thông tin thẻ ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "thông tin thẻ ngân hàng",
+        "thẻ ngân hàng",
+        "thẻ tín dụng",
+        "credit card"
+      ],
+      "pii_type": "CREDIT_CARD"
+    }
+  },
+  {
+    "id": "ENT-BANK-TX-HIST",
+    "content": "Dữ liệu lịch sử giao dịch và hoạt động tài chính được liệt kê trực tiếp là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "entity",
+      "name": "Lịch sử/giao dịch ngân hàng",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "lịch sử giao dịch",
+        "giao dịch ngân hàng",
+        "hoạt động tài chính"
+      ],
+      "pii_type": "FINANCIAL"
+    }
+  },
+  {
+    "id": "ENT-BANK-TX-AMOUNT",
+    "content": "Số tiền giao dịch khi được gắn với một người hoặc tài khoản cụ thể là một thành phần của thông tin giao dịch tài chính, do đó được coi là dữ liệu Nhạy cảm.",
+    "metadata": {
+      "type": "combination_rule",
+      "name": "Số tiền gắn với người",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điểm k khoản 1 Điều 4 NĐ 356",
+      "keywords": [
+        "số tiền giao dịch",
+        "số tiền",
+        "số dư"
+      ],
+      "pii_type": "FINANCIAL"
+    }
+  },
+  {
+    "id": "ENT-MONEY-ALONE",
+    "content": "Số tiền đứng riêng, không liên kết với người thì không phải dữ liệu cá nhân. Nó chỉ là dữ liệu cá nhân nếu xác định hoặc giúp xác định một người.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Số tiền đơn lẻ",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 2 Luật 91",
+      "keywords": [
+        "số tiền đứng riêng",
+        "số tiền",
+        "con số"
+      ],
+      "pii_type": "MONEY_ALONE"
+    }
+  },
+  {
+    "id": "ENT-CCCD-OCR",
+    "content": "Text trích xuất (OCR) từ thẻ CCCD không làm thay đổi bản chất của dữ liệu. Phân loại theo từng trường; nhưng nếu là một tập dữ liệu OCR đầy đủ thì nên coi toàn bộ tập đó là dữ liệu nhạy cảm.",
+    "metadata": {
+      "type": "contextual_entity",
+      "name": "Text OCR từ CCCD",
+      "classification": "CONTEXT_DEPENDENT",
+      "confidence": "Cao",
+      "legal_basis": "Điều 3-4 NĐ 356",
+      "keywords": [
+        "text ocr cccd",
+        "ocr",
+        "trích xuất text"
+      ],
+      "pii_type": "OCR_IDENTITY_DOC"
+    }
+  },
+  {
+    "id": "ENT-CCCD-QR",
+    "content": "QR/barcode trên CCCD có thể chứa hoặc dẫn tới nhiều trường định danh. Do đó ít nhất nó là dữ liệu cá nhân, và trên thực tế nên coi là dữ liệu Nhạy cảm. Không nên để lộ trong log hay demo.",
+    "metadata": {
+      "type": "entity",
+      "name": "QR/barcode CCCD",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Điều 2 Luật 91; Điều 4 NĐ 356",
+      "keywords": [
+        "qr cccd",
+        "barcode cccd",
+        "mã qr",
+        "mã vạch"
+      ],
+      "pii_type": "CCCD"
+    }
+  },
+  {
+    "id": "ENT-ORG-SYSTEM",
+    "content": "Tên công ty, tổ chức hoặc các ID hệ thống nội bộ (như customer_id, order_id) không được coi là dữ liệu cá nhân nhạy cảm trừ khi chúng kết hợp với các thông tin khác.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Tổ chức & ID hệ thống",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Quy định chung",
+      "keywords": [
+        "company",
+        "company name",
+        "organization",
+        "customer id",
+        "order id",
+        "system id",
+        "id",
+        "doc type",
+        "subject",
+        "ship via"
+      ],
+      "pii_type": "NOT_PERSONAL_DATA"
+    }
+  },
+  {
+    "id": "ENT-FREE-TEXT-PII",
+    "content": "Dữ liệu văn bản tự do, ghi chú, nội dung tin nhắn, ticket hỗ trợ. Loại dữ liệu này không có cấu trúc cố định nhưng rất dễ chứa thông tin nhạy cảm của cá nhân như số điện thoại, địa chỉ, số chứng minh, số thẻ. Phải cẩn trọng và có xu hướng làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Ghi chú / Văn bản tự do",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Chính sách bảo mật nội bộ / Tối thiểu hóa dữ liệu",
+      "keywords": [
+        "notes",
+        "personal_notes",
+        "order_notes",
+        "body",
+        "ghi_chu",
+        "description",
+        "comment"
+      ],
+      "pii_type": "FREE_TEXT_PII"
+    }
+  },
+  {
+    "id": "ENT-RECIPIENT-INFO",
+    "content": "Thông tin người nhận hàng, bao gồm tên người nhận, đơn vị nhận hàng. Tuy có thể liên quan tới giao dịch kinh doanh nhưng chứa tên định danh cá nhân nên cần được làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Tên người nhận",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Điều 9 Khoản 1",
+      "keywords": [
+        "shipment.name",
+        "ship_name",
+        "receiver",
+        "consignee",
+        "nguoi_nhan"
+      ],
+      "pii_type": "FULL_NAME"
+    }
+  },
+  {
+    "id": "ENT-SHIPPING-ADDRESS",
+    "content": "Thông tin địa chỉ giao hàng, địa chỉ kho bãi cá nhân. Địa chỉ giao hàng cũng là nơi sinh sống/làm việc của cá nhân, cần làm mờ (MASK).",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ giao hàng",
+      "classification": "BASIC",
+      "confidence": "Cao",
+      "legal_basis": "Điều 9 Khoản 1",
+      "keywords": [
+        "shipment.address",
+        "ship_address",
+        "delivery_address",
+        "dia_chi_giao"
+      ],
+      "pii_type": "ADDRESS"
+    }
+  },
+  {
+    "id": "ENT-KYC-UNPROCESSED",
+    "content": "Dữ liệu KYC chưa xử lý bao gồm đường dẫn file ảnh thẻ, chuỗi ký tự OCR trích xuất nguyên bản. Đây là vùng dữ liệu có độ rủi ro lớn nhất, chứa toàn bộ mặt mũi, số liệu định danh, ngày sinh. Nguyên tắc là loại bỏ hoàn toàn (DROP) không cho phép xuất hiện trong dữ liệu phân tích.",
+    "metadata": {
+      "type": "entity",
+      "name": "Dữ liệu thô KYC",
+      "classification": "SENSITIVE",
+      "confidence": "Cao",
+      "legal_basis": "Luật 91/2025/QH15 Điều 9 Khoản 2",
+      "keywords": [
+        "ocr_text",
+        "file_path",
+        "kyc_image",
+        "document_path",
+        "raw_data",
+        "id card back path",
+        "extracted raw ocr",
+        "id card path",
+        "raw ocr",
+        "id_card_back_path",
+        "extracted_raw_ocr"
+      ],
+      "pii_type": "OCR_IDENTITY_DOC",
+      "recommended_action": "DROP"
+    }
+  },
+  {
+    "id": "ENT-CATALOG-ATTR",
+    "content": "Thuộc tính sản phẩm, danh mục, thương hiệu và tồn kho (tên sản phẩm, tên danh mục, mã SKU, số lượng, đơn giá, chiết khấu, trạng thái) mô tả hàng hóa, không gắn với một người nên không phải dữ liệu cá nhân.",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Thuộc tính sản phẩm / danh mục",
+      "classification": "NOT_PERSONAL_DATA",
+      "confidence": "Cao",
+      "legal_basis": "Khoản 1 Điều 2 Luật 91",
+      "keywords": [
+        "product",
+        "product name",
+        "category",
+        "category name",
+        "brand",
+        "sku",
+        "item",
+        "stock",
+        "quantity",
+        "unit price",
+        "discount",
+        "reorder level",
+        "sản phẩm",
+        "danh mục",
+        "thương hiệu",
+        "company tax id",
+        "business tax number",
+        "supplier name",
+        "vendor name",
+        "partner name"
+      ],
+      "pii_type": "NOT_PERSONAL_DATA"
+    }
+  },
+  {
+    "id": "ENT-EMPTY-COLUMN",
+    "content": "Cột rỗng hoặc thông tin nhạy cảm ngoại lệ không phục vụ phân tích. Cần loại bỏ hoàn toàn (DROP).",
+    "metadata": {
+      "type": "contextual_rule",
+      "name": "Cột nhạy cảm ngoại lệ / rỗng",
+      "classification": "SENSITIVE_DROP",
+      "confidence": "Cao",
+      "legal_basis": "Quy chế bảo vệ dữ liệu nội bộ",
+      "keywords": [
+        "previous termination reason",
+        "tax exception note",
+        "secondary fax",
+        "termination reason",
+        "exception note"
+      ],
+      "pii_type": "EMPTY_COLUMN",
+      "recommended_action": "DROP"
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-PERSON",
+    "content": "Họ và tên của cá nhân trong văn bản tự do. Bao gồm tên tiếng Việt đầy đủ (3-4 âm tiết), tên nước ngoài (First Last Name), danh xưng (Mr., Ms., Anh, Chị, Bác sĩ, Luật sư). Cần che mờ bảo vệ quyền riêng tư cá nhân theo Khoản 1 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Họ tên người trong free-text",
+      "stream": "B",
+      "pii_type": "FULL_NAME",
+      "expected_action": "MASK",
+      "keywords": [
+        "tên người",
+        "họ tên",
+        "full name",
+        "person name",
+        "contact person",
+        "mr",
+        "ms",
+        "anh",
+        "chị",
+        "ông",
+        "bà",
+        "bác sĩ",
+        "luật sư"
+      ],
+      "gliner_labels": [
+        "person"
+      ],
+      "threshold": 0.28
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-ADDRESS",
+    "content": "Địa chỉ nơi cư trú, nơi ở hoặc địa chỉ nhận hàng của cá nhân trong văn bản tự do. Bao gồm số nhà, ngõ/ngách, tên đường, tòa nhà/căn hộ, phường/xã, quận/huyện, tỉnh/thành phố và mã bưu điện. Cần che mờ theo Khoản 4 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ trong free-text",
+      "stream": "B",
+      "pii_type": "STREET_ADDRESS",
+      "expected_action": "MASK",
+      "keywords": [
+        "địa chỉ",
+        "address",
+        "số nhà",
+        "đường",
+        "phố",
+        "ngõ",
+        "ngách",
+        "căn hộ",
+        "apartment",
+        "apt",
+        "quận",
+        "huyện",
+        "phường",
+        "xã"
+      ],
+      "gliner_labels": [
+        "address",
+        "location"
+      ],
+      "threshold": 0.3
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-ORG",
+    "content": "Tên cơ quan, tổ chức, pháp nhân doanh nghiệp, công ty đối tác hoặc nhà cung cấp. Là thông tin công khai theo đăng ký kinh doanh B2B, không thuộc phạm vi dữ liệu cá nhân cần bảo vệ. Giữ nguyên không che (KEEP) để bảo toàn nghiệp vụ.",
+    "metadata": {
+      "type": "entity",
+      "name": "Tổ chức / Pháp nhân doanh nghiệp",
+      "stream": "B",
+      "pii_type": "TAX_CODE_ORG",
+      "expected_action": "KEEP",
+      "keywords": [
+        "công ty",
+        "tổ chức",
+        "tập đoàn",
+        "doanh nghiệp",
+        "company",
+        "corporation",
+        "corp",
+        "inc",
+        "jsc",
+        "tnhh",
+        "llc",
+        "chi nhánh"
+      ],
+      "gliner_labels": [
+        "organization"
+      ],
+      "threshold": 0.45
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-PHONE",
+    "content": "Số điện thoại di động, điện thoại bàn hoặc số liên hệ cá nhân trong văn bản. Bao gồm các định dạng số Việt Nam (đầu 03, 05, 07, 08, 09, +84) và quốc tế. Cần che một phần số theo Khoản 7 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số điện thoại liên lạc",
+      "stream": "B",
+      "pii_type": "PHONE",
+      "expected_action": "MASK",
+      "keywords": [
+        "số điện thoại",
+        "sđt",
+        "phone",
+        "telephone",
+        "mobile",
+        "hotline",
+        "liên hệ",
+        "gọi",
+        "call",
+        "fax"
+      ],
+      "gliner_labels": [
+        "phone number"
+      ],
+      "threshold": 0.35
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-EMAIL",
+    "content": "Địa chỉ thư điện tử (Email) của cá nhân. Thông tin gắn liền với định danh người dùng. Cần che một phần địa chỉ email trước ký tự @ để bảo vệ quyền riêng tư theo Khoản 11 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ email cá nhân",
+      "stream": "B",
+      "pii_type": "EMAIL",
+      "expected_action": "MASK",
+      "keywords": [
+        "email",
+        "e-mail",
+        "thư điện tử",
+        "hòm thư",
+        "mail to",
+        "địa chỉ email"
+      ],
+      "gliner_labels": [
+        "email"
+      ],
+      "threshold": 0.35
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-IDCARD",
+    "content": "Số Căn cước công dân (12 chữ số), Chứng minh nhân dân cũ (9 chữ số) hoặc số Hộ chiếu trong văn bản. Thuộc nhóm dữ liệu cá nhân cơ bản có tính định danh tuyệt đối. Áp dụng HMAC hashing hoặc Masking theo quy chuẩn an toàn.",
+    "metadata": {
+      "type": "entity",
+      "name": "Giấy tờ định danh cá nhân",
+      "stream": "B",
+      "pii_type": "CCCD",
+      "expected_action": "HMAC",
+      "keywords": [
+        "cccd",
+        "cmnd",
+        "căn cước",
+        "chứng minh nhân dân",
+        "hộ chiếu",
+        "passport",
+        "số định danh",
+        "id card"
+      ],
+      "gliner_labels": [
+        "id document"
+      ],
+      "threshold": 0.3
+    }
+  }
+]

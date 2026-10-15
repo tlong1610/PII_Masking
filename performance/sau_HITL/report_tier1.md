@@ -1,7 +1,7 @@
 # 📊 Báo Cáo Đánh Giá Hiệu Năng Sau HITL — TIER 1 — Bộ Lọc Tĩnh (Rule-Based & Regex)
 
 > **Mã tầng (Tier ID):** `TIER_1`  
-> **Thời điểm đánh giá:** `2026-10-15 11:55:09`  
+> **Thời điểm đánh giá:** `2026-10-15 19:52:28`  
 > **Số lượng ca giải quyết tại tầng này:** **160** cases  
 
 *Tầng lọc tĩnh kết hợp Regex và bộ quy tắc DPO phân biệt MST DN và tài liệu KYC.*

@@ -1,0 +1,138 @@
+[
+  {
+    "feedback_id": "FB-001",
+    "field_name": "business_tax_number",
+    "corrected_type": "TAX_CODE_ORG",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Mã số thuế doanh nghiệp/tổ chức (công khai trong hồ sơ B2B, không phải PII cá nhân).",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm TAX_CODE_ORG vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-002",
+    "field_name": "company_tax_id",
+    "corrected_type": "TAX_CODE_ORG",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Mã số thuế công ty đối tác, không che.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm TAX_CODE_ORG vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-003",
+    "field_name": "supplier_name",
+    "corrected_type": "ORGANIZATION_NAME",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Tên pháp nhân công ty / nhà cung cấp, giữ nguyên cho nghiệp vụ mua hàng.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm ORGANIZATION_NAME vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-004",
+    "field_name": "source_account",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Tài khoản nguồn của khách hàng cá nhân trong bảng giao dịch, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-005",
+    "field_name": "destination_account",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Tài khoản đích nhận tiền của cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-006",
+    "field_name": "so_tai_khoan",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Số tài khoản ngân hàng cá nhân, che mờ phần giữa.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-007",
+    "field_name": "account_number",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Số tài khoản ngân hàng, áp dụng Masking.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-008",
+    "field_name": "street_address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ nhà/đường phố cụ thể có tính định danh cao, cần MASK (khác với CITY).",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-009",
+    "field_name": "residential_address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ nơi cư trú của cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-010",
+    "field_name": "address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ liên hệ cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-011",
+    "field_name": "fingerprint_template",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Dữ liệu sinh trắc học vân tay nhạy cảm cao, DROP khỏi view phân tích.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-012",
+    "field_name": "biometric_template",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Mẫu sinh trắc học nhận dạng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-013",
+    "field_name": "face_vector_512d",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Vector đặc trưng khuôn mặt 512 chiều, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-014",
+    "field_name": "id_card_back_path",
+    "corrected_type": "OCR_IDENTITY_DOC",
+    "corrected_action": "DROP",
+    "dpo_notes": "Đường dẫn ảnh tài liệu KYC nhạy cảm, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm OCR_IDENTITY_DOC vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-015",
+    "field_name": "extracted_raw_ocr",
+    "corrected_type": "OCR_IDENTITY_DOC",
+    "corrected_action": "DROP",
+    "dpo_notes": "Chuỗi ký tự trích xuất OCR nguyên bản từ giấy tờ tùy thân, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm OCR_IDENTITY_DOC vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-016",
+    "field_name": "previous_termination_reason",
+    "corrected_type": "EMPTY_COLUMN",
+    "corrected_action": "DROP",
+    "dpo_notes": "Lý do chấm dứt hợp đồng nhạy cảm đặc biệt nhân sự / cột rỗng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm EMPTY_COLUMN vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-017",
+    "field_name": "tax_exception_note",
+    "corrected_type": "EMPTY_COLUMN",
+    "corrected_action": "DROP",
+    "dpo_notes": "Ghi chú miễn trừ thuế / cột phụ rỗng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm EMPTY_COLUMN vào BM25 RAG Corpus & LLM Few-shot."
+  }
+]

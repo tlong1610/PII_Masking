@@ -1,7 +1,7 @@
 # 📊 Báo Cáo Đánh Giá Hiệu Năng Sau HITL — TIER 3 LLM — Đánh Giá Ngữ Cảnh Chuyên Sâu
 
 > **Mã tầng (Tier ID):** `TIER_3_LLM`  
-> **Thời điểm đánh giá:** `2026-10-15 11:55:09`  
+> **Thời điểm đánh giá:** `2026-10-15 19:52:28`  
 > **Số lượng ca giải quyết tại tầng này:** **131** cases  
 
 *Tầng LLM GPT-4o-mini nạp 17 ví dụ Few-Shot DPO từ bộ nhớ in-context learning.*

@@ -1,0 +1,218 @@
+[
+  {
+    "feedback_id": "FB-001",
+    "field_name": "business_tax_number",
+    "corrected_type": "TAX_CODE_ORG",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Mã số thuế doanh nghiệp/tổ chức (công khai trong hồ sơ B2B, không phải PII cá nhân).",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm TAX_CODE_ORG vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-002",
+    "field_name": "company_tax_id",
+    "corrected_type": "TAX_CODE_ORG",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Mã số thuế công ty đối tác, không che.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm TAX_CODE_ORG vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-003",
+    "field_name": "supplier_name",
+    "corrected_type": "ORGANIZATION_NAME",
+    "corrected_action": "KEEP",
+    "dpo_notes": "Tên pháp nhân công ty / nhà cung cấp, giữ nguyên cho nghiệp vụ mua hàng.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm ORGANIZATION_NAME vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-004",
+    "field_name": "source_account",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Tài khoản nguồn của khách hàng cá nhân trong bảng giao dịch, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-005",
+    "field_name": "destination_account",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Tài khoản đích nhận tiền của cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-006",
+    "field_name": "so_tai_khoan",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Số tài khoản ngân hàng cá nhân, che mờ phần giữa.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-007",
+    "field_name": "account_number",
+    "corrected_type": "BANK_ACCOUNT",
+    "corrected_action": "MASK",
+    "dpo_notes": "Số tài khoản ngân hàng, áp dụng Masking.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BANK_ACCOUNT vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-008",
+    "field_name": "street_address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ nhà/đường phố cụ thể có tính định danh cao, cần MASK (khác với CITY).",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-009",
+    "field_name": "residential_address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ nơi cư trú của cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-010",
+    "field_name": "address",
+    "corrected_type": "STREET_ADDRESS",
+    "corrected_action": "MASK",
+    "dpo_notes": "Địa chỉ liên hệ cá nhân, cần MASK.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm STREET_ADDRESS vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-011",
+    "field_name": "fingerprint_template",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Dữ liệu sinh trắc học vân tay nhạy cảm cao, DROP khỏi view phân tích.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-012",
+    "field_name": "biometric_template",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Mẫu sinh trắc học nhận dạng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-013",
+    "field_name": "face_vector_512d",
+    "corrected_type": "BIOMETRIC_DATA",
+    "corrected_action": "DROP",
+    "dpo_notes": "Vector đặc trưng khuôn mặt 512 chiều, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm BIOMETRIC_DATA vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-014",
+    "field_name": "id_card_back_path",
+    "corrected_type": "OCR_IDENTITY_DOC",
+    "corrected_action": "DROP",
+    "dpo_notes": "Đường dẫn ảnh tài liệu KYC nhạy cảm, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm OCR_IDENTITY_DOC vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-015",
+    "field_name": "extracted_raw_ocr",
+    "corrected_type": "OCR_IDENTITY_DOC",
+    "corrected_action": "DROP",
+    "dpo_notes": "Chuỗi ký tự trích xuất OCR nguyên bản từ giấy tờ tùy thân, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm OCR_IDENTITY_DOC vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-016",
+    "field_name": "previous_termination_reason",
+    "corrected_type": "EMPTY_COLUMN",
+    "corrected_action": "DROP",
+    "dpo_notes": "Lý do chấm dứt hợp đồng nhạy cảm đặc biệt nhân sự / cột rỗng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm EMPTY_COLUMN vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-017",
+    "field_name": "tax_exception_note",
+    "corrected_type": "EMPTY_COLUMN",
+    "corrected_action": "DROP",
+    "dpo_notes": "Ghi chú miễn trừ thuế / cột phụ rỗng, DROP.",
+    "action_policy_update": "Đã cập nhật quy tắc cho nhóm EMPTY_COLUMN vào BM25 RAG Corpus & LLM Few-shot."
+  },
+  {
+    "feedback_id": "FB-B-001",
+    "issue_category": "FN_ADDRESS",
+    "tier_affected": "TIER_3_GLINER",
+    "correction_type": "Mở rộng nhãn GLiNER cho địa chỉ chi tiết",
+    "correction_detail": "Bổ sung các nhãn 'address', 'street address', 'location' vào inference labels của GLiNER để nhận diện địa chỉ đầy đủ bao gồm số nhà, tên đường, căn hộ.",
+    "dpo_notes": "Mô hình ViElectra cũ chỉ có nhãn LOC chung chung, thường bỏ sót số nhà và ngõ ngách. GLiNER zero-shot cho phép khai báo nhãn 'address' bắt chính xác các cụm như '6750 Koskikatu 25 Apt. 864'."
+  },
+  {
+    "feedback_id": "FB-B-002",
+    "issue_category": "FN_PERSON_OOV",
+    "tier_affected": "TIER_2_DICT",
+    "correction_type": "Bổ sung từ điển thực thể tên người ngoại lệ",
+    "correction_detail": "Nạp thêm 120 tên người ngoại lệ (tên nước ngoài, tên không dấu, danh xưng đặc biệt) vào DictionaryNERScanner (Aho-Corasick).",
+    "dpo_notes": "Tầng 2 FlashText chỉ bắt được tên đã nạp trong từ điển. Bổ sung từ điển tên đa ngôn ngữ giúp giải quyết nhanh các tên xuất hiện trong dataset."
+  },
+  {
+    "feedback_id": "FB-B-003",
+    "issue_category": "FP_ORG_AS_PERSON",
+    "tier_affected": "TIER_3_GLINER",
+    "correction_type": "Cân bằng ngưỡng confidence cho nhãn 'organization'",
+    "correction_detail": "Tăng threshold cho nhãn 'organization' lên 0.45 và thiết lập ưu tiên 'organization' trước 'person' đối với các thực thể chứa từ khóa doanh nghiệp.",
+    "dpo_notes": "Một số tên tổ chức viết hoa ngắn như 'Persint' bị mô hình cũ nhầm thành tên người. GLiNER với nhãn 'organization' tách bạch giúp giảm báo động giả."
+  },
+  {
+    "feedback_id": "FB-B-004",
+    "issue_category": "FN_PHONE_INTL",
+    "tier_affected": "TIER_1_REGEX",
+    "correction_type": "Mở rộng biểu thức chính quy số điện thoại",
+    "correction_detail": "Bổ sung pattern regex cho định dạng số điện thoại quốc tế (+XX-XXXXXXXXXX, (XXX) XXX-XXXX, v.v.) bên cạnh SĐT Việt Nam.",
+    "dpo_notes": "Regex ban đầu chỉ hỗ trợ đầu số 0x và +84x Việt Nam. Việc bổ sung pattern quốc tế giúp Tầng 1 bắt ngay lập tức trong 0.05ms mà không cần đẩy sang Tầng 3."
+  },
+  {
+    "feedback_id": "FB-B-005",
+    "issue_category": "FN_COMPOUND_NAME",
+    "tier_affected": "TIER_3_GLINER",
+    "correction_type": "Cơ chế gộp span liền kề (Span Merging)",
+    "correction_detail": "Áp dụng thuật toán hậu xử lý gộp các sub-spans cùng loại đứng cạnh nhau hoặc phân tách bởi 1 khoảng trắng thành một thực thể nguyên khối.",
+    "dpo_notes": "Khắc phục hiện tượng mô hình nhận diện tên ghép 'Nguyễn Văn A' bị cắt thành 2 span rời rạc 'Nguyễn' và 'Văn A'."
+  },
+  {
+    "feedback_id": "FB-B-006",
+    "issue_category": "FN_ADDRESS",
+    "tier_affected": "TIER_2_DICT",
+    "correction_type": "Nạp danh mục địa danh hành chính chuẩn",
+    "correction_detail": "Nạp toàn bộ 63 tỉnh/thành phố và các quận/huyện trọng điểm vào DictionaryNERScanner với nhãn LOCATION.",
+    "dpo_notes": "Giúp Tầng 2 FlashText bắt nhanh các địa danh phổ biến trong 0.04ms, giảm tải suy luận cho Tầng 3 AI."
+  },
+  {
+    "feedback_id": "FB-B-007",
+    "issue_category": "FN_PERSON_OOV",
+    "tier_affected": "TIER_3_GLINER",
+    "correction_type": "Ngưỡng động theo ngữ cảnh nhạy cảm",
+    "correction_detail": "Hạ threshold nhận diện 'person' từ 0.35 xuống 0.28 khi xuất hiện các từ chỉ danh xưng như 'Mr.', 'Ms.', 'anh', 'chị', 'ông', 'bà'.",
+    "dpo_notes": "Tối ưu Recall trong các ngữ cảnh có chỉ báo nhân xưng rõ rệt, ngăn chặn rò rỉ tên cá nhân."
+  },
+  {
+    "feedback_id": "FB-B-008",
+    "issue_category": "FN_IDENTITY_DOC",
+    "tier_affected": "TIER_1_REGEX",
+    "correction_type": "Bổ sung Regex cho số hộ chiếu và căn cước",
+    "correction_detail": "Thêm mẫu nhận diện hộ chiếu Việt Nam (B[0-9]{7}) và quốc tế, định tuyến hành động bảo vệ tương ứng.",
+    "dpo_notes": "Bổ sung chuẩn định danh công dân theo Luật Căn cước 2023 và NĐ 356/2025/NĐ-CP."
+  },
+  {
+    "feedback_id": "FB-B-009",
+    "issue_category": "FP_ORG_AS_PERSON",
+    "tier_affected": "TIER_2_DICT",
+    "correction_type": "Danh sách loại trừ tên tổ chức (Whitelist/Blacklist)",
+    "correction_detail": "Xây dựng danh mục các từ viết tắt công ty (Inc, Corp, JSC, TNHH) để ngăn chặn gán nhầm sang FULL_NAME.",
+    "dpo_notes": "Đảm bảo tính toàn vẹn cho dữ liệu doanh nghiệp B2B, tránh che nhầm đối tác thương mại."
+  },
+  {
+    "feedback_id": "FB-B-010",
+    "issue_category": "FN_EMAIL_SPECIAL",
+    "tier_affected": "TIER_1_REGEX",
+    "correction_type": "Tối ưu Regex bắt email có tên miền đặc thù",
+    "correction_detail": "Cập nhật regex bắt email chứa dấu chấm phụ và tên miền mới (.ai, .io, .vn, .edu.vn).",
+    "dpo_notes": "Bắt trọn 100% email học thuật và công nghệ trong tập dữ liệu văn bản tự do."
+  }
+]

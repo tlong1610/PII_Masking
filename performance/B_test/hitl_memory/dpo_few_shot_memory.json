@@ -1,0 +1,117 @@
+[
+  {
+    "text_snippet": "The address of Persint is 6750 Koskikatu 25 Apt. 864 Artilleros, CO Uruguay 64677",
+    "entities": [
+      {
+        "text": "Persint",
+        "label": "organization",
+        "pii_type": "TAX_CODE_ORG",
+        "action": "KEEP"
+      },
+      {
+        "text": "6750 Koskikatu 25 Apt. 864 Artilleros, CO Uruguay 64677",
+        "label": "address",
+        "pii_type": "STREET_ADDRESS",
+        "action": "MASK"
+      }
+    ],
+    "dpo_notes": "Persint là tên tổ chức kinh doanh (KEEP). Chuỗi địa chỉ quốc tế bao gồm số nhà, căn hộ, thành phố và mã bưu điện cần được bao trọn vẹn thành 1 span duy nhất và MASK."
+  },
+  {
+    "text_snippet": "Vui lòng liên hệ với anh Nguyễn Văn Minh qua email minh.nguyen@example.vn hoặc gọi 0901234567.",
+    "entities": [
+      {
+        "text": "Nguyễn Văn Minh",
+        "label": "person",
+        "pii_type": "PERSON_NAME",
+        "action": "MASK"
+      },
+      {
+        "text": "minh.nguyen@example.vn",
+        "label": "email",
+        "pii_type": "EMAIL",
+        "action": "MASK"
+      },
+      {
+        "text": "0901234567",
+        "label": "phone number",
+        "pii_type": "PHONE",
+        "action": "MASK"
+      }
+    ],
+    "dpo_notes": "Họ và tên 3 âm tiết đứng sau danh xưng 'anh' -> MASK. Email và SĐT được bắt tự động bởi Tầng 1 Regex và kiểm chứng bởi Tầng 3."
+  },
+  {
+    "text_snippet": "Khách hàng James O'Brien, mang CCCD số 033254456184, hiện cư trú tại 123 Nguyễn Trãi, Phường 2, Quận 5, TP.HCM.",
+    "entities": [
+      {
+        "text": "James O'Brien",
+        "label": "person",
+        "pii_type": "PERSON_NAME",
+        "action": "MASK"
+      },
+      {
+        "text": "033254456184",
+        "label": "id document",
+        "pii_type": "CCCD",
+        "action": "HMAC"
+      },
+      {
+        "text": "123 Nguyễn Trãi, Phường 2, Quận 5, TP.HCM",
+        "label": "address",
+        "pii_type": "STREET_ADDRESS",
+        "action": "MASK"
+      }
+    ],
+    "dpo_notes": "Tên người nước ngoài có dấu nháy đơn 'O'Brien' phải giữ nguyên span. CCCD áp dụng HMAC. Địa chỉ chi tiết tới cấp quận/huyện cần MASK."
+  },
+  {
+    "text_snippet": "Công ty TNHH Giải Pháp Công Nghệ TechVina đã ký hợp đồng dịch vụ đám mây.",
+    "entities": [
+      {
+        "text": "Công ty TNHH Giải Pháp Công Nghệ TechVina",
+        "label": "organization",
+        "pii_type": "TAX_CODE_ORG",
+        "action": "KEEP"
+      }
+    ],
+    "dpo_notes": "Tên pháp nhân công ty chứa tiền tố 'Công ty TNHH' là thông tin B2B công khai, tuyệt đối KHÔNG MASK để giữ ngữ cảnh nghiệp vụ."
+  },
+  {
+    "text_snippet": "Bác sĩ Trần Thị Hương đã khám cho bệnh nhân tại Bệnh viện Bạch Mai ngày 12/04/2024.",
+    "entities": [
+      {
+        "text": "Trần Thị Hương",
+        "label": "person",
+        "pii_type": "PERSON_NAME",
+        "action": "MASK"
+      },
+      {
+        "text": "Bệnh viện Bạch Mai",
+        "label": "organization",
+        "pii_type": "TAX_CODE_ORG",
+        "action": "KEEP"
+      }
+    ],
+    "dpo_notes": "Phân định rõ ranh giới: tên người hành nghề y tế là PII cần che (MASK); tên cơ sở y tế / bệnh viện là pháp nhân tổ chức (KEEP)."
+  },
+  {
+    "text_snippet": "Tài khoản thụ hưởng chuyển tiền là 0123456789 mở tại Ngân hàng Vietcombank.",
+    "entities": [
+      {
+        "text": "0123456789",
+        "label": "bank account",
+        "pii_type": "BANK_ACCOUNT",
+        "action": "MASK"
+      },
+      {
+        "text": "Vietcombank",
+        "label": "organization",
+        "pii_type": "TAX_CODE_ORG",
+        "action": "KEEP"
+      }
+    ],
+    "dpo_notes": "Số tài khoản ngân hàng cá nhân phải MASK. Tên định chế tài chính ngân hàng giữ nguyên (KEEP)."
+  }
+]
+

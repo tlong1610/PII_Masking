@@ -1,7 +1,7 @@
 # 📊 Báo Cáo Đánh Giá Hiệu Năng Sau HITL — TIER 3 HYBRID — Chấm Điểm Hỗn Hợp (Vector Fusion)
 
 > **Mã tầng (Tier ID):** `TIER_3_HYBRID`  
-> **Thời điểm đánh giá:** `2026-10-15 11:55:09`  
+> **Thời điểm đánh giá:** `2026-10-15 19:52:28`  
 > **Số lượng ca giải quyết tại tầng này:** **0** cases  
 
 *Tầng dung hợp đa phương thức BM25 + Vector Semantic Search.*
