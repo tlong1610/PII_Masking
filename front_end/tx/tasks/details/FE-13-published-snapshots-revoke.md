@@ -1,7 +1,7 @@
 # FE-13: DPO Catalog Explorer — Option 1 & Dataset Revocation
 
 **Sprint**: Sprint 04  
-**Trạng thái**: In Progress  
+**Trạng thái**: Closed (Đã đóng: Chuyển giao dev khác phụ trách)  
 **Phân hệ**: `src/features/piiReview/components/DpoReviewExperienceMVP.tsx`, `src/features/piiReview/hooks/usePiiReview.ts`
 
 ---
