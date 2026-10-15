@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 class NERPipelines:
     """
     Luồng Redaction Phễu lọc 3 tầng (Entity-Level Mask-and-Pass).
-    Quá trình: Text gốc -> Regex -> Mask -> Dict -> Mask -> ML -> Mask -> Text sạch.
-    use_ml=False skips the transformer tier (no model download, regex + dictionary only).
+    Quá trình: Text gốc -> Regex -> Mask -> Dict -> Mask -> ML (GLiNER Zero-Shot) -> Mask -> Text sạch.
+    use_ml=False skips the model tier (no model download, regex + dictionary only).
     """
     def __init__(self, dict_configs: dict | None = None, *, use_ml: bool = True, model_name: str | None = None):
         self.regex_scanner = RegexNERScanner()

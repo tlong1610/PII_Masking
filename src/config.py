@@ -46,10 +46,10 @@ class Settings(BaseSettings):
     enable_ai_scan: bool = False
     # Columns scanned in parallel by the AI scan (each waits on one LLM call); lower it on rate limits
     scan_concurrency: int = Field(default=4, ge=1, le=32)
-    # Free-text NER (REDACT action): regex tier always runs; the transformer tier needs ENABLE_NER=true
-    # plus transformers/torch installed (falls back to regex-only when unavailable).
+    # Free-text NER (REDACT action): regex tier always runs; the GLiNER model tier needs ENABLE_NER=true
+    # plus the gliner package installed (falls back to regex-only when unavailable).
     enable_ner: bool = False
-    ner_model_name: str = "NlpHUST/ner-vietnamese-electra-base"
+    ner_model_name: str = "urchade/gliner_multi_pii-v1"
     # Optional JSON {entity_type: [keywords]} for the dictionary tier (e.g. known customer names)
     ner_dictionary_path: str = ""
     # DPO corrections saved as few-shot examples for the LLM tier (runtime file, not committed)

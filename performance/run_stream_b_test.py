@@ -4,7 +4,7 @@ B_test Evaluation Runner — Dedicated Luồng B (Free-Text Multi-Tier Redactor)
 Evaluates 3 tiers of NER Redaction on B_dataset (synth_dataset_v2_standardized.json):
   - TIER 1: RegexNERScanner (report_tier1.md)
   - TIER 2: DictionaryNERScanner Aho-Corasick (report_tier2.md)
-  - TIER 3: MLNERScanner PhoBERT/Electra Contextual AI (report_tier3_ml.md)
+  - TIER 3: MLNERScanner GLiNER Zero-Shot PII (report_tier3_ml.md)
   - Combined Multi-Tier Report: performance_report.md
   - Results data: performance_results.json
 
@@ -99,7 +99,7 @@ def run_b_test(sample_size: int = 300):
     dict_scanner.load_dictionary("CITY", locs)
     print(f"   Đã nạp {len(names)} tên người, {len(orgs)} tổ chức, {len(locs)} địa danh.")
 
-    print("3. Khởi tạo Scanner Tầng 3 (AI / Transformer ML)...")
+    print("3. Khởi tạo Scanner Tầng 3 (AI / GLiNER Zero-Shot PII)...")
     ml_scanner = MLNERScanner()
 
     # Lưu kết quả từng tầng
@@ -236,9 +236,9 @@ def run_b_test(sample_size: int = 300):
         f.write(t2_md)
 
     # 3. Báo cáo Tầng 3
-    t3_md = f"""# 📑 Báo Cáo Hiệu Năng TIER 3 (AI / Transformer Contextual NER) — B_test
+    t3_md = f"""# 📑 Báo Cáo Hiệu Năng TIER 3 (AI / GLiNER Zero-Shot PII) — B_test
 
-> **Kiến trúc:** Mô hình ngôn ngữ sâu (Transformer Token-Classification) nhận diện theo ngữ cảnh
+> **Kiến trúc:** GLiNER Zero-Shot NER — Nhận diện thực thể theo nhãn tùy chỉnh (Open-Vocabulary)
 > **Dữ liệu:** `B_dataset` ({len(docs)} văn bản tự do)
 > **Thời điểm:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -253,9 +253,11 @@ def run_b_test(sample_size: int = 300):
 
 ---
 
-## 2. 💡 Nhận Xét Kiến Trúc Tầng 3
-* Tầng AI hiểu được ngữ cảnh câu văn (ví dụ: một từ đứng sau *"gặp anh"*, *"liên hệ với"*, *"Mr."* là tên người dù từ đó chưa có trong từ điển).
-* Đóng vai trò là chốt chặn cuối cùng bắt các ca khó và từ mới (Out-of-Vocabulary).
+## 2. 💡 Nhận Xét Kiến Trúc Tầng 3 (GLiNER)
+* GLiNER hoạt động theo cơ chế Zero-Shot: khai báo nhãn tại thời điểm suy luận, không cần fine-tune trên tập huấn luyện cụ thể.
+* Hỗ trợ đa ngôn ngữ (tiếng Việt, Anh) và các loại PII linh hoạt: person, location, phone number, email, id document, bank account, credit card number, date of birth.
+* Đóng vai trò là chốt chặn cuối cùng bắt các ca khó và từ mới (Out-of-Vocabulary) nhờ khả năng hiểu ngữ cảnh câu văn.
+* So với ViElectra/PhoBERT cũ (chỉ 3 nhãn PER/LOC/ORG), GLiNER bao phủ rộng hơn nhiều loại PII và offset chính xác hơn.
 """
     with open(OUTPUT_DIR / "report_tier3_ml.md", "w", encoding="utf-8") as f:
         f.write(t3_md)

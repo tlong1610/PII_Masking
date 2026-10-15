@@ -1,7 +1,7 @@
 # FE-05: Add Image Scan Flow
 
-Status: blocked: no BE OCR image API
-Sprint: Post-MVP P2
+Status: closed (Won't do / Out of Scope)
+Sprint: Post-MVP (Đã đóng)
 
 ## Goal
 

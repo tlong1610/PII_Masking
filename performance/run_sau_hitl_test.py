@@ -316,9 +316,9 @@ def run_post_hitl_evaluation():
         with open(OUTPUT_DIR / t_file, "w", encoding="utf-8") as f:
             f.write(content)
 
-    # Generate Comparative Report
+    # Generate Stream A Comparative Report
     comp_content = generate_comparative_report(pre_results, post_results, total_time)
-    with open(OUTPUT_DIR / "performance_report.md", "w", encoding="utf-8") as f:
+    with open(OUTPUT_DIR / "report_stream_a.md", "w", encoding="utf-8") as f:
         f.write(comp_content)
 
     m_pre = compute_metrics(pre_results)

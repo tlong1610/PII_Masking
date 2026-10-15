@@ -1,0 +1,104 @@
+[
+  {
+    "id": "ENT-FREETEXT-PERSON",
+    "content": "Họ và tên của cá nhân trong văn bản tự do. Bao gồm tên tiếng Việt đầy đủ (3-4 âm tiết), tên nước ngoài (First Last Name), danh xưng (Mr., Ms., Anh, Chị, Bác sĩ, Luật sư). Cần che mờ bảo vệ quyền riêng tư cá nhân theo Khoản 1 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Họ tên người trong free-text",
+      "stream": "B",
+      "pii_type": "FULL_NAME",
+      "expected_action": "MASK",
+      "keywords": [
+        "tên người", "họ tên", "full name", "person name", "contact person",
+        "mr", "ms", "anh", "chị", "ông", "bà", "bác sĩ", "luật sư"
+      ],
+      "gliner_labels": ["person"],
+      "threshold": 0.28
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-ADDRESS",
+    "content": "Địa chỉ nơi cư trú, nơi ở hoặc địa chỉ nhận hàng của cá nhân trong văn bản tự do. Bao gồm số nhà, ngõ/ngách, tên đường, tòa nhà/căn hộ, phường/xã, quận/huyện, tỉnh/thành phố và mã bưu điện. Cần che mờ theo Khoản 4 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ trong free-text",
+      "stream": "B",
+      "pii_type": "STREET_ADDRESS",
+      "expected_action": "MASK",
+      "keywords": [
+        "địa chỉ", "address", "số nhà", "đường", "phố", "ngõ", "ngách",
+        "căn hộ", "apartment", "apt", "quận", "huyện", "phường", "xã"
+      ],
+      "gliner_labels": ["address", "location"],
+      "threshold": 0.30
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-ORG",
+    "content": "Tên cơ quan, tổ chức, pháp nhân doanh nghiệp, công ty đối tác hoặc nhà cung cấp. Là thông tin công khai theo đăng ký kinh doanh B2B, không thuộc phạm vi dữ liệu cá nhân cần bảo vệ. Giữ nguyên không che (KEEP) để bảo toàn nghiệp vụ.",
+    "metadata": {
+      "type": "entity",
+      "name": "Tổ chức / Pháp nhân doanh nghiệp",
+      "stream": "B",
+      "pii_type": "TAX_CODE_ORG",
+      "expected_action": "KEEP",
+      "keywords": [
+        "công ty", "tổ chức", "tập đoàn", "doanh nghiệp", "company",
+        "corporation", "corp", "inc", "jsc", "tnhh", "llc", "chi nhánh"
+      ],
+      "gliner_labels": ["organization"],
+      "threshold": 0.45
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-PHONE",
+    "content": "Số điện thoại di động, điện thoại bàn hoặc số liên hệ cá nhân trong văn bản. Bao gồm các định dạng số Việt Nam (đầu 03, 05, 07, 08, 09, +84) và quốc tế. Cần che một phần số theo Khoản 7 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Số điện thoại liên lạc",
+      "stream": "B",
+      "pii_type": "PHONE",
+      "expected_action": "MASK",
+      "keywords": [
+        "số điện thoại", "sđt", "phone", "telephone", "mobile", "hotline",
+        "liên hệ", "gọi", "call", "fax"
+      ],
+      "gliner_labels": ["phone number"],
+      "threshold": 0.35
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-EMAIL",
+    "content": "Địa chỉ thư điện tử (Email) của cá nhân. Thông tin gắn liền với định danh người dùng. Cần che một phần địa chỉ email trước ký tự @ để bảo vệ quyền riêng tư theo Khoản 11 Điều 3 NĐ 356/2025/NĐ-CP.",
+    "metadata": {
+      "type": "entity",
+      "name": "Địa chỉ email cá nhân",
+      "stream": "B",
+      "pii_type": "EMAIL",
+      "expected_action": "MASK",
+      "keywords": [
+        "email", "e-mail", "thư điện tử", "hòm thư", "mail to", "địa chỉ email"
+      ],
+      "gliner_labels": ["email"],
+      "threshold": 0.35
+    }
+  },
+  {
+    "id": "ENT-FREETEXT-IDCARD",
+    "content": "Số Căn cước công dân (12 chữ số), Chứng minh nhân dân cũ (9 chữ số) hoặc số Hộ chiếu trong văn bản. Thuộc nhóm dữ liệu cá nhân cơ bản có tính định danh tuyệt đối. Áp dụng HMAC hashing hoặc Masking theo quy chuẩn an toàn.",
+    "metadata": {
+      "type": "entity",
+      "name": "Giấy tờ định danh cá nhân",
+      "stream": "B",
+      "pii_type": "CCCD",
+      "expected_action": "HMAC",
+      "keywords": [
+        "cccd", "cmnd", "căn cước", "chứng minh nhân dân", "hộ chiếu",
+        "passport", "số định danh", "id card"
+      ],
+      "gliner_labels": ["id document"],
+      "threshold": 0.30
+    }
+  }
+]
+

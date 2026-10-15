@@ -1,4 +1,4 @@
-"""Long free text is scanned in chunks under the transformer's 512-token limit, offsets mapped back."""
+"""Long free text is scanned in chunks under GLiNER's length limit, offsets mapped back to the full text."""
 
 import re
 
@@ -7,28 +7,25 @@ from src.detection.ml_ner import MLNERScanner
 from src.transform.mask_engine import redact_value
 
 
-class _FakeTokenizer:
-    def tokenize(self, text: str) -> list[str]:
-        return text.split()
+class _FakeGLiNER:
+    """Stands in for GLiNER: tags "Bình" as a person; fails if a chunk exceeds the word limit."""
 
-
-class _FakeNER:
-    """Stands in for the HF pipeline: tags 'Bình' as PER and fails like the real model on long input."""
-
-    tokenizer = _FakeTokenizer()
-
-    def __call__(self, text: str) -> list[dict]:
-        if len(self.tokenizer.tokenize(text)) > ml_ner.MAX_CHUNK_TOKENS:
-            raise RuntimeError("The size of tensor a must match the size of tensor b")
+    def predict_entities(self, text: str, labels: list[str], threshold: float = 0.5) -> list[dict]:
+        limit = ml_ner.MAX_CHUNK_TOKENS
+        words = list(re.finditer(r"\w+(?:[-_]\w+)*|\S", text))
+        if len(words) > limit:
+            raise AssertionError(f"chunk of {len(words)} words exceeds {limit}")
         return [
-            {"entity_group": "PER", "word": "Bình", "start": m.start(), "end": m.end()}
+            {"label": "person", "text": "Bình", "start": m.start(), "end": m.end(), "score": 0.9}
             for m in re.finditer("Bình", text)
         ]
 
 
 def _scanner() -> MLNERScanner:
     scanner = MLNERScanner.__new__(MLNERScanner)
-    scanner.nlp = _FakeNER()
+    scanner.model = _FakeGLiNER()
+    scanner.labels = ["person"]
+    scanner.threshold = 0.35
     return scanner
 
 

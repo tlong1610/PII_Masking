@@ -87,7 +87,7 @@ Tự cập nhật RAG corpus/ChromaDB (`update_rag_corpus`) chưa nối vào API
 
 ### Văn bản tự do: NER (Luồng B)
 
-Cột văn bản tự do (kiểu text và tên giống `notes`/`comment`/`ghi_chu`, hoặc mẫu là câu dài nhiều từ) mà scanner chưa gắn được loại PII cụ thể sẽ chạy thêm NER trên sample trong bộ nhớ (`src/detection/ner_orchestrator.py`): Regex -> Từ điển (tuỳ chọn) -> Transformer (khi `ENABLE_NER=true`). Có thực thể PII thì đề xuất `REDACT`, `taxonomy_id=FREE_TEXT_PII`; metadata chỉ ghi loại thực thể và số mẫu, không ghi giá trị. Cột L3 (sức khoẻ, tài chính) và cột đã xác định loại cụ thể (ADDRESS, FULL_NAME...) giữ đề xuất cũ.
+Cột văn bản tự do (kiểu text và tên giống `notes`/`comment`/`ghi_chu`, hoặc mẫu là câu dài nhiều từ) mà scanner chưa gắn được loại PII cụ thể sẽ chạy thêm NER trên sample trong bộ nhớ (`src/detection/ner_orchestrator.py`): Regex -> Từ điển (tuỳ chọn) -> GLiNER zero-shot `urchade/gliner_multi_pii-v1` (khi `ENABLE_NER=true`, cần `gliner`; văn bản dài được quét theo đoạn ≤ 300 từ vì GLiNER tự cắt bỏ phần vượt giới hạn). Có thực thể PII thì đề xuất `REDACT`, `taxonomy_id=FREE_TEXT_PII`; metadata chỉ ghi loại thực thể và số mẫu, không ghi giá trị. Cột L3 (sức khoẻ, tài chính) và cột đã xác định loại cụ thể (ADDRESS, FULL_NAME...) giữ đề xuất cũ.
 
 Khi build snapshot, `REDACT` giữ câu và thay từng thực thể bằng nhãn (`Gọi 0912345678` -> `Gọi [PHONE]`); giá trị không phải chuỗi bị thay cả ô bằng `[REDACTED]`. Verifier Postgres tìm SĐT/CCCD/email còn sót ở bất kỳ vị trí nào trong cột `REDACT`. Benchmark Luồng B (`performance/B_test`) cho recall 67.68%, nên `REDACT` chỉ là lựa chọn khi Analyst cần nội dung văn bản; nếu không, `DROP` vẫn an toàn hơn.
 
