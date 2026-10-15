@@ -56,6 +56,10 @@ Sau khi hoàn thành Sprint 03 với các sơ đồ trực quan (Source Scope Di
 - Loại bỏ hệ thống tab con phân mảnh (họ tên, sđt, địa chỉ...) vì bản chất mask là `***`.
 - Xây dựng bảng đối chiếu ma trận duy nhất (RAW vs MASK `***` vs HMAC vs DROP) và hộp tương tác thử nghiệm real-time.
 
+### Task 7: Cập Nhật Tab Quy Định Pháp Luật & Chuẩn Hóa L1 ➔ L2 ➔ L3 (`FE-16`)
+- Đổi tên tab Sidebar thành "Quy định pháp luật" và chuẩn hóa văn bản bao quát Luật Bảo vệ DLCN & các Nghị định quy định chi tiết.
+- Tái sắp xếp thứ tự phân loại dữ liệu theo đúng trật tự logic: L1 (Gián tiếp / Khóa nối) ➔ L2 (Cơ bản) ➔ L3 (Nhạy cảm).
+
 ---
 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)

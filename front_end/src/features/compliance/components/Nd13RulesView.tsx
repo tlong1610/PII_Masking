@@ -86,21 +86,21 @@ export function Nd13RulesView(): JSX.Element {
     <Stack spacing={3}>
       <SectionHeader
         eyebrow="Quy chuẩn & Pháp lý (Regulatory Compliance)"
-        title="Nghị định 13 & Luật BV DLCN 2025"
-        description="Toàn bộ quy tắc phân loại dữ liệu cá nhân, sàn bảo mật kỹ thuật tối thiểu, và điều khoản pháp luật bắt buộc phục vụ hoạt động thẩm định của DPO."
+        title="Quy Định Pháp Luật & Chuẩn Bảo Vệ Dữ Liệu"
+        description="Toàn bộ quy tắc phân loại dữ liệu cá nhân (L1, L2, L3), sàn bảo mật kỹ thuật tối thiểu, và điều khoản pháp luật bắt buộc phục vụ hoạt động thẩm định của DPO."
       />
 
       <Paper variant="outlined">
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, val: number) => setActiveTab(val)} aria-label="Nhóm quy tắc pháp lý">
-            <Tab icon={<ShieldOutlinedIcon fontSize="small" />} iconPosition="start" label="Phân loại PII & Sàn kỹ thuật" />
+            <Tab icon={<ShieldOutlinedIcon fontSize="small" />} iconPosition="start" label="Phân loại PII (L1 ➔ L2 ➔ L3)" />
             <Tab icon={<GavelIcon fontSize="small" />} iconPosition="start" label="Điều khoản luật trọng yếu" />
             <Tab icon={<FactCheckOutlinedIcon fontSize="small" />} iconPosition="start" label="Ma trận hành động bảo vệ" />
           </Tabs>
 
           <TextField
             size="small"
-            placeholder="Tìm kiếm điều khoản, loại PII..."
+            placeholder="Tìm kiếm quy định pháp luật, điều khoản, loại PII..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{

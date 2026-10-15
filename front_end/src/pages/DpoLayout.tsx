@@ -21,7 +21,7 @@ export function DpoLayout(): JSX.Element {
     { label: 'Dataset đã bảo vệ', to: routes.dpoDatasets, icon: <Inventory2OutlinedIcon fontSize="small" /> },
     { label: 'Sổ cái Hash-Chain', to: routes.dpoAudit, icon: <AccountTreeOutlinedIcon fontSize="small" /> },
     { label: 'Demo che dữ liệu', to: routes.dpoMasking, icon: <VisibilityOffOutlinedIcon fontSize="small" /> },
-    { label: 'Nghị định 13 Rules', to: routes.dpoRules, icon: <GavelOutlinedIcon fontSize="small" /> },
+    { label: 'Quy định pháp luật', to: routes.dpoRules, icon: <GavelOutlinedIcon fontSize="small" /> },
   ];
 
   const handleLogout = (): void => {

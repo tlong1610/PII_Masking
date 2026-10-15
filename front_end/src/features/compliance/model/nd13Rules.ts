@@ -26,11 +26,22 @@ export interface PiiClassificationRule {
 
 export const PII_CLASSIFICATION_RULES: readonly PiiClassificationRule[] = [
   {
+    level: 'L1',
+    categoryName: 'Dữ liệu Gián tiếp / Định danh kỹ thuật',
+    badgeLabel: 'Gián tiếp (L1)',
+    badgeColor: 'info',
+    description: 'Mã định danh hệ thống, khóa liên kết bảng có thể dùng để suy đoán hoặc liên kết ngang hồ sơ người dùng.',
+    examples: ['User ID / Customer UUID', 'Device ID / MAC Address', 'IP Address / Session Token', 'Mã khóa ngoại (Foreign Join Keys)'],
+    securityFloor: 'HMAC_RECOMMENDED',
+    allowedActions: ['HMAC', 'MASK', 'DROP', 'KEEP'],
+    exceptionPolicy: 'Khuyến nghị áp dụng Salted HMAC để bảo toàn tính liên kết bảng (Joinable) mà không làm lộ ID nội bộ.',
+  },
+  {
     level: 'L2',
     categoryName: 'Dữ liệu cá nhân Cơ bản (Basic PII)',
     badgeLabel: 'Cơ bản (L2)',
     badgeColor: 'warning',
-    description: 'Dữ liệu xác định danh tính trực tiếp của cá nhân theo Khoản 3 Điều 2 Nghị định 13/2023/NĐ-CP.',
+    description: 'Dữ liệu xác định danh tính trực tiếp của cá nhân theo quy định pháp luật bảo vệ dữ liệu cá nhân.',
     examples: ['Họ và tên', 'Ngày sinh, giới tính', 'Số điện thoại', 'Địa chỉ email', 'Nơi thường trú / Tạm trú', 'Số CCCD / CMND / Hộ chiếu'],
     securityFloor: 'MASK_OR_HMAC_MINIMUM',
     allowedActions: ['MASK', 'HMAC', 'DROP', 'KEEP'],
@@ -41,7 +52,7 @@ export const PII_CLASSIFICATION_RULES: readonly PiiClassificationRule[] = [
     categoryName: 'Dữ liệu cá nhân Nhạy cảm (Sensitive PII)',
     badgeLabel: 'Nhạy cảm (L3)',
     badgeColor: 'error',
-    description: 'Dữ liệu gắn liền với quyền riêng tư cần bảo vệ đặc biệt theo Khoản 4 Điều 2 và Điều 17 Nghị định 13/2023/NĐ-CP.',
+    description: 'Dữ liệu gắn liền với quyền riêng tư cần bảo vệ đặc biệt theo quy chuẩn an toàn dữ liệu cá nhân nhạy cảm.',
     examples: [
       'Tình trạng sức khỏe, bệnh án, đời tư y tế',
       'Thông tin tài chính, số tài khoản ngân hàng, lịch sử giao dịch',
@@ -52,17 +63,6 @@ export const PII_CLASSIFICATION_RULES: readonly PiiClassificationRule[] = [
     securityFloor: 'MASK_OR_DROP_MANDATORY',
     allowedActions: ['MASK', 'DROP', 'HMAC'],
     exceptionPolicy: 'Nghiêm cấm KEEP trong môi trường Analyst thông thường. Mọi ngoại lệ bắt buộc phải có thẩm định rủi ro DPIA.',
-  },
-  {
-    level: 'L1',
-    categoryName: 'Dữ liệu Gián tiếp / Định danh kỹ thuật',
-    badgeLabel: 'Gián tiếp (L1)',
-    badgeColor: 'info',
-    description: 'Mã định danh hệ thống có thể dùng để suy đoán hoặc liên kết ngang hồ sơ người dùng.',
-    examples: ['User ID / Customer UUID', 'Device ID / MAC Address', 'IP Address / Session Token', 'Mã khóa ngoại (Foreign Join Keys)'],
-    securityFloor: 'HMAC_RECOMMENDED',
-    allowedActions: ['HMAC', 'MASK', 'DROP', 'KEEP'],
-    exceptionPolicy: 'Khuyến nghị áp dụng Salted HMAC để bảo toàn tính liên kết bảng (Joinable) mà không làm lộ ID nội bộ.',
   },
 ] as const;
 

@@ -11,7 +11,7 @@ export function MaskingDemoView(): JSX.Element {
         <SectionHeader
           eyebrow="Security & Compliance"
           title="Demo Che Dữ Liệu (Masking Showcase)"
-          description="Trực quan hóa cơ chế bảo vệ PII: Che mờ (MASK ***), Băm bí mật (HMAC SHA-256) và Triệt tiêu (DROP) theo Nghị định 13/2023/NĐ-CP"
+          description="Trực quan hóa cơ chế bảo vệ PII: Che mờ (MASK ***), Băm bí mật (HMAC SHA-256) và Triệt tiêu (DROP) theo quy chuẩn pháp luật bảo vệ dữ liệu cá nhân"
         />
 
         {/* Live Interactive Sandbox */}
