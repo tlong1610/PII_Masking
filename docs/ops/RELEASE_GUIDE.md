@@ -46,6 +46,7 @@ Do repository thuộc GitHub Organization của BTC (không có quyền cài app
 
 3. **Cấu hình biến môi trường trên Render:**
    - `APP_ENV` = `production`
+   - `SEED_DEMO_USERS` = `true` *(khởi tạo sẵn 2 tài khoản demo `dpo/dpo123` và `analyst/analyst123` cho BGK)*
    - `DATABASE_URL` = `sqlite:///./data/render_app.db`
    - `CORS_ORIGINS` = `https://frontend-alpha-fawn-53.vercel.app,http://localhost:5173,http://localhost:3000`
    - `ENABLE_AI_SCAN` = `false` *(bật Rules local nhẹ nhàng, phản hồi < 500ms trên free tier)*

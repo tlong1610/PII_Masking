@@ -55,7 +55,7 @@ def reset_engine() -> None:
 
 def seed_demo_users(db: Session) -> None:
     settings = get_settings()
-    if settings.app_env.lower() == "production":
+    if settings.app_env.lower() == "production" and not settings.seed_demo_users:
         return
     for row in DEMO_USERS:
         exists = db.scalar(select(DemoUser).where(DemoUser.username == row["username"]))
