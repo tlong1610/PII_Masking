@@ -35,11 +35,6 @@ export function canRevoke(status: DatasetStatus): boolean {
   return status === 'VERIFIED' || status === 'PUBLISHED';
 }
 
-/** Grants only matter while the snapshot can still be published or read. */
-export function canManageGrants(status: DatasetStatus): boolean {
-  return status === 'VERIFIED' || status === 'PUBLISHED';
-}
-
 export interface SnapshotLocation {
   engine: 'PostgreSQL' | 'MongoDB' | 'Demo';
   container: string;

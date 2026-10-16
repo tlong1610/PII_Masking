@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canManageGrants, canPublish, canRevoke, parseSnapshotLocation } from './datasetRules';
+import { canPublish, canRevoke, parseSnapshotLocation } from './datasetRules';
 
 describe('dataset status rules', () => {
   it('only publishes VERIFIED datasets', () => {
@@ -8,12 +8,10 @@ describe('dataset status rules', () => {
     expect(canPublish('REVOKED')).toBe(false);
   });
 
-  it('revokes and manages grants only while a snapshot exists', () => {
+  it('revokes only while a snapshot exists', () => {
     expect(canRevoke('VERIFIED')).toBe(true);
     expect(canRevoke('PUBLISHED')).toBe(true);
     expect(canRevoke('REVOKED')).toBe(false);
-    expect(canManageGrants('PUBLISHED')).toBe(true);
-    expect(canManageGrants('FAILED')).toBe(false);
   });
 });
 

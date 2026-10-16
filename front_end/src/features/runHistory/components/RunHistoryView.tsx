@@ -2,37 +2,68 @@ import { useMemo, useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
 import LinearProgress from '@mui/material/LinearProgress';
-import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
-import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
+import Tab from '@mui/material/Tab';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Tabs from '@mui/material/Tabs';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
-import { ConfirmDialog, SectionHeader, StateNotice } from '@/shared/ui';
-import { useDeleteRuns, useRunHistory, type DeleteRunsResult } from '../hooks/useRunHistory';
-import { getRunDeleteBlocker, getRunStatusLabel, RUN_STATUSES, type RunStatus } from '../model/runActions';
+import { ConfirmDialog, SectionHeader, StateNotice, useNotify } from '@/shared/ui';
+import type { RunSummary } from '../api/runHistoryApi';
+import { useDeleteRuns, useRunDatasetAction, useRunHistory, type DeleteRunsResult } from '../hooks/useRunHistory';
+import { getRunDeleteBlocker, getRunTab, RUN_TABS, type RunTab } from '../model/runActions';
 import { RunHistoryRow } from './RunHistoryRow';
 
-function toStatus(raw: string | null): RunStatus | undefined {
-  return RUN_STATUSES.find((status) => status === raw);
+function toTab(raw: string | null): RunTab {
+  return RUN_TABS.find((tab) => tab.value === raw)?.value ?? 'ALL';
 }
+
+type DatasetAction = { kind: 'publish' | 'revoke'; run: RunSummary; datasetId: number };
+
+const DATASET_ACTION_COPY = {
+  publish: {
+    title: (runId: number) => `Phát hành run #${runId}?`,
+    description: 'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Muốn chỉnh sửa sau đó thì thu hồi trước.',
+    confirm: 'Phát hành',
+    done: (runId: number) => `Đã phát hành run #${runId}. Analyst có thể truy cập ngay.`,
+  },
+  revoke: {
+    title: (runId: number) => `Thu hồi run #${runId}?`,
+    description:
+      'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xoá. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
+    confirm: 'Thu hồi',
+    done: (runId: number) => `Đã thu hồi run #${runId}.`,
+  },
+} as const;
 
 export function RunHistoryView(): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
-  const status = toStatus(searchParams.get('status'));
-  const { data: runs, isLoading, isError, error, refetch } = useRunHistory(status);
+  const tab = toTab(searchParams.get('tab'));
+  const { data: allRuns, isLoading, isError, error, refetch } = useRunHistory();
+  const runs = useMemo(
+    () => (tab === 'ALL' ? allRuns : allRuns?.filter((run) => getRunTab(run) === tab)),
+    [allRuns, tab],
+  );
+  const tabCounts = useMemo(() => {
+    const counts: Record<RunTab, number> = { ALL: allRuns?.length ?? 0, REVIEW: 0, READY: 0, PUBLISHED: 0, OTHER: 0 };
+    allRuns?.forEach((run) => {
+      counts[getRunTab(run)] += 1;
+    });
+    return counts;
+  }, [allRuns]);
   const deleteRuns = useDeleteRuns();
+  const datasetAction = useRunDatasetAction();
+  const notify = useNotify();
+  const [pendingAction, setPendingAction] = useState<DatasetAction | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<number[] | null>(null);
   const [lastResult, setLastResult] = useState<DeleteRunsResult | null>(null);
@@ -56,6 +87,19 @@ export function RunHistoryView(): JSX.Element {
 
   const toggleAll = (): void => setSelected(allSelected ? new Set() : new Set(deletableIds));
 
+  const handleConfirmAction = (): void => {
+    if (!pendingAction) return;
+    const { kind, run, datasetId } = pendingAction;
+    datasetAction.mutate(
+      { kind, datasetId },
+      {
+        onSuccess: () => notify(DATASET_ACTION_COPY[kind].done(run.id)),
+        onError: (err) => notify(err instanceof Error ? err.message : 'Thao tác thất bại.', 'error'),
+        onSettled: () => setPendingAction(null),
+      },
+    );
+  };
+
   const handleConfirmDelete = (): void => {
     if (!pendingDelete) return;
     deleteRuns.mutate(pendingDelete, {
@@ -73,7 +117,7 @@ export function RunHistoryView(): JSX.Element {
         <SectionHeader
           eyebrow="Lịch sử"
           title="Lịch sử lượt quét"
-          description="Mọi lượt quét PII đã chạy. Mở lại một run để tiếp tục duyệt, đi tới dataset của nó, hoặc xoá các run không còn dùng."
+          description="Mọi lượt quét PII và dữ liệu đã bảo vệ của chúng. Tiếp tục duyệt, phát hành cho Analyst, thu hồi, hoặc xoá các run không còn dùng."
         />
         <Button component={RouterLink} to={routes.dpo} variant="contained" startIcon={<AddIcon />}>
           Quét mới
@@ -97,26 +141,18 @@ export function RunHistoryView(): JSX.Element {
           spacing={2}
           justifyContent="space-between"
           alignItems={{ sm: 'center' }}
-          sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}
+          sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}
         >
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel id="run-status-filter">Trạng thái</InputLabel>
-            <Select
-              labelId="run-status-filter"
-              label="Trạng thái"
-              value={status ?? 'ALL'}
-              onChange={(event) =>
-                setSearchParams(event.target.value === 'ALL' ? {} : { status: event.target.value })
-              }
-            >
-              <MenuItem value="ALL">Tất cả</MenuItem>
-              {RUN_STATUSES.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {getRunStatusLabel(item)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Tabs
+            value={tab}
+            onChange={(_, next: RunTab) => setSearchParams(next === 'ALL' ? {} : { tab: next })}
+            variant="scrollable"
+            aria-label="Lọc lượt quét"
+          >
+            {RUN_TABS.map((item) => (
+              <Tab key={item.value} value={item.value} label={`${item.label} (${tabCounts[item.value]})`} />
+            ))}
+          </Tabs>
           <Button
             variant="outlined"
             color="error"
@@ -128,7 +164,9 @@ export function RunHistoryView(): JSX.Element {
           </Button>
         </Stack>
 
-        {isLoading || deleteRuns.isPending ? <LinearProgress aria-label="Đang tải lịch sử quét" /> : null}
+        {isLoading || deleteRuns.isPending || datasetAction.isPending ? (
+          <LinearProgress aria-label="Đang tải lịch sử quét" />
+        ) : null}
         {isError ? (
           <StateNotice
             kind="error"
@@ -141,8 +179,8 @@ export function RunHistoryView(): JSX.Element {
         {runs && runs.length === 0 ? (
           <StateNotice
             kind="empty"
-            title="Chưa có lượt quét nào"
-            description="Chọn một nguồn dữ liệu và bấm Quét PII để bắt đầu."
+            title={tab === 'ALL' ? 'Chưa có lượt quét nào' : 'Không có lượt quét nào ở mục này'}
+            description={tab === 'ALL' ? 'Chọn một nguồn dữ liệu và bấm Bắt đầu quét.' : 'Chọn mục khác để xem.'}
           />
         ) : null}
         {runs && runs.length > 0 ? (
@@ -163,10 +201,8 @@ export function RunHistoryView(): JSX.Element {
                   <TableCell>Nguồn</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell align="right">Trường PII / tổng</TableCell>
-                  <TableCell align="right">Đã quyết định</TableCell>
                   <TableCell>Người tạo</TableCell>
                   <TableCell>Cập nhật</TableCell>
-                  <TableCell>Dataset</TableCell>
                   <TableCell align="right">Thao tác</TableCell>
                 </TableRow>
               </TableHead>
@@ -176,9 +212,11 @@ export function RunHistoryView(): JSX.Element {
                     key={run.id}
                     run={run}
                     selected={selected.has(run.id)}
-                    disabled={deleteRuns.isPending}
+                    disabled={deleteRuns.isPending || datasetAction.isPending}
                     onToggle={toggle}
                     onDelete={(runId) => setPendingDelete([runId])}
+                    onPublish={(item, datasetId) => setPendingAction({ kind: 'publish', run: item, datasetId })}
+                    onRevoke={(item, datasetId) => setPendingAction({ kind: 'revoke', run: item, datasetId })}
                   />
                 ))}
               </TableBody>
@@ -192,13 +230,26 @@ export function RunHistoryView(): JSX.Element {
         title={pendingDelete && pendingDelete.length > 1 ? `Xoá ${pendingDelete.length} run?` : 'Xoá run?'}
         description={`Sẽ xoá vĩnh viễn ${
           pendingDelete && pendingDelete.length > 1 ? `${pendingDelete.length} run` : `run #${pendingDelete?.[0] ?? ''}`
-        } cùng kết quả quét, quyết định và các dataset đã thu hồi/lỗi của chúng. Nhật ký kiểm toán vẫn được giữ. Không thể hoàn tác.`}
+        } cùng kết quả quét và quyết định. Nhật ký kiểm toán vẫn được giữ. Không thể hoàn tác.`}
         confirmLabel="Xoá vĩnh viễn"
         destructive
         pending={deleteRuns.isPending}
         onConfirm={handleConfirmDelete}
         onClose={() => setPendingDelete(null)}
       />
+
+      {pendingAction && (
+        <ConfirmDialog
+          open
+          title={DATASET_ACTION_COPY[pendingAction.kind].title(pendingAction.run.id)}
+          description={DATASET_ACTION_COPY[pendingAction.kind].description}
+          confirmLabel={DATASET_ACTION_COPY[pendingAction.kind].confirm}
+          destructive={pendingAction.kind === 'revoke'}
+          pending={datasetAction.isPending}
+          onConfirm={handleConfirmAction}
+          onClose={() => setPendingAction(null)}
+        />
+      )}
     </Stack>
   );
 }

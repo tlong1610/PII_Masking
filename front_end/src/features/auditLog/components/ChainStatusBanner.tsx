@@ -6,7 +6,6 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { useAuditChainStatus } from '../hooks/useAuditLog';
-import { shortenHash } from '../model/auditLabels';
 
 /** Result of re-hashing the whole audit chain on the server — not a static badge. */
 export function ChainStatusBanner(): JSX.Element {
@@ -23,7 +22,7 @@ export function ChainStatusBanner(): JSX.Element {
           </Button>
         }
       >
-        Không kết nối được dịch vụ kiểm chứng chuỗi hash của sổ cái kiểm toán.
+        Không kiểm tra được tính toàn vẹn của nhật ký lúc này.
       </Alert>
     );
   }
@@ -37,8 +36,8 @@ export function ChainStatusBanner(): JSX.Element {
           </Button>
         }
       >
-        CẢNH BÁO: Chuỗi hash bị phá vỡ tại khối #{chain.broken_at_id ?? '?'}
-        {chain.error ? ` — ${chain.error}` : ''}. Dữ liệu kiểm toán có thể đã bị can thiệp!
+        Cảnh báo: nhật ký đã bị sửa hoặc xoá tại hoạt động #{chain.broken_at_id ?? '?'}
+        {chain.error ? ` (${chain.error})` : ''}. Các ghi nhận từ đó trở đi không còn đáng tin.
       </Alert>
     );
   }
@@ -55,16 +54,16 @@ export function ChainStatusBanner(): JSX.Element {
           startIcon={isFetching ? <CircularProgress size={14} color="inherit" /> : undefined}
           sx={{ fontWeight: 600 }}
         >
-          {isFetching ? 'Đang kiểm chứng...' : 'Kiểm chứng toàn vẹn'}
+          {isFetching ? 'Đang kiểm tra…' : 'Kiểm tra lại'}
         </Button>
       }
     >
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} alignItems={{ sm: 'center' }}>
         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-          Sổ cái chuỗi băm toàn vẹn 100%
+          Nhật ký nguyên vẹn
         </Typography>
-        <Typography variant="caption">
-          {chain.total_events} khối liên tục · Head: <strong>{chain.head_hash ? shortenHash(chain.head_hash) : 'genesis'}</strong> · Không phát hiện can thiệp
+        <Typography variant="body2">
+          {chain.total_events} hoạt động đã ghi, không có dòng nào bị sửa hay xoá.
         </Typography>
       </Stack>
     </Alert>

@@ -200,12 +200,11 @@ Màn hình DPO trên frontend (`front_end/`):
 
 | Đường dẫn               | Nội dung                                                                                     |
 | ----------------------- | -------------------------------------------------------------------------------------------- |
-| `/dpo`                  | Quét & duyệt: chọn nguồn, quét PII, quyết định từng trường, tạo snapshot                     |
-| `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu                    |
-| `/dpo/runs`             | Lịch sử quét, lọc theo trạng thái, đi tiếp tới bước kế tiếp; xoá từng run hoặc nhiều run đã chọn |
-| `/dpo/datasets`         | Snapshots & datasets theo trạng thái (chờ phát hành / đã phát hành / đã thu hồi)             |
-| `/dpo/datasets/:id`     | Chi tiết: verifier, xem trước dữ liệu đã bảo vệ, phát hành / thu hồi, cấp quyền Analyst      |
-| `/dpo/audit`            | Nhật ký kiểm toán và trạng thái chuỗi hash                                                   |
+| `/dpo`                  | Quét & duyệt: chọn nguồn (ô chọn trên breadcrumb), chọn phạm vi, quét, quyết định từng trường. **Lưu** = lưu quyết định + tạo/kiểm định bản dữ liệu đã bảo vệ; **Phát hành** cho mọi Analyst; **Thu hồi** để chỉnh lại |
+| `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu; tab "Dữ liệu cho Analyst" có kết quả kiểm định và bản xem trước |
+| `/dpo/runs`             | Nơi quản lý duy nhất: tab Chờ duyệt / Chờ phát hành / Đã phát hành / Lỗi; phát hành, thu hồi, xoá ngay trên danh sách |
+| `/dpo/datasets[/:id]`   | Chỉ còn để link cũ chạy được: chuyển sang `/dpo/runs` hoặc trang run của dataset              |
+| `/dpo/audit`            | Nhật ký hoạt động: nhóm theo ngày, mỗi dòng một câu mô tả dễ hiểu (lọc Quét & duyệt / Phát hành / Nguồn / Đăng nhập); bấm để xem cột đã đổi, ghi chú gốc và mã băm chống sửa |
 
 `sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Nguồn do DPO đăng ký (`POST /sources`) nhận connection string, test connection, kiểm tra schema/database tồn tại, rồi cho DPO chọn bảng/collection trước khi quét:
 
@@ -267,18 +266,18 @@ Các endpoint chính:
 | `GET /runs`                               | DPO             | Lịch sử run (mới nhất trước), lọc `?status=&source_id=`; chỉ trả số đếm              |
 | `GET /runs/{id}`                          | DPO             | Tiến độ, field profile, quyết định đã lưu và trạng thái                              |
 | `DELETE /runs/{id}`                       | DPO             | Xoá run và metadata; bị chặn (409) khi còn dataset VERIFIED/PUBLISHED; giữ nhật ký audit |
-| `PUT /runs/{id}/decisions`                | DPO             | Review mọi trường; lưu phiên quyết định                                              |
-| `POST /runs/{id}/build`                   | DPO             | Xác nhận, kiểm tra trạng thái và khóa nối trong phạm vi run, tạo staging và verifier |
+| `PUT /runs/{id}/decisions`                | DPO             | Review mọi trường; lưu phiên quyết định. Được sửa tới khi phát hành: run VERIFIED (hoặc FAILED ở verifier) quay về READY_TO_BUILD và dataset của run về STAGING (không phát hành được cho tới khi build lại); run PUBLISHED trả 422 — thu hồi trước |
+| `POST /runs/{id}/build`                   | DPO             | Kiểm tra trạng thái và khóa nối trong phạm vi run, tạo bản dữ liệu đã bảo vệ và chạy verifier. Mỗi run có đúng một dataset: build lại dùng lại dataset đó (xoá kết quả verifier cũ) |
 | `GET /runs/{id}/report`                   | DPO             | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII                      |
 | `GET /runs/{id}/risk-score`               | DPO             | Điểm rủi ro; số dòng đếm từ nguồn, `row_count_estimated=true` nếu không đếm được     |
 | `GET /datasets`                           | DPO / Analyst   | DPO: mọi dataset (trừ FAILED) kèm thời điểm và số grant; Analyst: chỉ PUBLISHED được cấp quyền; lọc `?status=` |
 | `GET /datasets/{id}`                      | DPO             | Chi tiết dataset, kết quả verifier, số cột theo MASK/HMAC/KEEP/DROP                  |
-| `POST /datasets/{id}/publish`             | DPO             | Chỉ VERIFIED; ghi audit và cho Analyst dùng                                          |
-| `POST /datasets/{id}/revoke`              | DPO             | Xoá snapshot vật lý, huỷ mọi grant                                                   |
+| `POST /datasets/{id}/publish`             | DPO             | Chỉ VERIFIED; tự cấp quyền cho mọi Analyst, ghi audit                               |
+| `POST /datasets/{id}/revoke`              | DPO             | Xoá bản dữ liệu vật lý, huỷ mọi grant; run quay về READY_TO_BUILD (giữ quyết định) để sửa và phát hành lại |
 | `GET /datasets/{id}/preview`              | DPO / Analyst   | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200)                   |
-| `GET/POST /datasets/{id}/grants`, `DELETE /datasets/{id}/grants/{user_id}` | DPO | Xem / cấp / thu hồi quyền của Analyst trên dataset (kèm `username`) |
+| `GET/POST /datasets/{id}/grants`, `DELETE /datasets/{id}/grants/{user_id}` | DPO | Xem / cấp / thu hồi quyền của Analyst trên dataset (kèm `username`); giao diện không còn dùng vì phát hành đã cấp quyền cho mọi Analyst |
 | `GET /users?role=ANALYST`                 | DPO             | Danh sách người dùng để cấp quyền (chỉ id, username, role)                           |
-| `GET /audit`, `GET /audit/verify`         | DPO             | Nhật ký kiểm toán lọc `?action=&entity_type=&entity_id=`; kiểm tra chuỗi hash        |
+| `GET /audit`, `GET /audit/verify`         | DPO             | Nhật ký kiểm toán lọc `?action=&actions=a,b&entity_type=&entity_id=&run_id=` (`run_id` gồm cả sự kiện của dataset thuộc run); mỗi sự kiện kèm `run_id`, `source_name` để hiển thị; kiểm tra chuỗi hash |
 
 Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
 

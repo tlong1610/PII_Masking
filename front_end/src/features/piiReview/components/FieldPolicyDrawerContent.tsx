@@ -37,6 +37,8 @@ interface FieldPolicyDrawerContentProps {
   getActionOptionNote: (action: PolicyAction) => string;
   onSave: (action: PolicyAction, note: FieldDecisionNote) => void;
   onClose: () => void;
+  /** Published runs are shown for reference only; saving is disabled. */
+  readOnly?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function FieldPolicyDrawerContent({
   getActionOptionNote,
   onSave,
   onClose,
+  readOnly = false,
 }: FieldPolicyDrawerContentProps): JSX.Element {
   const [draftAction, setDraftAction] = useState<PolicyAction>(initialAction);
   const [draftNote, setDraftNote] = useState<FieldDecisionNote>(initialNote);
@@ -236,13 +239,8 @@ export function FieldPolicyDrawerContent({
 
       {/* Footer */}
       <Box sx={{ mt: 'auto', pt: 2 }}>
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={handleSave}
-          sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
-        >
-          Lưu &amp; Áp dụng thay đổi
+        <Button variant="contained" fullWidth onClick={handleSave} disabled={readOnly}>
+          {readOnly ? 'Quyết định đã khóa' : 'Lưu & áp dụng thay đổi'}
         </Button>
       </Box>
     </Stack>
