@@ -478,6 +478,9 @@ class AuditEventOut(BaseModel):
     request_id: str | None = None
     client_ip: str | None = None
     actor_username: str | None = None
+    # Display context: the run the event belongs to (also for dataset events) and its source's name.
+    run_id: int | None = None
+    source_name: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -12,7 +12,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import type { RunSummary } from '../api/runHistoryApi';
-import { getRunDeleteBlocker, getRunNextAction } from '../model/runActions';
+import { getRunDeleteBlocker, getRunNextAction, wasRevoked } from '../model/runActions';
 import { RunStatusBadge } from './RunStatusBadge';
 
 type RunHistoryRowProps = {
@@ -21,11 +21,20 @@ type RunHistoryRowProps = {
   disabled: boolean;
   onToggle: (runId: number) => void;
   onDelete: (runId: number) => void;
+  onPublish: (run: RunSummary, datasetId: number) => void;
+  onRevoke: (run: RunSummary, datasetId: number) => void;
 };
 
-export function RunHistoryRow({ run, selected, disabled, onToggle, onDelete }: RunHistoryRowProps): JSX.Element {
+export function RunHistoryRow({
+  run,
+  selected,
+  disabled,
+  onToggle,
+  onDelete,
+  onPublish,
+  onRevoke,
+}: RunHistoryRowProps): JSX.Element {
   const action = getRunNextAction(run);
-  const actionTo = action.kind === 'dataset' ? routes.dpoDataset(action.datasetId) : routes.dpoRun(run.id);
   const deleteBlocker = getRunDeleteBlocker(run);
 
   return (
@@ -56,28 +65,37 @@ export function RunHistoryRow({ run, selected, disabled, onToggle, onDelete }: R
       </TableCell>
       <TableCell>
         <RunStatusBadge status={run.status} />
+        {wasRevoked(run) && (
+          <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.25 }}>
+            Đã thu hồi, cần lưu lại
+          </Typography>
+        )}
       </TableCell>
       <TableCell align="right">
         {run.pii_field_count} / {run.field_count}
       </TableCell>
-      <TableCell align="right">
-        {run.decided_count} / {run.field_count}
-      </TableCell>
       <TableCell>{run.created_by_username ?? `#${run.created_by}`}</TableCell>
       <TableCell>{formatDateTime(run.updated_at ?? run.created_at)}</TableCell>
-      <TableCell>
-        {run.latest_dataset_id ? (
-          <Link component={RouterLink} to={routes.dpoDataset(run.latest_dataset_id)}>
-            #{run.latest_dataset_id}
-          </Link>
-        ) : (
-          '—'
-        )}
-      </TableCell>
       <TableCell align="right">
         <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
-          <Button component={RouterLink} to={actionTo} size="small" variant={action.kind === 'view' ? 'text' : 'outlined'}>
-            {action.label}
+          {action.kind === 'publish' && (
+            <Button size="small" variant="contained" disabled={disabled} onClick={() => onPublish(run, action.datasetId)}>
+              {action.label}
+            </Button>
+          )}
+          {action.kind === 'revoke' && (
+            <Button
+              size="small"
+              variant="contained"
+              color="error"
+              disabled={disabled}
+              onClick={() => onRevoke(run, action.datasetId)}
+            >
+              {action.label}
+            </Button>
+          )}
+          <Button component={RouterLink} to={routes.dpoRun(run.id)} size="small" variant="text">
+            Mở
           </Button>
           <Tooltip title={deleteBlocker ?? 'Xoá run'}>
             <span>

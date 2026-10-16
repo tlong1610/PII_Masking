@@ -1,4 +1,5 @@
-export { DatasetDetailView } from './components/DatasetDetailView';
-export { DatasetGrantsPanel } from './components/DatasetGrantsPanel';
-export { DatasetListView } from './components/DatasetListView';
 export { DatasetPreviewTable } from './components/DatasetPreviewTable';
+export { DatasetStatusBadge } from './components/DatasetStatusBadge';
+export { VerifierResultsTable } from './components/VerifierResultsTable';
+export { useDatasetDetail, usePublishDataset, useRevokeDataset } from './hooks/useDatasets';
+export { canPublish, canRevoke } from './model/datasetRules';

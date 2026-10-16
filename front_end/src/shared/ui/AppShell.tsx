@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -23,6 +23,7 @@ import type { Theme } from '@mui/material/styles';
 import { NavLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { APP_HEADER_HEIGHT } from '@/shared/config/layout';
+import { AppBarSlotContext, type AppBarSlotValue } from './appBarSlotContext';
 
 export interface AppShellUser {
   username: string;
@@ -146,6 +147,14 @@ function NavButton({ item, collapsed }: { item: AppShellNavItem; collapsed: bool
 export function AppShell({ activeRole, currentUser, onLogout, navItems, children }: AppShellProps): JSX.Element {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(readNavCollapsed);
+  // Pages may replace the workspace title with their own navigation (see AppBarSlot).
+  const [slotNode, setSlotNode] = useState<HTMLElement | null>(null);
+  const [slotUsers, setSlotUsers] = useState(0);
+  const registerSlot = useCallback(() => {
+    setSlotUsers((count) => count + 1);
+    return () => setSlotUsers((count) => count - 1);
+  }, []);
+  const slot = useMemo<AppBarSlotValue>(() => ({ node: slotNode, register: registerSlot }), [slotNode, registerSlot]);
   const canOpenDpo = !currentUser || currentUser.role === 'DPO';
   const canOpenAnalyst = !currentUser || currentUser.role === 'Analyst';
 
@@ -237,7 +246,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
             zIndex: (theme) => theme.zIndex.appBar,
           }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flexGrow: 1, mr: 2 }}>
             <Tooltip title={navCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}>
               <IconButton
                 size="small"
@@ -249,9 +258,12 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
                 {navCollapsed ? <MenuIcon fontSize="small" /> : <MenuOpenIcon fontSize="small" />}
               </IconButton>
             </Tooltip>
-            <Typography variant="subtitle2" color="text.secondary">
-              {activeRole === 'DPO' ? 'Không gian DPO' : 'Không gian Analyst'}
-            </Typography>
+            {slotUsers === 0 && (
+              <Typography variant="subtitle2" color="text.secondary">
+                {activeRole === 'DPO' ? 'Không gian DPO' : 'Không gian Analyst'}
+              </Typography>
+            )}
+            <Box ref={setSlotNode} sx={{ minWidth: 0, display: 'flex', alignItems: 'center' }} />
           </Stack>
 
           <Stack direction="row" spacing={1.5} alignItems="center">
@@ -302,7 +314,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
         </Box>
 
         <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
-          {children}
+          <AppBarSlotContext.Provider value={slot}>{children}</AppBarSlotContext.Provider>
         </Box>
       </Box>
 

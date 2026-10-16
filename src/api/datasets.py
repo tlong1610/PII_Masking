@@ -386,7 +386,8 @@ def revoke_dataset(
     ds.revoked_at = datetime.now(UTC)
     ds.output_location = f"[REVOKED_AND_DROPPED: {output_loc}]"
     if ds.run is not None:
-        ds.run.status = RunStatus.REVOKED.value
+        # Back to review with its decisions kept: the DPO can fix them, save (rebuilds this dataset) and republish.
+        ds.run.status = RunStatus.READY_TO_BUILD.value
 
     # 4. Record audit trail with rollback details
     _write_audit(

@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
-import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
@@ -18,8 +17,7 @@ export function DpoLayout(): JSX.Element {
   const navItems: AppShellNavItem[] = [
     { label: 'Quét & duyệt', to: routes.dpo, icon: <FactCheckOutlinedIcon fontSize="small" />, end: true },
     { label: 'Lịch sử quét', to: routes.dpoRuns, icon: <HistoryOutlinedIcon fontSize="small" /> },
-    { label: 'Dataset đã bảo vệ', to: routes.dpoDatasets, icon: <Inventory2OutlinedIcon fontSize="small" /> },
-    { label: 'Sổ cái Hash-Chain', to: routes.dpoAudit, icon: <AccountTreeOutlinedIcon fontSize="small" /> },
+    { label: 'Nhật ký hoạt động', to: routes.dpoAudit, icon: <ReceiptLongOutlinedIcon fontSize="small" /> },
     { label: 'Demo che dữ liệu', to: routes.dpoMasking, icon: <VisibilityOffOutlinedIcon fontSize="small" /> },
     { label: 'Quy định pháp luật', to: routes.dpoRules, icon: <GavelOutlinedIcon fontSize="small" /> },
   ];

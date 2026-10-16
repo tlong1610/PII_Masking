@@ -1,24 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { getRunDeleteBlocker, getRunNextAction, getRunStatusLabel, RUN_STATUSES } from './runActions';
+import { getRunDeleteBlocker, getRunNextAction, getRunStatusLabel, getRunTab, RUN_STATUSES } from './runActions';
 
 describe('getRunNextAction', () => {
   it('sends runs awaiting review back to the review screen', () => {
     expect(getRunNextAction({ status: 'REVIEW_REQUIRED' })).toEqual({ kind: 'review', label: 'Tiếp tục duyệt' });
     expect(getRunNextAction({ status: 'READY_TO_BUILD' }).kind).toBe('review');
+    expect(getRunNextAction({ status: 'FAILED', latest_dataset_id: 3 }).kind).toBe('review');
   });
 
-  it('links verified and published runs to their dataset', () => {
+  it('publishes a saved run and revokes a published one, in place', () => {
     expect(getRunNextAction({ status: 'VERIFIED', latest_dataset_id: 7 })).toEqual({
-      kind: 'dataset',
-      label: 'Xem & phát hành',
+      kind: 'publish',
+      label: 'Phát hành',
       datasetId: 7,
     });
-    expect(getRunNextAction({ status: 'PUBLISHED', latest_dataset_id: 7 })).toMatchObject({ kind: 'dataset' });
+    expect(getRunNextAction({ status: 'PUBLISHED', latest_dataset_id: 7 })).toMatchObject({ kind: 'revoke' });
   });
 
-  it('falls back to opening the run when there is no dataset', () => {
-    expect(getRunNextAction({ status: 'PUBLISHED', latest_dataset_id: null }).kind).toBe('view');
+  it('only opens runs with nothing left to do', () => {
     expect(getRunNextAction({ status: 'FAILED' }).kind).toBe('view');
+    expect(getRunNextAction({ status: 'CANCELLED' }).kind).toBe('view');
+  });
+});
+
+describe('getRunTab', () => {
+  it('groups runs by what the DPO has to do', () => {
+    expect(getRunTab({ status: 'READY_TO_BUILD' })).toBe('REVIEW');
+    expect(getRunTab({ status: 'VERIFIED' })).toBe('READY');
+    expect(getRunTab({ status: 'PUBLISHED' })).toBe('PUBLISHED');
+    expect(getRunTab({ status: 'FAILED', latest_dataset_id: 2 })).toBe('REVIEW');
+    expect(getRunTab({ status: 'FAILED' })).toBe('OTHER');
   });
 });
 

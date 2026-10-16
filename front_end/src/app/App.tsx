@@ -11,9 +11,6 @@ const DpoWorkspacePage = lazy(() =>
 const DpoRunHistoryPage = lazy(() =>
   import('@/pages/DpoRunHistoryPage').then((module) => ({ default: module.DpoRunHistoryPage })),
 );
-const DpoDatasetsPage = lazy(() =>
-  import('@/pages/DpoDatasetsPage').then((module) => ({ default: module.DpoDatasetsPage })),
-);
 const DpoDatasetDetailPage = lazy(() =>
   import('@/pages/DpoDatasetDetailPage').then((module) => ({ default: module.DpoDatasetDetailPage })),
 );
@@ -49,7 +46,8 @@ export function App(): JSX.Element {
             <Route index element={<DpoWorkspacePage />} />
             <Route path="runs" element={<DpoRunHistoryPage />} />
             <Route path="runs/:runId" element={<DpoWorkspacePage />} />
-            <Route path="datasets" element={<DpoDatasetsPage />} />
+            {/* Datasets are managed from the run history now; old links keep working. */}
+            <Route path="datasets" element={<Navigate to="/dpo/runs" replace />} />
             <Route path="datasets/:datasetId" element={<DpoDatasetDetailPage />} />
             <Route path="audit" element={<DpoAuditPage />} />
             <Route path="masking" element={<DpoMaskingDemoPage />} />

@@ -20,8 +20,10 @@ def _auth(token: str) -> dict:
 
 @pytest.mark.asyncio
 async def test_put_decisions_blocked_when_not_in_review_or_ready_state(client):
-    """PUT /decisions only allowed in REVIEW_REQUIRED or READY_TO_BUILD.
-    Blocked once VERIFIED, PUBLISHED, CANCELLED, or FAILED.
+    """PUT /decisions is allowed until the run is published.
+
+    After a build (VERIFIED) the DPO may still revise; the run's dataset is then rebuilt in place.
+    Blocked once PUBLISHED.
     """
     token = await _login(client, "dpo", "dpo123")
     created = await client.post(
@@ -74,14 +76,20 @@ async def test_put_decisions_blocked_when_not_in_review_or_ready_state(client):
     dataset_id = build_res.json()["dataset"]["id"]
     assert build_res.json()["run"]["status"] == "VERIFIED"
 
-    # Now attempt PUT /decisions when run is VERIFIED -> MUST be 422
-    blocked_verified = await client.put(
+    # Revising a VERIFIED run reopens it; its data stays unpublishable (STAGING) until rebuilt
+    reopened = await client.put(
         f"/api/v1/runs/{run_id}/decisions",
         headers=_auth(token),
         json={"decisions": revised_decisions},
     )
-    assert blocked_verified.status_code == 422
-    assert "REVIEW_REQUIRED hoặc READY_TO_BUILD" in blocked_verified.json()["detail"]
+    assert reopened.status_code == 200
+    assert reopened.json()["status"] == "READY_TO_BUILD"
+    assert [ds["status"] for ds in reopened.json()["datasets"]] == ["STAGING"]
+
+    rebuild_res = await client.post(f"/api/v1/runs/{run_id}/build", headers=_auth(token))
+    assert rebuild_res.status_code == 200
+    assert rebuild_res.json()["run"]["status"] == "VERIFIED"
+    assert rebuild_res.json()["dataset"]["id"] == dataset_id
 
     # Publish the dataset -> run becomes PUBLISHED
     pub_res = await client.post(f"/api/v1/datasets/{dataset_id}/publish", headers=_auth(token))

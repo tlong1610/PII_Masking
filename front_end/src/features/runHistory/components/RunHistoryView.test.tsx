@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import * as datasetsApi from '@/features/datasets/api/datasetsApi';
 import * as api from '../api/runHistoryApi';
 import type { RunSummary } from '../api/runHistoryApi';
 import { RunHistoryView } from './RunHistoryView';
@@ -48,6 +49,11 @@ vi.mock('../api/runHistoryApi', () => ({
   deleteRun: vi.fn(() => Promise.resolve()),
 }));
 
+vi.mock('@/features/datasets/api/datasetsApi', () => ({
+  publishDataset: vi.fn(() => Promise.resolve({})),
+  revokeDataset: vi.fn(() => Promise.resolve({})),
+}));
+
 function renderView(): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -64,9 +70,29 @@ describe('RunHistoryView', () => {
     renderView();
 
     expect(await screen.findByRole('link', { name: '#12' })).toHaveAttribute('href', '/dpo/runs/12');
-    expect(screen.getByRole('link', { name: 'Tiếp tục duyệt' })).toHaveAttribute('href', '/dpo/runs/12');
-    expect(screen.getByRole('link', { name: 'Xem & phát hành' })).toHaveAttribute('href', '/dpo/datasets/5');
-    expect(screen.getByText('Chờ duyệt')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Mở' })[0]).toHaveAttribute('href', '/dpo/runs/12');
+    expect(screen.getByRole('button', { name: 'Phát hành' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Chờ phát hành (1)' })).toBeInTheDocument();
+  });
+
+  it('publishes a saved run from the list after confirmation', async () => {
+    renderView();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Phát hành' }));
+    expect(screen.getByText('Phát hành run #11?')).toBeInTheDocument();
+    expect(datasetsApi.publishDataset).not.toHaveBeenCalled();
+
+    const publishButtons = screen.getAllByRole('button', { name: 'Phát hành' });
+    fireEvent.click(publishButtons[publishButtons.length - 1]!);
+    await waitFor(() => expect(vi.mocked(datasetsApi.publishDataset).mock.calls[0]?.[0]).toBe(5));
+  });
+
+  it('filters runs by tab', async () => {
+    renderView();
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Chờ duyệt (1)' }));
+    expect(screen.getByRole('link', { name: '#12' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '#11' })).not.toBeInTheDocument();
   });
 
   it('deletes a selected run after confirmation', async () => {

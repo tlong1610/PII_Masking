@@ -13,6 +13,9 @@ export const auditEventSchema = z.object({
   created_at: z.string(),
   prev_hash: z.string(),
   entry_hash: z.string(),
+  /** Run the event belongs to (dataset events included) and its source name, for display. */
+  run_id: z.number().nullable().optional(),
+  source_name: z.string().nullable().optional(),
 });
 
 export const auditChainSchema = z.object({
@@ -30,6 +33,10 @@ export interface AuditFilters {
   action?: string;
   entityType?: string;
   entityId?: string;
+  /** Any of these actions (sent comma-separated). */
+  actions?: readonly string[];
+  /** Every event of one run, including those of its dataset. */
+  runId?: number;
   limit: number;
 }
 
@@ -38,6 +45,8 @@ export async function fetchAuditEvents(filters: AuditFilters): Promise<AuditEven
   if (filters.action) params.set('action', filters.action);
   if (filters.entityType) params.set('entity_type', filters.entityType);
   if (filters.entityId) params.set('entity_id', filters.entityId);
+  if (filters.actions && filters.actions.length > 0) params.set('actions', filters.actions.join(','));
+  if (filters.runId !== undefined) params.set('run_id', String(filters.runId));
   return z.array(auditEventSchema).parse(await apiRequest<unknown>(`/audit?${params.toString()}`));
 }
 
