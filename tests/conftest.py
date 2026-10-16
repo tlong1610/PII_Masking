@@ -12,6 +12,7 @@ os.environ["ENABLE_AI_SCAN"] = "false"
 os.environ["ENABLE_PG_SNAPSHOT"] = "false"
 # Regex-only NER: no model download, deterministic redaction regardless of the developer's .env
 os.environ["ENABLE_NER"] = "false"
+os.environ["ENABLE_MONGO"] = "false"
 
 from src.api.session_store import clear_sessions
 from src.config import get_settings
