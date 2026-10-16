@@ -10,6 +10,8 @@ services:
     envVars:
       - key: APP_ENV
         value: production
+      - key: SEED_DEMO_USERS
+        value: "true"
       - key: APP_NAME
         value: PIIGuard Shield
       - key: LOG_LEVEL
