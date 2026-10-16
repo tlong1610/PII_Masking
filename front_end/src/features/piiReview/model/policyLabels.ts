@@ -18,9 +18,9 @@ export function getActionLabel(action: PolicyAction): string {
 
 export function getActionColor(action: PolicyAction): ActionTone {
   if (action === 'DROP') return 'error';
-  if (action === 'MASK' || action === 'REDACT') return 'warning';
+  if (action === 'MASK' || action === 'REDACT') return 'success';
   if (action === 'HMAC') return 'info';
-  return 'success';
+  return 'warning';
 }
 
 export function getDatasetStatusLabel(status: DatasetStatus): string {
@@ -58,9 +58,9 @@ export function getTransformAnalystHint(transform: TransformKind): string {
 
 export function getTransformColor(transform: TransformKind): ChipTone {
   if (transform === 'DROPPED') return 'error';
-  if (transform === 'MASK' || transform === 'REDACT') return 'warning';
+  if (transform === 'MASK' || transform === 'REDACT') return 'success';
   if (transform === 'HMAC') return 'info';
-  return 'success';
+  return 'warning';
 }
 
 export function getRiskTone(classification: string): ChipTone {

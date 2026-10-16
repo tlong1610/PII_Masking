@@ -23,5 +23,6 @@
 | **FE-19** | Rebalance Masking Showcase UI | Sprint 04 | **done** | Tái cấu trúc cân bằng UI màn hình Demo che dữ liệu (Sandbox 4 thẻ & Ma trận tỷ lệ vàng) theo chuẩn Databricks Design System DNA ([chi tiết](details/FE-19-rebalance-masking-showcase-ui.md)) |
 | **FE-20** | Reorder Protection Matrix & Fix Legal Padding | Sprint 04 | **done** | Đảo thứ tự ma trận bảo vệ (L1 ➔ L2 ➔ L3), khắc phục lệch padding phải ở khối văn bản pháp luật nguồn, chuẩn hóa Design DNA ([chi tiết](details/FE-20-nd13-protection-matrix-reorder-and-padding-fix.md)) |
 | **FE-21** | Standardize Page Layout & Remove Double Nesting | Sprint 04 | **done** | Loại bỏ thụt kép & maxWidth ở trang Demo che dữ liệu, khử viền kép lồng nhau ở bảng ma trận pháp lý ([chi tiết](details/FE-21-standardize-page-layout-and-remove-double-nesting.md)) |
+| **FE-22** | Unify Compliance Matrix Colors & Semantics | Sprint 04 | **done** | Chuẩn hóa bảng màu DNA cho 5 cấp hành động bảo vệ PII, đồng nhất thuật ngữ và khử lặp từ cột cấp độ ([chi tiết](details/FE-22-unify-compliance-matrix-colors-and-semantics.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

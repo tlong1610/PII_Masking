@@ -74,9 +74,9 @@ describe('Nd13RulesView', () => {
     const cells = screen.getAllByRole('cell');
     const cellTexts = cells.map((cell) => cell.textContent ?? '');
 
-    const l1Index = cellTexts.findIndex((t) => t.includes('L1 — Gián tiếp'));
-    const l2Index = cellTexts.findIndex((t) => t.includes('L2 — Cơ bản'));
-    const l3Index = cellTexts.findIndex((t) => t.includes('L3 — Nhạy cảm'));
+    const l1Index = cellTexts.findIndex((t) => t.includes('L1') && t.includes('Gián tiếp'));
+    const l2Index = cellTexts.findIndex((t) => t.includes('L2') && t.includes('Cơ bản'));
+    const l3Index = cellTexts.findIndex((t) => t.includes('L3') && t.includes('Nhạy cảm'));
 
     expect(l1Index).toBeGreaterThan(-1);
     expect(l2Index).toBeGreaterThan(l1Index);
@@ -84,8 +84,11 @@ describe('Nd13RulesView', () => {
 
     // Verify key action chips are present in the table
     expect(screen.getByText('Cấm tuyệt đối')).toBeInTheDocument();
-    expect(screen.getByText('Cho phép')).toBeInTheDocument();
+    expect(screen.getAllByText('Hợp lệ').length).toBeGreaterThan(0);
     expect(screen.getByText('Có thời hạn')).toBeInTheDocument();
+    expect(screen.getAllByText('Bắt buộc').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Khuyến nghị').length).toBeGreaterThan(0);
   });
 });
+
 
