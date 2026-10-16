@@ -318,10 +318,10 @@ export function Nd13RulesView(): JSX.Element {
                 {PII_ACTION_MATRIX.map((row) => (
                   <TableRow key={row.level} hover>
                     <TableCell sx={{ fontWeight: 700 }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} alignItems="center" title={row.levelLabel}>
                         <Chip label={row.level} color={row.badgeColor} size="small" sx={{ fontWeight: 700, minWidth: 32 }} />
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {row.levelLabel}
+                          {row.levelName}
                         </Typography>
                       </Stack>
                     </TableCell>

@@ -61,22 +61,29 @@ describe('nd13Rules model', () => {
     expect(levels).toEqual(['L1', 'L2', 'L3']);
 
     const l1 = PII_ACTION_MATRIX.find((row) => row.level === 'L1');
-    expect(l1?.mask.label).toBe('Tùy chọn');
+    expect(l1?.levelName).toBe('Gián tiếp');
+    expect(l1?.mask.label).toBe('Hợp lệ');
     expect(l1?.hmac.label).toBe('Khuyến nghị');
-    expect(l1?.drop.label).toBe('Tùy chọn');
-    expect(l1?.keep.label).toBe('Cho phép');
+    expect(l1?.drop.label).toBe('Hợp lệ');
+    expect(l1?.keep.label).toBe('Hợp lệ');
 
     const l2 = PII_ACTION_MATRIX.find((row) => row.level === 'L2');
+    expect(l2?.levelName).toBe('Cơ bản');
     expect(l2?.mask.label).toBe('Khuyến nghị');
     expect(l2?.hmac.label).toBe('Hợp lệ');
     expect(l2?.drop.label).toBe('Hợp lệ');
     expect(l2?.keep.label).toBe('Có thời hạn');
 
     const l3 = PII_ACTION_MATRIX.find((row) => row.level === 'L3');
+    expect(l3?.levelName).toBe('Nhạy cảm');
     expect(l3?.mask.label).toBe('Bắt buộc');
-    expect(l3?.hmac.label).toBe('Tùy chọn');
+    expect(l3?.mask.color).toBe('primary');
+    expect(l3?.hmac.label).toBe('Hợp lệ');
     expect(l3?.drop.label).toBe('Bắt buộc');
+    expect(l3?.drop.color).toBe('primary');
     expect(l3?.keep.label).toBe('Cấm tuyệt đối');
+    expect(l3?.keep.color).toBe('error');
   });
 });
+
 

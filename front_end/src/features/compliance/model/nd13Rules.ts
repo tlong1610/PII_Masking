@@ -176,7 +176,7 @@ export const ND13_KEY_ARTICLES: readonly Nd13Article[] = [
   },
 ] as const;
 
-export type ActionBadgeColor = 'default' | 'success' | 'info' | 'warning' | 'error';
+export type ActionBadgeColor = 'default' | 'primary' | 'success' | 'info' | 'warning' | 'error';
 
 export interface ActionBadge {
   label: string;
@@ -186,6 +186,7 @@ export interface ActionBadge {
 export interface PiiActionMatrixRow {
   level: 'L1' | 'L2' | 'L3';
   levelLabel: string;
+  levelName: string;
   badgeColor: 'info' | 'warning' | 'error';
   definition: string;
   mask: ActionBadge;
@@ -198,32 +199,37 @@ export const PII_ACTION_MATRIX: readonly PiiActionMatrixRow[] = [
   {
     level: 'L1',
     levelLabel: 'L1 — Gián tiếp',
+    levelName: 'Gián tiếp',
     badgeColor: 'info',
     definition: 'User ID, Session ID, Khóa nối liên kết',
-    mask: { label: 'Tùy chọn', color: 'default' },
+    mask: { label: 'Hợp lệ', color: 'default' },
     hmac: { label: 'Khuyến nghị', color: 'success' },
-    drop: { label: 'Tùy chọn', color: 'default' },
-    keep: { label: 'Cho phép', color: 'info' },
+    drop: { label: 'Hợp lệ', color: 'default' },
+    keep: { label: 'Hợp lệ', color: 'default' },
   },
   {
     level: 'L2',
     levelLabel: 'L2 — Cơ bản',
+    levelName: 'Cơ bản',
     badgeColor: 'warning',
     definition: 'Họ tên, SĐT, CCCD, Email, Nơi cư trú',
     mask: { label: 'Khuyến nghị', color: 'success' },
-    hmac: { label: 'Hợp lệ', color: 'info' },
+    hmac: { label: 'Hợp lệ', color: 'default' },
     drop: { label: 'Hợp lệ', color: 'default' },
     keep: { label: 'Có thời hạn', color: 'warning' },
   },
   {
     level: 'L3',
     levelLabel: 'L3 — Nhạy cảm',
+    levelName: 'Nhạy cảm',
     badgeColor: 'error',
     definition: 'Bệnh án, tài chính, tôn giáo, sinh trắc học',
-    mask: { label: 'Bắt buộc', color: 'success' },
-    hmac: { label: 'Tùy chọn', color: 'default' },
-    drop: { label: 'Bắt buộc', color: 'success' },
+    mask: { label: 'Bắt buộc', color: 'primary' },
+    hmac: { label: 'Hợp lệ', color: 'default' },
+    drop: { label: 'Bắt buộc', color: 'primary' },
     keep: { label: 'Cấm tuyệt đối', color: 'error' },
   },
+
 ] as const;
+
 

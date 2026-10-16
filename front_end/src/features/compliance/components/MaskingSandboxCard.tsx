@@ -58,7 +58,7 @@ export function MaskingSandboxCard(): JSX.Element {
           <Paper
             variant="outlined"
             sx={{
-              p: 2,
+              p: { xs: 2, sm: 4 },
               borderRadius: 1.5,
               bgcolor: 'background.default',
             }}
