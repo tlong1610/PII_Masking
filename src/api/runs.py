@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.agents.orchestrator import build_orchestrator_graph
@@ -184,6 +184,71 @@ def _load_run(db: Session, run_id: int) -> db_models.Run | None:
             selectinload(db_models.Run.datasets),
         )
     )
+
+
+_EDITABLE_RUN_STATUSES = frozenset({RunStatus.REVIEW_REQUIRED.value, RunStatus.READY_TO_BUILD.value})
+
+
+def _latest_dataset(run: db_models.Run) -> db_models.Dataset | None:
+    return max(run.datasets, key=lambda ds: ds.id, default=None)
+
+
+def _is_rebuildable(run: db_models.Run) -> bool:
+    """Decisions may change (and the protected data be rebuilt) until the run is published.
+
+    FAILED only counts when a dataset exists, i.e. the verifier failed; a failed scan has nothing to rebuild.
+    """
+    if run.status in _EDITABLE_RUN_STATUSES or run.status == RunStatus.VERIFIED.value:
+        return True
+    return run.status == RunStatus.FAILED.value and bool(run.datasets)
+
+
+def _rebuild_blocked_message(run: db_models.Run) -> str:
+    if run.status == RunStatus.PUBLISHED.value:
+        return (
+            f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
+            "Dataset đã phát hành — thu hồi dataset trước khi chỉnh sửa."
+        )
+    return (
+        f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
+        "Chỉ cho phép khi lượt quét đang chờ duyệt hoặc đã lưu nhưng chưa phát hành."
+    )
+
+
+def _reopen_for_changes(run: db_models.Run) -> None:
+    """New decisions make the built data stale: it stays unpublishable until the next build replaces it."""
+    if run.status in _EDITABLE_RUN_STATUSES:
+        return
+    dataset = _latest_dataset(run)
+    if dataset is not None and dataset.status in (DatasetStatus.VERIFIED.value, DatasetStatus.FAILED.value):
+        dataset.status = DatasetStatus.STAGING.value
+    run.status = RunStatus.READY_TO_BUILD.value
+
+
+def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Dataset, bool]:
+    """One run has one dataset: a rebuild resets and reuses it (the snapshot target is per run anyway).
+
+    Returns (dataset, reused).
+    """
+    staging_location = f"staging://run/{run.id}/snapshot"
+    dataset = _latest_dataset(run)
+    if dataset is None:
+        dataset = db_models.Dataset(
+            run_id=run.id,
+            dataset_name=f"run-{run.id}-snapshot",
+            status=DatasetStatus.STAGING.value,
+            output_location=staging_location,
+        )
+        db.add(dataset)
+        db.flush()
+        return dataset, False
+    db.execute(delete(db_models.VerifierResult).where(db_models.VerifierResult.dataset_id == dataset.id))
+    dataset.status = DatasetStatus.STAGING.value
+    dataset.output_location = staging_location
+    dataset.published_at = None
+    dataset.revoked_at = None
+    db.flush()
+    return dataset, True
 
 
 def _run_to_out(run: db_models.Run) -> RunOut:
@@ -773,14 +838,8 @@ def put_decisions(
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    if run.status not in (RunStatus.REVIEW_REQUIRED.value, RunStatus.READY_TO_BUILD.value):
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
-                "Chỉ cho phép cập nhật khi ở trạng thái REVIEW_REQUIRED hoặc READY_TO_BUILD."
-            ),
-        )
+    if not _is_rebuildable(run):
+        raise HTTPException(status_code=422, detail=_rebuild_blocked_message(run))
 
     settings = get_settings()
     is_self_approval = (run.created_by == user.id)
@@ -925,6 +984,9 @@ def put_decisions(
                     f"(đề xuất: {profile.recommended_action}, chọn: {item.action.value}) (FR-07)."
                 ),
             )
+
+    # Changing decisions after a build makes that data stale until the next build replaces it.
+    _reopen_for_changes(run)
 
     # Replace decisions for submitted field_profile_ids (upsert by profile id) + record history.
     existing = {d.field_profile_id: d for d in run.field_decisions}
@@ -1082,11 +1144,14 @@ def build_run(
             ),
         )
 
-    if run.status not in (RunStatus.READY_TO_BUILD.value, RunStatus.REVIEW_REQUIRED.value):
+    if not _is_rebuildable(run):
         raise HTTPException(
             status_code=422,
             detail={
-                "message": f"Build blocked: run is in state {run.status}, must be REVIEW_REQUIRED or READY_TO_BUILD",
+                "message": (
+                    f"Build blocked: run is in state {run.status}, must be REVIEW_REQUIRED, READY_TO_BUILD "
+                    "or an unpublished snapshot (VERIFIED / verifier FAILED)"
+                ),
             },
         )
 
@@ -1204,18 +1269,11 @@ def build_run(
                 },
             )
 
-    # Failed prior datasets must not become readable.
+    # Failed prior datasets must not become readable; the run's dataset is rebuilt in place.
     run.status = RunStatus.BUILDING.value
     db.flush()
 
-    dataset = db_models.Dataset(
-        run_id=run.id,
-        dataset_name=f"run-{run.id}-snapshot",
-        status=DatasetStatus.STAGING.value,
-        output_location=f"staging://run/{run.id}/snapshot",
-    )
-    db.add(dataset)
-    db.flush()
+    dataset, reused = _dataset_for_build(db, run)
 
     check_rows: list[dict] = []
 
@@ -1387,6 +1445,8 @@ def build_run(
         dataset.status = DatasetStatus.VERIFIED.value
         run.status = RunStatus.VERIFIED.value
         reason = "build -> VERIFIED (verifier passed)"
+    if reused:
+        reason = f"re{reason} (dataset rebuilt in place)"
 
     _write_audit(
         db,
