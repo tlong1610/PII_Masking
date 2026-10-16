@@ -1,19 +1,26 @@
+import sys
+from unittest.mock import MagicMock
+
 from src.detection.ml_ner import MLNERScanner
 
 
-def test_ml_ner_scanner():
-    print("Loading ML Model (this might take a few seconds on first run)...")
+def test_ml_ner_scanner(monkeypatch):
+    mock_model = MagicMock()
+    mock_model.predict_entities.return_value = [
+        {"start": 12, "end": 27, "text": "Phạm Nhật Vượng", "label": "person", "score": 0.98},
+        {"start": 57, "end": 65, "text": "Vingroup", "label": "organization", "score": 0.95},
+        {"start": 70, "end": 79, "text": "Nha Trang", "label": "location", "score": 0.92},
+    ]
+    fake_gliner_cls = MagicMock()
+    fake_gliner_cls.from_pretrained.return_value = mock_model
+    monkeypatch.setitem(sys.modules, "gliner", MagicMock(GLiNER=fake_gliner_cls))
+
     scanner = MLNERScanner()
 
     # Text đã bị loại bỏ SĐT/Email từ Tầng 1 và Tầng 2, chỉ còn văn bản thuần.
     text = "Hôm qua anh Phạm Nhật Vượng có ghé thăm cơ sở của tập đoàn Vingroup tại Nha Trang."
 
-    print(f"Scanning text: '{text}'")
     matches = scanner.scan_text(text)
-
-    print(f"Found {len(matches)} matches:")
-    for m in matches:
-        print(f"- {m.pii_type}: '{m.text}' at [{m.start}:{m.end}]")
 
     assert len(matches) == 3
 
@@ -29,8 +36,4 @@ def test_ml_ner_scanner():
     assert matches_sorted[2].pii_type == "LOCATION"
     assert "Nha Trang" in matches_sorted[2].text
 
-    print("All ML NER tests passed!")
-
-if __name__ == "__main__":
-    test_ml_ner_scanner()
 
