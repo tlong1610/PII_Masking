@@ -174,9 +174,9 @@ P-138/
 │
 ├── docs/                              👉 [CHUNG / PHÚC - TÀI LIỆU DỰ ÁN]
 │   ├── core/                          # PRD, System Architecture, AI Architecture, Status Report
-│   └── ops/                           # CI Runner guide
+│   ├── ops/                           # CI Runner guide, TEAM_WORKFLOW
+│   └── ops/TEAM_WORKFLOW.md           👉 [QUY TRÌNH GIT, PR, COMMIT CHO CẢ TEAM]
 │
-├── TEAM_WORKFLOW.md                   👉 [QUY TRÌNH GIT, PR, COMMIT CHO CẢ TEAM]
 └── README.md                          👉 [TỔNG QUAN DỰ ÁN]
 ```
 
@@ -194,7 +194,7 @@ Mọi dữ liệu trao đổi giữa Backend, AI Agent và Frontend đều thôn
 - Kiên commit code trong `src/connectors/mongo*`, `data/fixtures/`.
 - Nếu cần sửa file cấu hình chung (`src/config.py`, `src/models/schemas.py`, `requirements.txt`), hãy thảo luận trong nhóm trước.
 
-### 3. Quy tắc Git Branching & Merge (Từ [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md))
+### 3. Quy tắc Git Branching & Merge (Từ [ops/TEAM_WORKFLOW.md](ops/TEAM_WORKFLOW.md))
 - Mọi nhánh rẽ nhánh từ `develop`.
 - Mọi PR bắt buộc target base vào `develop`.
 - Không merge vào `main` trước các mốc Gate chính thức.

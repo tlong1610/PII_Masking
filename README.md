@@ -7,6 +7,27 @@
 
 Đây là tài liệu vận hành và kiến trúc của PIIGuard Shield sau khi hoàn thành toàn diện Giai đoạn 1 (P1): ứng dụng chạy thật trên cả PostgreSQL và MongoDB, quét sâu field/value patterns, phân loại PII đa tầng kết hợp AI và rules, đồng bộ điểm rủi ro FR-10, bảo vệ liên kết khóa nối và tuân thủ nghiêm ngặt nguyên tắc Zero Raw PII.
 
+---
+
+### 🗺️ Lộ Trình Đọc Tài Liệu Cho Ban Giám Khảo (Fast-Track Reading Guide)
+
+Dành cho Ban Giám Khảo / Hội đồng đánh giá muốn nắm bắt nhanh dự án trong 3–10 phút:
+
+1. ⏱️ **Bước 1 (2 phút — Tổng quan & Kết quả P1):**
+   * Đọc phần **Giải pháp** và bảng **Trạng thái P1 (100% hoàn thành)** ngay bên dưới trong [README.md](README.md).
+2. ⏱️ **Bước 2 (3 phút — Kiến trúc cốt lõi & 3 trụ cột thiết kế):**
+   * Đọc bản tóm lược cấp cao tại [**`ARCHITECTURE.md`**](ARCHITECTURE.md):
+     * *Zero Raw PII & Least Privilege:* DPO duyệt siêu dữ liệu; Engine xử lý in-memory; CSDL đích là snapshot đã ẩn danh.
+     * *Deep Content Inspection (Khoét sâu dữ liệu):* GLiNER Cascade đọc sâu text trong RAM, trừu tượng hóa an toàn về DPO.
+     * *Chiến lược 5 hành động Masking:* Lý do không che thô `***` (HMAC giữ JOIN, REDACT giữ ngữ nghĩa NLP, MASK giữ phân tích).
+3. ⏱️ **Bước 3 (5 phút — Thẩm định chuyên sâu theo từng tiêu chí):**
+   * 🤖 **Thẩm định mô hình AI & NER:** [AI Architecture](docs/core/AI_ARCHITECTURE.md) (Luồng A: 100% Accuracy, Luồng B GLiNER: 97.86% Recall).
+   * 🎬 **Thẩm định quy trình Demo 4 Tabs DPO:** [Kịch bản Demo 6 bước](docs/guide/DEMO_FLOW.md).
+   * ⚖️ **Thẩm định Pháp lý & Tuân thủ:** [Đặc tả PRD Nghị định 13 & Luật 91](docs/core/prd.md) & [Báo cáo nghiệm thu P1](docs/core/MVP_STATUS_REPORT.md).
+   * 🗂️ **Bản đồ tài liệu toàn dự án:** [docs/README.md](docs/README.md).
+
+---
+
 ## Vấn đề (Problem)
 
 DPO và đội dữ liệu mất công rà từng trường trước khi cung cấp dữ liệu cho Analyst. Họ vừa có thể bỏ sót dữ liệu cá nhân, vừa có thể làm hỏng phép liên kết nếu che khóa không nhất quán. Cần một quy trình có căn cứ, người duyệt và kiểm tra tác động trước khi chia sẻ.
@@ -239,11 +260,11 @@ Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hi
 
 ## Project Structure
 
-> 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
+> 📖 **Xem bản đồ cây thư mục và phân chia trách nhiệm chi tiết cho từng thành viên tại:** [**docs/PROJECT_STRUCTURE.md**](docs/PROJECT_STRUCTURE.md)
 
 | Đường dẫn                                                              | Nội dung                                                                       |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)                         | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng      |
+| [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)               | Phân chia trách nhiệm & cây thư mục chi tiết cho FE, BE, AI Eng, Data Eng      |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md)                                   | Kiến trúc hệ thống, security boundary và deploy model                          |
 | [`data/fixtures/postgres/README.md`](data/fixtures/postgres/README.md) | Hướng dẫn seed, 14 bảng quan hệ và đối soát PostgreSQL fixture                 |
 | [`data/fixtures/mongo/README.md`](data/fixtures/mongo/README.md)       | Hướng dẫn seed, chỉ mục và đối soát MongoDB fixture (91 customers, 830 orders) |

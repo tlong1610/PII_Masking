@@ -88,4 +88,4 @@ Bảo toàn tối đa giá trị khai thác dữ liệu (**Data Utility**) mà k
 2. [Kiến Trúc Mô Hình AI & NER Cascade (AI_ARCHITECTURE.md)](docs/core/AI_ARCHITECTURE.md)
 3. [Đặc Tả Yêu Cầu Sản Phẩm (PRD.md)](docs/core/prd.md)
 4. [Báo Cáo Nghiệm Thu Hoàn Thành Phase 1 (MVP_STATUS_REPORT.md)](docs/core/MVP_STATUS_REPORT.md)
-5. [Kịch Bản Trình Diễn MVP 6 Bước (MVP_DEMO_FLOW_EXPLANATION.md)](MVP_DEMO_FLOW_EXPLANATION.md)
+5. [Kịch Bản Trình Diễn MVP 6 Bước (DEMO_FLOW.md)](docs/guide/DEMO_FLOW.md)

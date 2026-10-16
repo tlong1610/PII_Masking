@@ -21,12 +21,14 @@
 | [`../performance/sau_HITL/report_stream_b.md`](../performance/sau_HITL/report_stream_b.md) | Báo cáo đối chiếu Luồng B (Free-text NER): **97.86% Recall**, 97.51% F1 với GLiNER Multi-PII |
 | [`../eval/results/report_full.md`](../eval/results/report_full.md) | Báo cáo kết quả eval baseline ban đầu |
 
-## Vận hành
+## Vận hành & Hướng dẫn
 
 | File | Nội dung |
 |---|---|
+| [`guide/DEMO_FLOW.md`](guide/DEMO_FLOW.md) | Kịch bản trình diễn MVP 6 bước chi tiết cho DPO và Analyst |
 | [`ops/CI_RUNNER_GUIDE.md`](ops/CI_RUNNER_GUIDE.md) | Self-hosted GitHub Actions runner trên Mac (`team-138`) |
-| [`../PROJECT_STRUCTURE.md`](../PROJECT_STRUCTURE.md) | Cây thư mục thực tế (`front_end/`, `src/`, `performance/`) & phân chia trách nhiệm |
+| [`ops/TEAM_WORKFLOW.md`](ops/TEAM_WORKFLOW.md) | Quy trình Git, PR, Commit và kiểm soát chất lượng nhóm |
+| [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Cây thư mục thực tế (`front_end/`, `src/`, `performance/`) & phân chia trách nhiệm |
 
 ## Căn cứ và bằng chứng
 
