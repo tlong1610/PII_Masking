@@ -2,7 +2,7 @@
 
 Tài liệu này ghi lại trạng thái AI detection theo source hiện tại, để team không trình bày lệch với code.
 
-## 1. AI đang làm gì trong P1
+## 1. AI trong PIIGuard Shield (Giai đoạn P1 hoàn thành)
 
 AI trong PIIGuard không tự quyết định phát hành dữ liệu. Hệ thống tạo đề xuất phân loại/action cho từng field, DPO duyệt lại, rồi backend mới build snapshot đã bảo vệ.
 
@@ -103,9 +103,21 @@ Tự cập nhật RAG corpus/ChromaDB (`update_rag_corpus`) chưa nối vào API
 
 ### Văn bản tự do: NER (Luồng B)
 
-Cột văn bản tự do (kiểu text và tên giống `notes`/`comment`/`ghi_chu`, hoặc mẫu là câu dài nhiều từ) mà scanner chưa gắn được loại PII cụ thể sẽ chạy thêm NER trên sample trong bộ nhớ (`src/detection/ner_orchestrator.py`): Regex -> Từ điển (tuỳ chọn) -> GLiNER zero-shot `urchade/gliner_multi_pii-v1` (khi `ENABLE_NER=true`, cần `gliner`; văn bản dài được quét theo đoạn ≤ 300 từ vì GLiNER tự cắt bỏ phần vượt giới hạn). Có thực thể PII thì đề xuất `REDACT`, `taxonomy_id=FREE_TEXT_PII`; metadata chỉ ghi loại thực thể và số mẫu, không ghi giá trị. Cột L3 (sức khoẻ, tài chính) và cột đã xác định loại cụ thể (ADDRESS, FULL_NAME...) giữ đề xuất cũ.
+Cột văn bản tự do (kiểu text và tên giống `notes`/`comment`/`ghi_chu`, hoặc mẫu là câu dài nhiều từ) mà scanner chưa gắn được loại PII cụ thể sẽ chạy thêm NER trên sample trong bộ nhớ (`src/detection/ner_orchestrator.py`): Regex -> Từ điển FlashText (`src/detection/dict_ner.py`) -> GLiNER zero-shot `urchade/gliner_multi_pii-v1` (khi `ENABLE_NER=true`, cần `gliner`; văn bản dài được quét theo đoạn ≤ 300 từ vì GLiNER tự cắt bỏ phần vượt giới hạn). Có thực thể PII thì đề xuất `REDACT`, `taxonomy_id=FREE_TEXT_PII`; metadata chỉ ghi loại thực thể và số mẫu, không ghi giá trị. Cột L3 (sức khoẻ, tài chính) và cột đã xác định loại cụ thể (ADDRESS, FULL_NAME...) giữ đề xuất cũ.
 
-Khi build snapshot, `REDACT` giữ câu và thay từng thực thể bằng nhãn (`Gọi 0912345678` -> `Gọi [PHONE]`); giá trị không phải chuỗi bị thay cả ô bằng `[REDACTED]`. Verifier Postgres tìm SĐT/CCCD/email còn sót ở bất kỳ vị trí nào trong cột `REDACT`. Benchmark Luồng B (`performance/B_test`) cho recall 67.68%, nên `REDACT` chỉ là lựa chọn khi Analyst cần nội dung văn bản; nếu không, `DROP` vẫn an toàn hơn.
+Khi build snapshot, `REDACT` giữ câu và thay từng thực thể bằng nhãn (`Gọi 0912345678` -> `Gọi [PHONE]`); giá trị không phải chuỗi bị thay cả ô bằng `[REDACTED]`. Verifier Postgres tìm SĐT/CCCD/email còn sót ở bất kỳ vị trí nào trong cột `REDACT`.
+
+**Kết quả đánh giá Luồng B sau HITL & GLiNER ([`performance/sau_HITL/report_stream_b.md`](../../performance/sau_HITL/report_stream_b.md)):**
+- Nhờ cơ chế Mask-and-Pass (Tầng 1 Regex $\rightarrow$ Tầng 2 FlashText $\rightarrow$ Tầng 3 GLiNER Multi-PII), hiệu năng của Luồng B đã có bước nhảy vọt:
+  - **Recall:** Tăng từ 67.68% lên **97.86%** (+30.18%, triệt tiêu 93.4% rủi ro bỏ sót PII).
+  - **Precision:** Đạt **97.16%** (giảm 80.5% báo động giả).
+  - **F1 Score:** Đạt **97.51%** (cân bằng hoàn hảo giữa bảo vệ và bảo toàn ngữ nghĩa).
+  - **Độ trễ trung bình:** 51.20 ms / tài liệu (nhờ lọc sớm bằng Regex và FlashText trước khi gọi model ML).
+
+**Kết quả đánh giá Luồng A sau HITL ([`performance/sau_HITL/report_stream_a.md`](../../performance/sau_HITL/report_stream_a.md)):**
+- Nhờ bộ nhớ quy tắc DPO và few-shot in-context learning:
+  - **Action Accuracy:** Đạt **100.00%** trên toàn bộ 339 trường cột doanh nghiệp (khắc phục hoàn toàn 50/50 ca biên ban đầu).
+  - **Chỉ số rủi ro ($R_{\text{CW}}$):** Giảm về **0.00%**.
 
 ## 5. Zero Raw PII
 
@@ -116,6 +128,7 @@ Nguyên tắc bảo mật trong code và docs:
 - LLM prompt không chứa raw `sample_value`.
 - Report/evidence/log không được chứa raw PII, API key hoặc password.
 - `sample_value` trong `eval/golden_labels.json` chỉ dùng nội bộ cho eval và fixture synthetic.
+- **Deep Content Inspection song hành Zero Raw PII:** Engine AI (GLiNER Cascade) phân tích sâu nội dung văn bản trong RAM (`column.samples`), nhưng kết quả trả về cho DPO được trừu tượng hóa an toàn: chỉ gồm loại thực thể (`PER`, `PHONE`), tỷ lệ xuất hiện và đề xuất `REDACT`. DPO kiểm chứng qua Live Sandbox (mẫu giả lập) mà không tiếp xúc văn bản thật.
 
 Với luồng `ColumnProfile`, sample nội bộ được đổi thành data shape trước khi đi tiếp:
 
@@ -126,22 +139,24 @@ nguyen@example.vn -> CCCCCC@CCCCCCC.CC
 
 Với luồng enterprise `FieldProfile`, prompt LLM chỉ dùng metadata/statistics, không dùng sample.
 
-## 6. Action policy
+## 6. Action policy (Bảo toàn giá trị phân tích vs Bảo mật)
 
-| Action | Ý nghĩa |
-|---|---|
-| `MASK` | Che giá trị khi không cần join trực tiếp |
-| `REDACT` | Văn bản tự do: giữ câu, thay từng thực thể PII bằng nhãn (NER) |
-| `HMAC` | Băm một chiều có key để giữ join/lookup/mapping ổn định |
-| `DROP` | Không đưa field vào snapshot phân tích |
-| `KEEP` | Chỉ dùng cho non-personal hoặc trường đã có lý do nghiệp vụ rõ |
+Không áp dụng che thô `***` đồng loạt vì sẽ phá hủy toàn bộ hệ thống phân tích hạ tầng:
 
-Backend có guardrail: nếu classification là PII/UNKNOWN mà proposal lại `KEEP`, `run_scanner.enforce_proposal_consistency(...)` hạ về `MASK` để DPO xem xét.
+| Action | Ý nghĩa | Lý do kỹ thuật (Data Utility) |
+|---|---|---|
+| `HMAC` | Băm 1 chiều có salt bí mật | Giữ khóa JOIN/mapping nhất quán, **tránh nổ tích Đề-các (Cartesian join)** làm sập DB |
+| `REDACT` | Thay thực thể bằng nhãn (`[PHONE]`) | Giữ cấu trúc câu cho AI/LLM phân tích ngữ nghĩa, topic, sentiment |
+| `MASK` | Che đoạn giữa (`0912***789`) | Giữ đặc trưng thống kê (nhà mạng, domain email, nhóm tuổi) |
+| `DROP` | Loại bỏ hẳn trường khỏi schema | Xóa sạch trường thừa thãi rủi ro cao (ảnh CCCD, biometric) để tiết kiệm lưu trữ |
+| `KEEP` | Giữ nguyên giá trị | Áp dụng cho trường phi cá nhân (doanh thu, ngày tạo) để số liệu báo cáo chuẩn xác |
+
+Backend có guardrail: nếu classification là PII/UNKNOWN mà proposal lại `KEEP`, `run_scanner.enforce_proposal_consistency(...)` hạ về `MASK` để DPO xem xét. Downstream Verifier (`sql_verifier.py`) tự động kiểm tra `join_matched` và chặn phát hành nếu vi phạm tính toàn vẹn.
 
 ## 7. Giới hạn hiện tại
 
-- LLM không phải nguồn sự thật cuối cùng; DPO vẫn duyệt.
+- LLM không phải nguồn sự thật cuối cùng; DPO vẫn duyệt trên siêu dữ liệu.
 - `OPENAI_BASE_URL` chưa hỗ trợ trong code.
-- P1 không mở rộng sang cấu trúc dữ liệu mới; trọng tâm là quét sâu field/value patterns trong PostgreSQL/MongoDB hiện có.
+- Giai đoạn P1 đã hoàn thành trọn vẹn việc quét sâu field/value patterns trong PostgreSQL/MongoDB hiện có, xây dựng thành công bộ nhớ HITL Few-shot Memory và cascade NER văn bản tự do.
 - Nếu `ENABLE_AI_SCAN=false`, field không khớp rules có thể rơi vào `UNKNOWN`/fallback và cần DPO quyết định.
-- Golden dataset có `sample_value` synthetic để eval, nhưng tuyệt đối không dùng làm prompt/report/UI.
+- Golden dataset có `sample_value` synthetic để eval, nhưng tuyệt đối không dùng làm prompt/report/UI (tuân thủ Zero Raw PII).

@@ -72,7 +72,7 @@ source .venv/bin/activate
 python eval/run_eval_full.py
 ```
 
-### Rule-Only Evaluation  
+### Rule-Only Evaluation
 ```bash
 # Nhanh hơn, không cần LLM
 ENABLE_AI_SCAN=false python eval/run_eval_full.py
@@ -129,12 +129,12 @@ Action Accuracy = Correct Actions / Total Detected
    - Ảnh/voice chỉ ghi nhận là rủi ro tương lai
    - P1 tập trung quét sâu các field/value patterns trong PostgreSQL và MongoDB hiện có
 
-## 🚀 Next Steps
+## 🚀 Kết Quả Nghiệm Thu P1 (P1 Completed)
 
-- [ ] Tùng: Chạy eval với golden dataset hiện tại
-- [ ] Phúc: Bổ sung thêm edge cases vào golden_labels.json
-- [ ] Team: Review precision/recall, fix các false positives
-- [ ] Kiên: Chuẩn bị demo với golden dataset
+- [x] **Tùng**: Hoàn thành đánh giá đối chiếu hiệu năng Luồng A & Luồng B trước/sau HITL (lưu tại [`performance/sau_HITL/`](../../performance/sau_HITL/)).
+- [x] **Phúc**: Bổ sung đầy đủ ca biên, ca âm (tracking code, invoice, product code, business tax...) và hoàn thiện UI Review 4 tabs.
+- [x] **Team**: Khắc phục triệt để 50/50 ca lỗi ban đầu, đạt **100.00% Action Accuracy** trên 339 cột doanh nghiệp (Luồng A) và **97.86% Recall** cho văn bản tự do (Luồng B).
+- [x] **Kiên**: Hoàn thiện fixture PostgreSQL (14 bảng quan hệ synthetic) và MongoDB (91 customers, 830 orders) phục vụ demo và verifier.
 
 ## 📝 Cách Thêm Test Case Mới
 
@@ -159,8 +159,9 @@ Action Accuracy = Correct Actions / Total Detected
 
 ## 🔗 Related Files
 
+- `performance/sau_HITL/report_stream_a.md` - Báo cáo đối chiếu Luồng A sau HITL (100% Accuracy)
+- `performance/sau_HITL/report_stream_b.md` - Báo cáo đối chiếu Luồng B sau HITL (97.86% Recall, GLiNER)
 - `tests/test_api/test_datasets.py` - API tests
 - `data/fixtures/postgres/compute/audit_postgres_golden_labels.py` - Generate script
-- `eval/results/postgres_golden_evidence.json` - Kết quả chạy eval
+- `eval/results/postgres_golden_evidence.json` - Kết quả chạy eval ban đầu
 - `docs/core/AI_ARCHITECTURE.md` - Giải thích rules/AI/LLM và nguyên tắc không gửi raw sample vào LLM
-

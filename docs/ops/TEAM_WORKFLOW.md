@@ -22,7 +22,7 @@
 
 ## 📐 Cấu trúc nhánh (Branching Strategy)
 
-> 📖 **Xem chi tiết ai làm folder/file nào tại:** [**PROJECT_STRUCTURE.md**](PROJECT_STRUCTURE.md)
+> 📖 **Xem chi tiết ai làm folder/file nào tại:** [**../PROJECT_STRUCTURE.md**](../PROJECT_STRUCTURE.md)
 
 ```
 main
@@ -640,19 +640,19 @@ git cherry-pick <commit-hash-2>
 
 ### Trong repo này:
 
-- [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) — Bản đồ cây thư mục & phân chia trách nhiệm chi tiết cho 4 thành viên
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — Hướng dẫn đóng góp chung
-- [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — Template PR
-- [`docs/core/prd.md`](docs/core/prd.md) — Product Requirements Document
-- [`docs/archive/brief.md`](docs/archive/brief.md) — One-page brief
-- [`README.md`](README.md) — Tổng quan dự án
+- [`../PROJECT_STRUCTURE.md`](../PROJECT_STRUCTURE.md) — Bản đồ cây thư mục & phân chia trách nhiệm chi tiết cho 4 thành viên
+- [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) — Hướng dẫn đóng góp chung
+- [`../../.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) — Template PR
+- [`../core/prd.md`](../core/prd.md) — Product Requirements Document
+- [`../archive/brief.md`](../archive/brief.md) — One-page brief
+- [`../../README.md`](../../README.md) — Tổng quan dự án
 
 ### External:
 
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Flow](https://guides.github.com/introduction/flow/)
 - [Git Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf)
-- [AI20K Gate 1 Requirements](docs/core/prd.md) — Chi tiết yêu cầu Gate 1
+- [AI20K Gate 1 Requirements](../core/prd.md) — Chi tiết yêu cầu Gate 1
 
 ---
 
