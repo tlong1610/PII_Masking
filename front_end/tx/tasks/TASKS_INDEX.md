@@ -21,5 +21,6 @@
 | **FE-17** | Standardize All Masking to `***` | Sprint 04 | **done** | Đổi cơ chế che mờ họ tên và mọi trường dữ liệu thành `***` bảo mật, đồng nhất chuẩn MASK_PLACEHOLDER ([chi tiết](details/FE-17-standardize-name-masking-placeholder.md)) |
 | **FE-18** | Legal Source Links & Citations | Sprint 04 | **done** | Tích hợp liên kết dẫn chứng văn bản pháp luật chính thức (Luật 91/2025 & NĐ 356) cho tab Quy định pháp luật ([chi tiết](details/FE-18-legal-source-links.md)) |
 | **FE-19** | Rebalance Masking Showcase UI | Sprint 04 | **done** | Tái cấu trúc cân bằng UI màn hình Demo che dữ liệu (Sandbox 4 thẻ & Ma trận tỷ lệ vàng) theo chuẩn Databricks Design System DNA ([chi tiết](details/FE-19-rebalance-masking-showcase-ui.md)) |
+| **FE-20** | Reorder Protection Matrix & Fix Legal Padding | Sprint 04 | **done** | Đảo thứ tự ma trận bảo vệ (L1 ➔ L2 ➔ L3), khắc phục lệch padding phải ở khối văn bản pháp luật nguồn, chuẩn hóa Design DNA ([chi tiết](details/FE-20-nd13-protection-matrix-reorder-and-padding-fix.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

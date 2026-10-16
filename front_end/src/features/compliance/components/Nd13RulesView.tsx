@@ -28,13 +28,14 @@ import { SectionHeader } from '@/shared/ui';
 import {
   ND13_KEY_ARTICLES,
   OFFICIAL_LEGAL_DOCUMENTS,
+  PII_ACTION_MATRIX,
   PII_CLASSIFICATION_RULES,
   type PiiClassificationRule,
 } from '../model/nd13Rules';
 
 function LegalSourcesSection(): JSX.Element {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2, p: 2.5, bgcolor: 'background.paper' }}>
+    <Card variant="outlined" sx={{ borderRadius: 1.5, p: { xs: 2, md: 2.5 }, bgcolor: 'background.paper' }}>
       <Stack spacing={2}>
         <Stack direction="row" spacing={1} alignItems="center">
           <MenuBookIcon color="primary" fontSize="small" />
@@ -48,74 +49,80 @@ function LegalSourcesSection(): JSX.Element {
           Hệ thống PIIGuard Shield vận hành đối chiếu trực tiếp theo 2 văn bản pháp lý nền tảng của Việt Nam. Người dùng và DPO có thể nhấp vào liên kết để đọc toàn văn trên văn bản chính thức:
         </Typography>
 
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 2,
+            width: '100%',
+          }}
+        >
           {OFFICIAL_LEGAL_DOCUMENTS.map((doc) => (
-            <Grid item xs={12} md={6} key={doc.id}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 2,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  bgcolor: 'action.hover',
-                  borderRadius: 1.5,
-                }}
-              >
-                <Stack spacing={1.5} sx={{ height: '100%' }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                      {doc.code}
-                    </Typography>
-                    <Chip
-                      label={doc.primaryBadge}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ fontSize: '0.6875rem', height: 20, fontWeight: 600 }}
-                    />
-                  </Stack>
-
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {doc.title}
+            <Paper
+              key={doc.id}
+              variant="outlined"
+              sx={{
+                p: 2,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'action.hover',
+                borderRadius: 1.5,
+              }}
+            >
+              <Stack spacing={1.5} sx={{ height: '100%' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                    {doc.code}
                   </Typography>
-
-                  <Typography variant="caption" color="text.secondary">
-                    {doc.summary}
-                  </Typography>
-
-                  <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block' }}>
-                      Điều khoản trọng tâm: {doc.keyArticles}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ mt: 'auto', pt: 1 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                        Cơ quan: {doc.promulgatedBy}
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        component="a"
-                        href={doc.officialUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        endIcon={<OpenInNewIcon fontSize="small" />}
-                        sx={{ minHeight: 36, textTransform: 'none', fontWeight: 600, fontSize: '0.75rem' }}
-                        aria-label={`Đọc toàn văn ${doc.code} trên web`}
-                      >
-                        Đọc toàn văn trên web
-                      </Button>
-                    </Stack>
-                  </Box>
+                  <Chip
+                    label={doc.primaryBadge}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontSize: '0.6875rem', height: 20, fontWeight: 600 }}
+                  />
                 </Stack>
-              </Paper>
-            </Grid>
+
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {doc.title}
+                </Typography>
+
+                <Typography variant="caption" color="text.secondary">
+                  {doc.summary}
+                </Typography>
+
+                <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1, border: 1, borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block' }}>
+                    Điều khoản trọng tâm: {doc.keyArticles}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mt: 'auto', pt: 1 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      Cơ quan: {doc.promulgatedBy}
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      component="a"
+                      href={doc.officialUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      endIcon={<OpenInNewIcon fontSize="small" />}
+                      sx={{ minHeight: 36, textTransform: 'none', fontWeight: 600, fontSize: '0.75rem' }}
+                      aria-label={`Đọc toàn văn ${doc.code} trên web`}
+                    >
+                      Đọc toàn văn trên web
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            </Paper>
           ))}
-        </Grid>
+        </Box>
       </Stack>
     </Card>
   );
@@ -123,7 +130,7 @@ function LegalSourcesSection(): JSX.Element {
 
 function ClassificationCard({ rule }: { rule: PiiClassificationRule }): JSX.Element {
   return (
-    <Card variant="outlined" sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+    <Card variant="outlined" sx={{ p: 2.5, height: '100%', borderRadius: 1.5 }}>
       <Stack spacing={2} sx={{ height: '100%' }}>
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -208,7 +215,7 @@ export function Nd13RulesView(): JSX.Element {
 
       <LegalSourcesSection />
 
-      <Paper variant="outlined">
+      <Paper variant="outlined" sx={{ borderRadius: 1.5 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }} sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, val: number) => setActiveTab(val)} aria-label="Nhóm quy tắc pháp lý">
             <Tab icon={<ShieldOutlinedIcon fontSize="small" />} iconPosition="start" label="Phân loại PII (L1 ➔ L2 ➔ L3)" />
@@ -247,7 +254,7 @@ export function Nd13RulesView(): JSX.Element {
             <Grid container spacing={2.5}>
               {filteredArticles.map((article) => (
                 <Grid item xs={12} md={6} key={article.id}>
-                  <Card variant="outlined" sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+                  <Card variant="outlined" sx={{ p: 2.5, height: '100%', borderRadius: 1.5 }}>
                     <Stack spacing={1.5}>
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ flexWrap: 'wrap', gap: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center">
@@ -292,43 +299,46 @@ export function Nd13RulesView(): JSX.Element {
           )}
 
           {activeTab === 2 && (
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
               <Table size="small" aria-label="Ma trận hành động bảo vệ PII">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'background.default' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Cấp độ PII</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Định nghĩa pháp lý</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>MASK (Che mờ)</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>HMAC (Băm bí mật)</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>DROP (Loại bỏ)</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>KEEP (Ngoại lệ)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: '20%' }}>Cấp độ PII</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: '32%' }}>Định nghĩa pháp lý</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>MASK (Che mờ)</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>HMAC (Băm bí mật)</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>DROP (Loại bỏ)</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, width: '12%' }}>KEEP (Ngoại lệ)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>L3 — Nhạy cảm</TableCell>
-                    <TableCell>Bệnh án, tài chính, tôn giáo, sinh trắc học</TableCell>
-                    <TableCell><Chip label="Bắt buộc" color="success" size="small" /></TableCell>
-                    <TableCell><Chip label="Tùy chọn" size="small" /></TableCell>
-                    <TableCell><Chip label="Bắt buộc" color="success" size="small" /></TableCell>
-                    <TableCell><Chip label="Cấm tuyệt đối" color="error" size="small" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>L2 — Cơ bản</TableCell>
-                    <TableCell>Họ tên, SĐT, CCCD, Email, Nơi cư trú</TableCell>
-                    <TableCell><Chip label="Khuyến nghị" color="success" size="small" /></TableCell>
-                    <TableCell><Chip label="Hợp lệ" color="info" size="small" /></TableCell>
-                    <TableCell><Chip label="Hợp lệ" size="small" /></TableCell>
-                    <TableCell><Chip label="Có thời hạn" color="warning" size="small" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>L1 — Gián tiếp</TableCell>
-                    <TableCell>User ID, Session ID, Khóa nối liên kết</TableCell>
-                    <TableCell><Chip label="Tùy chọn" size="small" /></TableCell>
-                    <TableCell><Chip label="Khuyến nghị" color="success" size="small" /></TableCell>
-                    <TableCell><Chip label="Tùy chọn" size="small" /></TableCell>
-                    <TableCell><Chip label="Cho phép" color="info" size="small" /></TableCell>
-                  </TableRow>
+                  {PII_ACTION_MATRIX.map((row) => (
+                    <TableRow key={row.level} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip label={row.level} color={row.badgeColor} size="small" sx={{ fontWeight: 700, minWidth: 32 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {row.levelLabel}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                        {row.definition}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={row.mask.label} color={row.mask.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={row.hmac.label} color={row.hmac.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={row.drop.label} color={row.drop.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={row.keep.label} color={row.keep.color} size="small" sx={{ minWidth: 72, fontWeight: 600 }} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>
