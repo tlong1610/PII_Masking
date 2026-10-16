@@ -75,9 +75,7 @@ fi
 echo "Phiên bản mới tính toán: $NEW_TAG"
 
 # 2. Tạo nội dung Changelog
-CHANGELOG_DIR=".ai-log/releases"
-mkdir -p "$CHANGELOG_DIR"
-CHANGELOG_PATH="${OUTPUT_FILE:-$CHANGELOG_DIR/release_${NEW_TAG}.md}"
+CHANGELOG_PATH="${OUTPUT_FILE:-/tmp/release_${NEW_TAG}.md}"
 
 {
   echo "## 🛡️ PIIGuard Shield Release $NEW_TAG"
