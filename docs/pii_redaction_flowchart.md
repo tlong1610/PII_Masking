@@ -1,54 +1,50 @@
 # PIIGuard Shield - Sơ đồ Luồng Phân loại & Redact PII
 
-Sơ đồ thể hiện luồng xử lý nhận diện và làm mờ dữ liệu cá nhân (PII), bao gồm sự phân chia giữa luồng dữ liệu cấu trúc (Column-level) và phi cấu trúc (Entity-level) dựa trên việc phân tích tính chất phân phối (Variance) của dữ liệu.
+Sơ đồ thể hiện luồng xử lý nhận diện và làm mờ dữ liệu cá nhân (PII), bao gồm sự phân chia giữa luồng dữ liệu cấu trúc (Column-level - Luồng A) và phi cấu trúc (Entity-level - Luồng B) dựa trên việc phân tích tính chất phân phối dữ liệu (Variance) và kiểu dữ liệu.
 
 ```mermaid
 flowchart TD
     Start(["Bắt đầu: Hệ thống quét một Cột (Column)"]) --> Profiling["Trích xuất Schema &\nPhân tích Thống kê (Database Profiling / N-Samples)"]
     
-    Profiling --> Condition{"Phân tích Phân phối Dữ liệu:\n- Phương sai (Variance) cao?\n- Phân tán từ rỗng đến đoạn văn?"}
+    Profiling --> Condition{"Phân tích Phân phối Dữ liệu:\n- Kiểu văn bản (Text/String)?\n- Tên cột notes/comment hoặc câu dài nhiều từ?"}
     
     %% ================= LUỒNG B =================
-    Condition -- "ĐÚNG (Variance lớn / Max length cao)\nData phi cấu trúc\n(Feedback, Chat log, Note...)" --> FlowB_Start["Hệ thống gắn nhãn:\nPOTENTIAL_FREE_TEXT"]
-    FlowB_Start --> DPODecision{"DPO xem xét trên UI\nvà ra quyết định"}
+    Condition -- "ĐÚNG (Văn bản tự do / Phi cấu trúc)\n(Ghi chú KYC, Chat log, Feedback...)" --> FlowB_Start["Hệ thống kích hoạt:\nLuồng B Free-Text NER Cascade"]
     
-    DPODecision -- "Chọn Che/Xóa nhanh\n(Tránh tốn tài nguyên)" --> NormalAction["Gắn Action:\nMASK / DROP cả cột"]
-    
-    DPODecision -- "Chọn Quét sâu (Deep Scan)\n(Giữ lại text, che từng PII)" 
-    
-    --> RowLevelJob[["Kích hoạt Background Job:\nDuyệt qua MỌI DÒNG trong cột"]]
-    
-    subgraph FlowB ["Luồng B: Entity-Level Redaction (Tối ưu cho Văn bản dài)"]
+    subgraph FlowB ["Luồng B: Entity-Level Redaction (Cascade Mask-and-Pass)"]
         direction TB
-        RowLevelJob --> B_Regex["Tầng 1: Regex & Rules\n(Tìm SĐT, Email, Số thẻ trong khối text)"]
-        B_Regex --> B_NER["Tầng 2: ML / NER Model (Local)\n(Dùng Spacy/Presidio tìm Tên người, Địa danh)"]
-        B_NER --> B_Output["Che các thực thể tìm được\n(Vd: 'KH [PERSON] phàn nàn...')"]
+        FlowB_Start --> B_Regex["Tầng 1: Extended Regex\n(Email, SĐT VN, CCCD, Tài khoản ngân hàng)"]
+        B_Regex --> B_FlashText["Tầng 2: Từ điển FlashText / DPO Memory\n(Tên người, Địa danh, Tên tổ chức)"]
+        B_FlashText --> B_GLiNER["Tầng 3: GLiNER Zero-Shot Multi-PII\n(urchade/gliner_multi_pii-v1, chunking ≤ 300 từ)"]
+        B_GLiNER --> B_Output["Thay thế thực thể bằng nhãn nhạy cảm\n(Vd: 'KH [FULL_NAME] SĐT [PHONE]...')"]
     end
     
-    B_Output --> RedactAction["Gắn Action:\nREDACT_ENTITIES"]
+    B_Output --> RedactAction["Gắn Action: REDACT\n(Recall 97.86%, Precision 97.16%)"]
     
     %% ================= LUỒNG A =================
-    Condition -- "SAI (Variance thấp, bám sát Mean)\nData có cấu trúc / độ dài cố định\n(CCCD, SĐT, Ngày sinh, Code...)" --> A_Regex
+    Condition -- "SAI (Data có cấu trúc / độ dài cố định)\n(CCCD, SĐT, Ngày sinh, Khóa nối, Code...)" --> A_Regex
     
-    subgraph FlowA ["Luồng A: Column-Level Detection (Cascade 3 tầng hiện tại)"]
+    subgraph FlowA ["Luồng A: Column-Level Detection (Cascade 3 tầng)"]
         direction TB
-        A_Regex["Tầng 1: Regex & Rules\n(Kiểm tra trên tập mẫu ngẫu nhiên)"]
-        A_Regex -- "Chưa rõ" --> A_BM25["Tầng 2: Metadata / BM25\n(Khớp tên cột, schema với từ điển PII)"]
-        A_BM25 -- "Chưa rõ" --> A_LLM["Tầng 3: LLM\n(Suy luận ngữ nghĩa từ tập mẫu)"]
+        A_Regex["Tầng 1: Rules & Regex\n(Kiểm tra pattern, join keys, KYC documents)"]
+        A_Regex -- "Chưa rõ" --> A_BM25["Tầng 2: BM25 Lexical Engine\n(Khớp ngữ cảnh schema với PII Corpus)"]
+        A_BM25 -- "Chưa rõ" --> A_LLM["Tầng 3: LLM Context Reasoning\n(Prompt chỉ nhận Metadata & Thống kê column_stats.py)"]
         
-        A_Regex -- "Bắt được PII" --> A_Found((Nhận diện\nlà Cột PII))
-        A_BM25 -- "Bắt được PII" --> A_Found
-        A_LLM -- "Bắt được PII" --> A_Found
+        A_Regex -- "Khớp PII" --> A_Found((Nhận diện\nlà Cột PII))
+        A_BM25 -- "Khớp PII" --> A_Found
+        A_LLM -- "Khớp PII" --> A_Found
         
-        A_LLM -- "Không có PII" --> A_Safe((Không phải\nCột PII))
+        A_LLM -- "Không phải PII" --> A_Safe((Non-PII /\nĐã rõ))
     end
     
-    A_Found --> MaskAction["Gắn Action:\nMASK / DROP cả cột"]
-    A_Safe --> KeepAction["Gắn Action:\nKEEP (Giữ nguyên)"]
+    A_Found --> CheckJoin{"Có phải Khóa nối\n(PK/FK hoặc $lookup)?"}
+    CheckJoin -- "ĐÚNG" --> HmacAction["Gắn Action: HMAC\n(Băm giữ toàn vẹn JOIN)"]
+    CheckJoin -- "SAI" --> MaskOrDrop["Gắn Action: MASK / DROP\n(Che mờ hoặc loại bỏ cột)"]
+    A_Safe --> KeepAction["Gắn Action: KEEP\n(Giữ nguyên cho Analyst)"]
     
     %% ================= KẾT LUẬN =================
-    NormalAction --> FinalState(["Tổng hợp Đề xuất lưu vào App DB\nChờ DPO duyệt & Build Snapshot"])
-    RedactAction --> FinalState
-    MaskAction --> FinalState
+    RedactAction --> FinalState(["Lưu Đề xuất vào App DB\nDPO duyệt qua 4 Tabs & Build Snapshot"])
+    HmacAction --> FinalState
+    MaskOrDrop --> FinalState
     KeepAction --> FinalState
 ```

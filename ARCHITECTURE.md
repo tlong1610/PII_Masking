@@ -1,169 +1,91 @@
-# PIIGuard Shield - Kiến Trúc Hệ Thống
+# PIIGuard Shield - Tổng Quan Kiến Trúc (Architecture Overview)
 
-Tài liệu này là bản tóm lược kiến trúc của PIIGuard Shield. Bản chi tiết hơn nằm ở [docs/core/SYSTEM_ARCHITECTURE.md](docs/core/SYSTEM_ARCHITECTURE.md).
+**PIIGuard Shield** là nền tảng tự động phát hiện, phân loại PII (theo **Nghị định 13/2023/NĐ-CP** và **Luật 91/2025/QH15**) và tạo bản sao dữ liệu an toàn (Protected Snapshot) cho đội ngũ Phân tích dữ liệu (Analyst) và AI mà không làm lộ dữ liệu cá nhân thô.
 
-## 1. Tổng Quan
+> [!NOTE]
+> Đây là bản tóm lược kiến trúc cấp cao (High-Level Architecture). Để xem toàn bộ chi tiết kỹ thuật từng module, vui lòng tham khảo:
+> * 📖 [**Kiến trúc Hệ thống Chi tiết (System Architecture)**](docs/core/SYSTEM_ARCHITECTURE.md)
+> * 🤖 [**Kiến trúc Mô hình AI & NER Cascade (AI Architecture)**](docs/core/AI_ARCHITECTURE.md)
+> * 📊 [**Báo cáo Nghiệm thu Phase 1 (MVP Status Report)**](docs/core/MVP_STATUS_REPORT.md)
+> * 🔀 [**Sơ đồ Luồng Che mờ PII Đa tầng (Redaction Flowchart)**](docs/pii_redaction_flowchart.md)
 
-PIIGuard Shield giúp DPO (Data Protection Officer) tự động quét, đánh giá rủi ro và tạo một dataset đã được bảo vệ trước khi chia sẻ cho Analyst.
+---
 
-Luồng P0:
-
-```text
-Cloud PostgreSQL / MongoDB Atlas source
-  -> scanner phát hiện PII (Rules/Regex + AI/LLM)
-  -> rules/agent đề xuất action (MASK, HMAC, DROP, KEEP)
-  -> DPO xem data, thẩm định rủi ro & phê duyệt (HITL)
-  -> build protected snapshot vật lý
-  -> verifier kiểm tra tính toàn vẹn (SQL JOIN / $lookup / aggregate)
-  -> publish cho Analyst sử dụng an toàn
-```
-
-Hệ thống hỗ trợ các cơ sở dữ liệu **PostgreSQL và MongoDB lưu trữ trên Cloud** (Cloud SQL, AWS RDS, Supabase, Neon, MongoDB Atlas) và cho phép kết nối động qua Connection URL (`postgresql://`, `mongodb+srv://`).
-
-## 2. Sơ Đồ Kiến Trúc
+## 1. Luồng Vận Hành Cấp Cao (High-Level Architecture)
 
 ```mermaid
-flowchart TB
-    subgraph Client["Frontend (React 18 + Vite + MUI)"]
-        SCOPE_PICKER["Source Scope Picker Diagram<br/>(Bố cục Dagre tự động)"]
-        DPO_UI["DPO Review Workspace<br/>(5 Tabs + Drawer + Data Inspection)"]
-        ERD_UI["ERD Lineage Diagram<br/>(Visual Lineage & PK/FK)"]
-        ANA_UI["Analyst Workspace<br/>(Data Grid Preview & CSV Export)"]
-        SCOPE_PICKER --> DPO_UI
-        DPO_UI --> ERD_UI
-        ERD_UI --> ANA_UI
+flowchart LR
+    subgraph Source["1. Nguồn Dữ Liệu"]
+        PG[("Cloud PostgreSQL<br/>(Read-only)")]
+        MG[("Cloud MongoDB<br/>(Read-only)")]
     end
 
-    subgraph API["FastAPI Backend (/api/v1)"]
-        AUTH["Session & Role Guard (JWT)"]
-        SOURCES["Sources API (Test connection & Read scope)"]
-        RUNS["Runs API (Scan, Decisions, Build)"]
-        DATASETS["Datasets API (Publish, Revoke, Preview)"]
-        RISK["Risk Score API (FR-10 Deterministic)"]
-        SCANNER["Điều phối Scanner"]
-        POLICY["DPO Decisions & Exceptions"]
-        TRANSFORM["Snapshot Transform Pipeline"]
-        VERIFY["Downstream Verifier"]
-        AUDIT["Hash-Chain Audit Events (Merkle Root)"]
+    subgraph Engine["2. Worker Engine (In-Memory)"]
+        SCAN["Quét Cột & Thống Kê<br/>(Stream A: 100% Acc)"]
+        NER["Deep NER Cascade<br/>(Stream B: 97.86% Recall)"]
+        HITL["Bộ Nhớ Few-Shot HITL"]
     end
 
-    subgraph Internal["AI / Detection Engine"]
-        RULES["Regex / Rules / Taxonomy NĐ 13"]
-        RETRIEVAL["BM25 / Context Matching"]
-        LLM["LLM Gateway (Metadata only)"]
+    subgraph Governance["3. DPO Workspace (Zero Raw PII)"]
+        REVIEW["Thẩm Định Rủi Ro FR-10<br/>& Duyệt 5 Hành Động"]
+        MERKLE["Audit Log Bất Biến<br/>(Merkle Tree SHA-256)"]
     end
 
-    subgraph AppState["Metadata ứng dụng"]
-        APPDB[("App DB<br/>runs/decisions/datasets/audit")]
+    subgraph Target["4. Bản Sao An Toàn & Verifier"]
+        VERIFY["Downstream Verifier<br/>(Kiểm tra Join & Leak)"]
+        SNAPSHOT[("Target DB Snapshot<br/>(HMAC / MASK / REDACT)")]
+        ANALYST["Analyst Workspace<br/>(Data Grid, ERD, CSV)"]
     end
 
-    subgraph CloudSources["Nguồn dữ liệu Cloud (Read-only)"]
-        PG_SRC[("Cloud PostgreSQL source<br/>(AWS RDS / Cloud SQL / Neon)")]
-        MG_SRC[("Cloud MongoDB source<br/>(MongoDB Atlas / Cluster)")]
-    end
-
-    subgraph Outputs["Đầu ra đã bảo vệ"]
-        PG_OUT[("PostgreSQL Snapshot / View")]
-        MG_OUT[("MongoDB Protected DB")]
-    end
-
-    Client -->|REST /api/v1| AUTH
-    AUTH --> SOURCES
-    AUTH --> RUNS
-    AUTH --> DATASETS
-    AUTH --> RISK
-    RUNS --> SCANNER
-    SCANNER --> RULES
-    SCANNER --> RETRIEVAL
-    SCANNER --> LLM
-    RUNS --> POLICY
-    RUNS --> TRANSFORM
-    TRANSFORM --> VERIFY
-    VERIFY --> DATASETS
-    RUNS --> AUDIT
-    SOURCES --> APPDB
-    RUNS --> APPDB
-    DATASETS --> APPDB
-    SCANNER --> PG_SRC
-    SCANNER --> MG_SRC
-    TRANSFORM --> PG_OUT
-    TRANSFORM --> MG_OUT
-    VERIFY --> PG_OUT
-    VERIFY --> MG_OUT
+    Source --> Engine
+    Engine --> Governance
+    Governance -->|Approve & Build| Target
+    VERIFY -->|Pass| ANALYST
 ```
 
-## 3. Trách Nhiệm Từng Thành Phần
+---
 
-| Thành phần | File chính | Trách nhiệm |
-| --- | --- | --- |
-| **Frontend** | `front_end/src/` | Giao diện DPO (5 Tabs, Scope Picker Diagram, ERD Lineage, Policy Drawer) & Analyst (Data Grid, CSV Export). Kết nối API thật qua `realPiiReviewApi.ts`. |
-| **API** | `src/api/` | REST endpoints, JWT auth, kiểm tra role DPO/Analyst và trạng thái pipeline. |
-| **App DB** | `src/db/` | Chỉ lưu metadata: source config, run, decision, dataset, verifier result, hash-chain audit log. |
-| **Models** | `src/models/schemas.py` | Pydantic contract giữa API, scanner và FE. |
-| **Connectors** | `src/connectors/` | Kết nối Cloud PostgreSQL / MongoDB đọc schema/profile/scope an toàn. |
-| **Detection** | `src/detection/` | Regex, rules, taxonomy NĐ 13 / Luật BV DLCN 2025, BM25 context. |
-| **Agent / LLM** | `src/agents/`, `src/services/llm.py` | Hỗ trợ phân loại các trường mập mờ; prompt chỉ nhận metadata và thống kê. |
-| **Transform** | `src/transform/` | Áp dụng MASK, DROP, HMAC, KEEP vào snapshot vật lý đích. |
-| **Verifier** | `src/verifier/` | Kiểm tra SQL JOIN / aggregate hoặc Mongo `$lookup` trước khi publish. |
-| **Eval** | `eval/` | Golden labels, expected downstream, báo cáo precision/recall. |
+## 2. Ba Trụ Cột Thiết Kế Cốt Lõi
 
-## 4. Luồng Dữ Liệu & Phê Duyệt
+### ① Nguyên Tắc Zero Raw PII & Tách Bạch Vai Trò
+* **DPO (Governance):** Thao tác trên Web UI, thẩm định rủi ro dựa trên siêu dữ liệu (metadata), kiểu dữ liệu và phân phối thống kê (`column_stats.py`). DPO **không được cấp quyền truy cập CSDL nguồn** (Least Privilege).
+* **Worker Engine:** Kết nối nguồn qua Service Account độc lập, quét và biến đổi dữ liệu hoàn toàn trên **RAM (In-Memory Streaming)**, không lưu vết thô ra ổ đĩa hay log.
+* **CSDL Đích (Snapshot):** Chỉ lưu trữ dữ liệu đã được ẩn danh vĩnh viễn (`HMAC`, `REDACT`, `MASK`, `DROP`). DPO hay Analyst truy cập DB đích cũng chỉ xem được dữ liệu đã bảo vệ, loại bỏ triệt để nguy cơ rò rỉ nội bộ.
 
-```mermaid
-sequenceDiagram
-    actor DPO
-    participant FE as Frontend
-    participant API as FastAPI
-    participant SRC as Cloud Source DB
-    participant DET as Rules/AI Scanner
-    participant OUT as Snapshot DB
-    participant VER as Downstream Verifier
-    actor ANA as Analyst
+### ② Khoét Sâu Dữ Liệu (Deep Content Inspection) Song Hành Bảo Mật
+* **Luồng A (Dữ liệu bảng cấu trúc):** Kết hợp Regex, từ điển pháp lý NĐ 13 và LLM LangGraph. Đạt **100.00% Action Accuracy** trên 339 cột sau khi tích hợp bộ nhớ few-shot DPO.
+* **Luồng B (Văn bản tự do):** Cascade đa tầng (Regex $\rightarrow$ FlashText $\rightarrow$ GLiNER Multi-PII zero-shot), đạt **97.86% Recall** và 97.51% F1 để bóc tách PII ẩn giấu trong ghi chú, chat log.
+* **Trừu tượng hóa an toàn:** AI đọc sâu trong RAM nhưng chỉ trả về loại thực thể (`PER`, `PHONE`) và tỷ lệ phát hiện. DPO kiểm chứng qua **Live Sandbox** bằng dữ liệu giả lập (Synthetic Data) mà không cần xem văn bản thật của khách hàng.
 
-    DPO->>FE: Đăng nhập & xem/thêm Cloud Source (Postgres / Mongo Atlas)
-    FE->>API: GET /sources/{id}/scope
-    API->>SRC: Đọc schema / table / PK / FK
-    FE-->>DPO: Hiển thị Source Scope Picker Diagram
-    DPO->>FE: Chọn các bảng cần quét & bấm "Bắt đầu quét"
-    FE->>API: POST /runs
-    API->>SRC: Đọc metadata & sample (chỉ đọc)
-    API->>DET: Phân loại PII theo NĐ 13 / Luật BV DLCN 2025
-    DET-->>API: Đề xuất chính sách che mờ (MASK, HMAC, DROP, KEEP)
-    API-->>FE: Trả kết quả run cho DPO
-    Note over DPO,FE: DPO xem sample data & thẩm định rủi ro
-    DPO->>FE: Tinh chỉnh policy qua Drawer (đồng bộ Join Keys, lý do ghi đè)
-    FE->>API: PUT /runs/{id}/decisions
-    FE->>API: POST /runs/{id}/build
-    API->>OUT: Ghi protected snapshot vật lý
-    API->>VER: So sánh source với protected output (Downstream check)
-    VER-->>API: VERIFIED hoặc FAILED
-    Note over DPO,FE: DPO xem ERD Lineage Diagram của snapshot
-    DPO->>FE: Bấm "Phát hành" (Publish) nếu VERIFIED
-    FE->>API: POST /datasets/{id}/publish
-    ANA->>FE: Đăng nhập, mở dataset PUBLISHED
-    FE->>API: GET /datasets/{id}/preview (table, limit)
-    FE-->>ANA: Hiển thị dữ liệu đã che & cho phép tải CSV an toàn
-```
+### ③ Chiến Lược Che Mờ 5 Hành Động (Không Che Thô `***`)
+Bảo toàn tối đa giá trị khai thác dữ liệu (**Data Utility**) mà không đánh đổi bảo mật:
 
-## 5. Nguyên Tắc Bảo Mật & Phân Quyền Bất Di Bất Dịch
+| Hành động | Bản chất kỹ thuật | Giá trị phân tích (Tại sao không che `***`?) |
+| :--- | :--- | :--- |
+| **`HMAC`** | Băm 1 chiều kèm Secret Salt | Giữ nguyên quan hệ khóa liên kết (`join_matched`), **tránh nổ tích Đề-các (Cartesian join)** làm sập DB phân tích. |
+| **`REDACT`** | Thay thực thể bằng nhãn (`[PHONE]`) | Giữ nguyên cấu trúc ngữ pháp cho đội AI/LLM phân tích ngữ nghĩa, phân loại khiếu nại và sentiment. |
+| **`MASK`** | Che đoạn giữa (`0912***789`) | Giữ đặc trưng thống kê (thị phần nhà mạng, domain email cá nhân vs DN, nhóm tuổi). |
+| **`DROP`** | Xóa hẳn cột khỏi snapshot | Loại bỏ hoàn toàn trường dữ liệu nặng và rủi ro cao (ảnh CCCD, sinh trắc học). |
+| **`KEEP`** | Giữ nguyên giá trị | Áp dụng cho các trường phi cá nhân (doanh thu, ngày tạo đơn) để đảm bảo số liệu báo cáo chuẩn xác. |
 
-1. **Nguyên tắc đối với DPO:**
-   * DPO là người chịu trách nhiệm pháp lý và thẩm định rủi ro tuân thủ. **DPO CÓ THỂ XEM DATA (Sample data / Preview / Split view)** trong quá trình review để đánh giá đúng mức độ rủi ro, phân loại PII chính xác và xác thực các trường mơ hồ (`UNKNOWN`).
-   * Mọi quyết định ghi đè gợi ý của AI hoặc giữ nguyên cột PII (ngoại lệ) bắt buộc phải nhập lý do và được ghi vào Sổ cái kiểm toán bất biến (Hash-Chain Merkle Root).
-2. **Nguyên tắc đối với Analyst:**
-   * **Zero Raw-PII cho Analyst:** Analyst tuyệt đối không bao giờ được xem dữ liệu PII thô. Analyst chỉ được truy cập các dataset ở trạng thái `PUBLISHED` (đã qua MASK, HMAC, DROP).
-3. **Bảo mật cơ sở dữ liệu:**
-   * Nguồn Cloud PostgreSQL và MongoDB luôn ở chế độ chỉ đọc (read-only).
-   * Snapshot/protected output được ghi vào database hoặc schema đích riêng biệt.
-   * API tuyệt đối không trả connection URI chứa mật khẩu, credential, hoặc khóa HMAC bí mật ra ngoài frontend.
-4. **Tính toàn vẹn liên kết (Join Key Integrity):**
-   * Các cặp trường là khóa nối giữa các bảng (PK/FK hoặc `$lookup`) bắt buộc phải áp dụng cùng hành động (`HMAC` hoặc `KEEP`). Không được phép áp dụng `MASK` hoặc `DROP` làm phá vỡ quan hệ liên kết dữ liệu.
-5. **Cổng chặn phát hành:**
-   * Backend chặn phát hành nếu Downstream Verifier chưa đánh dấu `VERIFIED`.
+---
 
-## 6. Mô Hình Triển Khai
+## 3. Tổng Quan Tech Stack
 
-* **Data Sources:** Cơ sở dữ liệu Cloud PostgreSQL (AWS RDS, GCP Cloud SQL, Supabase, Neon) và Cloud MongoDB Atlas.
-* **Backend:** FastAPI, Python 3.11+, SQLAlchemy, PyMongo, Pydantic v2.
-* **Frontend:** React 18, TypeScript strict, Vite, MUI, `@xyflow/react` (React Flow) với thuật toán bố cục `dagre`.
-* **CI/CD & Demo:** Hỗ trợ chạy cục bộ qua Docker Compose và triển khai cloud (Render, Cloud Run, Cloud SQL).
+| Tầng | Công nghệ sử dụng | Vai trò chính |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, TypeScript Strict, Vite, MUI, React Flow (`@xyflow/react`), Dagre Layout | Giao diện DPO 4 Tabs, Source Scope Picker, Live Sandbox, Visual Lineage ERD |
+| **Backend API** | FastAPI, Python 3.11+, Pydantic v2, SQLAlchemy, PyMongo | REST API, Role-based Access Control (`require_dpo`, `require_analyst_or_dpo`) |
+| **AI & Detection** | GLiNER (`urchade/gliner_multi_pii-v1`), FlashText, LangGraph, Few-Shot Memory | Quét mẫu PII, nhận diện thực thể văn bản tự do, học phản hồi DPO (HITL) |
+| **Storage & Snapshot** | Cloud PostgreSQL (RDS/Cloud SQL/Supabase/Neon), Cloud MongoDB Atlas | Lưu trữ nguồn đọc (Source) và CSDL đích an toàn (Snapshot) |
+| **Kiểm Định & Audit** | Merkle Tree (SHA-256 Hash Chain), SQL/Mongo Downstream Verifier | Kiểm tra tính toàn vẹn JOIN/Leak trước khi Publish; Chống chối bỏ theo NĐ 13 |
+
+---
+
+## 4. Tài Liệu Kỹ Thuật Tham Chiếu
+
+1. [Kiến Trúc Hệ Thống Chi Tiết (SYSTEM_ARCHITECTURE.md)](docs/core/SYSTEM_ARCHITECTURE.md)
+2. [Kiến Trúc Mô Hình AI & NER Cascade (AI_ARCHITECTURE.md)](docs/core/AI_ARCHITECTURE.md)
+3. [Đặc Tả Yêu Cầu Sản Phẩm (PRD.md)](docs/core/prd.md)
+4. [Báo Cáo Nghiệm Thu Hoàn Thành Phase 1 (MVP_STATUS_REPORT.md)](docs/core/MVP_STATUS_REPORT.md)
+5. [Kịch Bản Trình Diễn MVP 6 Bước (MVP_DEMO_FLOW_EXPLANATION.md)](MVP_DEMO_FLOW_EXPLANATION.md)

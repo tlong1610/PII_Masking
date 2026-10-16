@@ -1,12 +1,12 @@
 # ĐẶC TẢ TRIỂN KHAI — PII GUARDIAN AGENT (v0.2, phạm vi 6 tuần)
 
-> Agent tự động quét dataset trên **PostgreSQL & MongoDB**, phát hiện & phân loại PII, đề xuất chính sách masking/tokenization, sinh view/snapshot đã che dữ liệu, lập báo cáo tuân thủ và cảnh báo dataset rủi ro cao. **DPO có thẩm quyền xem data để đánh giá rủi ro trước khi phê duyệt (Human-in-the-loop).**
+> Agent tự động quét dataset trên **PostgreSQL & MongoDB**, phát hiện & phân loại PII, đề xuất chính sách masking/tokenization, sinh view/snapshot đã che dữ liệu, lập báo cáo tuân thủ và cảnh báo dataset rủi ro cao. **DPO thẩm định rủi ro dựa trên siêu dữ liệu và thống kê phân phối (Zero Raw PII) trước khi phê duyệt (Human-in-the-loop).**
 
 | Mục | Giá trị |
 |---|---|
 | Tên dự án (tạm) | PII Guardian Agent / PIIGuard Shield |
 | Phiên bản | **0.2** — thay thế v0.1 (bản 8 tuần) |
-| Ngày lập | 02/10/2026 (Cập nhật 13/10/2026) |
+| Ngày lập | 02/10/2026 (Cập nhật sau hoàn thành P1: 16/10/2026) |
 | Thời gian / nhân lực | 6 tuần / 1 developer |
 | Cơ sở dữ liệu nguồn | **Chỉ PostgreSQL & MongoDB trên Cloud** (AWS RDS, GCP Cloud SQL, Supabase, Neon; MongoDB Atlas qua `mongodb+srv://`) |
 | Quy ước | `[ĐỀ XUẤT]` = giá trị khởi điểm cần hiệu chỉnh · `[CẦN XÁC NHẬN]` = cần quyết định từ chủ dự án/pháp chế · `[STRETCH]` = làm nếu còn thời gian |
@@ -19,13 +19,13 @@
 |---|---|---|
 | Thời gian | ~8 tuần, 1–2 dev | **6 tuần, 1 dev** (có dự phòng ở tuần 6) |
 | Database nguồn | BigQuery + Snowflake | **Chỉ PostgreSQL & MongoDB** (loại bỏ hoàn toàn BigQuery/Snowflake để tối ưu chi phí) |
-| Quyền xem dữ liệu | Cấm xem tuyệt đối | **DPO có quyền xem data (sample/raw preview)** để đánh giá rủi ro và xác thực trường mơ hồ; **Analyst tuyệt đối không thấy raw PII** |
-| Hạng mục Nâng cao | Multi-agent, eval, tự học pattern, audit nâng cao | **Chỉ eval harness gọn**; điểm rủi ro tất định (FR-10) |
+| Quyền xem dữ liệu | Cấm xem tuyệt đối | **Zero Raw PII cho cả DPO và Analyst**: DPO thẩm định rủi ro qua siêu dữ liệu/thống kê phân phối; Analyst chỉ thấy dữ liệu đã che mờ |
+| Hạng mục Nâng cao | Multi-agent, eval, tự học pattern, audit nâng cao | **Chỉ eval harness gọn**; điểm rủi ro tất định (FR-10); bộ nhớ HITL Few-Shot Memory |
 | Cách che dữ liệu | Dynamic masking (policy tag) | **Protected Snapshot vật lý** sang database/schema an toàn riêng biệt |
 | Tokenization | Envelope KMS + CMEK | AES-GCM / HMAC-SHA-256 có salt và key version |
-| Phát hiện | T0–T3, NER, phát hiện theo span | T0–T3, Rules/Regex mặc định + LLM metadata classifier, văn bản tự do xử lý mức cột |
+| Phát hiện | T0–T3, NER, phát hiện theo span | T0–T3, Rules/Regex mặc định + LLM metadata classifier, văn bản tự do xử lý Cascade (Regex + FlashText + GLiNER) |
 | Sơ đồ trực quan | Chưa có | **Source Scope Picker Diagram** & **ERD Lineage Diagram** (React Flow + layout `dagre`) |
-| Frontend | 14 màn hình, SSE | **DPO Workspace 5 Tabs** (Overview, Sample Data, Grants, Audit Hash-Chain, Risk) + Inspector Drawer + Analyst Workspace |
+| Frontend | 14 màn hình, SSE | **DPO Workspace 4 Tabs** (Tổng quan PII, Rủi ro FR-10, Kiểm toán, Dữ liệu cho Analyst) + Inspector Drawer + Live Masking Sandbox + NĐ 13 Rules + Analyst Workspace |
 | Triển khai | 3 service, staging, Terraform | **1 service (API + web tĩnh) + 1 Job**, Docker Compose / script / GitHub Actions |
 | Báo cáo | HTML/PDF/JSON/CSV | HTML + JSON + CSV xuất an toàn từ UI |
 | Quy mô | Kịch bản S/M/L | Dataset thực nghiệm PostgreSQL & MongoDB; bỏ quét tăng dần |
@@ -56,7 +56,7 @@ Agent có khả năng: (1) quét dataset; (2) phát hiện & phân loại PII; (
 | Ràng buộc | Cách đáp ứng |
 |---|---|
 | HITL: DPO duyệt trước khi áp dụng | LangGraph `interrupt()` tại `human_review`; chặn áp dụng ở **tầng DB** (`applied_policies.approval_id NOT NULL`) và ở tầng worker |
-| Không lộ PII cho Analyst; DPO đánh giá rủi ro | DPO có thẩm quyền xem data (sample/raw preview) để thẩm định rủi ro và phân loại PII. Đối với Analyst: Zero Raw-PII Egress (§6.3) — UI/API Analyst chỉ nhận dữ liệu đã che; LLM chỉ nhận metadata + chữ ký |
+| Không lộ PII cho Analyst; DPO đánh giá rủi ro | Zero Raw PII tuyệt đối: DPO thẩm định rủi ro qua siêu dữ liệu, data shape và thống kê phân phối; Analyst chỉ nhận dữ liệu đã che; LLM chỉ nhận metadata + chữ ký |
 | Log audit đầy đủ | `audit_log` append-only + hash-chain (§14.3) |
 | Độ chính xác phát hiện cao | Pipeline nhiều tầng + validator + eval harness (§16) |
 | Hiệu năng quét, giới hạn chi phí | Quét introspection theo bảng đã chọn, lấy mẫu, ngân sách cứng (§15) |

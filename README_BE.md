@@ -1,22 +1,29 @@
 # PIIGuard Shield — Backend
 
-Backend API của PIIGuard Shield: quét và review dữ liệu có khả năng chứa PII, tạo dataset đã bảo vệ và kiểm tra quyền truy cập trước khi phát hành.
+Backend API của PIIGuard Shield: quét và review dữ liệu có khả năng chứa PII, tạo dataset đã bảo vệ và kiểm tra quyền truy cập trước khi phát hành. Đã hoàn thành toàn diện Giai đoạn 1 (P1).
 
-## Tech stack
+## Tech Stack
 
 - Python 3.11
 - FastAPI + Uvicorn
-- Pydantic Settings
-- SQLAlchemy với SQLite cho metadata ứng dụng
-- PostgreSQL và MongoDB cho source/snapshot dữ liệu
-- LangGraph/LangChain cho workflow scan tùy cấu hình
-- Pytest và Ruff cho test/lint
+- Pydantic v2 + Pydantic Settings
+- SQLAlchemy với SQLite cho metadata ứng dụng (`app.db`)
+- PostgreSQL (psycopg) và MongoDB (PyMongo) cho source/snapshot dữ liệu
+- AI & NLP Detection:
+  - Regex Engine (`rule_engine.py`)
+  - BM25 Lexical Engine (`bm25_engine.py`)
+  - Column Distribution Statistics (`column_stats.py`)
+  - Free-text Cascade NER (`dict_ner.py` FlashText + `ml_ner.py` GLiNER Zero-Shot Multi-PII)
+  - HITL Few-Shot In-Context Memory (`hitl_feedback.py`)
+  - LangGraph workflow & LLM Gateway (`llm.py`: OpenAI / OpenRouter / Gemini fallback)
+- Merkle Root Hash-Chain Audit Logger (`src/api/audit.py`)
+- Pytest (317 tests) và Ruff cho kiểm thử / linter
 
-## Yêu cầu
+## Yêu Cầu Môi Trường
 
 - Python 3.11+
-- Docker và Docker Compose (nếu chạy PostgreSQL/MongoDB)
-- OpenAI/provider API key chỉ cần khi bật AI scan
+- Docker và Docker Compose (chạy container PostgreSQL 5432 và MongoDB 27017)
+- API key nhà cung cấp LLM (OpenAI, OpenRouter hoặc Google Gemini) khi bật `ENABLE_AI_SCAN=true`
 
 ## Quick Start
 
@@ -27,10 +34,19 @@ git clone <repository-url>
 cd P-138
 
 python3.11 -m venv .venv
-source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 
 cp .env.example .env
 pip install -r requirements.txt
+
+# Khởi động database qua Docker
+docker compose up -d db mongodb
+
+# Nạp seed fixtures (14 bảng PostgreSQL + 2 collections MongoDB)
+docker cp data/fixtures/postgres/seed.sql p-138-db-1:/tmp/seed.sql
+docker exec p-138-db-1 psql -U postgres -d mydatabase -f /tmp/seed.sql
+docker exec p-138-db-1 psql -U postgres -c "CREATE DATABASE piiguard_snapshot_db;" || true
+python data/fixtures/mongo/seed_mongo.py
 
 # Khởi động API ở http://localhost:8000
 make run
@@ -60,61 +76,51 @@ docker compose up --build -d
 docker compose ps
 ```
 
-API được expose tại `http://localhost:8001`; container backend vẫn lắng nghe port `8000`.
+API được expose tại `http://localhost:8001/api/v1`; container backend lắng nghe port `8000`.
 
-Nạp PostgreSQL fixture synthetic:
-
-```bash
-docker compose exec -T db \
-  psql -U "${POSTGRES_USER:-postgres}" \
-       -d "${POSTGRES_DB:-mydatabase}" \
-       -v ON_ERROR_STOP=1 < data/fixtures/seed.sql
-```
-
-Xem log hoặc dừng stack:
-
-```bash
-docker compose logs -f backend
-docker compose down
-```
-
-> Fixture trong `data/fixtures/seed.sql` chỉ chứa dữ liệu synthetic phục vụ demo/test. Không dùng secret hoặc dữ liệu thật trong repository.
-
-## Cấu hình môi trường
-
-Copy `.env.example` thành `.env`. Một số biến thường dùng:
+## Cấu Hình Môi Trường (.env)
 
 | Biến | Mặc định | Mục đích |
 | --- | --- | --- |
-| `APP_ENV` | `development` | Môi trường chạy |
+| `APP_ENV` | `development` | Môi trường chạy (`development`, `production`, `test`) |
 | `APP_HOST` / `APP_PORT` | `0.0.0.0` / `8000` | Host/port của API |
-| `DATABASE_URL` | `sqlite:///./data/app.db` | DB metadata của ứng dụng |
-| `SOURCE_DATABASE_URL` | trống | Kết nối source PostgreSQL chỉ đọc |
-| `SNAPSHOT_DATABASE_URL` | trống | Kết nối DB snapshot đích |
-| `ENABLE_PG_SNAPSHOT` | `false` | Bật pipeline snapshot PostgreSQL |
-| `ENABLE_AI_SCAN` | `false` | Bật workflow AI khi chạy scan |
-| `HMAC_SECRET` | dev value | Secret HMAC cho join key; phải đổi ngoài local |
-| `CORS_ORIGINS` | `http://localhost:3000` | Origin được phép gọi API |
+| `DATABASE_URL` | `sqlite:///./data/app.db` | CSDL metadata ứng dụng |
+| `SOURCE_DATABASE_URL` | `postgresql://...` | Kết nối source PostgreSQL chỉ đọc |
+| `SNAPSHOT_DATABASE_URL` | `postgresql://...` | Kết nối CSDL snapshot đích (`piiguard_snapshot_db`) |
+| `ENABLE_PG_SNAPSHOT` | `true` | Bật pipeline snapshot PostgreSQL |
+| `MONGO_URI` / `MONGO_DB` | `mongodb://...` | Kết nối source MongoDB chỉ đọc |
+| `MONGO_SNAPSHOT_DB` | `mydatabase_protected` | CSDL MongoDB snapshot đích |
+| `ENABLE_MONGO` | `true` | Bật pipeline MongoDB |
+| `ENABLE_AI_SCAN` | `false` | Bật workflow AI hỗ trợ phân loại qua LLM |
+| `ENABLE_NER` | `true` | Bật mô hình GLiNER zero-shot cho văn bản tự do |
+| `HMAC_SECRET` | dev value | Secret HMAC-SHA-256 cho khóa join |
+| `CORS_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Origins được phép gọi API |
 
-Không commit `.env`, API key, database password hoặc HMAC secret.
+> Tuyệt đối không commit `.env`, API key, database password hoặc HMAC secret.
 
-## API chính
+## API Endpoints Chính
 
-Base URL: `/api/v1`
+Tiền tố router: `/api/v1`
 
 | Method | Endpoint | Quyền | Mô tả |
 | --- | --- | --- | --- |
-| `POST` | `/sessions` | Public | Đăng nhập tài khoản demo |
-| `GET` | `/me` | Authenticated | Lấy user hiện tại |
-| `GET` | `/sources` | DPO | Liệt kê source, không trả credential |
-| `POST` | `/runs` | DPO | Tạo run scan |
-| `GET` | `/runs/{id}` | DPO | Xem trạng thái/profile |
-| `PUT` | `/runs/{id}/decisions` | DPO | Lưu quyết định xử lý |
-| `POST` | `/runs/{id}/build` | DPO | Build snapshot và verify |
-| `GET` | `/datasets` | Analyst/DPO | Liệt kê dataset được phép |
-| `POST` | `/datasets/{id}/publish` | DPO | Phát hành dataset |
-| `POST` | `/datasets/{id}/revoke` | DPO | Thu hồi dataset |
-| `GET` | `/datasets/{id}/preview` | Analyst | Preview output đã bảo vệ |
+| `POST` | `/sessions` | Public | Đăng nhập tài khoản demo (`dpo` hoặc `analyst`) |
+| `GET` | `/me` | Authenticated | Thông tin user và role từ token |
+| `GET` | `/sources` | DPO | Liệt kê danh sách nguồn dữ liệu (không trả credential) |
+| `POST` | `/sources`, `/sources/test` | DPO | Đăng ký nguồn CSDL mới; kiểm tra kết nối động |
+| `GET` | `/sources/{id}/scope` | DPO | Introspect bảng, cột, khóa chính/ngoại và relationships |
+| `POST` | `/runs` | DPO | Tạo phiên quét PII (chọn bảng và `link_scope`) |
+| `GET` | `/runs` | DPO | Lịch sử run (mới nhất trước, lọc status/source) |
+| `GET` | `/runs/{id}` | DPO | Trạng thái run, tiến độ, và danh sách field profiles |
+| `PUT` | `/runs/{id}/decisions` | DPO | Lưu quyết định của DPO (học vào few-shot memory) |
+| `POST` | `/runs/{id}/build` | DPO | Xây dựng snapshot vật lý và chạy Downstream Verifier |
+| `GET` | `/runs/{id}/report` | DPO | Privacy Risk Report (HTML/JSON) đánh giá rủi ro PII |
+| `GET` | `/runs/{id}/risk-score` | DPO | Điểm rủi ro tất định FR-10 (0–100) |
+| `GET` | `/datasets` | Analyst/DPO | Danh sách dataset được phép truy cập |
+| `POST` | `/datasets/{id}/publish` | DPO | Phát hành dataset (tự động cấp quyền cho mọi Analyst) |
+| `POST` | `/datasets/{id}/revoke` | DPO | Thu hồi dataset, xóa snapshot, đưa run về `READY_TO_BUILD` |
+| `GET` | `/datasets/{id}/preview` | Analyst/DPO | Xem trước dữ liệu an toàn đã che mờ (Zero Raw PII) |
+| `GET` | `/audit`, `/audit/verify` | DPO | Nhật ký kiểm toán và kiểm tra tính toàn vẹn Merkle Root |
 
 Token nhận được từ `POST /api/v1/sessions` được gửi qua header:
 
@@ -122,64 +128,34 @@ Token nhận được từ `POST /api/v1/sessions` được gửi qua header:
 Authorization: Bearer <access_token>
 ```
 
-Ví dụ đăng nhập:
+## Lệnh Phát Triển & Kiểm Thử
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/sessions \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"dpo","password":"dpo123"}'
+make test       # Chạy 317 tests pytest
+make lint       # Kiểm tra ruff check
+make format     # Format code với ruff format
+make check      # lint + test
 ```
 
-## Development commands
-
-```bash
-make test       # chạy toàn bộ test
-make lint       # kiểm tra Ruff
-make format     # format code
-make typecheck  # mypy
-make check      # lint + format + test
-```
-
-Chạy test trực tiếp:
-
-```bash
-APP_ENV=test ENABLE_AI_SCAN=false pytest tests/ -v
-```
-
-Test dùng SQLite riêng tại `data/test_verifier.db` và không cần database Docker hay API key.
-
-## Deployment notes
-
-Gate 2 chạy theo hướng demo local bằng Docker Compose trên máy demo, dùng fixture synthetic. Không dùng dữ liệu thật và không public PostgreSQL/MongoDB ra internet.
-
-Hướng triển khai cho người dùng doanh nghiệp là on-premise hoặc private cloud/VPC của chính doanh nghiệp:
-
-- PIIGuard chạy gần database nguồn.
-- Source database dùng tài khoản read-only.
-- Snapshot/protected output ghi sang database/schema riêng.
-- Credential, HMAC secret và LLM key nằm trong env/secret store server-side.
-- API không trả URI/password/secret/raw PII cho frontend.
-
-## Cấu trúc backend
+## Cấu Trúc Mã Nguồn Backend
 
 ```text
 src/
-├── main.py                 # FastAPI app, lifespan, health check
-├── config.py               # Settings từ environment
-├── api/                    # routes, auth, dependencies
-├── db/                     # SQLAlchemy models/session
-├── connectors/             # PostgreSQL và snapshot connector
-├── agents/                 # LangGraph workflow
-├── detection/              # rule/regex/BM25/vector detection
-├── services/               # scan và view generation
-├── transform/              # MASK, DROP, HMAC
-└── verifier/               # kiểm tra downstream SQL
+├── main.py                 # FastAPI app entry point, lifespan, CORS, mount routes
+├── config.py               # Pydantic Settings từ environment
+├── api/                    # routes, auth, runs, sources, datasets, audit, deps
+├── db/                     # SQLAlchemy models & session
+├── connectors/             # PostgreSQL và MongoDB connectors
+├── agents/                 # LangGraph workflow, nodes, graph
+├── detection/              # rule_engine, column_stats, dict_ner, ml_ner, hitl_feedback
+├── services/               # run_scanner, risk_scorer, report_generator, llm
+├── transform/              # mask_engine (MASK, REDACT, DROP), hmac_hasher (HMAC)
+└── verifier/               # Downstream Verifiers (SQL join & Mongo $lookup)
 ```
 
-## Quy ước bảo mật
+## Quy Ước Bảo Mật Cốt Lõi
 
-- Source database phải được kết nối read-only; snapshot là vùng ghi riêng.
-- Không trả raw PII, credential hoặc connection string qua API/log/report.
-- Mọi endpoint cần kiểm tra role và trạng thái dataset ở backend.
-- HMAC là keyed hash phục vụ join/mapping, không phải mã hóa để khôi phục dữ liệu.
-- Khi thay đổi API hoặc biến môi trường, cập nhật README và test trong cùng pull request.
+- **Zero Raw PII**: Không lưu raw PII, không gửi raw value vào LLM prompt hay log.
+- **Source Database Read-Only**: Kết nối nguồn luôn ở chế độ chỉ đọc; snapshot ghi sang vùng riêng.
+- **HMAC Join Key Integrity**: Giữ toàn vẹn quan hệ phân tích bằng băm HMAC-SHA-256 có salt.
+- **Tamper-Evident Audit**: Mọi hành động của DPO và hệ thống được băm chuỗi Merkle Root SHA-256.
