@@ -7,16 +7,32 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: self-hosted
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
       - name: Install dependencies
+        env:
+          TMPDIR: ${{ runner.temp }}
         run: |
           python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip setuptools wheel
           .venv/bin/pip install -r requirements.txt
 
       - name: Lint with ruff
@@ -27,3 +43,4 @@ jobs:
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
+
