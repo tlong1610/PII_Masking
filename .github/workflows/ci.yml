@@ -38,9 +38,19 @@ jobs:
       - name: Lint with ruff
         run: .venv/bin/ruff check src/ tests/
 
-      - name: Run tests
+      - name: Run backend tests
         run: .venv/bin/pytest tests/ -v --tb=short
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
+
+      - name: Run frontend tests
+        run: |
+          cd front_end
+          npm test
+
+      - name: Build frontend
+        run: |
+          cd front_end
+          npm run build
 

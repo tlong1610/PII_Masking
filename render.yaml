@@ -3,7 +3,7 @@ services:
     name: piiguard-vn-api
     runtime: docker
     plan: free
-    autoDeploy: false
+    autoDeploy: true
     dockerfilePath: ./Dockerfile.render
     dockerContext: .
     healthCheckPath: /health
