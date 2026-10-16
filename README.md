@@ -5,7 +5,23 @@
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
 **Bản thiết kế:** 21/09/2026 · **Trạng thái:** MVP/Gate 2 đã qua · **Giai đoạn P1 ĐÃ HOÀN THÀNH TOÀN DIỆN (100%)**
 
-Đây là tài liệu vận hành và kiến trúc của PIIGuard Shield sau khi hoàn thành toàn diện Giai đoạn 1 (P1): ứng dụng chạy thật trên cả PostgreSQL và MongoDB, quét sâu field/value patterns, phân loại PII đa tầng kết hợp AI và rules, đồng bộ điểm rủi ro FR-10, bảo vệ liên kết khóa nối và tuân thủ nghiêm ngặt nguyên tắc Zero Raw PII.
+---
+
+## 🚀 Live Production & Release Links
+
+| Hệ thống / Thành phần | Đường dẫn trực tuyến (Live URL) | Trạng thái | Ghi chú & Tài khoản Demo |
+|---|---|:---:|---|
+| **🌐 Frontend Web App** | [frontend-alpha-fawn-53.vercel.app](https://frontend-alpha-fawn-53.vercel.app) | 🟢 Live | Giao diện React SPA trên Vercel kết nối Cloud Backend |
+| **⚡ Backend API Production** | [piiguard-vn-api.onrender.com](https://piiguard-vn-api.onrender.com) | 🟢 200 OK | FastAPI Docker trên Render Cloud chạy 24/7 |
+| **📖 Interactive API Docs** | [piiguard-vn-api.onrender.com/docs](https://piiguard-vn-api.onrender.com/docs) | 🟢 Live | Swagger UI đầy đủ endpoints kiểm thử trực tiếp |
+| **🩺 Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
+| **📦 Docker Hub Release** | `docker.io/len1652/piiguard-api:latest` | 🟢 Verified | Linux amd64 Image production đóng gói sẵn |
+| **🎬 Video Demo (3-5 phút)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Luồng E2E PostgreSQL/MongoDB ➔ DPO Review ➔ Masking ➔ Audit ➔ Analyst |
+| **📊 Pitch Deck (10 slides)** | [presentation/pitch_deck.pptx](presentation/pitch_deck.pptx) | 🟢 Ready | Báo cáo thuyết trình giải pháp bảo vệ dữ liệu NĐ 13 |
+
+### 🔑 Tài Khoản Trải Nghiệm Demo (Demo Credentials)
+- **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`) — Phân loại PII, cấu hình Masking/HMAC, thẩm định rủi ro và phát hành snapshot.
+- **Data Analyst:** `analyst` / `analyst123` (hoặc `analyst@piiguard.vn`) — Truy cập và truy vấn snapshot dữ liệu đã được bảo vệ an toàn.
 
 ---
 
@@ -346,9 +362,10 @@ PYTHONPATH=. python eval/run_eval_full.py
 ```
 
 ## Tài Liệu Dự Án
-
-- [Docs Index](docs/README.md) - Đọc file này trước để biết tài liệu nào còn dùng
+ 
+- [Hướng Dẫn Phát Hành & Vận Hành Release](docs/ops/RELEASE_GUIDE.md) - Sổ tay hướng dẫn phát hành, vận hành Render/Vercel và gắn tag v1.0.0
 - [Báo Cáo Hoàn Thành P1](docs/core/MVP_STATUS_REPORT.md) - Nghiệm thu hoàn thành toàn diện giai đoạn P1
+- [Docs Index](docs/README.md) - Đọc file này trước để biết tài liệu nào còn dùng
 - [System Architecture](docs/core/SYSTEM_ARCHITECTURE.md) - Luồng hệ thống end-to-end
 - [AI Architecture](docs/core/AI_ARCHITECTURE.md) - Cách AI/rules/LLM đang được nối trong source
 - [Golden Dataset](docs/core/GOLDEN_DATASET.md) - Tập nhãn chuẩn và cách eval

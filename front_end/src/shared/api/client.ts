@@ -1,5 +1,15 @@
+const defaultApiUrl = import.meta.env.PROD
+  ? 'https://piiguard-vn-api.onrender.com/api/v1'
+  : 'http://localhost:8000/api/v1';
+
+const envUrl = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env as unknown as Record<string, string | undefined>).NEXT_PUBLIC_API_URL
+);
+const isLocalhost = envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'));
+
 export const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1'
+  (import.meta.env.PROD && isLocalhost ? defaultApiUrl : (envUrl || defaultApiUrl))
 ).replace(/\/$/, '');
 
 const AUTH_STORAGE_KEY = 'piiguard_auth_session';
