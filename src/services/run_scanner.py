@@ -301,7 +301,7 @@ async def scan_postgres_source(
 
     connector = PostgresConnector(connection_url)
     db_profile = connector.extract_database_profile(
-        schema_name=schema_name, sample_size=5
+        schema_name=schema_name, sample_size=5, table_names=tables
     )
     wanted = set(tables) if tables else None
     rule_scanner = RuleBasedScanner()

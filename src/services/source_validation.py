@@ -6,7 +6,7 @@ import ipaddress
 import re
 import socket
 from dataclasses import dataclass
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse, urlunparse
 
 from src.config import get_settings
 
@@ -24,6 +24,30 @@ class ParsedSource:
     source_type: str  # SQL | NOSQL
     host_hint: str  # host[:port]/db — no credentials
     default_namespace: str  # Postgres: schema from URL query or "public"; Mongo: db from URL path or ""
+
+
+def normalize_source_url(url: str) -> str:
+    """Normalize URLs, e.g. converting IPv6-only Supabase direct hosts to the IPv4 session pooler."""
+    try:
+        parsed = urlparse(url.strip())
+        host = (parsed.hostname or "").lower()
+        if host.startswith("db.") and host.endswith(".supabase.co"):
+            parts = host.split(".")
+            if len(parts) >= 3:
+                project_ref = parts[1]
+                user = f"postgres.{project_ref}"
+                password = parsed.password or ""
+                # Use pooler for region ap-northeast-2
+                netloc = f"{user}:{password}@aws-0-ap-northeast-2.pooler.supabase.com:5432"
+                query = parsed.query
+                if "sslmode" not in query:
+                    query = (query + "&sslmode=require").lstrip("&")
+                return urlunparse(
+                    (parsed.scheme, netloc, parsed.path or "/postgres", parsed.params, query, parsed.fragment)
+                )
+    except Exception:
+        pass
+    return url.strip()
 
 
 def _is_private_host(host: str) -> bool:
@@ -56,6 +80,7 @@ def _pg_schema_from_query(query: str) -> str:
 
 
 def parse_source_url(url: str) -> ParsedSource:
+    url = normalize_source_url(url)
     try:
         parsed = urlparse(url.strip())
         scheme = parsed.scheme.lower()
@@ -77,6 +102,9 @@ def parse_source_url(url: str) -> ParsedSource:
         raise SourceUrlError("Private or loopback hosts are not allowed")
 
     db = unquote(parsed.path.strip("/").split("/")[0]) if parsed.path.strip("/") else ""
+    if engine == "mongodb" and not db:
+        settings = get_settings()
+        db = settings.mongo_db or "mydatabase"
     hint = host + (f":{port}" if port else "") + (f"/{db}" if db else "")
     default_ns = (_pg_schema_from_query(parsed.query) or "public") if engine == "postgresql" else db
     return ParsedSource(engine, source_type, hint, default_ns)
