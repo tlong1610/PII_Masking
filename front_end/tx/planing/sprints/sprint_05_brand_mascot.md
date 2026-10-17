@@ -35,6 +35,9 @@
 | FE-25 | Mascot cho kết quả kiểm định & màn đăng nhập | `SnapshotTab` (Awaiting / Protected / Error), Pango trên brand panel |
 | FE-26 | Tài liệu & bằng chứng | TASKS_INDEX, README_FE, link Figma |
 | FE-27 | Sửa port proxy dev của Vite | `/api` → 8000, ghi đè bằng `VITE_PROXY_TARGET` |
+| FE-28 | Ẩn tài khoản mẫu khỏi bản release | Không lộ `dpo/dpo123` trên trang đăng nhập production |
+| FE-29 | Sửa vỡ layout & đồng nhất `/dpo/masking` | Lưới thẻ không tràn, tiếng Việt thống nhất, bảng responsive, dữ liệu giả lập |
+| FE-30 | Phụ đề sidebar bị cắt | Phụ đề hiển thị trọn vẹn |
 
 ## 4. Nguyên Tắc
 
