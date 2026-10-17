@@ -493,7 +493,7 @@ def audit_postgres_golden_dataset():
         "## 6. 📜 Căn Cứ Pháp Lý & Tuân Thủ Quy Chuẩn An Toàn",
         "",
         "- **100% nhãn có Taxonomy ID chuẩn hóa:** Viết hoa nhất quán (`CCCD`, `PHONE_VN`, `EMAIL`, `TAX_CODE_PERSONAL`, `TAX_CODE_ORG`, `FREE_TEXT_PII`, `OCR_IDENTITY_DOC`, `SYSTEM_ID`, `TRANSACTION_ID`, `TRACKING_NUMBER`, `FINANCIAL_AMOUNT`).",
-        "- **100% nhãn viện dẫn căn cứ pháp lý:** Luật 91/2025/QH15 và Nghị định 13/2023/NĐ-CP.",
+        "- **100% nhãn viện dẫn căn cứ pháp lý:** Luật 91/2025/QH15 và Nghị định 356/2025/NĐ-CP.",
         "- **Tuân thủ triệt để No-raw-value UI Safe:** Toàn bộ bằng chứng không chứa số CCCD, SĐT hoặc Email thô của khách hàng.",
     ])
 

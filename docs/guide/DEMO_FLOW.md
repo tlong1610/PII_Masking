@@ -27,7 +27,7 @@
 - **Tab 0 — Tổng quan & phân loại PII:** Bảng danh sách cột nhóm theo bảng (`CollapsibleTableGroup`), lọc theo Action (`ReviewToolbar`), chip đề xuất (`PolicyChips`).
 - **Tab 1 — Rủi ro & đánh giá (`RiskInsightsTab`):** Xem điểm rủi ro tất định FR-10 (0–100), tỷ lệ bảo vệ L2/L3, và phân bố chính sách.
 - Mở **Inspector Drawer** để điều chỉnh chính sách từng trường:
-  * Xem căn cứ pháp lý theo Luật 91/2025/QH15, NĐ 356/2025/NĐ-CP và NĐ 13/2023/NĐ-CP.
+  * Xem căn cứ pháp lý theo Luật 91/2025/QH15 và NĐ 356/2025/NĐ-CP.
   * Tự động cảnh báo và đồng bộ hành động cho khóa nối (Join Keys).
   * Chuyển trường `UNKNOWN` thành Non-PII (kèm lý do).
   * Nhập lý do bắt buộc khi ghi đè khuyến nghị của AI hoặc thiết lập hạn chót ngoại lệ (`exceptionUntil`).
@@ -45,7 +45,7 @@
 - Điều hướng tới **Demo Che Mờ** (`/dpo/masking`):
   * Trải nghiệm **Live Sandbox**: gõ văn bản thử nghiệm chứa email, SĐT, CCCD để xem cơ chế MASK, REDACT, HMAC tức thời.
   * Xem **Bảng ma trận kỹ thuật bảo vệ dữ liệu**: so sánh chi tiết cơ chế và trường hợp áp dụng.
-- Điều hướng tới **Quy định NĐ 13** (`/dpo/rules`):
+- Điều hướng tới **Quy định pháp luật** (`/dpo/rules`):
   * Xem ma trận phân loại chuẩn mực: L1 (Gián tiếp) $\rightarrow$ L2 (Cơ bản) $\rightarrow$ L3 (Nhạy cảm).
   * Nhấp các link văn bản pháp luật chính thức trích từ Cổng thông tin Chính phủ.
 - Điều hướng tới **Nhật Ký Kiểm Toán** (`/dpo/audit`):
@@ -65,4 +65,4 @@
 * **Zero Raw PII (mục tiêu)**: DPO UI không render raw source value; LLM prompt, report và audit log không chứa PII thô. Giới hạn đã biết: ngoại lệ PII `KEEP` đưa giá trị gốc vào snapshot cho Analyst.
 * **Sổ cái kiểm toán bất biến**: Mọi quyết định và phiên bản snapshot được ghi nhận vào Hash-Chain Merkle Root SHA-256 (`/audit/verify`).
 * **1 Run = 1 Dataset**: Vòng đời run và dataset được quản lý hợp nhất; hành vi Thu hồi (Revoke) xóa snapshot vật lý và đưa run về `READY_TO_BUILD` để DPO có thể tinh chỉnh và build lại.
-* **Tuân thủ pháp lý**: Căn cứ danh mục Luật Bảo vệ dữ liệu cá nhân 2025 (Luật số 91/2025/QH15), Nghị định 356/2025/NĐ-CP và Nghị định 13/2023/NĐ-CP.
+* **Tuân thủ pháp lý**: Căn cứ danh mục Luật Bảo vệ dữ liệu cá nhân 2025 (Luật số 91/2025/QH15), Nghị định 356/2025/NĐ-CP.

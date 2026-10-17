@@ -94,7 +94,7 @@ flowchart TB
     subgraph CoreEngine["Processing & Intelligence Engine"]
         SCANNER["Scanner & Profiler (run_scanner.py)"]
         COL_STATS["Column Distribution Stats (column_stats.py)"]
-        RULES["Rules / Regex / Taxonomy NĐ 13"]
+        RULES["Rules / Regex / Taxonomy NĐ 356"]
         NER_CASCADE["Free-text NER: Regex + Dict + GLiNER Zero-Shot"]
         LLM["LangGraph / LLM Gateway (Metadata only, Zero Raw PII)"]
         HITL_MEM["HITL In-Context Memory (hitl_feedback.py)"]
@@ -141,7 +141,7 @@ flowchart TB
 3. **Inspector Drawer (`FieldPolicyDrawerContent.tsx`):**
    * Tùy biến chính sách từng trường độc lập: chuyển đổi giữa MASK, REDACT, HMAC, DROP, KEEP.
    * Tự động phát hiện và cảnh báo nếu trường là Khóa nối (Join Partner), hướng dẫn đồng bộ action.
-   * Trích dẫn căn cứ pháp lý theo Điều 2 Khoản 3 & Khoản 4 Nghị định 13/2023/NĐ-CP và Luật BV DLCN 2025.
+   * Trích dẫn căn cứ pháp lý theo Điều 3 (dữ liệu cơ bản) & Điều 4 (dữ liệu nhạy cảm) Nghị định 356/2025/NĐ-CP và Luật BV DLCN 2025.
    * Cho phép xác nhận trường `UNKNOWN` không phải dữ liệu cá nhân (`notPersonal: true`) để chuyển sang Non-PII.
    * Bắt buộc nhập lý do khi ghi đè khuyến nghị của AI hoặc cấp quyền ngoại lệ; thiết lập hạn chót ngoại lệ (`exceptionUntil`).
 
@@ -155,7 +155,7 @@ flowchart TB
    * Thử nghiệm tương tác Live Sandbox (`MaskingSandboxCard`): cho phép nhập chuỗi thử nghiệm và kiểm tra tức thời hiệu quả của các kỹ thuật MASK, REDACT, HMAC, DROP.
    * Bảng Ma trận Kỹ thuật che mờ (`MaskingMatrixTable`): so sánh chi tiết cơ chế, mục đích sử dụng và ví dụ minh họa.
 
-6. **Ma Trận Quy Định NĐ 13 & Luật BV DLCN 2025 (`Nd13RulesView.tsx`):**
+6. **Ma Trận Quy Định Luật BV DLCN 2025 & NĐ 356 (`Nd13RulesView.tsx`):**
    * Sắp xếp ma trận bảo vệ chuẩn mực theo thứ tự cấp bậc: L1 (Định danh gián tiếp) → L2 (Dữ liệu cơ bản) → L3 (Dữ liệu nhạy cảm).
    * Tích hợp link dẫn nguồn chính thức tới văn bản quy phạm pháp luật trên Cổng thông tin Chính phủ.
    * Bảng màu ngữ nghĩa đồng bộ theo tiêu chuẩn Databricks Design DNA.
@@ -199,11 +199,11 @@ Việc DPO không tiếp xúc dữ liệu PII thô là một quyết định ki�
 
 1. **Phân định vai trò & Tối thiểu hóa dữ liệu (Data Minimization):**
    * DPO là vai trò **quản trị tuân thủ (Governance)**, không phải người trực tiếp khai thác dữ liệu (Data Processor).
-   * Theo Luật 91/2025/QH15 và NĐ 13/2023/NĐ-CP, nguyên tắc *Need-to-know* chỉ cho phép tiếp cận dữ liệu khi có nhu cầu nghiệp vụ thực sự. DPO chỉ cần biết bản chất trường dữ liệu (thuộc danh mục L1/L2/L3 nào) chứ không có căn cứ pháp lý để xem số CCCD hay bệnh án thật của từng cá nhân.
+   * Theo Luật 91/2025/QH15 và NĐ 356/2025/NĐ-CP, nguyên tắc *Need-to-know* chỉ cho phép tiếp cận dữ liệu khi có nhu cầu nghiệp vụ thực sự. DPO chỉ cần biết bản chất trường dữ liệu (thuộc danh mục L1/L2/L3 nào) chứ không có căn cứ pháp lý để xem số CCCD hay bệnh án thật của từng cá nhân.
 2. **Triệt tiêu nguy cơ rò rỉ nội bộ (Insider Threat & Privilege Escalation):**
    * Nếu DPO được xem PII thô, tài khoản DPO sẽ trở thành mục tiêu tấn công số 1. Kẻ tấn công chiếm được token DPO có thể trích xuất toàn bộ CSDL khách hàng. Zero Raw PII đảm bảo token DPO nếu bị lộ cũng chỉ xem được siêu dữ liệu và thống kê định tính.
 3. **Đầy đủ cơ sở thẩm định (Metadata Sufficiency):**
-   * DPO đưa ra quyết định dựa trên **5 cơ sở an toàn**: (1) Tên bảng/cột, (2) Kiểu dữ liệu & data shape (`XXXXXXXXXXXX`, `CCC@CCCC.CC`), (3) Thống kê phân phối định tính từ `column_stats.py` (tỷ lệ null, cardinality), (4) Phân loại AI kèm căn cứ pháp lý NĐ 13, và (5) Điểm rủi ro FR-10 (0–100).
+   * DPO đưa ra quyết định dựa trên **5 cơ sở an toàn**: (1) Tên bảng/cột, (2) Kiểu dữ liệu & data shape (`XXXXXXXXXXXX`, `CCC@CCCC.CC`), (3) Thống kê phân phối định tính từ `column_stats.py` (tỷ lệ null, cardinality), (4) Phân loại AI kèm căn cứ pháp lý Luật 91 / NĐ 356, và (5) Điểm rủi ro FR-10 (0–100).
 4. **Bảo vệ trách nhiệm pháp lý cho chính DPO:**
    * DPO được bảo vệ bởi bằng chứng mật mã (Merkle Root SHA-256): mọi thao tác của DPO chỉ diễn ra trên siêu dữ liệu, loại trừ hoàn toàn rủi ro DPO bị quy trách nhiệm khi có sự cố lộ lọt từ thiết bị cá nhân.
 5. **DPO xem gì trên hệ thống?**

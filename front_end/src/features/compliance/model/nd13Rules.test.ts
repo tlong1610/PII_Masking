@@ -19,7 +19,7 @@ describe('nd13Rules model', () => {
     expect(sensitive?.allowedActions).not.toContain('KEEP');
   });
 
-  it('includes key legal articles of Decree 13 and Law 91', () => {
+  it('includes the key legal articles shown on the rules page', () => {
     const articleNumbers = ND13_KEY_ARTICLES.map((article) => article.articleNumber);
     expect(articleNumbers).toContain('Điều 9');
     expect(articleNumbers).toContain('Điều 10 & 11');

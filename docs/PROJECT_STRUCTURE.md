@@ -51,7 +51,7 @@
   * `src/agents/graph.py` — Luồng StateGraph tuần tự + điểm dừng chờ DPO review
   * `src/agents/nodes/` — Các node: scanner, field profile, LLM classify
   * `src/detection/regex_patterns.py` — Regex CCCD, SĐT VN, Email, MST, Bank Account...
-  * `src/detection/taxonomy.py` — Bộ phân loại dữ liệu theo Luật 91/2025/QH15 & NĐ 356/2025/NĐ-CP & NĐ 13/2023/NĐ-CP
+  * `src/detection/taxonomy.py` — Bộ phân loại dữ liệu theo Luật 91/2025/QH15 & NĐ 356/2025/NĐ-CP
   * `src/detection/rule_engine.py` — Engine quét regex trên profile cột
   * `src/detection/column_stats.py` — Tính toán thống kê phân phối cột an toàn (không gửi raw value)
   * `src/detection/dict_ner.py` — Tra cứu từ điển FlashText cho tên người, địa danh
@@ -68,7 +68,7 @@
 * **Các file & folder phụ trách code:**
   * `front_end/src/features/auth/` — Đăng nhập, session storage, Role guard
   * `front_end/src/features/piiReview/` — DPO Review Workspace (4 Tabs: Tổng quan PII, Rủi ro FR-10, Kiểm toán, Dữ liệu cho Analyst), Scope Picker Diagram, FieldReviewTable, PolicyChips, Inspector Drawer
-  * `front_end/src/features/compliance/` — Live Masking Sandbox, Masking Matrix Table, Ma trận NĐ 13 (L1->L2->L3) kèm link nguồn pháp luật chính phủ
+  * `front_end/src/features/compliance/` — Live Masking Sandbox, Masking Matrix Table, Ma trận quy định pháp luật (L1->L2->L3) kèm link nguồn pháp luật chính phủ
   * `front_end/src/features/runHistory/` — Quản lý lịch sử Run & gom Dataset (1 Run = 1 Dataset, Revoke, Publish)
   * `front_end/src/features/auditLog/` — Nhật ký kiểm toán diễn giải ngôn ngữ tự nhiên theo ngày, bộ lọc hoạt động
   * `front_end/src/features/datasets/` — Bảng Preview dữ liệu an toàn cho Analyst, Verifier results
@@ -88,7 +88,7 @@ P-138/
 │   │   ├── features/                  # Feature-Sliced modules
 │   │   │   ├── auth/                  # Login, session, role guards
 │   │   │   ├── piiReview/             # DPO Review 4 tabs, diagram, drawer, chips
-│   │   │   ├── compliance/            # Masking sandbox & NĐ 13 rules matrix
+│   │   │   ├── compliance/            # Masking sandbox & legal rules matrix
 │   │   │   ├── runHistory/            # Lịch sử run, hợp nhất dataset
 │   │   │   ├── auditLog/              # Nhật ký kiểm toán readable dạng câu
 │   │   │   └── datasets/              # Preview table, verifier results
@@ -97,7 +97,7 @@ P-138/
 │   │   │   ├── DpoWorkspacePage.tsx   # /dpo và /dpo/runs/:id
 │   │   │   ├── DpoRunHistoryPage.tsx  # /dpo/runs
 │   │   │   ├── DpoMaskingDemoPage.tsx # /dpo/masking (Live Sandbox)
-│   │   │   ├── DpoRulesPage.tsx       # /dpo/rules (Ma trận NĐ 13)
+│   │   │   ├── DpoRulesPage.tsx       # /dpo/rules (Quy định pháp luật)
 │   │   │   ├── DpoAuditPage.tsx       # /dpo/audit
 │   │   │   └── AnalystWorkspacePage.tsx # /analyst
 │   │   ├── shared/                    # UI dùng chung (AppShell, ConfirmDialog...)

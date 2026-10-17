@@ -11,7 +11,7 @@
 | **FE-07** | Harden API error and edge states | Sprint 03 | **done** | Xử lý lỗi 401, 403, 404, 409, 422, 500 an toàn ([chi tiết](details/FE-07-api-error-edge-states.md)) |
 | **FE-08** | Add dynamic database source UI | Sprint 03 | **done** | Hỗ trợ PostgreSQL & MongoDB Cloud ([chi tiết](details/FE-08-dynamic-database-source.md)) |
 | **FE-09** | Runtime evidence and video demo | Sprint 03 | **done** | Kịch bản demo và bằng chứng kiểm thử hoàn chỉnh ([chi tiết](details/FE-09-runtime-evidence-video.md)) |
-| **FE-10** | Nghị định 13 Compliance Rules Page | Sprint 04 | **done** | Trang toàn màn hình `/dpo/rules` tra cứu pháp lý NĐ 13 3 tabs ([chi tiết](details/FE-10-nd13-compliance-rules.md)) |
+| **FE-10** | Legal Compliance Rules Page | Sprint 04 | **done** | Trang toàn màn hình `/dpo/rules` tra cứu pháp lý (Luật 91/2025, NĐ 356/2025) 3 tabs ([chi tiết](details/FE-10-nd13-compliance-rules.md)) |
 | **FE-11** | Sổ cái Hash-Chain & Merkle Root Audit | Sprint 04 | **done** | Chuỗi khối kết nối trực quan, drawer xem chi tiết SHA-256 hex 64 ký tự & kiểm chứng Merkle root ([chi tiết](details/FE-11-hash-chain-audit-center.md)) |
 | **FE-12** | Sidebar Masking Showcase (Demo che) | Sprint 04 | **done** | Màn hình đối chiếu đa chiều đặt ngay dưới Sổ cái trên Sidebar ([chi tiết](details/FE-12-masking-showcase-sidebar.md)) |
 | **FE-13** | DPO Catalog Explorer & Revocation UI | Sprint 04 | **closed** | Đã đóng: Chuyển giao dev khác phụ trách ([chi tiết](details/FE-13-published-snapshots-revoke.md)) |

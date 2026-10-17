@@ -95,7 +95,7 @@ export const MASKING_DEMO_ITEMS: readonly MaskingDemoItem[] = [
     id: 'health-record',
     dataTypeName: 'Thông tin Sức khỏe / Bệnh án (Medical Record)',
     piiLevel: 'L3',
-    description: 'Dữ liệu đời tư y tế nhạy cảm đặc biệt theo Điều 17 NĐ 13.',
+    description: 'Dữ liệu đời tư y tế nhạy cảm đặc biệt theo điểm d khoản 1 Điều 4 NĐ 356/2025.',
     rawValue: 'Viêm phổi cấp độ 2, điều trị phác đồ kháng sinh Augmentin',
     maskValue: '***',
     hmacValue: simulateHmacSha256('Viêm phổi cấp độ 2, điều trị phác đồ kháng sinh Augmentin'),

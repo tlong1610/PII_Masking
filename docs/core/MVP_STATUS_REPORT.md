@@ -46,7 +46,7 @@ Tài liệu này lưu kết quả nghiệm thu các hạng mục trọng tâm P1
    - Quản lý tập trung tại `/dpo/runs`. Phát hành tự động cấp quyền cho mọi Analyst; Thu hồi (Revoke) xóa snapshot vật lý và đưa run về `READY_TO_BUILD` để DPO có thể tinh chỉnh và build lại.
 3. **Môi trường Demo Che mờ & Sandbox Tương Tác (`/dpo/masking`):**
    - Trực quan hóa các kỹ thuật MASK, REDACT, HMAC, DROP với Live Sandbox cho phép nhập văn bản kiểm tra tức thời.
-4. **Ma trận Quy định NĐ 13 & Luật BV DLCN 2025 (`/dpo/rules`):**
+4. **Ma trận Quy định Luật BV DLCN 2025 & NĐ 356 (`/dpo/rules`):**
    - Phân cấp dữ liệu rõ ràng theo thứ tự chuẩn: L1 (Định danh gián tiếp) → L2 (Cơ bản) → L3 (Nhạy cảm).
    - Tích hợp link dẫn nguồn pháp luật chính thức tới Cổng thông tin Chính phủ.
    - Đồng bộ màu sắc ngữ nghĩa theo tiêu chuẩn Databricks Design DNA.

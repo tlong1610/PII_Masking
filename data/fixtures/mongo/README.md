@@ -119,4 +119,4 @@ Script sẽ băm `identity.cccd` và `pii_ext.customer_cccd` bằng cùng secret
 
 > [!IMPORTANT]
 > - **Nguyên tắc No-raw-value**: Tuyệt đối không `print()` hoặc ghi log số CCCD, SĐT, Email thô của khách hàng ra màn hình/log file trong quá trình seed và kiểm thử.
-> - Toàn bộ dữ liệu trong bộ fixture này là **dữ liệu tổng hợp (synthetic/fake 100%)**, tuân thủ Nghị định 13/2023/NĐ-CP và PRD dự án PIIGuard Shield.
+> - Toàn bộ dữ liệu trong bộ fixture này là **dữ liệu tổng hợp (synthetic/fake 100%)**, tuân thủ Luật 91/2025/QH15, Nghị định 356/2025/NĐ-CP và PRD dự án PIIGuard Shield.
