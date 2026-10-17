@@ -1,8 +1,8 @@
 # 🏆 BỘ DỮ LIỆU ĐÁNH GIÁ CHUẨN HÓA PIIGUARD (UNIFIED BENCHMARK SUITE)
 
 > **Căn cứ pháp lý:** Nghị định 356/2025/NĐ-CP & Luật 91/2025/QH15  
-> **Tài liệu tham chiếu:** [`message.txt`](file:///d:/vin/WS/P-138/message.txt) & [`taxonomy.py`](file:///d:/vin/WS/P-138/src/detection/taxonomy.py)  
-> **Tệp dữ liệu tổng hợp:** [`unified_benchmark_suite.json`](./unified_benchmark_suite.json) (**625 mẫu kiểm thử**)
+> **Tài liệu tham chiếu:** [`message.txt`](../../message.txt) & [`taxonomy.py`](../../src/detection/taxonomy.py)
+> **Tệp dữ liệu tổng hợp:** `unified_benchmark_suite.json` (**625 mẫu kiểm thử trong báo cáo lịch sử; tệp hiện không có trong checkout này**)
 
 ---
 
@@ -13,7 +13,7 @@
 | **A_dataset** | **Luồng A (Dữ liệu có cấu trúc / Bảng CSDL)** | Mô phỏng Doanh nghiệp VN | — | [`synthetic_enterprise_columns.json`](./A_dataset/synthetic_enterprise_columns.json) | **339** |
 | **B_dataset** | **Luồng B (Văn bản tự do / NER Redaction)** | `synth_dataset_v2.json` (1.500 docs) | [`synth_dataset_v2_standardized.json`](./B_dataset/synth_dataset_v2_standardized.json) | [`b_dataset_columns.json`](./B_dataset/b_dataset_columns.json) | **180** |
 | **AB_dataset**| **Luồng A & B (Tài liệu học thuật Kaggle)** | `train.json` (6.807 docs) | [`ab_dataset_standardized.json`](./AB_dataset/ab_dataset_standardized.json) | [`ab_dataset_columns.json`](./AB_dataset/ab_dataset_columns.json) | **106** |
-| **TỔNG HỢP** | **Toàn diện cả 2 Luồng** | — | — | [`unified_benchmark_suite.json`](./unified_benchmark_suite.json) | **625** |
+| **TỔNG HỢP** | **Toàn diện cả 2 Luồng** | — | — | `unified_benchmark_suite.json` (không có trong checkout này) | **625** |
 
 ---
 

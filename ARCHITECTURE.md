@@ -50,7 +50,7 @@ flowchart LR
 ### ① Nguyên Tắc Zero Raw PII & Tách Bạch Vai Trò
 * **DPO (Governance):** Thao tác trên Web UI, thẩm định rủi ro dựa trên siêu dữ liệu (metadata), kiểu dữ liệu và phân phối thống kê (`column_stats.py`). DPO **không được cấp quyền truy cập CSDL nguồn** (Least Privilege).
 * **Worker Engine:** Kết nối nguồn qua Service Account độc lập, quét và biến đổi dữ liệu hoàn toàn trên **RAM (In-Memory Streaming)**, không lưu vết thô ra ổ đĩa hay log.
-* **CSDL Đích (Snapshot):** Chỉ lưu trữ dữ liệu đã được ẩn danh vĩnh viễn (`HMAC`, `REDACT`, `MASK`, `DROP`). DPO hay Analyst truy cập DB đích cũng chỉ xem được dữ liệu đã bảo vệ, loại bỏ triệt để nguy cơ rò rỉ nội bộ.
+* **CSDL Đích (Snapshot):** Lưu dữ liệu sau khi áp dụng action đã duyệt (`HMAC`, `REDACT`, `MASK`, `DROP`). **Giới hạn hiện tại:** backend cho phép DPO đặt `KEEP` cho trường PII nếu có ngoại lệ (lý do + `exception_until`); giá trị gốc khi đó được sao chép vào snapshot và Analyst đọc được sau khi publish. Zero Raw PII là mục tiêu thiết kế, chưa phải bảo đảm tuyệt đối.
 
 ### ② Khoét Sâu Dữ Liệu (Deep Content Inspection) Song Hành Bảo Mật
 * **Luồng A (Dữ liệu bảng cấu trúc):** Kết hợp Regex, từ điển pháp lý NĐ 13 và LLM LangGraph. Đạt **100.00% Action Accuracy** trên 339 cột sau khi tích hợp bộ nhớ few-shot DPO.
@@ -66,7 +66,7 @@ Bảo toàn tối đa giá trị khai thác dữ liệu (**Data Utility**) mà k
 | **`REDACT`** | Thay thực thể bằng nhãn (`[PHONE]`) | Giữ nguyên cấu trúc ngữ pháp cho đội AI/LLM phân tích ngữ nghĩa, phân loại khiếu nại và sentiment. |
 | **`MASK`** | Che đoạn giữa (`0912***789`) | Giữ đặc trưng thống kê (thị phần nhà mạng, domain email cá nhân vs DN, nhóm tuổi). |
 | **`DROP`** | Xóa hẳn cột khỏi snapshot | Loại bỏ hoàn toàn trường dữ liệu nặng và rủi ro cao (ảnh CCCD, sinh trắc học). |
-| **`KEEP`** | Giữ nguyên giá trị | Áp dụng cho các trường phi cá nhân (doanh thu, ngày tạo đơn) để đảm bảo số liệu báo cáo chuẩn xác. |
+| **`KEEP`** | Giữ nguyên giá trị | Dành cho trường phi cá nhân (doanh thu, ngày tạo đơn). Với PII chỉ được phép qua ngoại lệ có lý do và hạn — giá trị gốc vào snapshot. |
 
 ---
 

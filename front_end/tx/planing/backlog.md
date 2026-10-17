@@ -1,5 +1,7 @@
 # Frontend Backlog — PIIGuard Shield
 
+> Backlog dưới đây phản ánh kế hoạch các sprint cũ. UI hiện tại có 4 tab DPO, gồm “Dữ liệu cho Analyst”; FE-13 được đóng/chuyển giao trong [task index](../tasks/TASKS_INDEX.md). Đối chiếu code trước khi giới thiệu tính năng đang chạy.
+
 Tài liệu quản lý lộ trình phát triển giao diện người dùng (Frontend Backlog) theo kiến trúc Feature-Sliced Design, tuân thủ nghiêm ngặt quy định tại `front_end/AGENTS.md`.
 
 ---

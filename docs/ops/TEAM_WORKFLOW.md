@@ -1,20 +1,18 @@
 # Quy trình làm việc Team PIIGuard Shield
 
 **Dự án:** PIIGuard Shield — Công cụ phát hiện và che giấu PII theo luật Việt Nam  
-**Thời gian:** MVP 14 ngày (VinUni AI20K Cohort 4)  
+**Thời gian:** P1 / vận hành sau MVP (VinUni AI20K Cohort 4)
 **Team:** 4 người
 
 ---
 
 ## 🎯 Nguyên tắc cốt lõi
 
-1. **KHÔNG BAO GIỜ push trực tiếp vào `main` & KHÔNG BAO GIỜ merge vào `main`** — Vi phạm = fail Gate 2!
-   - `main` là nhánh production được bảo vệ nghiêm ngặt (Protected branch).
-   - TUYỆT ĐỐI KHÔNG mở Pull Request target vào `main` trong suốt quá trình phát triển dự án.
-   - MỌI Pull Request bắt buộc phải target base branch vào `develop`.
-   - Thành viên TUYỆT ĐỐI KHÔNG được merge code vào `main` (Chỉ Team Lead mới release `develop` → `main` tại mốc Gate/Demo Day).
+1. **Không push trực tiếp vào `main` hoặc `develop`.** PR tính năng/sửa lỗi/docs đi vào `develop`; Team Lead tạo PR `develop` → `main` khi phát hành.
+   - `main` là nhánh production; push vào `main` kích hoạt workflow release.
+   - Thành viên không merge nhánh làm việc trực tiếp vào `main`.
 2. **MỌI thay đổi đều qua Pull Request vào `develop`** — Kể cả docs, config hay hotfix
-3. **≥ 10 PR đã merge trước Gate 2** — Yêu cầu bắt buộc, không làm bù được
+3. **Gate 2:** yêu cầu lịch sử ≥ 10 PR đã merge được lưu để đối chiếu.
 4. **Ít nhất 1 người review mỗi PR** — Bằng chứng team làm việc thật (chấm B4)
 5. **PRD/docs phải sync với code** — AI agent đọc PRD để sinh code
 
@@ -48,11 +46,10 @@ main
 | `refactor/*` | Tái cấu trúc code                         | `develop`                       | ✅ Có         |
 | `hotfix/*`   | Sửa lỗi khẩn cấp                          | `develop`                       | ✅ Có         |
 
-> ⛔ **QUY TẮC BẤT DI BẤT DỊCH: KHÔNG BAO GIỜ MERGE VÀO `main`!**
+> ⛔ **PR nhánh làm việc vào `develop`; chỉ Team Lead phát hành `develop` → `main`.**
 >
-> - Toàn bộ thành viên **KHÔNG ĐƯỢC PHÉP** merge bất kỳ nhánh nào (`feature/*`, `bugfix/*`, `docs/*`...) vào `main`.
-> - Mọi Pull Request (PR) đều **BẮT BUỘC** chọn **Base: `develop`**.
-> - Bất kỳ PR nào trỏ target base vào `main` sẽ bị từ chối / close ngay lập tức và yêu cầu mở lại vào `develop`.
+> - PR tính năng/sửa lỗi/docs chọn **Base: `develop`**.
+> - PR release do Team Lead thực hiện chọn **Base: `main`, Compare: `develop`**.
 
 ---
 
@@ -365,7 +362,7 @@ Related to #[issue-number]
 
 **Điều kiện merge:**
 
-- ⛔ **Target Base Branch BẮT BUỘC là `develop`** — Kiểm tra kỹ trước khi bấm merge: nếu thấy Base đang là `main`, DỪNG LẠI NGAY! Đổi base về `develop`. **KHÔNG BAO GIỜ merge vào `main`**.
+- ⛔ **PR công việc chọn Base `develop`**. Chỉ PR release do Team Lead thực hiện mới chọn Base `main` từ `develop`.
 - ✅ Ít nhất 1 approval từ teammate
 - ✅ All CI checks pass (tests, lint)
 - ✅ No merge conflicts
@@ -659,7 +656,7 @@ git cherry-pick <commit-hash-2>
 ## ❓ FAQ
 
 **Q: Tôi có thể tạo PR hoặc merge vào `main` không?**  
-A: **TUYỆT ĐỐI KHÔNG.** Không một thành viên nào được tạo PR hay merge code vào `main`. Toàn bộ PR phải trỏ target base vào `develop`. Nhánh `main` chỉ do Team Lead đồng bộ từ `develop` khi release chính thức tại các mốc Gate.
+A: PR công việc vào `develop`. Team Lead tạo PR `develop` → `main` khi release; workflow tự kiểm tra và tạo GitHub Release sau khi merge.
 
 **Q: Tôi có thể push trực tiếp vào develop không?**  
 A: KHÔNG. Mọi thay đổi phải qua PR, kể cả hotfix.
@@ -681,5 +678,5 @@ A: Tối đa 2-3 ngày. Nếu quá 3 ngày chưa merge, chia nhỏ thành nhiề
 
 ---
 
-**📅 Last updated:** 2026-09-22  
+**📅 Last updated:** 2026-10-17
 **👥 Maintainer:** Team Leader — cập nhật file này khi có quy trình mới

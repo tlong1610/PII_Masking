@@ -54,7 +54,7 @@
 ### Bước 6: Analyst Khai Thác An Toàn
 - Đăng nhập: `analyst` / `analyst123`.
 - Chỉ thấy các dataset ở trạng thái **PUBLISHED**.
-- **Tuyệt đối KHÔNG thấy PII gốc:** Dữ liệu hiển thị qua Data Grid preview đã được che mờ/băm/loại bỏ hoàn toàn.
+- **Không thấy PII gốc của các trường đã che:** Data Grid preview hiển thị dữ liệu đã MASK/HMAC/REDACT/DROP. Trường PII được DPO duyệt `KEEP` theo ngoại lệ sẽ hiện nguyên giá trị — tránh dùng ngoại lệ này trong kịch bản demo.
 - Xem sơ đồ ERD của snapshot để nắm cấu trúc bảng phục vụ viết truy vấn phân tích.
 - Tải file CSV an toàn (tự động loại bỏ các cột `DROPPED` và áp dụng mask/HMAC).
 
@@ -62,7 +62,7 @@
 
 ## Nguyên Tắc Bảo Mật & Quản Trị Cốt Lõi
 
-* **Zero Raw PII cho cả DPO và Analyst**: Tuyệt đối không để lộ dữ liệu PII thô ra ngoài UI, API, LLM prompt, report hay audit log.
+* **Zero Raw PII (mục tiêu)**: DPO UI không render raw source value; LLM prompt, report và audit log không chứa PII thô. Giới hạn đã biết: ngoại lệ PII `KEEP` đưa giá trị gốc vào snapshot cho Analyst.
 * **Sổ cái kiểm toán bất biến**: Mọi quyết định và phiên bản snapshot được ghi nhận vào Hash-Chain Merkle Root SHA-256 (`/audit/verify`).
 * **1 Run = 1 Dataset**: Vòng đời run và dataset được quản lý hợp nhất; hành vi Thu hồi (Revoke) xóa snapshot vật lý và đưa run về `READY_TO_BUILD` để DPO có thể tinh chỉnh và build lại.
 * **Tuân thủ pháp lý**: Căn cứ danh mục Luật Bảo vệ dữ liệu cá nhân 2025 (Luật số 91/2025/QH15), Nghị định 356/2025/NĐ-CP và Nghị định 13/2023/NĐ-CP.

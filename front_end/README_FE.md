@@ -36,13 +36,13 @@ npm run preview    # Preview the production build locally
 The frontend calls the real backend API by default:
 
 ```text
-http://localhost:8001/api/v1
+http://localhost:8000/api/v1
 ```
 
 Override with:
 
 ```bash
-VITE_API_URL=http://localhost:8001/api/v1 npm run dev
+VITE_API_URL=http://localhost:8000/api/v1 npm run dev
 ```
 
 Main integration file:
@@ -85,12 +85,8 @@ src/
    - `SourceScopePickerDiagram`: Visual table dependency graph for selecting scan scope with automatic hierarchical layout.
    - `ErdLineageDiagram`: Full lineage and ERD diagram showing database tables, column types, transformations (`MASK`, `HMAC`, `KEEP`, `DROPPED`), and PK/FK links.
 3. **DPO Governance & Risk Assessment Workspace (`DpoReviewExperienceMVP`):**
-   - **5-Tab Layout:**
-     - *Overview & PII Schema:* Field classification table, detection source, and masking actions.
-     - *Sample Data:* **DPO can inspect data (sample data / preview)** to assess risk and verify ambiguous fields.
-     - *Permissions & Grants:* RBAC management for metastores and snapshots.
-     - *Audit History & Hash-Chain:* Merkle Root SHA-256 cryptographic audit trail.
-     - *Risk & Insights:* Deterministic Risk Score (FR-10, 0–100), sensitivity levels, and protection ratios.
+   - **4 tabs:** Overview & PII Schema, Risk & Insights, Audit History, and Dữ liệu cho Analyst (Verifier + snapshot preview).
+   - The review UI does not render source values. However, an approved PII `KEEP` exception can put the original value into a published snapshot; do not describe Analyst access as unconditionally Zero Raw-PII until the backend blocks or safely transforms that path.
    - **Inspector Drawer (`FieldPolicyDrawerContent`):**
      - Detailed legal basis breakdown (Decree 13/2023/NĐ-CP & Personal Data Protection Law 2025).
      - Join key partner alerts and automatic action synchronization.
@@ -99,7 +95,7 @@ src/
 4. **Analyst Experience (`AnalystDatasetExperienceMVP`):**
    - Table-based data preview (`previewDataset`) with limit selection (20, 50, 100, 200 rows).
    - Safe CSV download with automatic exclusion of `DROPPED` columns.
-   - **Zero Raw-PII for Analyst:** Strictly displays only transformed/masked data.
+   - Analyst preview shows published snapshot values. PII `KEEP` exceptions are a known privacy gap; see the warning above.
 
 ## Verification Checklist
 

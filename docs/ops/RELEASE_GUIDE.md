@@ -2,7 +2,7 @@
 
 **Dự án:** PIIGuard Shield — Công cụ rà soát và bảo vệ dữ liệu cá nhân theo Nghị định 13 & Luật 91  
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
-**Phiên bản phát hành:** `v1.0.0` (Gate 2 / Final MVP Release)
+**Quy trình hiện tại:** Release tự động sau khi PR `develop` → `main` được merge và quality gate đạt.
 
 ---
 
@@ -16,7 +16,7 @@
 | **Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
 | **Docker Hub Image** | `docker.io/len1652/piiguard-api:latest` | 🟢 Ready | Build chuẩn `linux/amd64` độc lập |
 | **Video Demo (End-to-End)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Video ≤ 5 phút theo chuẩn 4 cảnh |
-| **Pitch Deck Báo Cáo** | `presentation/pitch_deck.pptx` | 🟢 Ready | 10 slides chuẩn hội đồng chấm thi |
+| **Pitch Deck Báo Cáo** | [`presentation/README.md`](../../presentation/README.md) | 📝 Hướng dẫn | Cấu trúc deck; file `.pptx` chưa có trong repo |
 
 ### 🔑 Tài Khoản Trải Nghiệm Demo
 - **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`)  
@@ -50,14 +50,14 @@ Do repository thuộc GitHub Organization của BTC (không có quyền cài app
    - `DATABASE_URL` = `sqlite:///./data/render_app.db`
    - `CORS_ORIGINS` = `https://frontend-alpha-fawn-53.vercel.app,http://localhost:5173,http://localhost:3000`
    - `ENABLE_AI_SCAN` = `false` *(bật Rules local nhẹ nhàng, phản hồi < 500ms trên free tier)*
-   - `HMAC_SECRET` = `piiguard_secret_2026_cohort4`
+   - `HMAC_SECRET` = giá trị bí mật riêng, tạo và lưu trong Render Environment; không ghi giá trị thật vào repo hoặc tài liệu.
 
 ---
 
 ### 2.2 Frontend Web App (Vercel)
 Frontend đã được cấu hình tự động trỏ API về Render:
 - File [`front_end/src/shared/api/client.ts`](../../front_end/src/shared/api/client.ts) tự động nhận diện `import.meta.env.PROD` để trỏ vào `https://piiguard-vn-api.onrender.com/api/v1` (ngăn chặn hoàn toàn việc gọi nhầm `localhost` trên môi trường Vercel).
-- Khi đẩy code lên `main` hoặc `develop`, Vercel sẽ tự động build và cập nhật phiên bản mới nhất.
+- Vercel build theo nhánh đã kết nối với project. Kiểm tra nhánh Production Branch trong Vercel trước khi coi một lần merge là đã cập nhật URL production.
 
 ---
 
@@ -65,23 +65,14 @@ Frontend đã được cấu hình tự động trỏ API về Render:
 
 Tuân thủ nghiêm ngặt quy chế Git Flow của dự án:
 1. Mọi commit tính năng phải merge từ `feature/*` vào `develop`.
-2. Kiểm tra CI sạch sẽ:
-   - Backend: `pytest` đạt 317/317 passed.
-   - Frontend: `vitest` đạt 160/160 passed.
-   - Linting: `ruff check .` không lỗi.
+2. Kiểm tra CI của commit hiện tại: Ruff, Pytest và các bước frontend nếu runner có `npm`; Vercel build frontend riêng.
 3. Khi chuẩn bị phát hành, Team Lead mở PR `develop` ➔ `main`.
-4. Sau khi merge vào `main`, gắn Git Tag chính thức:
-   ```bash
-   git checkout main
-   git pull origin main
-   git tag -a v1.0.0 -m "Release v1.0.0 - Gate 2 MVP PIIGuard Shield"
-   git push origin v1.0.0
-   ```
+4. Sau khi merge, `.github/workflows/release-main.yml` chạy trên self-hosted runner: kiểm tra chất lượng, tạo SemVer tag/changelog và GitHub Release. Render chỉ được gọi tự động khi có `RENDER_DEPLOY_HOOK_URL`; nếu không, kiểm tra cấu hình Render hoặc triển khai theo mục 2.1. Xác nhận deployment của Vercel và endpoint backend trước khi thông báo release hoàn tất.
 
 ---
 
 ## 🛡️ 4. Nguyên Tắc An Ninh & Zero Raw PII
 
 1. **Tuyệt đối không đưa secrets lên Git:** Không commit file `.env`, mật khẩu database thật, hay API token.
-2. **Không rò rỉ PII trong Log:** Mọi bảng log, prompt LLM hay giao diện DPO/Analyst chỉ hiển thị metadata và chuỗi đã che mờ, không xuất giá trị thô.
+2. **Không rò rỉ PII trong Log:** Log và prompt LLM không được chứa raw PII. DPO UI không render source values. Lưu ý: ngoại lệ PII `KEEP` hiện có thể để giá trị gốc trong published snapshot mà Analyst xem được; xử lý trước khi tuyên bố Zero Raw PII tuyệt đối.
 3. **Tính toàn vẹn kiểm toán (Merkle Root):** Mọi thao tác phê duyệt của DPO đều được băm SHA-256 chuỗi Merkle tại endpoint `/audit/verify`.

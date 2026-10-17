@@ -1,5 +1,9 @@
 # FE-14: DPO Workspace Tabs Cleanup & Exception Until Lifecycle
 
+> Đây là mô tả task/scope lịch sử. Hiện UI có 4 tabs; backend kiểm tra hạn ngoại lệ lúc lưu quyết định nhưng không tự thu hồi snapshot khi hạn kết thúc. PII được `KEEP` theo ngoại lệ có thể hiện nguyên giá trị cho Analyst.
+
+> Đây là mô tả task/scope lịch sử. Hiện UI có 4 tabs; backend kiểm tra hạn ngoại lệ lúc lưu quyết định nhưng không tự thu hồi snapshot khi hạn kết thúc. PII được `KEEP` theo ngoại lệ có thể hiện nguyên giá trị cho Analyst.
+
 **Sprint**: Sprint 04  
 **Trạng thái**: Done  
 **Phân hệ**: `src/features/piiReview/components/DpoReviewExperienceMVP.tsx`, `src/features/piiReview/components/FieldPolicyDrawerContent.tsx`

@@ -1,9 +1,9 @@
 # PIIGuard Shield - P1 Completion & System Status Report
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4
-**Trạng thái:** MVP/Gate 2 đã qua · **Giai đoạn P1 ĐÃ HOÀN THÀNH TOÀN DIỆN (100%)**
+**Trạng thái:** Báo cáo nghiệm thu P1 (số liệu và kết luận tại thời điểm lập báo cáo; không phải trạng thái CI hiện tại)
 
-Tài liệu này xác nhận việc nghiệm thu và hoàn tất các hạng mục trọng tâm của Giai đoạn 1 (P1). Toàn bộ hệ thống hoạt động ổn định trên cả backend FastAPI lẫn frontend React, kiểm soát chặt chẽ nguyên tắc Zero Raw PII, hỗ trợ đa cơ sở dữ liệu quan hệ và phi quan hệ (PostgreSQL & MongoDB), và vượt qua 100% bộ kiểm thử tự động.
+Tài liệu này lưu kết quả nghiệm thu các hạng mục trọng tâm P1 tại thời điểm lập báo cáo. Những con số test là ảnh chụp lịch sử, cần chạy lại CI để xác nhận trạng thái hiện tại. Lưu ý code hiện cho phép ngoại lệ `KEEP` cho PII; giá trị có thể xuất hiện trong snapshot mà Analyst đọc được, nên cam kết Zero Raw PII chưa tuyệt đối.
 
 ---
 
@@ -14,7 +14,7 @@ Tài liệu này xác nhận việc nghiệm thu và hoàn tất các hạng m�
 | **P1-1** | Quét sâu các field/value patterns trong PostgreSQL & MongoDB | **HOÀN THÀNH** | **Luồng A (Column-level):** Đạt **100.00% Action Accuracy** trên 339 cột doanh nghiệp sau HITL memory.<br/>**Luồng B (Free-text NER):** Tích hợp GLiNER zero-shot (`urchade/gliner_multi_pii-v1`) kết hợp Regex + FlashText đạt **97.86% Recall**, **97.16% Precision**, **97.51% F1**. Chi tiết: [`performance/sau_HITL/`](../../performance/sau_HITL/). |
 | **P1-2** | Risk/report/UI chip đồng bộ với `risk_scorer` | **HOÀN THÀNH** | Thuật toán điểm rủi ro tất định FR-10 (0–100) đồng bộ hoàn toàn giữa Backend (`src/services/risk_scorer.py`), API (`GET /runs/{id}/risk-score`), Privacy Risk Report (`GET /runs/{id}/report`), và Frontend (`RiskInsightsTab`, `PolicyChips`). |
 | **P1-3** | AI fallback rõ ràng: rules-only độc lập, LLM chỉ nhận metadata | **HOÀN THÀNH** | Chế độ `ENABLE_AI_SCAN=false` chạy rules local độc lập. Khi bật `ENABLE_AI_SCAN=true`, LLM chỉ nhận metadata/thống kê phân phối rút gọn từ `column_stats.py` (tỷ lệ null, cardinality, không nhận raw value). Cơ chế HITL Few-shot Memory tự học từ quyết định của DPO. |
-| **P1-4** | Audit/log bảo mật tuyệt đối, không lộ raw PII hay credential | **HOÀN THÀNH** | Sổ cái kiểm toán Merkle Root SHA-256 bất biến (`/audit/verify`). Tuyệt đối không lưu raw PII, credential, hoặc API key trong DB app, log, LLM prompt, hay giao diện DPO/Analyst. Giao diện nhật ký kiểm toán mới đọc hiểu theo ngôn ngữ tự nhiên và nhóm theo ngày. |
+| **P1-4** | Audit/log: bảo vệ credential, API key và PII | **Có giới hạn đã biết** | Có sổ cái Merkle Root SHA-256 (`/audit/verify`). Ngoại lệ `KEEP` cho PII có thể copy giá trị gốc vào snapshot và hiển thị cho Analyst; cần chặn hoặc giảm thiểu đường đi này trước khi khẳng định Zero Raw PII tuyệt đối. |
 | **P1-5** | CI xanh sạch: `ruff check .`, `pytest`, và `vitest` | **HOÀN THÀNH** | **Backend:** 317/317 tests pass (11s), `ruff check .` không lỗi.<br/>**Frontend:** 160/160 tests pass (35 test files), lint & typecheck pass 100%. Self-hosted runner Mac hoạt động ổn định. |
 
 ---
@@ -60,7 +60,7 @@ Tài liệu này xác nhận việc nghiệm thu và hoàn tất các hạng m�
 | **PostgreSQL Pipeline** | Sẵn sàng production | 14 bảng quan hệ synthetic seed (`data/fixtures/postgres/seed.sql`), build snapshot vật lý, SQL verifier |
 | **MongoDB Pipeline** | Sẵn sàng production | 2 collections lớn (`data/fixtures/mongo/seed_mongo.py`), build snapshot NoSQL, `$lookup` verifier |
 | **Dynamic Sources** | Hoạt động đầy đủ | Cho phép DPO nhập connection string Cloud DB thời gian thực, test kết nối và introspect schema an toàn |
-| **Zero Raw PII** | Tuân thủ tuyệt đối | Cả DPO và Analyst không tiếp cận raw PII; bảo mật nhiều lớp từ DB, API, Prompt đến Frontend UI |
+| **Zero Raw PII** | Có giới hạn | DPO UI không render raw source values; ngoại lệ PII `KEEP` có thể làm lộ giá trị gốc qua published snapshot cho Analyst |
 | **Audit Ledger** | Bất biến (Tamper-evident) | Merkle Hash-Chain xác thực tính toàn vẹn từng hành động |
 
 ---

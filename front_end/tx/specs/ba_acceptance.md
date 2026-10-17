@@ -2,38 +2,36 @@
 
 This file is the business acceptance layer for the MVP. It explains what must be true from a user and demo perspective, independent of implementation details.
 
-## MVP Business Rule
+## Current P1 Business Rule
 
-P0 scans the full configured demo scope for the selected source.
-
-The DPO does not choose individual tables or collections in P0. Table/collection selection is a P1 feature.
+P1 allows the DPO to inspect the source scope and choose tables/collections before scanning. If no explicit scope is selected, the backend uses the source default scope.
 
 ## Primary User Flow
 
 1. DPO logs in.
 2. DPO chooses one available source: PostgreSQL or MongoDB.
-3. System shows a safe scope summary for that source.
-4. DPO starts scan.
-5. System scans the full configured demo scope.
-6. System shows field profiles and action proposals.
-7. DPO reviews and saves decisions.
-8. DPO builds protected snapshot.
-9. System runs verifier.
-10. DPO publishes only if verifier passes.
-11. Analyst opens the published dataset preview.
+3. System shows a safe scope summary and relationship diagram.
+4. DPO chooses tables/collections and optional link-only tables.
+5. DPO starts scan.
+6. System scans only the selected scope.
+7. System shows field profiles and action proposals.
+8. DPO reviews and saves decisions.
+9. DPO builds protected snapshot.
+10. System runs verifier.
+11. DPO publishes only if verifier passes.
+12. Analyst opens the published dataset preview.
 
 ## Acceptance Scenarios
 
-### A01 - DPO can start scan without table selection
+### A01 - DPO can select a safe scan scope
 
 Given DPO selected a ready source,
-when DPO clicks scan,
-then frontend calls `POST /runs` with the selected `source_id`,
-and DPO is not required to tick any table or collection.
+when DPO selects tables/collections and clicks scan,
+then frontend calls `POST /runs` with `source_id`, `selected_scope`, and optional `link_scope`.
 
-Pass if scan starts after source selection.
+Pass if the scan starts for the selected scope and warns about cut relationships.
 
-Fail if scan button is blocked because no table/collection was selected.
+Fail if the UI claims to scan a table/collection that is not in the request.
 
 ### A02 - Frontend shows safe source scope summary
 
@@ -98,10 +96,8 @@ Fail if Analyst can access DPO-only screens or raw PII.
 - Screenshot or video of Analyst published preview.
 - Evidence that no raw PII/credential appears in UI output.
 
-## Out Of Scope For P0
+## Out Of Scope For P1
 
-- Table/collection picker before scan.
-- Column/path picker before scan.
 - Arbitrary SQL query input.
 - Uploading database files.
 - Production-grade connector management.

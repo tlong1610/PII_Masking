@@ -8,11 +8,11 @@
 
 ## 1. Hiện Trạng & Vấn Đề (Current State & Problem)
 1. **Lệch trục thụt lề toàn trang giữa các tab (Double Padding & MaxWidth Indentation)**:
-   - Toàn bộ ứng dụng được bọc bởi `AppShell` ([`AppShell.tsx`](file:///Users/phucnguyen/Desktop/AI/team_build_phase/P-138/front_end/src/shared/ui/AppShell.tsx)) với padding chuẩn `p: { xs: 2, md: 3 }` (24px).
+   - Toàn bộ ứng dụng được bọc bởi `AppShell` ([`AppShell.tsx`](../../../src/shared/ui/AppShell.tsx)) với padding chuẩn `p: { xs: 2, md: 3 }` (24px).
    - Các trang khác (`/dpo/rules`, `/dpo/runs`, `/dpo/datasets`, `/dpo/audit`) đều trả về trực tiếp `<Stack spacing={3}>` bắt đầu từ mép 24px và trải đều 100% màn hình.
-   - Riêng trang Demo che dữ liệu ([`MaskingDemoView.tsx`](file:///Users/phucnguyen/Desktop/AI/team_build_phase/P-138/front_end/src/features/compliance/components/MaskingDemoView.tsx)) lại bị bọc thêm `<Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: 'auto' }}>`. Hệ quả là trang bị thụt kép 48px và bị co cụm vào giữa, gây lệch trục thụt lề rõ rệt khi người dùng chuyển đổi qua lại giữa các tab trên Sidebar.
+   - Riêng trang Demo che dữ liệu ([`MaskingDemoView.tsx`](../../../src/features/compliance/components/MaskingDemoView.tsx)) lại bị bọc thêm `<Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: 'auto' }}>`. Hệ quả là trang bị thụt kép 48px và bị co cụm vào giữa, gây lệch trục thụt lề rõ rệt khi người dùng chuyển đổi qua lại giữa các tab trên Sidebar.
 2. **Lồng viền đôi & thụt cấp 3 tầng ở Ma trận hành động bảo vệ**:
-   - Tại Tab 3 của [`Nd13RulesView.tsx`](file:///Users/phucnguyen/Desktop/AI/team_build_phase/P-138/front_end/src/features/compliance/components/Nd13RulesView.tsx), bảng đối chiếu được đặt trong `<Box sx={{ p: { xs: 2, md: 3 } }}>` và bọc thêm `<TableContainer component={Paper} variant="outlined">`.
+   - Tại Tab 3 của [`Nd13RulesView.tsx`](../../../src/features/compliance/components/Nd13RulesView.tsx), bảng đối chiếu được đặt trong `<Box sx={{ p: { xs: 2, md: 3 } }}>` và bọc thêm `<TableContainer component={Paper} variant="outlined">`.
    - Cấu trúc này tạo ra 2 lớp khung viền Paper lồng nhau (Double Paper Border) và thụt vào trong tới 3 cấp (`24px padding + 1px viền + 14px cell`), không đồng nhất với cấu trúc bảng tràn viền (Edge-to-Edge) chuẩn Databricks như tại `DatasetListView`, `AuditEventsTable` và `RunHistoryView`.
 
 ---

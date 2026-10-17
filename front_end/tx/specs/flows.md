@@ -1,5 +1,7 @@
 # Flow Spec — PIIGuard Shield
 
+> Tài liệu này mô tả flow đề xuất. FE-13 (Catalog Explorer/Published Snapshots UI) đang đóng/chuyển giao; không xem các màn hình dưới đây là chức năng UI hiện hành nếu chưa xác nhận trong code.
+
 Tài liệu này đặc tả toàn bộ các luồng tương tác của người dùng trên PIIGuard Shield frontend, bao gồm luồng rà soát chính, luồng quản trị lịch sử phát hành & thu hồi (Revoke), và các phân hệ từ thanh Sidebar.
 
 ## 1. Cấu Trúc Điều Hướng Hai Nhánh Tại DPO Catalog Explorer (Phương Án 1)
