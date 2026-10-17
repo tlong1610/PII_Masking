@@ -1,6 +1,9 @@
 export { AppBarSlot } from './AppBarSlot';
 export { AppShell, type AppShellNavItem } from './AppShell';
+export { BrandLogo } from './BrandLogo';
 export { ConfirmDialog } from './ConfirmDialog';
+export { Mascot, type MascotPose } from './Mascot';
+export { MascotLoader } from './MascotLoader';
 export { NotificationProvider } from './NotificationProvider';
 export { useNotify, type Notify } from './notificationContext';
 export { SectionHeader } from './SectionHeader';

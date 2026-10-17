@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 import Drawer from '@mui/material/Drawer';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Typography from '@mui/material/Typography';
 import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 
 import { AuditTrail } from '@/features/auditLog';
 import { getStoredSession } from '@/features/auth/model/authStorage';
 import { API_BASE_URL, ApiError } from '@/shared/api/client';
 import { routes } from '@/shared/config/routes';
-import { ConfirmDialog, StateNotice, useNotify } from '@/shared/ui';
+import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
   useBuildDataset,
   useCreateScanRun,
@@ -519,9 +517,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   if (sourcesLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress size={36} />
-      </Box>
+      <MascotLoader title="Đang tải nguồn dữ liệu…" />
     );
   }
 
@@ -548,15 +544,11 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const renderReviewContent = (): JSX.Element => {
     if (busyPhase === 'scanning') {
       return (
-        <Stack alignItems="center" spacing={1.5} sx={{ py: 8, textAlign: 'center' }}>
-          <CircularProgress size={40} />
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Đang quét và phân tích dữ liệu PII…
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 &amp; Nghị định 356/2025/NĐ-CP.
-          </Typography>
-        </Stack>
+        <MascotLoader
+          pose="scanning"
+          title="Đang quét và phân tích dữ liệu PII…"
+          description="Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP."
+        />
       );
     }
     if (currentRunId !== null && !currentRun) {

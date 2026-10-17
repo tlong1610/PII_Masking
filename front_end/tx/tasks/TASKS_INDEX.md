@@ -24,5 +24,9 @@
 | **FE-20** | Reorder Protection Matrix & Fix Legal Padding | Sprint 04 | **done** | Đảo thứ tự ma trận bảo vệ (L1 ➔ L2 ➔ L3), khắc phục lệch padding phải ở khối văn bản pháp luật nguồn, chuẩn hóa Design DNA ([chi tiết](details/FE-20-nd13-protection-matrix-reorder-and-padding-fix.md)) |
 | **FE-21** | Standardize Page Layout & Remove Double Nesting | Sprint 04 | **done** | Loại bỏ thụt kép & maxWidth ở trang Demo che dữ liệu, khử viền kép lồng nhau ở bảng ma trận pháp lý ([chi tiết](details/FE-21-standardize-page-layout-and-remove-double-nesting.md)) |
 | **FE-22** | Unify Compliance Matrix Colors & Semantics | Sprint 04 | **done** | Chuẩn hóa bảng màu DNA cho 5 cấp hành động bảo vệ PII, đồng nhất thuật ngữ và khử lặp từ cột cấp độ ([chi tiết](details/FE-22-unify-compliance-matrix-colors-and-semantics.md)) |
+| **FE-23** | Brand Assets & Mascot Component | Sprint 05 | **done** | Logo + favicon mới, asset WebP tối ưu, `shared/ui/Mascot` 7 tư thế & `BrandLogo` ([chi tiết](details/FE-23-brand-assets-mascot-component.md)) |
+| **FE-24** | Mascot cho trạng thái rỗng / lỗi / đang tải | Sprint 05 | **done** | `StateNotice` + `MascotLoader`, DPO đang quét, Analyst đang tải / chưa có dataset ([chi tiết](details/FE-24-mascot-empty-error-loading-states.md)) |
+| **FE-25** | Mascot cho kết quả kiểm định & đăng nhập | Sprint 05 | **done** | Banner trạng thái tab “Dữ liệu cho Analyst”, Pango trên màn đăng nhập ([chi tiết](details/FE-25-mascot-verifier-result-and-login.md)) |
+| **FE-26** | Tài liệu & bằng chứng Brand / Mascot | Sprint 05 | **done** | Sprint 05, README_FE, link Figma Pango Mascot Kit ([chi tiết](details/FE-26-brand-docs-evidence.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.
