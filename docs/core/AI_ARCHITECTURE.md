@@ -124,7 +124,7 @@ Khi build snapshot, `REDACT` giữ câu và thay từng thực thể bằng nhã
 Nguyên tắc bảo mật trong code và docs:
 
 - API response không trả credential, connection string, HMAC secret hoặc raw source value.
-- UI DPO và Analyst không hiển thị raw PII.
+- UI DPO không render raw source value. Analyst chỉ xem snapshot đã publish; ngoại lệ PII `KEEP` (có lý do + hạn) vẫn sao chép giá trị gốc vào snapshot, nên đây là giới hạn đã biết.
 - LLM prompt không chứa raw `sample_value`.
 - Report/evidence/log không được chứa raw PII, API key hoặc password.
 - `sample_value` trong `eval/golden_labels.json` chỉ dùng nội bộ cho eval và fixture synthetic.

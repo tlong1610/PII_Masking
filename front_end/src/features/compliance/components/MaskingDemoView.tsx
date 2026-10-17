@@ -7,15 +7,11 @@ export function MaskingDemoView(): JSX.Element {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        eyebrow="Security & Compliance"
-        title="Demo Che Dữ Liệu (Masking Showcase)"
-        description="Trực quan hóa cơ chế bảo vệ PII: Che mờ (MASK ***), Băm bí mật (HMAC SHA-256) và Triệt tiêu (DROP) theo quy chuẩn pháp luật bảo vệ dữ liệu cá nhân"
+        eyebrow="Bảo mật & tuân thủ"
+        title="Demo che dữ liệu"
+        description="Xem trực quan bốn cách xử lý dữ liệu cá nhân — giữ nguyên, che mờ (MASK), băm mật mã (HMAC) và loại bỏ (DROP) — theo quy định bảo vệ dữ liệu cá nhân. Mọi giá trị trên trang là dữ liệu giả lập."
       />
-
-      {/* Live Interactive Sandbox */}
       <MaskingSandboxCard />
-
-      {/* Unified Matrix Comparison Table (No fragmented sub-tabs) */}
       <MaskingMatrixTable />
     </Stack>
   );

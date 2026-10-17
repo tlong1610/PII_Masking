@@ -1,5 +1,7 @@
 # Frontend Backlog — PIIGuard Shield
 
+> Backlog dưới đây phản ánh kế hoạch các sprint cũ. UI hiện tại có 4 tab DPO, gồm “Dữ liệu cho Analyst”; FE-13 được đóng/chuyển giao trong [task index](../tasks/TASKS_INDEX.md). Đối chiếu code trước khi giới thiệu tính năng đang chạy.
+
 Tài liệu quản lý lộ trình phát triển giao diện người dùng (Frontend Backlog) theo kiến trúc Feature-Sliced Design, tuân thủ nghiêm ngặt quy định tại `front_end/AGENTS.md`.
 
 ---
@@ -12,6 +14,7 @@ Tài liệu quản lý lộ trình phát triển giao diện người dùng (Fro
 | **Sprint 02** | Real API Integration | **Hoàn thành (DONE)** | Tích hợp `realPiiReviewApi`, Zod validation tại boundary, DPO Scan/Review/Build, Analyst Preview |
 | **Sprint 03** | Visual Hardening & Dynamic Sources | **Hoàn thành (DONE)** | `SourceScopePickerDiagram` (dagre layout), `ErdLineageDiagram`, `AddSourceDialog` (PostgreSQL/MongoDB Cloud), Field Policy Drawer, Collapsible Table Groups |
 | **Sprint 04** | Governance Hub & Lifecycle | **Hoàn thành (DONE)** | Quy định pháp luật (L1 ➔ L2 ➔ L3), Sổ cái Hash-Chain Audit Center, Demo Che Dữ Liệu (/dpo/masking), Tinh giản 3 tabs DPO & Exception Lifecycle |
+| **Sprint 05** | Brand Identity & Linh vật Pango | **Hoàn thành (DONE)** | Logo/favicon mới, mascot Pango 7 tư thế cho trạng thái rỗng/lỗi/đang tải/kiểm định ([chi tiết](sprints/sprint_05_brand_mascot.md)) |
 
 ---
 

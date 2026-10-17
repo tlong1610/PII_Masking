@@ -9,11 +9,11 @@ describe('LoginExperience', () => {
     localStorage.clear();
   });
 
-  const renderComponent = () => {
+  const renderComponent = (showDemoAccounts = true) => {
     return render(
       <MemoryRouter>
         <AuthProvider>
-          <LoginExperience />
+          <LoginExperience showDemoAccounts={showDemoAccounts} />
         </AuthProvider>
       </MemoryRouter>,
     );
@@ -68,5 +68,15 @@ describe('LoginExperience', () => {
     fireEvent.click(hideButton);
 
     expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('never shows demo accounts or their passwords in a release build', () => {
+    renderComponent(false);
+
+    expect(screen.queryByText(/tài khoản mẫu/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dpo123|analyst123/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/HOẶC NHẬP THÔNG TIN/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Nhập tài khoản được cấp để tiếp tục')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Tài khoản/i)).not.toHaveAttribute('placeholder', expect.stringMatching(/dpo|analyst/));
   });
 });

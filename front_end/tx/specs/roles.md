@@ -2,7 +2,7 @@
 
 ## Shared Rule
 
-Analyst strictly has Zero Raw-PII access. DPO, as the legally responsible officer under Decree 13 and PDPD 2025, is authorized to inspect sample data within the secure review workspace (Field Drawer / Split view) solely to verify PII classifications and adjudicate protection risks.
+The intended policy is Zero Raw-PII access for both roles. DPO reviews field metadata, data shape, statistics, detector evidence and protected preview; the source value is not rendered in the review workspace. **Known implementation gap:** an approved PII `KEEP` exception can copy the original value to a published snapshot and expose it to an authorized Analyst. Do not present the intended policy as an unconditional guarantee until this path is closed.
 
 ## DPO
 
@@ -13,7 +13,7 @@ DPO means Data Protection Officer: the reviewer responsible for approving how pe
 - View configured sources (PostgreSQL & MongoDB Cloud).
 - View safe source scope summary and visual diagrams.
 - Start a scan over the configured scope.
-- Review field profiles and inspect sample data in the secure review drawer to verify UNKNOWN/PII fields.
+- Review field profiles, sanitized detector evidence and protected preview in the secure review drawer to verify UNKNOWN/PII fields.
 - See classification, recommended action, reason, detector source, and `profile_summary`.
 - Override recommended action with `MASK`, `HMAC`, `DROP`, or `KEEP` (requiring `exceptionUntil` date for temporary exceptions).
 - Save decisions and review Merkle Root SHA-256 audit ledger.

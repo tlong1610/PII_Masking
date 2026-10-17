@@ -54,7 +54,7 @@ describe('AuditEventDrawer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Xem cả 2 cột' }));
     expect(screen.getByText('customers.full_name')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Run #56' })).toHaveAttribute('href', '/dpo/runs/56');
+    expect(screen.getByRole('link', { name: 'Lượt quét #56' })).toHaveAttribute('href', '/dpo/runs/56');
   });
 
   it('keeps the hashes one click away', () => {
@@ -83,7 +83,7 @@ describe('AuditActivityTable', () => {
 
     expect(screen.getByText('Lưu quyết định')).toBeInTheDocument();
     expect(screen.getByText('Đăng nhập thành công')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Run #56' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lượt quét #56' })).toBeInTheDocument();
     expect(screen.queryByText(/count=2/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Đăng nhập thành công'));

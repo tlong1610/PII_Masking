@@ -7,8 +7,9 @@
 | File | Khi nào đọc |
 |---|---|
 | [`../README.md`](../README.md) | Tổng quan dự án, cách chạy app, API chính |
+| [`pdf/PIIGuard_Shield_Demo_Day.pdf`](pdf/PIIGuard_Shield_Demo_Day.pdf) | Hồ sơ tổng hợp 6 trang để chia sẻ Drive/Release, đọc khi không truy cập GitHub |
 | [`core/MVP_STATUS_REPORT.md`](core/MVP_STATUS_REPORT.md) | Báo cáo nghiệm thu hoàn thành toàn diện giai đoạn P1 |
-| [`core/SYSTEM_ARCHITECTURE.md`](core/SYSTEM_ARCHITECTURE.md) | Luồng DPO → scanner → snapshot → verifier → Analyst, 4 tabs DPO, Zero Raw PII |
+| [`core/SYSTEM_ARCHITECTURE.md`](core/SYSTEM_ARCHITECTURE.md) | Luồng DPO → scanner → snapshot → verifier → Analyst, 4 tabs DPO và giới hạn `KEEP`/PII |
 | [`core/AI_ARCHITECTURE.md`](core/AI_ARCHITECTURE.md) | Rules, BM25, column stats, GLiNER NER cascade, HITL few-shot memory |
 | [`core/prd.md`](core/prd.md) | Yêu cầu sản phẩm, scope, user stories, nghiệm thu P1 |
 | [`core/GOLDEN_DATASET.md`](core/GOLDEN_DATASET.md) | Golden dataset, edge cases, eval và cách đọc kết quả |
@@ -28,6 +29,8 @@
 | [`guide/DEMO_FLOW.md`](guide/DEMO_FLOW.md) | Kịch bản trình diễn MVP 6 bước chi tiết cho DPO và Analyst |
 | [`ops/CI_RUNNER_GUIDE.md`](ops/CI_RUNNER_GUIDE.md) | Self-hosted GitHub Actions runner trên Mac (`team-138`) |
 | [`ops/TEAM_WORKFLOW.md`](ops/TEAM_WORKFLOW.md) | Quy trình Git, PR, Commit và kiểm soát chất lượng nhóm |
+| [`ops/RELEASE_GUIDE.md`](ops/RELEASE_GUIDE.md) | Phát hành từ `develop` sang `main`, CI và triển khai |
+| [`../front_end/tx/tasks/TASKS_INDEX.md`](../front_end/tx/tasks/TASKS_INDEX.md) | Trạng thái task FE; các sprint/ADR cũ chỉ giữ lịch sử |
 | [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Cây thư mục thực tế (`front_end/`, `src/`, `performance/`) & phân chia trách nhiệm |
 
 ## Căn cứ và bằng chứng

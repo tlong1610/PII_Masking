@@ -79,7 +79,7 @@ describe('RunHistoryView', () => {
     renderView();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Phát hành' }));
-    expect(screen.getByText('Phát hành run #11?')).toBeInTheDocument();
+    expect(screen.getByText('Phát hành lượt quét #11?')).toBeInTheDocument();
     expect(datasetsApi.publishDataset).not.toHaveBeenCalled();
 
     const publishButtons = screen.getAllByRole('button', { name: 'Phát hành' });
@@ -98,20 +98,20 @@ describe('RunHistoryView', () => {
   it('deletes a selected run after confirmation', async () => {
     renderView();
 
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Chọn run #12' }));
-    fireEvent.click(screen.getByRole('button', { name: /Xoá 1 run đã chọn/ }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Chọn lượt quét #12' }));
+    fireEvent.click(screen.getByRole('button', { name: /Xóa 1 lượt quét đã chọn/ }));
     expect(api.deleteRun).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xoá vĩnh viễn' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa vĩnh viễn' }));
     await waitFor(() => expect(api.deleteRun).toHaveBeenCalledWith(12));
-    expect(await screen.findByText(/Đã xoá 1 run/)).toBeInTheDocument();
+    expect(await screen.findByText(/Đã xóa 1 lượt quét/)).toBeInTheDocument();
   });
 
   it('does not let a run with a live snapshot be selected or deleted', async () => {
     renderView();
 
-    expect(await screen.findByRole('checkbox', { name: 'Chọn run #11' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Xoá run #11' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Xoá run #12' })).toBeEnabled();
+    expect(await screen.findByRole('checkbox', { name: 'Chọn lượt quét #11' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xóa lượt quét #11' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xóa lượt quét #12' })).toBeEnabled();
   });
 });

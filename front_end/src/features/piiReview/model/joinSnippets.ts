@@ -42,7 +42,7 @@ export function buildJoinSnippets(relationships: SnippetRelationship[], columns:
     snippets.push({
       key,
       description: hashed
-        ? `${rel.source_table}.${rel.source_column} ↔ ${rel.target_table}.${rel.target_column} (cả hai đầu đã HMAC bằng cùng khoá, nên giá trị băm vẫn khớp khi join)`
+        ? `${rel.source_table}.${rel.source_column} ↔ ${rel.target_table}.${rel.target_column} (cả hai đầu đã HMAC bằng cùng khóa, nên giá trị băm vẫn khớp khi join)`
         : `${rel.source_table}.${rel.source_column} ↔ ${rel.target_table}.${rel.target_column}`,
       sql: [
         'SELECT a.*, b.*',

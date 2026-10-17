@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
 export function AppProviders({ children }: PropsWithChildren): JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={appTheme} defaultMode="light">
+      <ThemeProvider theme={appTheme}>
         <CssBaseline />
         <BrowserRouter>
           <NotificationProvider>

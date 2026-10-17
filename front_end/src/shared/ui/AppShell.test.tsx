@@ -42,7 +42,7 @@ describe('AppShell', () => {
     // Verify confirmation dialog appears
     expect(screen.getByText('Xác nhận đăng xuất')).toBeInTheDocument();
     expect(
-      screen.getByText(/Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc của tài khoản "dpo_admin"/i),
+      screen.getByText(/Bạn có chắc muốn đăng xuất khỏi tài khoản "dpo_admin"/i),
     ).toBeInTheDocument();
 
     // Click confirm logout in dialog

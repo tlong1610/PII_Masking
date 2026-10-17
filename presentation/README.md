@@ -2,6 +2,8 @@
 
 ## Files
 
+Đây là checklist chuẩn bị, chưa phải danh sách file đã có trong repo. Hiện thư mục chưa chứa deck hoặc video.
+
 - `pitch_deck.pptx` — Slide thuyết trình Demo Day
 - `video_demo.mp4` — Video demo sản phẩm (tối đa 5 phút)
 

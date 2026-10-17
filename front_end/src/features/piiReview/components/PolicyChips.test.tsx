@@ -4,7 +4,7 @@ import { SensitivityChip } from './PolicyChips';
 
 describe('SensitivityChip', () => {
   it.each([
-    ['NON_PERSONAL', 'Non-PII'],
+    ['NON_PERSONAL', 'Không phải PII'],
     ['PERSONAL_BASIC', 'L2 • Cơ bản'],
     ['PERSONAL_CONTEXT', 'L2 • Cơ bản'],
     ['PERSONAL_SENSITIVE', 'L3 • Nhạy cảm'],

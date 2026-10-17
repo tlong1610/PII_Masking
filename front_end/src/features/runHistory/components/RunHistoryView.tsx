@@ -31,17 +31,17 @@ type DatasetAction = { kind: 'publish' | 'revoke'; run: RunSummary; datasetId: n
 
 const DATASET_ACTION_COPY = {
   publish: {
-    title: (runId: number) => `Phát hành run #${runId}?`,
+    title: (runId: number) => `Phát hành lượt quét #${runId}?`,
     description: 'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Muốn chỉnh sửa sau đó thì thu hồi trước.',
     confirm: 'Phát hành',
-    done: (runId: number) => `Đã phát hành run #${runId}. Analyst có thể truy cập ngay.`,
+    done: (runId: number) => `Đã phát hành lượt quét #${runId}. Analyst có thể truy cập ngay.`,
   },
   revoke: {
-    title: (runId: number) => `Thu hồi run #${runId}?`,
+    title: (runId: number) => `Thu hồi lượt quét #${runId}?`,
     description:
-      'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xoá. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
+      'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xóa. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
     confirm: 'Thu hồi',
-    done: (runId: number) => `Đã thu hồi run #${runId}.`,
+    done: (runId: number) => `Đã thu hồi lượt quét #${runId}.`,
   },
 } as const;
 
@@ -113,25 +113,25 @@ export function RunHistoryView(): JSX.Element {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ md: 'flex-end' }}>
-        <SectionHeader
-          eyebrow="Lịch sử"
-          title="Lịch sử lượt quét"
-          description="Mọi lượt quét PII và dữ liệu đã bảo vệ của chúng. Tiếp tục duyệt, phát hành cho Analyst, thu hồi, hoặc xoá các run không còn dùng."
-        />
-        <Button component={RouterLink} to={routes.dpo} variant="contained" startIcon={<AddIcon />}>
-          Quét mới
-        </Button>
-      </Stack>
+      <SectionHeader
+        eyebrow="Lịch sử"
+        title="Lịch sử lượt quét"
+        description="Mọi lượt quét PII và dữ liệu đã bảo vệ của chúng. Tiếp tục duyệt, phát hành cho Analyst, thu hồi, hoặc xóa các lượt quét không còn dùng."
+        actions={
+          <Button component={RouterLink} to={routes.dpo} variant="contained" startIcon={<AddIcon />}>
+            Quét mới
+          </Button>
+        }
+      />
 
       {lastResult && lastResult.deleted.length > 0 ? (
         <Alert severity="success" onClose={() => setLastResult(null)}>
-          Đã xoá {lastResult.deleted.length} run. Nhật ký kiểm toán của các run này vẫn được giữ.
+          Đã xóa {lastResult.deleted.length} lượt quét. Nhật ký kiểm toán của các lượt quét này vẫn được giữ.
         </Alert>
       ) : null}
       {lastResult && lastResult.failed.length > 0 ? (
         <Alert severity="error" onClose={() => setLastResult(null)}>
-          {lastResult.failed.map((item) => `Run #${item.runId}: ${item.message}`).join(' · ')}
+          {lastResult.failed.map((item) => `Lượt quét #${item.runId}: ${item.message}`).join(' · ')}
         </Alert>
       ) : null}
 
@@ -160,7 +160,7 @@ export function RunHistoryView(): JSX.Element {
             disabled={selectedIds.length === 0 || deleteRuns.isPending}
             onClick={() => setPendingDelete(selectedIds)}
           >
-            Xoá {selectedIds.length > 0 ? `${selectedIds.length} run đã chọn` : 'run đã chọn'}
+            Xóa {selectedIds.length > 0 ? `${selectedIds.length} lượt quét đã chọn` : 'lượt quét đã chọn'}
           </Button>
         </Stack>
 
@@ -174,6 +174,7 @@ export function RunHistoryView(): JSX.Element {
             description={error instanceof Error ? error.message : 'Vui lòng thử lại.'}
             actionLabel="Thử lại"
             onAction={() => void refetch()}
+            bordered={false}
           />
         ) : null}
         {runs && runs.length === 0 ? (
@@ -181,6 +182,7 @@ export function RunHistoryView(): JSX.Element {
             kind="empty"
             title={tab === 'ALL' ? 'Chưa có lượt quét nào' : 'Không có lượt quét nào ở mục này'}
             description={tab === 'ALL' ? 'Chọn một nguồn dữ liệu và bấm Bắt đầu quét.' : 'Chọn mục khác để xem.'}
+            bordered={false}
           />
         ) : null}
         {runs && runs.length > 0 ? (
@@ -194,13 +196,13 @@ export function RunHistoryView(): JSX.Element {
                       indeterminate={selectedIds.length > 0 && !allSelected}
                       disabled={deletableIds.length === 0 || deleteRuns.isPending}
                       onChange={toggleAll}
-                      inputProps={{ 'aria-label': 'Chọn tất cả run có thể xoá' }}
+                      inputProps={{ 'aria-label': 'Chọn tất cả lượt quét có thể xóa' }}
                     />
                   </TableCell>
-                  <TableCell>Run</TableCell>
+                  <TableCell>Lượt quét</TableCell>
                   <TableCell>Nguồn</TableCell>
                   <TableCell>Trạng thái</TableCell>
-                  <TableCell align="right">Trường PII / tổng</TableCell>
+                  <TableCell align="right">Cột PII / tổng</TableCell>
                   <TableCell>Người tạo</TableCell>
                   <TableCell>Cập nhật</TableCell>
                   <TableCell align="right">Thao tác</TableCell>
@@ -227,11 +229,11 @@ export function RunHistoryView(): JSX.Element {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={pendingDelete && pendingDelete.length > 1 ? `Xoá ${pendingDelete.length} run?` : 'Xoá run?'}
-        description={`Sẽ xoá vĩnh viễn ${
-          pendingDelete && pendingDelete.length > 1 ? `${pendingDelete.length} run` : `run #${pendingDelete?.[0] ?? ''}`
+        title={pendingDelete && pendingDelete.length > 1 ? `Xóa ${pendingDelete.length} lượt quét?` : 'Xóa lượt quét?'}
+        description={`Sẽ xóa vĩnh viễn ${
+          pendingDelete && pendingDelete.length > 1 ? `${pendingDelete.length} lượt quét` : `lượt quét #${pendingDelete?.[0] ?? ''}`
         } cùng kết quả quét và quyết định. Nhật ký kiểm toán vẫn được giữ. Không thể hoàn tác.`}
-        confirmLabel="Xoá vĩnh viễn"
+        confirmLabel="Xóa vĩnh viễn"
         destructive
         pending={deleteRuns.isPending}
         onConfirm={handleConfirmDelete}

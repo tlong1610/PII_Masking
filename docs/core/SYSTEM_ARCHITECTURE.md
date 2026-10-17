@@ -1,6 +1,6 @@
 # PIIGuard Shield - System Architecture
 
-Tài liệu này mô tả chi tiết kiến trúc hệ thống của PIIGuard Shield, phản ánh đúng thực tế mã nguồn (FastAPI backend + React frontend) sau khi hoàn thành toàn diện Giai đoạn 1 (P1).
+Tài liệu này mô tả kiến trúc FastAPI backend + React frontend. Một số luồng là mục tiêu thiết kế; hãy đối chiếu API và code trước khi xem là đã triển khai. Đặc biệt, ngoại lệ `KEEP` có thể đưa PII nguyên gốc vào snapshot mà Analyst xem được, nên Zero Raw PII hiện chưa tuyệt đối.
 
 ---
 
@@ -188,8 +188,8 @@ flowchart TB
 
 | Actor | Quyền được phép | Ràng buộc bảo mật |
 |---|---|---|
-| **DPO** | Quét dữ liệu, thẩm định rủi ro dựa trên metadata/thống kê, duyệt policy qua Drawer, build snapshot, kiểm tra verifier, publish, revoke, xem audit log đầy đủ | **Zero Raw PII**: Không tiếp xúc giá trị PII gốc; mọi quyết định ghi đè hoặc cấp ngoại lệ phải ghi lý do vào Audit Log |
-| **Analyst** | Xem danh sách dataset `PUBLISHED`, preview dữ liệu đã che, tải CSV an toàn, xem ERD diagram | **Zero Raw PII**: Tuyệt đối không tiếp cận dữ liệu gốc, không xem staging, không can thiệp chính sách |
+| **DPO** | Quét dữ liệu, xem metadata/thống kê và protected preview, duyệt policy, build, verifier, publish/revoke và audit | DPO UI không render raw source values. Ngoại lệ PII `KEEP` cần lý do/hạn nhưng có thể đưa raw value vào snapshot. |
+| **Analyst** | Xem dataset `PUBLISHED`, preview, CSV và ERD theo API/UI hiện có | Chỉ đọc dataset đã publish; nếu PII được đặt `KEEP` theo ngoại lệ, raw value có thể xuất hiện. Không tuyên bố Zero Raw PII tuyệt đối. |
 
 Backend kiểm tra quyền nghiêm ngặt tại middleware/dependencies bằng session token và claim role (`require_dpo`, `require_analyst_or_dpo`), ngăn chặn mọi hành vi bypass từ client.
 
@@ -211,7 +211,7 @@ Việc DPO không tiếp xúc dữ liệu PII thô là một quyết định ki�
    * DPO **CÓ THỂ XEM** bản xem trước của Snapshot đã được bảo vệ (sau khi đã MASK, REDACT, HMAC) tại Tab "Dữ liệu cho Analyst" để kiểm định chất lượng trước khi bấm Phát hành.
 6. **Dữ liệu lưu trữ (Snapshot đích vs CSDL nguồn):**
    * **CSDL nguồn:** DPO không có tài khoản DB/SSH, tuân thủ Quyền tối thiểu (Least Privilege). Worker Engine đọc qua Service Account và xử lý In-Memory trong RAM, tuyệt đối không persist raw PII ra đĩa hay file log.
-   * **CSDL đích:** Dữ liệu sau khi lưu (Snapshot) đã bị ẩn danh vĩnh viễn (Masked/HMAC/Redacted). Dù DPO hay Analyst truy cập DB đích cũng chỉ xem được dữ liệu đã che, hoàn toàn không có Raw PII.
+   * **CSDL đích:** Snapshot áp dụng action đã duyệt. PII đặt `KEEP` theo ngoại lệ được sao chép nguyên giá trị; người có quyền Analyst có thể đọc snapshot đó. Chưa có cơ chế tự thu hồi theo hạn ngoại lệ.
 7. **Khoét sâu dữ liệu (Deep Content Inspection) song hành Zero Raw PII:**
    * AI (GLiNER Cascade) đọc sâu vào nội dung văn bản tự do trong RAM để bóc tách thực thể nhạy cảm (Tên, SĐT, CCCD).
    * Tuy nhiên, hệ thống **trừu tượng hóa an toàn**: chỉ báo cáo cho DPO loại thực thể (`PER`, `PHONE`) và tỷ lệ phát hiện (`profile_summary`). DPO kiểm chứng qua Live Sandbox (dữ liệu mẫu giả lập) hoặc Redacted Context Snippet mà không cần tiếp xúc văn bản thô của khách hàng.
@@ -220,5 +220,5 @@ Việc DPO không tiếp xúc dữ liệu PII thô là một quyết định ki�
    * **`REDACT` (Entity-level):** Giữ nguyên ngữ cảnh ngữ pháp cho AI/NLP phân tích ngữ nghĩa và sentiment.
    * **`MASK` (Partial):** Che đoạn giữa (`0912***789`), giữ nguyên đặc trưng thống kê (nhà mạng, domain email, nhóm tuổi).
    * **`DROP`:** Xóa sạch trường thừa thãi rủi ro cao (ảnh CCCD, biometric) để tiết kiệm lưu trữ.
-   * **`KEEP`:** Giữ nguyên dữ liệu vận hành phi cá nhân (doanh thu, ngày tạo).
+   * **`KEEP`:** Dành cho dữ liệu phi cá nhân; backend hiện cũng cho phép PII theo ngoại lệ có hạn, có nguy cơ lộ giá trị gốc tới Analyst.
    * Downstream Verifier (`sql_verifier.py`, `mongo_verifier.py`) tự động đánh FAIL và chặn phát hành nếu dữ liệu bị mất tính toàn vẹn phân tích.
