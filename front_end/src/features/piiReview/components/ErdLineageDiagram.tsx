@@ -750,13 +750,13 @@ function ErdFlowCanvas({
           <Stack direction="row" spacing={0.5} alignItems="center">
             <VpnKeyIcon sx={{ fontSize: 14, color: '#D97706' }} />
             <Typography sx={{ fontSize: '0.72rem', color: '#334155', fontWeight: 600 }}>
-              Khoá chính (PK)
+              Khóa chính (PK)
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <LinkIcon sx={{ fontSize: 14, color: '#2563EB' }} />
             <Typography sx={{ fontSize: '0.72rem', color: '#334155', fontWeight: 600 }}>
-              Khoá ngoại (FK)
+              Khóa ngoại (FK)
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">

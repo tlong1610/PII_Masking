@@ -1,5 +1,4 @@
 import { Fragment, useMemo } from 'react';
-import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -9,6 +8,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { StatusChip } from '@/shared/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import type { AuditEvent } from '../api/auditApi';
@@ -25,7 +25,7 @@ function Subject({ event }: { event: AuditEvent }): JSX.Element {
           onClick={(clickEvent) => clickEvent.stopPropagation()}
           fontWeight={600}
         >
-          Run #{event.run_id}
+          Lượt quét #{event.run_id}
         </Link>
         {event.source_name && (
           <Typography variant="caption" display="block" color="text.secondary">
@@ -35,9 +35,9 @@ function Subject({ event }: { event: AuditEvent }): JSX.Element {
       </>
     );
   }
-  if (event.entity_type === 'source') return <>{event.source_name ?? 'Nguồn đã xoá'}</>;
+  if (event.entity_type === 'source') return <>{event.source_name ?? 'Nguồn đã xóa'}</>;
   if (event.entity_type === 'run' || event.entity_type === 'dataset') {
-    return <Typography variant="body2" color="text.secondary">Lượt quét đã xoá</Typography>;
+    return <Typography variant="body2" color="text.secondary">Lượt quét đã xóa</Typography>;
   }
   return <Typography variant="body2" color="text.secondary">—</Typography>;
 }
@@ -70,8 +70,8 @@ export function AuditActivityTable({ events, showSubject = true, onSelect }: Aud
             <TableCell>Giờ</TableCell>
             <TableCell>Hoạt động</TableCell>
             <TableCell>Nội dung</TableCell>
-            {showSubject && <TableCell>Lượt quét / nguồn</TableCell>}
-            <TableCell>Người thực hiện</TableCell>
+            {showSubject && <TableCell sx={{ whiteSpace: 'nowrap' }}>Lượt quét / nguồn</TableCell>}
+            <TableCell sx={{ whiteSpace: 'nowrap' }}>Người thực hiện</TableCell>
             <TableCell aria-label="Xem chi tiết" />
           </TableRow>
         </TableHead>
@@ -102,13 +102,7 @@ export function AuditActivityTable({ events, showSubject = true, onSelect }: Aud
                       {formatTime(event.created_at)}
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color={description.tone}
-                        label={description.title}
-                        sx={{ fontWeight: 600, maxWidth: '100%' }}
-                      />
+                      <StatusChip label={description.title} tone={description.tone} />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>

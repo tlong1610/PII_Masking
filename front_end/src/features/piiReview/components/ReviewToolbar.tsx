@@ -44,7 +44,7 @@ export function ReviewToolbar({
   ];
 
   return (
-    <Stack spacing={1.5} sx={{ p: 2 }}>
+    <Stack spacing={1.5} sx={{ p: 2.5 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
         <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, flexGrow: 1 }}>
           Phân loại cột &amp; hành động

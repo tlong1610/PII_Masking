@@ -5,11 +5,8 @@ import {
   Button,
   Checkbox,
   Divider,
-  FormControl,
   FormControlLabel,
   IconButton,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -24,7 +21,8 @@ import {
   needsException,
   validateFieldDecision,
 } from '../model/fieldDecision';
-import { POLICY_ACTIONS, type PolicyAction, getActionLabel } from '../model/policyLabels';
+import { type PolicyAction, getActionLabel } from '../model/policyLabels';
+import { ActionSelect } from './ActionSelect';
 import { DetectorBadge, SensitivityChip } from './PolicyChips';
 
 interface FieldPolicyDrawerContentProps {
@@ -93,12 +91,12 @@ export function FieldPolicyDrawerContent({
       {/* Drawer Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Stack direction="row" spacing={1} alignItems="center">
-          <ShieldOutlinedIcon sx={{ color: '#1B51A4' }} />
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          <ShieldOutlinedIcon color="primary" />
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 700 }}>
             Chi tiết chính sách cột
           </Typography>
         </Stack>
-        <IconButton size="small" onClick={onClose} aria-label="Đóng ngăn kéo">
+        <IconButton size="small" onClick={onClose} aria-label="Đóng">
           <CloseIcon fontSize="small" />
         </IconButton>
       </Stack>
@@ -106,32 +104,32 @@ export function FieldPolicyDrawerContent({
       <Divider />
 
       {/* Column Identifier Box */}
-      <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-        <Typography variant="caption" sx={{ color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+      <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'grey.50', border: 1, borderColor: 'divider' }}>
+        <Typography variant="overline" color="text.secondary" display="block">
           Cột dữ liệu
         </Typography>
-        <Typography variant="subtitle1" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#111827' }}>
+        <Typography variant="subtitle1" color="text.primary" sx={{ fontFamily: 'monospace', fontWeight: 700, overflowWrap: 'anywhere' }}>
           {field.field_path}
         </Typography>
-        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
           <SensitivityChip classification={field.classification} />
           <DetectorBadge source={field.detector_source} />
         </Stack>
       </Box>
 
       {joinPartnerLabel && (
-        <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
+        <Alert severity="info">
           Khóa nối với <strong>{joinPartnerLabel}</strong>. Hành động bạn chọn sẽ áp dụng cho mọi đầu nối, để Analyst
           vẫn ghép bảng được.
         </Alert>
       )}
 
       {/* Legal Basis Callout */}
-      <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E40AF', display: 'block' }}>
+      <Alert severity="info" icon={false}>
+        <Typography variant="caption" component="p" sx={{ fontWeight: 700, color: 'info.dark' }}>
           Căn cứ pháp lý: Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP
         </Typography>
-        <Typography variant="caption" sx={{ color: '#1E3A8A', mt: 0.5, display: 'block', lineHeight: 1.5 }}>
+        <Typography variant="caption" component="p" sx={{ color: 'inherit', mt: 0.5, lineHeight: 1.5 }}>
           {kind === 'SENSITIVE' &&
             'Dữ liệu cá nhân nhạy cảm gắn liền với quyền riêng tư của cá nhân. Bắt buộc áp dụng biện pháp bảo vệ cao nhất.'}
           {kind === 'PII' &&
@@ -142,28 +140,29 @@ export function FieldPolicyDrawerContent({
           {kind === 'QUASI' &&
             'Định danh gián tiếp (L1): chỉ nhận ra người khi ghép với dữ liệu khác. Được giữ nguyên để phân tích vì định danh trực tiếp (tên, SĐT, CCCD) đã được che.'}
         </Typography>
-      </Box>
+      </Alert>
 
       {/* Selected Action Override */}
       <Box>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-          Hành động (đề xuất: {getActionLabel(field.recommended_action)}):
+        <Typography
+          component="label"
+          htmlFor="field-policy-action"
+          variant="caption"
+          sx={{ fontWeight: 700, color: 'text.primary', display: 'block', mb: 1 }}
+        >
+          Hành động (đề xuất: {getActionLabel(field.recommended_action)})
         </Typography>
-        <FormControl size="small" fullWidth>
-          <Select<PolicyAction>
-            value={draftAction}
-            onChange={(e) => {
-              setDraftAction(e.target.value as PolicyAction);
-              setError(null);
-            }}
-          >
-            {POLICY_ACTIONS.map((opt) => (
-              <MenuItem value={opt} key={opt} disabled={isActionDisabled(opt)}>
-                {getActionLabel(opt)} {getActionOptionNote(opt)}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <ActionSelect
+          id="field-policy-action"
+          value={draftAction}
+          onChange={(action) => {
+            setDraftAction(action);
+            setError(null);
+          }}
+          isDisabled={isActionDisabled}
+          getNote={getActionOptionNote}
+          ariaLabel={`Hành động cho ${field.field_path}`}
+        />
       </Box>
 
       {/* UNKNOWN -> confirm not personal data (backend reclassifies to NON_PERSONAL) */}
@@ -183,7 +182,7 @@ export function FieldPolicyDrawerContent({
           }
           label={
             <Typography variant="body2">
-              Tôi xác nhận cột này <strong>không phải dữ liệu cá nhân</strong> (chuyển sang Non-PII)
+              Tôi xác nhận cột này <strong>không phải dữ liệu cá nhân</strong> (chuyển sang Không phải PII)
             </Typography>
           }
         />
@@ -191,8 +190,8 @@ export function FieldPolicyDrawerContent({
 
       {/* Justification (per field) */}
       <Box>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-          Lý do {reasonRequired ? '(bắt buộc)' : '(tùy chọn)'}:
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', display: 'block', mb: 1 }}>
+          Lý do {reasonRequired ? '(bắt buộc)' : '(tùy chọn)'}
         </Typography>
         <TextField
           multiline
@@ -211,11 +210,11 @@ export function FieldPolicyDrawerContent({
       {/* Exception deadline: only when keeping a PII field below the masking floor */}
       {showException && (
         <Box>
-          <Alert severity="warning" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
+          <Alert severity="warning" sx={{ mb: 1.5 }}>
             Giữ nguyên cột PII là <strong>ngoại lệ</strong>: chỉ có hiệu lực đến ngày bạn chọn, sau đó phải che lại.
           </Alert>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: '#374151', display: 'block', mb: 1 }}>
-            Ngoại lệ có hiệu lực đến (bắt buộc):
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', display: 'block', mb: 1 }}>
+            Ngoại lệ có hiệu lực đến (bắt buộc)
           </Typography>
           <TextField
             type="date"
@@ -232,7 +231,7 @@ export function FieldPolicyDrawerContent({
       )}
 
       {error && (
-        <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+        <Alert severity="error">
           {error}
         </Alert>
       )}

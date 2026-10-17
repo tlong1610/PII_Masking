@@ -27,7 +27,7 @@ const STATUS_META: Record<RunStatus, { label: string; tone: StatusTone }> = {
   FAILED: { label: 'Lỗi', tone: 'error' },
   STALE: { label: 'Lỗi thời', tone: 'warning' },
   REVOKED: { label: 'Đã thu hồi', tone: 'error' },
-  CANCELLED: { label: 'Đã huỷ', tone: 'default' },
+  CANCELLED: { label: 'Đã hủy', tone: 'default' },
 };
 
 export function getRunStatusLabel(status: RunStatus): string {
@@ -76,7 +76,7 @@ export const RUN_TABS = [
   { value: 'REVIEW', label: 'Chờ duyệt' },
   { value: 'READY', label: 'Chờ phát hành' },
   { value: 'PUBLISHED', label: 'Đã phát hành' },
-  { value: 'OTHER', label: 'Lỗi / đã huỷ' },
+  { value: 'OTHER', label: 'Lỗi / đã hủy' },
 ] as const;
 
 export type RunTab = (typeof RUN_TABS)[number]['value'];
@@ -109,7 +109,7 @@ export function getRunDeleteBlocker(run: {
   latest_dataset_status?: string | null;
 }): string | null {
   if (run.latest_dataset_id && run.latest_dataset_status && LIVE_DATASET_STATUSES.has(run.latest_dataset_status)) {
-    return `Còn dataset #${run.latest_dataset_id} đang có snapshot. Thu hồi dataset trước khi xoá run.`;
+    return `Còn dataset #${run.latest_dataset_id} đang có snapshot. Thu hồi dataset trước khi xóa lượt quét.`;
   }
   return null;
 }

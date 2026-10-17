@@ -26,7 +26,7 @@ const PII_TYPE_LABELS: Record<string, string> = {
   CREDIT_CARD: 'Thẻ tín dụng',
   BANK_ACCOUNT: 'Tài khoản ngân hàng',
   FINANCIAL: 'Tài chính',
-  OCR_IDENTITY_DOC: 'Giấy tờ tuỳ thân',
+  OCR_IDENTITY_DOC: 'Giấy tờ tùy thân',
   INTERNAL_FILE_PATH: 'Đường dẫn tệp',
   TRACKING_CODE: 'Mã vận đơn',
   MONEY_ALONE: 'Số tiền',

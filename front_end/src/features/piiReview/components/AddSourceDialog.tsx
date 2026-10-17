@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -13,7 +12,6 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -21,6 +19,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import { Controller, useForm } from 'react-hook-form';
 import { ApiError } from '@/shared/api/client';
+import { StatusChip } from '@/shared/ui';
 import { useCreateDataSource, useTestDataSource } from '../hooks/usePiiReview';
 import { detectEngine, parseTables, sourceFormSchema, type SourceFormValues } from '../model/sourceForm';
 
@@ -108,59 +107,35 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
       fullWidth
       maxWidth="sm"
       aria-labelledby="add-source-title"
-      PaperProps={{
-        sx: {
-          borderRadius: '10px',
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-        },
-      }}
     >
       <form onSubmit={(event) => void onSubmit(event)} noValidate>
-        {/* Databricks Modal Header */}
         <DialogTitle
           id="add-source-title"
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            pb: 1.5,
-            pt: 2.5,
-            px: 3,
-            borderBottom: '1px solid #E5E7EB',
+            gap: 1.5,
+            pb: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
           }}
         >
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <StorageOutlinedIcon sx={{ color: '#1B51A4', fontSize: 22 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>
-              Thêm nguồn dữ liệu
-            </Typography>
+          <Stack direction="row" spacing={1.5} alignItems="center" component="span">
+            <StorageOutlinedIcon color="primary" />
+            <span>Thêm nguồn dữ liệu</span>
           </Stack>
-          <IconButton size="small" onClick={handleClose} disabled={busy} aria-label="Đóng modal">
+          <IconButton size="small" onClick={handleClose} disabled={busy} aria-label="Đóng">
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ pb: 3, '.MuiDialogTitle-root + &': { pt: 2.5 } }}>
           <Stack spacing={2.5}>
-            {/* Databricks Info Box */}
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: '6px',
-                bgcolor: '#EFF6FF',
-                border: '1px solid #BFDBFE',
-                display: 'flex',
-                gap: 1.25,
-                alignItems: 'flex-start',
-              }}
-            >
-              <InfoOutlinedIcon sx={{ color: '#1D4ED8', fontSize: 18, mt: 0.2 }} />
-              <Typography variant="caption" sx={{ color: '#1E40AF', lineHeight: 1.5 }}>
-                URL kết nối cơ sở dữ liệu được mã hóa trước khi lưu trên máy chủ nội bộ. Hệ thống chỉ đọc metadata và schema,
-                không bao giờ lưu hoặc truyền dữ liệu thô.
-              </Typography>
-            </Box>
+            <Alert severity="info" icon={<InfoOutlinedIcon fontSize="inherit" />}>
+              URL kết nối được mã hóa trước khi lưu trên máy chủ nội bộ. Hệ thống chỉ đọc metadata và schema, không bao giờ
+              lưu hoặc truyền dữ liệu thô.
+            </Alert>
 
             <Controller
               name="name"
@@ -197,18 +172,12 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                     endAdornment: (
                       <InputAdornment position="end">
                         {engine && (
-                          <Chip
-                            size="small"
-                            label={engine === 'postgresql' ? 'PostgreSQL' : 'MongoDB'}
-                            sx={{
-                              height: 20,
-                              fontSize: '0.68rem',
-                              fontWeight: 600,
-                              mr: 0.5,
-                              bgcolor: engine === 'postgresql' ? '#EFF6FF' : '#ECFDF5',
-                              color: engine === 'postgresql' ? '#1D4ED8' : '#047857',
-                            }}
-                          />
+                          <Box component="span" sx={{ mr: 0.5 }}>
+                            <StatusChip
+                              label={engine === 'postgresql' ? 'PostgreSQL' : 'MongoDB'}
+                              tone={engine === 'postgresql' ? 'info' : 'success'}
+                            />
+                          </Box>
                         )}
                         <IconButton
                           aria-label={showUrl ? 'Ẩn URL' : 'Hiện URL'}
@@ -216,7 +185,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                           edge="end"
                           size="small"
                         >
-                          {showUrl ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+                          {showUrl ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -252,7 +221,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label={engine === 'mongodb' ? 'Collections cần quét (tùy chọn)' : 'Bảng cần quét (tùy chọn)'}
+                  label={engine === 'mongodb' ? 'Collection cần quét (tùy chọn)' : 'Bảng cần quét (tùy chọn)'}
                   placeholder="customers, orders, accounts"
                   error={Boolean(errors.tables)}
                   helperText={errors.tables?.message ?? 'Ngăn cách bằng dấu phẩy. Để trống để quét toàn bộ.'}
@@ -263,40 +232,37 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
             />
 
             {testNote && (
-              <Alert severity={testNote.ok ? 'success' : 'error'} sx={{ fontSize: '0.8rem' }}>
+              <Alert severity={testNote.ok ? 'success' : 'error'}>
                 {testNote.message}
               </Alert>
             )}
             {submitError && (
-              <Alert severity="error" sx={{ fontSize: '0.8rem' }}>
+              <Alert severity="error">
                 {submitError}
               </Alert>
             )}
           </Stack>
         </DialogContent>
 
-        {/* Databricks Modal Footer */}
-        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid #E5E7EB', gap: 1 }}>
-          <Button onClick={handleClose} disabled={busy} variant="outlined" size="small">
+        <DialogActions sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={handleClose} disabled={busy} variant="text" color="inherit" sx={{ mr: 'auto' }}>
             Hủy
           </Button>
           <Button
             onClick={() => void handleTest()}
             disabled={busy}
             variant="outlined"
-            size="small"
-            sx={{ borderColor: '#1B51A4', color: '#1B51A4' }}
+            startIcon={testSource.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {testSource.isPending ? <CircularProgress size={16} sx={{ color: '#1B51A4' }} /> : 'Kiểm tra kết nối'}
+            Kiểm tra kết nối
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={busy}
-            size="small"
-            sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
+            startIcon={createSource.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {createSource.isPending ? <CircularProgress size={16} color="inherit" /> : 'Lưu & Kết nối'}
+            Lưu & kết nối
           </Button>
         </DialogActions>
       </form>

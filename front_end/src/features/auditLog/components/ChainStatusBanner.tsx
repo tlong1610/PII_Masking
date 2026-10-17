@@ -36,7 +36,7 @@ export function ChainStatusBanner(): JSX.Element {
           </Button>
         }
       >
-        Cảnh báo: nhật ký đã bị sửa hoặc xoá tại hoạt động #{chain.broken_at_id ?? '?'}
+        Cảnh báo: nhật ký đã bị sửa hoặc xóa tại hoạt động #{chain.broken_at_id ?? '?'}
         {chain.error ? ` (${chain.error})` : ''}. Các ghi nhận từ đó trở đi không còn đáng tin.
       </Alert>
     );
@@ -63,7 +63,7 @@ export function ChainStatusBanner(): JSX.Element {
           Nhật ký nguyên vẹn
         </Typography>
         <Typography variant="body2">
-          {chain.total_events} hoạt động đã ghi, không có dòng nào bị sửa hay xoá.
+          {chain.total_events} hoạt động đã ghi, không có dòng nào bị sửa hay xóa.
         </Typography>
       </Stack>
     </Alert>
