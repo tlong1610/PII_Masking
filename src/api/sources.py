@@ -31,6 +31,7 @@ from src.services.source_validation import (
     ParsedSource,
     SourceUrlError,
     assert_not_snapshot_target,
+    normalize_source_url,
     parse_source_url,
     probe_connection,
     probe_namespace,
@@ -90,7 +91,7 @@ def mongo_live_enabled(client=None) -> bool:
     try:
         from pymongo import MongoClient
 
-        c = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=1000)
+        c = MongoClient(settings.mongo_uri, serverSelectionTimeoutMS=5000)
         c.admin.command("ping")
         c.close()
     except Exception:
@@ -165,7 +166,8 @@ def get_source_scope(
 
         profile = PostgresConnector(conn.url).extract_database_profile(
             schema_name=conn.namespace,
-            sample_size=1,
+            sample_size=0,
+            table_names=conn.tables,
         )
         tables = _allowed_tables(profile.tables, conn)
         return SourceScope(
@@ -428,8 +430,9 @@ def list_sources(
 @router.post("/sources/test", response_model=SourceTestResult)
 def test_source(body: SourceCreate, _user: SessionUser = Depends(require_dpo)) -> SourceTestResult:
     """Check that a URL is acceptable and reachable, without saving it."""
+    url = normalize_source_url(body.url)
     try:
-        parsed = _check_url(body.url)
+        parsed = _check_url(url)
     except SourceUrlError as exc:
         return SourceTestResult(ok=False, message=str(exc))
     return SourceTestResult(ok=True, engine=parsed.engine, message="Connection OK")
@@ -441,8 +444,9 @@ def create_source(
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
 ) -> Source:
+    url = normalize_source_url(body.url)
     try:
-        parsed = _check_url(body.url)
+        parsed = _check_url(url)
     except SourceUrlError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
 
@@ -452,11 +456,11 @@ def create_source(
             status_code=422, detail="Mongo database name is required (in URL path or namespace)"
         )
     try:
-        probe_namespace(body.url, parsed.engine, namespace)
+        probe_namespace(url, parsed.engine, namespace)
     except SourceUrlError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
     try:
-        encrypted = secret_box.encrypt(body.url.strip())
+        encrypted = secret_box.encrypt(url.strip())
     except secret_box.SecretBoxError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
 

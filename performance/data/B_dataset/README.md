@@ -22,7 +22,7 @@
 | `US_SSN` | `CCCD` | `string` | **HMAC** | L3 (Nhạy cảm) | Khoản 7 Điều 3 NĐ 356 | Số định danh tương đương CCCD |
 | `US_DRIVER_LICENSE` | `CCCD` | `string` | **MASK** | L3 (Nhạy cảm) | Khoản 7 Điều 3 NĐ 356 | Số bằng lái / định danh |
 | `AGE` | `DATE_OF_BIRTH` | `integer` | **MASK** | L1 (Cơ bản) | Khoản 2 Điều 3 NĐ 356 | Độ tuổi / liên quan ngày sinh |
-| `IP_ADDRESS` | `FREE_TEXT_PII` | `string` | **MASK** | L2 (Cơ bản) | NĐ 356 & NĐ 13 | Địa chỉ IP người dùng |
+| `IP_ADDRESS` | `FREE_TEXT_PII` | `string` | **MASK** | L2 (Cơ bản) | NĐ 356 | Địa chỉ IP người dùng |
 | `NRP` | `FREE_TEXT_PII` | `string` | **MASK** | L3 (Nhạy cảm) | Điểm đ K1 Đ4 NĐ 356 | Dân tộc, tôn giáo, quan điểm |
 | `DOMAIN_NAME` | `FREE_TEXT_PII` | `string` | **MASK** | L1 (Cơ bản) | K11 Điều 3 NĐ 356 | URL / tên miền cá nhân |
 | `ORGANIZATION` | `TAX_CODE_ORG` | `string` | **KEEP** | L0 (Phi cá nhân) | Khoản 1 Điều 2 Luật 91 | Tên cơ quan, tổ chức |

@@ -1,6 +1,6 @@
 # PIIGuard Shield - Tổng Quan Kiến Trúc (Architecture Overview)
 
-**PIIGuard Shield** là nền tảng tự động phát hiện, phân loại PII (theo **Nghị định 13/2023/NĐ-CP** và **Luật 91/2025/QH15**) và tạo bản sao dữ liệu an toàn (Protected Snapshot) cho đội ngũ Phân tích dữ liệu (Analyst) và AI mà không làm lộ dữ liệu cá nhân thô.
+**PIIGuard Shield** là nền tảng tự động phát hiện, phân loại PII (theo **Luật 91/2025/QH15** và **Nghị định 356/2025/NĐ-CP**) và tạo bản sao dữ liệu an toàn (Protected Snapshot) cho đội ngũ Phân tích dữ liệu (Analyst) và AI mà không làm lộ dữ liệu cá nhân thô.
 
 > [!NOTE]
 > Đây là bản tóm lược kiến trúc cấp cao (High-Level Architecture). Để xem toàn bộ chi tiết kỹ thuật từng module, vui lòng tham khảo:
@@ -53,7 +53,7 @@ flowchart LR
 * **CSDL Đích (Snapshot):** Lưu dữ liệu sau khi áp dụng action đã duyệt (`HMAC`, `REDACT`, `MASK`, `DROP`). **Giới hạn hiện tại:** backend cho phép DPO đặt `KEEP` cho trường PII nếu có ngoại lệ (lý do + `exception_until`); giá trị gốc khi đó được sao chép vào snapshot và Analyst đọc được sau khi publish. Zero Raw PII là mục tiêu thiết kế, chưa phải bảo đảm tuyệt đối.
 
 ### ② Khoét Sâu Dữ Liệu (Deep Content Inspection) Song Hành Bảo Mật
-* **Luồng A (Dữ liệu bảng cấu trúc):** Kết hợp Regex, từ điển pháp lý NĐ 13 và LLM LangGraph. Đạt **100.00% Action Accuracy** trên 339 cột sau khi tích hợp bộ nhớ few-shot DPO.
+* **Luồng A (Dữ liệu bảng cấu trúc):** Kết hợp Regex, từ điển pháp lý theo NĐ 356 và LLM LangGraph. Đạt **100.00% Action Accuracy** trên 339 cột sau khi tích hợp bộ nhớ few-shot DPO.
 * **Luồng B (Văn bản tự do):** Cascade đa tầng (Regex $\rightarrow$ FlashText $\rightarrow$ GLiNER Multi-PII zero-shot), đạt **97.86% Recall** và 97.51% F1 để bóc tách PII ẩn giấu trong ghi chú, chat log.
 * **Trừu tượng hóa an toàn:** AI đọc sâu trong RAM nhưng chỉ trả về loại thực thể (`PER`, `PHONE`) và tỷ lệ phát hiện. DPO kiểm chứng qua **Live Sandbox** bằng dữ liệu giả lập (Synthetic Data) mà không cần xem văn bản thật của khách hàng.
 
@@ -78,7 +78,7 @@ Bảo toàn tối đa giá trị khai thác dữ liệu (**Data Utility**) mà k
 | **Backend API** | FastAPI, Python 3.11+, Pydantic v2, SQLAlchemy, PyMongo | REST API, Role-based Access Control (`require_dpo`, `require_analyst_or_dpo`) |
 | **AI & Detection** | GLiNER (`urchade/gliner_multi_pii-v1`), FlashText, LangGraph, Few-Shot Memory | Quét mẫu PII, nhận diện thực thể văn bản tự do, học phản hồi DPO (HITL) |
 | **Storage & Snapshot** | Cloud PostgreSQL (RDS/Cloud SQL/Supabase/Neon), Cloud MongoDB Atlas | Lưu trữ nguồn đọc (Source) và CSDL đích an toàn (Snapshot) |
-| **Kiểm Định & Audit** | Merkle Tree (SHA-256 Hash Chain), SQL/Mongo Downstream Verifier | Kiểm tra tính toàn vẹn JOIN/Leak trước khi Publish; Chống chối bỏ theo NĐ 13 |
+| **Kiểm Định & Audit** | Merkle Tree (SHA-256 Hash Chain), SQL/Mongo Downstream Verifier | Kiểm tra tính toàn vẹn JOIN/Leak trước khi Publish; Bằng chứng kiểm toán, chống chối bỏ |
 
 ---
 

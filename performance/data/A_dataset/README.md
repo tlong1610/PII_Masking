@@ -1,7 +1,7 @@
 # 📊 Synthetic Enterprise Tabular Dataset (A_dataset)
 
 > **Tập dữ liệu kiểm thử giả lập Doanh nghiệp Việt Nam cho LUỒNG A (Column-Level / Tabular Detection)**  
-> **Căn cứ pháp lý:** Luật 91/2025/QH15, Nghị định 356/2025/NĐ-CP, Nghị định 13/2023/NĐ-CP & Tài liệu [`message.txt`](../../../message.txt).
+> **Căn cứ pháp lý:** Luật 91/2025/QH15, Nghị định 356/2025/NĐ-CP & Tài liệu [`message.txt`](../../../message.txt).
 
 ---
 
