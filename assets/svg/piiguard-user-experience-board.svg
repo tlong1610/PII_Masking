@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title desc">
+  <title id="title">PIIGuard Shield User Experience Board</title>
+  <desc id="desc">UX board showing PIIGuard user roles, journey, experience principles, and success signals.</desc>
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="55%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#94A3B8"/>
+    </marker>
+    <style>
+      .bg { fill: #F8FAFC; }
+      .heroText { font-family: Inter, Arial, sans-serif; fill: #FFFFFF; }
+      .title { font-size: 56px; font-weight: 800; letter-spacing: 0; }
+      .subtitle { font-size: 25px; font-weight: 500; opacity: 0.94; }
+      .card { fill: #FFFFFF; stroke: #D9E2EC; stroke-width: 1.5; rx: 22; filter: url(#shadow); }
+      .panel { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 1.5; rx: 18; }
+      .dpo { fill: #F0FDF4; stroke: #86EFAC; stroke-width: 1.5; rx: 18; }
+      .analyst { fill: #EFF6FF; stroke: #93C5FD; stroke-width: 1.5; rx: 18; }
+      .warn { fill: #FFF7ED; stroke: #FDBA74; stroke-width: 1.5; rx: 18; }
+      .danger { fill: #FEF2F2; stroke: #FCA5A5; stroke-width: 1.5; rx: 18; }
+      .sectionTitle { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 25px; font-weight: 800; }
+      .cardTitle { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 20px; font-weight: 800; }
+      .body { font-family: Inter, Arial, sans-serif; fill: #334155; font-size: 17px; font-weight: 500; }
+      .small { font-family: Inter, Arial, sans-serif; fill: #64748B; font-size: 15px; font-weight: 500; }
+      .mini { font-family: Inter, Arial, sans-serif; fill: #64748B; font-size: 13px; font-weight: 600; }
+      .label { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 15px; font-weight: 800; }
+      .tag { fill: #E0F2FE; stroke: #7DD3FC; stroke-width: 1; rx: 16; }
+      .line { stroke: #94A3B8; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .laneLabel { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 18px; font-weight: 800; }
+      .quote { font-family: Inter, Arial, sans-serif; fill: #0F172A; font-size: 21px; font-weight: 750; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1800" height="1120"/>
+
+  <rect x="56" y="44" width="1688" height="186" rx="32" fill="url(#hero)"/>
+  <text x="96" y="118" class="heroText title">PIIGuard Shield User Experience Board</text>
+  <text x="96" y="165" class="heroText subtitle">A governed data publishing journey: raw database in, verified protected dataset out.</text>
+  <text x="96" y="205" class="heroText subtitle">MVP UX rule: scan the configured demo scope, never expose raw PII.</text>
+
+  <g transform="translate(72,270)">
+    <text x="0" y="0" class="sectionTitle">Primary Users</text>
+    <rect class="dpo" x="0" y="24" width="380" height="150"/>
+    <text x="26" y="64" class="cardTitle">DPO / Data Reviewer</text>
+    <text x="26" y="98" class="body">Needs control, evidence, and safe</text>
+    <text x="26" y="125" class="body">decisions without seeing raw PII.</text>
+    <text x="26" y="156" class="small">Goal: publish only verified datasets.</text>
+
+    <rect class="analyst" x="0" y="198" width="380" height="150"/>
+    <text x="26" y="238" class="cardTitle">Analyst / AI Team</text>
+    <text x="26" y="272" class="body">Needs usable data that still joins,</text>
+    <text x="26" y="299" class="body">aggregates, and supports analysis.</text>
+    <text x="26" y="330" class="small">Goal: use PUBLISHED output only.</text>
+  </g>
+
+  <g transform="translate(500,270)">
+    <text x="0" y="0" class="sectionTitle">Experience Principles</text>
+    <rect class="card" x="0" y="24" width="372" height="150"/>
+    <text x="24" y="64" class="cardTitle">No Raw PII UX</text>
+    <text x="24" y="98" class="body">UI shows field paths, profile,</text>
+    <text x="24" y="125" class="body">patterns, reason, and action.</text>
+    <text x="24" y="156" class="small">No raw values in UI, logs, reports, prompts.</text>
+
+    <rect class="card" x="408" y="24" width="372" height="150"/>
+    <text x="432" y="64" class="cardTitle">Full Demo Scope</text>
+    <text x="432" y="98" class="body">DPO chooses a source; backend</text>
+    <text x="432" y="125" class="body">scans the configured MVP scope.</text>
+    <text x="432" y="156" class="small">Never scan whole schema by default.</text>
+
+    <rect class="card" x="816" y="24" width="372" height="150"/>
+    <text x="840" y="64" class="cardTitle">Utility Verified</text>
+    <text x="840" y="98" class="body">Protected output must pass JOIN,</text>
+    <text x="840" y="125" class="body">lookup, aggregate, and policy checks.</text>
+    <text x="840" y="156" class="small">VERIFIED before PUBLISHED.</text>
+  </g>
+
+  <g transform="translate(72,670)">
+    <text x="0" y="-35" class="sectionTitle">DPO Journey</text>
+    <rect class="panel" x="0" y="0" width="210" height="100"/>
+    <text x="24" y="36" class="label">1. Connect source</text>
+    <text x="24" y="65" class="small">DB URL / demo source</text>
+    <text x="24" y="86" class="mini">read-only</text>
+
+    <path class="line" d="M218 50 H270"/>
+    <rect class="panel" x="278" y="0" width="210" height="100"/>
+    <text x="302" y="36" class="label">2. Read demo scope</text>
+    <text x="302" y="65" class="small">tables / collections</text>
+    <text x="302" y="86" class="mini">counts + paths</text>
+
+    <path class="line" d="M496 50 H548"/>
+    <rect class="panel" x="556" y="0" width="210" height="100"/>
+    <text x="580" y="36" class="label">3. Scan source</text>
+    <text x="580" y="65" class="small">only selected data</text>
+    <text x="580" y="86" class="mini">no full-schema default</text>
+
+    <path class="line" d="M774 50 H826"/>
+    <rect class="panel" x="834" y="0" width="210" height="100"/>
+    <text x="858" y="36" class="label">4. Scan PII</text>
+    <text x="858" y="65" class="small">rules + optional AI</text>
+    <text x="858" y="86" class="mini">profile only</text>
+
+    <path class="line" d="M1052 50 H1104"/>
+    <rect class="panel" x="1112" y="0" width="210" height="100"/>
+    <text x="1136" y="36" class="label">5. Review</text>
+    <text x="1136" y="65" class="small">MASK / HMAC / DROP</text>
+    <text x="1136" y="86" class="mini">KEEP only when safe</text>
+
+    <path class="line" d="M1330 50 H1382"/>
+    <rect class="panel" x="1390" y="0" width="210" height="100"/>
+    <text x="1414" y="36" class="label">6. Build</text>
+    <text x="1414" y="65" class="small">protected snapshot</text>
+    <text x="1414" y="86" class="mini">source untouched</text>
+  </g>
+
+  <g transform="translate(72,840)">
+    <text x="0" y="-35" class="sectionTitle">Publishing and Analyst Experience</text>
+    <rect class="panel" x="0" y="0" width="260" height="118"/>
+    <text x="24" y="38" class="label">7. Verify</text>
+    <text x="24" y="68" class="small">JOIN / lookup / aggregate pass.</text>
+    <text x="24" y="92" class="small">Fail blocks publish.</text>
+
+    <path class="line" d="M270 59 H344"/>
+    <rect class="panel" x="356" y="0" width="260" height="118"/>
+    <text x="380" y="38" class="label">8. Publish</text>
+    <text x="380" y="68" class="small">DPO releases VERIFIED output.</text>
+    <text x="380" y="92" class="small">Audit event is recorded.</text>
+
+    <path class="line" d="M626 59 H700"/>
+    <rect class="analyst" x="712" y="0" width="300" height="118"/>
+    <text x="736" y="38" class="label">9. Analyst workspace</text>
+    <text x="736" y="68" class="small">Only PUBLISHED datasets.</text>
+    <text x="736" y="92" class="small">No source DB, no staging, no policy edit.</text>
+
+    <rect class="warn" x="1060" y="0" width="260" height="118"/>
+    <text x="1084" y="38" class="label">Trust signal</text>
+    <text x="1084" y="68" class="small">Status: VERIFIED / PUBLISHED.</text>
+    <text x="1084" y="92" class="small">Verifier evidence visible.</text>
+
+    <rect class="danger" x="1368" y="0" width="260" height="118"/>
+    <text x="1392" y="38" class="label">Blocked state</text>
+    <text x="1392" y="68" class="small">Missing decisions, failed verifier,</text>
+    <text x="1392" y="92" class="small">or mismatched join actions.</text>
+  </g>
+
+  <g transform="translate(72,1015)">
+    <rect class="tag" width="320" height="46"/>
+    <text x="26" y="30" class="label">Success: DPO can explain every action</text>
+    <rect class="tag" x="360" width="350" height="46"/>
+    <text x="386" y="30" class="label">Success: Analyst can use output safely</text>
+    <rect class="tag" x="750" width="400" height="46"/>
+    <text x="776" y="30" class="label">Success: source data is never overwritten</text>
+    <rect class="tag" x="1190" width="400" height="46"/>
+    <text x="1216" y="30" class="label">Success: verifier proves utility before publish</text>
+  </g>
+
+  <text x="505" y="602" class="quote">Experience promise: make privacy review feel like a controlled publishing workflow, not a blind masking task.</text>
+</svg>

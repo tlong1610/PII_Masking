@@ -366,6 +366,10 @@ PYTHONPATH=. python eval/run_eval_full.py
 ```
 
 ## Tài Liệu Dự Án
+
+- [Assets dùng chung](assets/README.md) - SVG, mascot Pango, logo và cách dùng component trong frontend
+
+- [PDF hồ sơ Demo Day](docs/pdf/PIIGuard_Shield_Demo_Day.pdf) - Tổng quan, demo, kiến trúc, AI và bằng chứng để tải về hoặc chia sẻ qua Drive/Release
  
 - [Hướng Dẫn Phát Hành & Vận Hành Release](docs/ops/RELEASE_GUIDE.md) - Sổ tay phát hành, CI và triển khai Render/Vercel
 - [Báo Cáo Hoàn Thành P1](docs/core/MVP_STATUS_REPORT.md) - Kết quả nghiệm thu lịch sử P1, có ghi chú giới hạn đã biết
