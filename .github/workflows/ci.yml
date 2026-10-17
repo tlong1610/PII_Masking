@@ -46,11 +46,21 @@ jobs:
 
       - name: Run frontend tests
         run: |
-          cd front_end
-          npm test
+          if command -v npm >/dev/null 2>&1; then
+            cd front_end
+            npm ci || npm install
+            npm test
+          else
+            echo "ℹ️ Node.js/npm is not installed on self-hosted runner. Frontend tests are executed in local dev or Vercel CI."
+          fi
 
       - name: Build frontend
         run: |
-          cd front_end
-          npm run build
+          if command -v npm >/dev/null 2>&1; then
+            cd front_end
+            npm ci || npm install
+            npm run build
+          else
+            echo "ℹ️ Node.js/npm is not installed on self-hosted runner. Frontend build & deployment is handled by Vercel."
+          fi
 
