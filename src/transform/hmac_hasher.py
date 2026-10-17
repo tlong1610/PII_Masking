@@ -16,7 +16,7 @@ def normalize_for_hmac(value: Any) -> str | None:
         return text if text else None
     if isinstance(value, bool):
         return "true" if value else "false"
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return str(value)
     text = str(value).strip()
     return text if text else None

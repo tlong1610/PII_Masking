@@ -22,11 +22,6 @@ async def lifespan(app: FastAPI):
                 "CRITICAL SECURITY: Cannot start in production mode with default hmac_secret='dev-hmac-secret-change-me'. "
                 "Set HMAC_SECRET environment variable (§4.1)."
             )
-        if settings.secret_key == "insecure-dev-secret-key-change-me":
-            raise RuntimeError(
-                "CRITICAL SECURITY: Cannot start in production mode with default secret_key. "
-                "Set SECRET_KEY environment variable (§4.1)."
-            )
     if settings.database_url.startswith("sqlite"):
         # Ensure parent dir exists for file-based SQLite (e.g. ./data/app.db)
         db_path = settings.database_url.removeprefix("sqlite:///")

@@ -176,6 +176,64 @@ def verify_row_counts(
     return results
 
 
+def _matched_rows(conn, schema: str, relation: tuple[str, str, str, str]) -> int:
+    """Rows of the FK table that find a partner in the referenced table (compared as text: HMAC is text)."""
+    from psycopg import sql
+
+    from_table, from_col, to_table, to_col = relation
+    query = sql.SQL(
+        "SELECT count(*)::int AS n FROM {a} AS a WHERE EXISTS "
+        "(SELECT 1 FROM {b} AS b WHERE b.{to_col}::text = a.{from_col}::text)"
+    ).format(
+        a=sql.Identifier(schema, from_table),
+        b=sql.Identifier(schema, to_table),
+        from_col=sql.Identifier(from_col),
+        to_col=sql.Identifier(to_col),
+    )
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return int(cur.fetchone()["n"])
+
+
+def verify_relation_joins(
+    source_url: str,
+    snapshot_url: str,
+    *,
+    source_schema: str,
+    snapshot_schema: str,
+    relations: list[tuple[str, str, str, str]],
+) -> list[CheckResult]:
+    """Generic JOIN check: every in-scope join matches as many rows in the snapshot as in the source.
+
+    Row counts alone pass even when protection breaks the join, so the Analyst could not link tables.
+    """
+    results: list[CheckResult] = []
+    if not relations:
+        return results
+    with _connect(source_url) as src, _connect(snapshot_url) as dst:
+        for relation in relations:
+            label = f"{relation[0]}.{relation[1]}->{relation[2]}.{relation[3]}"
+            expected = _matched_rows(src, source_schema, relation)
+            try:
+                actual: int | None = _matched_rows(dst, snapshot_schema, relation)
+                details = f"Rows of {relation[0]} joining {relation[2]}: source vs snapshot"
+            except Exception as exc:
+                dst.rollback()
+                actual = None
+                details = f"Join key missing in snapshot ({type(exc).__name__}); keep both ends as KEEP or HMAC"
+            results.append(
+                CheckResult(
+                    check_name=f"join_matched:{label}"[:128],
+                    status="PASSED" if actual == expected else "FAILED",
+                    baseline_value=f"matched={expected}",
+                    actual_value="error" if actual is None else f"matched={actual}",
+                    tolerance="0",
+                    details=details,
+                )
+            )
+    return results
+
+
 def verify_zero_raw_pii_egress(
     snapshot_url: str,
     *,
@@ -191,6 +249,11 @@ def verify_zero_raw_pii_egress(
     cccd_regex = re.compile(r"^[0-9]{12}$")
     phone_regex = re.compile(r"^(?:0|\+84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$")
     email_regex = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    # REDACT keeps the surrounding free text, so an identifier left anywhere inside it is a leak.
+    embedded_regex = re.compile(
+        r"(?<!\d)(?:\d{12}|(?:0|\+84)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7})(?!\d)"
+        r"|[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+    )
 
     leaks: list[str] = []
     try:
@@ -213,7 +276,13 @@ def verify_zero_raw_pii_egress(
                                 rows = cur.fetchall()
                                 for r in rows:
                                     val = str(r[col]).strip()
-                                    if cccd_regex.match(val) or phone_regex.match(val) or email_regex.match(val):
+                                    if act == "REDACT":
+                                        leaked = embedded_regex.search(val) is not None
+                                    else:
+                                        leaked = bool(
+                                            cccd_regex.match(val) or phone_regex.match(val) or email_regex.match(val)
+                                        )
+                                    if leaked:
                                         leaks.append(f"{table}.{col}")
                                         break
                             except Exception:

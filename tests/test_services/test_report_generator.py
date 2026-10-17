@@ -15,26 +15,45 @@ from src.services.risk_scorer import (
 def test_sensitivity_level_resolution():
     # L3 checks
     assert resolve_sensitivity_level(classification="PERSONAL_SENSITIVE") == "L3"
-    assert resolve_sensitivity_level(taxonomy_id="CCCD") == "L3"
-    assert resolve_sensitivity_level(taxonomy_id="VN_CCCD") == "L3"
     assert resolve_sensitivity_level(taxonomy_id="OCR_IDENTITY_DOC") == "L3"
-    assert resolve_sensitivity_level(field_path="cccd") == "L3"
-    assert resolve_sensitivity_level(field_path="so_cmnd") == "L3"
+    assert resolve_sensitivity_level(taxonomy_id="BIOMETRIC") == "L3"
+    assert resolve_sensitivity_level(taxonomy_id="BANK_ACCOUNT") == "L3"
+
+    # Identity numbers and free text are basic data in src/detection/taxonomy.py (L2)
+    assert resolve_sensitivity_level(taxonomy_id="CCCD") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="VN_CCCD") == "L2"
+    assert resolve_sensitivity_level(field_path="cccd") == "L2"
+    assert resolve_sensitivity_level(field_path="so_cmnd") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="FREE_TEXT_PII") == "L2"
 
     # L2 checks
     assert resolve_sensitivity_level(taxonomy_id="PHONE") == "L2"
     assert resolve_sensitivity_level(taxonomy_id="EMAIL") == "L2"
     assert resolve_sensitivity_level(classification="PERSONAL_BASIC") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="GENDER") == "L2"
+    assert resolve_sensitivity_level(taxonomy_id="DOB") == "L2"
+    assert resolve_sensitivity_level(field_path="ngay_sinh") == "L2"
 
     # L1 checks
-    assert resolve_sensitivity_level(taxonomy_id="DOB") == "L1"
-    assert resolve_sensitivity_level(taxonomy_id="GENDER") == "L1"
     assert resolve_sensitivity_level(classification="UNKNOWN") == "L1"
 
     # L0 checks
     assert resolve_sensitivity_level(classification="NON_PERSONAL") == "L0"
     assert resolve_sensitivity_level(taxonomy_id="SYSTEM_ID") == "L0"
     assert resolve_sensitivity_level(field_path="order_code") == "L0"
+
+
+def test_classification_wins_over_taxonomy_and_path_keywords():
+    """The report must use the same level the review screen shows (taken from the classification)."""
+    assert resolve_sensitivity_level(classification="PERSONAL_BASIC", taxonomy_id="CCCD", field_path="cccd") == "L2"
+    assert (
+        resolve_sensitivity_level(classification="PERSONAL_BASIC", taxonomy_id="FREE_TEXT_PII", field_path="notes")
+        == "L2"
+    )
+    assert resolve_sensitivity_level(classification="PERSONAL_SENSITIVE", taxonomy_id="PHONE") == "L3"
+    assert resolve_sensitivity_level(classification="QUASI_IDENTIFIER", field_path="customer_name") == "L1"
+    # Unclassified fields still fall back to taxonomy / column name.
+    assert resolve_sensitivity_level(classification="UNKNOWN", taxonomy_id="BANK_ACCOUNT") == "L3"
 
 
 def test_deterministic_risk_score_calculation():
@@ -126,7 +145,7 @@ def test_html_report_rendering_has_zero_raw_pii():
                 "effective_action": "HMAC",
                 "is_dpo_override": False,
                 "decision_reason": "Bảo toàn JOIN",
-                "masked_sample": "HMAC:8a4f912c...",
+                "snapshot_output": "HMAC-SHA256 (khoá v1): không đảo ngược, vẫn JOIN được",
                 "coverage_status": "full",
                 "summary": "CCCD match",
             }
@@ -160,7 +179,7 @@ def test_html_report_rendering_has_zero_raw_pii():
     assert "BÁO CÁO TUÂN THỦ BẢO VỆ DỮ LIỆU CÁ NHÂN (PII)" in html
     assert TAXONOMY_VERSION in html
     assert RECOGNIZER_VERSION in html
-    assert "HMAC:8a4f912c..." in html
+    assert "HMAC-SHA256 (khoá v1)" in html
     assert "Hạn Chế Kỹ Thuật" in html
     # Assert no raw sample indicators or passwords
     assert "password" not in html.lower()
@@ -207,7 +226,7 @@ def test_render_html_report_xss_injection_prevention():
                 "taxonomy_id": f"tax_{xss_payload}",
                 "effective_action": "MASK",
                 "is_dpo_override": False,
-                "masked_sample": f"sample_{img_payload}",
+                "snapshot_output": f"sample_{img_payload}",
                 "decision_reason": f"reason_{xss_payload}",
             }
         ],

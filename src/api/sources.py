@@ -17,6 +17,7 @@ from src.api.session_store import SessionUser
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
+    ScopeRelationship,
     Source,
     SourceCreate,
     SourceScope,
@@ -32,6 +33,7 @@ from src.services.source_validation import (
     assert_not_snapshot_target,
     parse_source_url,
     probe_connection,
+    probe_namespace,
 )
 
 router = APIRouter(tags=["sources"])
@@ -165,6 +167,7 @@ def get_source_scope(
             schema_name=conn.namespace,
             sample_size=1,
         )
+        tables = _allowed_tables(profile.tables, conn)
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
@@ -184,14 +187,16 @@ def get_source_scope(
                         for column in table.columns
                     ],
                 )
-                for table in profile.tables
+                for table in tables
             ],
+            relationships=_scope_relationships(source.engine, conn, {t.table_name for t in tables}),
         )
 
     if source.engine == "mongodb" and conn.live:
         from src.connectors.mongo_connector import MongoConnector
 
         profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
+        collections = _allowed_tables(profile.tables, conn)
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
@@ -211,8 +216,9 @@ def get_source_scope(
                         for column in collection.columns
                     ],
                 )
-                for collection in profile.tables
+                for collection in collections
             ],
+            relationships=_scope_relationships(source.engine, conn, {c.table_name for c in collections}),
         )
 
     if source.source_type == SourceType.SQL:
@@ -274,7 +280,42 @@ def get_source_scope(
         source_type=source.source_type,
         engine=source.engine,
         items=items,
+        relationships=[_STUB_RELATIONSHIP],
     )
+
+
+def _allowed_tables(tables: list, conn: SourceConnection) -> list:
+    """Restrict profiled tables/collections to the source allowlist registered by the DPO (if any)."""
+    if not conn.tables:
+        return list(tables)
+    allowed = set(conn.tables)
+    return [t for t in tables if t.table_name in allowed]
+
+
+# Demo stub scope: orders.customer_id -> customers.customer_id (same for SQL and NoSQL stubs).
+_STUB_RELATIONSHIP = ScopeRelationship(
+    source_table="orders", source_column="customer_id", target_table="customers", target_column="customer_id"
+)
+
+
+def _scope_relationships(engine: str, conn: SourceConnection, names: set[str]) -> list[ScopeRelationship]:
+    """Same join set the build guard uses (runs.py), restricted to tables present in the scope."""
+    from src.api import runs
+
+    relations = runs._mongo_join_relations(conn) if engine == "mongodb" else runs._postgres_join_relations(conn)
+    out: list[ScopeRelationship] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for relation in relations:
+        from_table, from_column, to_table, to_column = relation
+        if relation in seen or from_table not in names or to_table not in names:
+            continue
+        seen.add(relation)
+        out.append(
+            ScopeRelationship(
+                source_table=from_table, source_column=from_column, target_table=to_table, target_column=to_column
+            )
+        )
+    return out
 
 
 def get_source_by_id(source_id: str, db: Session | None = None) -> Source | None:
@@ -411,6 +452,10 @@ def create_source(
             status_code=422, detail="Mongo database name is required (in URL path or namespace)"
         )
     try:
+        probe_namespace(body.url, parsed.engine, namespace)
+    except SourceUrlError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    try:
         encrypted = secret_box.encrypt(body.url.strip())
     except secret_box.SecretBoxError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
@@ -446,17 +491,11 @@ def delete_source(
     if in_use is not None:
         if not force:
             raise HTTPException(status_code=409, detail="Source has runs and cannot be deleted")
-        # Cascade cleanup runs and all associated metadata
-        run_ids = db.scalars(select(db_models.Run.id).where(db_models.Run.source_id == source_id)).all()
-        for rid in run_ids:
-            dataset_ids = db.scalars(select(db_models.Dataset.id).where(db_models.Dataset.run_id == rid)).all()
-            if dataset_ids:
-                db.query(db_models.VerifierResult).filter(db_models.VerifierResult.dataset_id.in_(dataset_ids)).delete(synchronize_session=False)
-                db.query(db_models.Dataset).filter(db_models.Dataset.id.in_(dataset_ids)).delete(synchronize_session=False)
-            db.query(db_models.FieldDecisionHistory).filter(db_models.FieldDecisionHistory.run_id == rid).delete(synchronize_session=False)
-            db.query(db_models.FieldDecision).filter(db_models.FieldDecision.run_id == rid).delete(synchronize_session=False)
-            db.query(db_models.FieldProfile).filter(db_models.FieldProfile.run_id == rid).delete(synchronize_session=False)
-            db.query(db_models.Run).filter(db_models.Run.id == rid).delete(synchronize_session=False)
+        # Cascade cleanup runs and all associated metadata (audit events are kept)
+        from src.services.run_cleanup import delete_run_metadata
+
+        for rid in db.scalars(select(db_models.Run.id).where(db_models.Run.source_id == source_id)).all():
+            delete_run_metadata(db, rid)
     db.delete(row)
     _audit(db, user, "delete_source", source_id)
     db.commit()

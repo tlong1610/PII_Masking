@@ -133,7 +133,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
           <Stack direction="row" spacing={1.5} alignItems="center">
             <StorageOutlinedIcon sx={{ color: '#1B51A4', fontSize: 22 }} />
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: '#111827' }}>
-              Thêm nguồn dữ liệu On-Premise
+              Thêm nguồn dữ liệu
             </Typography>
           </Stack>
           <IconButton size="small" onClick={handleClose} disabled={busy} aria-label="Đóng modal">
@@ -157,7 +157,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
             >
               <InfoOutlinedIcon sx={{ color: '#1D4ED8', fontSize: 18, mt: 0.2 }} />
               <Typography variant="caption" sx={{ color: '#1E40AF', lineHeight: 1.5 }}>
-                URL kết nối cơ sở dữ liệu được mã hóa lưu trữ trong On-Premise Vault. Hệ thống chỉ đọc metadata và schema,
+                URL kết nối cơ sở dữ liệu được mã hóa trước khi lưu trên máy chủ nội bộ. Hệ thống chỉ đọc metadata và schema,
                 không bao giờ lưu hoặc truyền dữ liệu thô.
               </Typography>
             </Box>
@@ -185,7 +185,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Connection URL"
+                  label="URL kết nối"
                   placeholder="postgresql://user:password@host:5432/dbname"
                   type={showUrl ? 'text' : 'password'}
                   autoComplete="off"
@@ -234,7 +234,12 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
                   label={engine === 'mongodb' ? 'Database (tùy chọn)' : 'Schema (tùy chọn)'}
                   placeholder={engine === 'mongodb' ? 'Mặc định lấy từ URL' : 'Mặc định: public'}
                   error={Boolean(errors.namespace)}
-                  helperText={errors.namespace?.message}
+                  helperText={
+                    errors.namespace?.message ??
+                    (engine === 'mongodb'
+                      ? 'Để trống = database trong đường dẫn URL. Phải tồn tại trên nguồn.'
+                      : 'Để trống = search_path / currentSchema trong URL, nếu không có thì public. Phải tồn tại trên nguồn.')
+                  }
                   size="small"
                   fullWidth
                 />

@@ -10,6 +10,9 @@ os.environ["DATABASE_URL"] = "sqlite:///./data/test_verifier.db"
 os.environ["APP_ENV"] = "test"
 os.environ["ENABLE_AI_SCAN"] = "false"
 os.environ["ENABLE_PG_SNAPSHOT"] = "false"
+# Regex-only NER: no model download, deterministic redaction regardless of the developer's .env
+os.environ["ENABLE_NER"] = "false"
+os.environ["ENABLE_MONGO"] = "false"
 
 from src.api.session_store import clear_sessions
 from src.config import get_settings
@@ -24,6 +27,10 @@ from src.main import app  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def _clean_sessions():
+    from src.api.auth import reset_auth_rate_limiter
+
+    # Each test logs in on its own; a shared login window would make the suite order-dependent.
+    reset_auth_rate_limiter()
     clear_sessions()
     yield
     clear_sessions()

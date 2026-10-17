@@ -1,15 +1,16 @@
-export type PolicyAction = 'MASK' | 'HMAC' | 'DROP' | 'KEEP';
+export type PolicyAction = 'MASK' | 'REDACT' | 'HMAC' | 'DROP' | 'KEEP';
 export type DatasetStatus = 'STAGING' | 'VERIFIED' | 'PUBLISHED' | 'REVOKED' | 'FAILED';
-export type TransformKind = 'MASK' | 'HMAC' | 'KEEP' | 'DROPPED';
+export type TransformKind = 'MASK' | 'REDACT' | 'HMAC' | 'KEEP' | 'DROPPED';
 export type DetectorSource = 'rule' | 'ai' | 'dpo' | 'unknown';
 export type ChipTone = 'default' | 'error' | 'info' | 'success' | 'warning';
 export type ActionTone = 'error' | 'info' | 'success' | 'warning';
 
-export const POLICY_ACTIONS: PolicyAction[] = ['MASK', 'HMAC', 'DROP', 'KEEP'];
-export const TRANSFORMS: TransformKind[] = ['MASK', 'HMAC', 'KEEP', 'DROPPED'];
+export const POLICY_ACTIONS: PolicyAction[] = ['MASK', 'REDACT', 'HMAC', 'DROP', 'KEEP'];
+export const TRANSFORMS: TransformKind[] = ['MASK', 'REDACT', 'HMAC', 'KEEP', 'DROPPED'];
 
 export function getActionLabel(action: PolicyAction): string {
   if (action === 'MASK') return 'Che dữ liệu';
+  if (action === 'REDACT') return 'Che thực thể (NER)';
   if (action === 'HMAC') return 'Băm HMAC';
   if (action === 'DROP') return 'Loại bỏ';
   return 'Giữ nguyên';
@@ -17,9 +18,9 @@ export function getActionLabel(action: PolicyAction): string {
 
 export function getActionColor(action: PolicyAction): ActionTone {
   if (action === 'DROP') return 'error';
-  if (action === 'MASK') return 'warning';
+  if (action === 'MASK' || action === 'REDACT') return 'success';
   if (action === 'HMAC') return 'info';
-  return 'success';
+  return 'warning';
 }
 
 export function getDatasetStatusLabel(status: DatasetStatus): string {
@@ -38,6 +39,7 @@ export function getDatasetStatusColor(status: DatasetStatus): ChipTone {
 
 export function getTransformLabel(transform: TransformKind): string {
   if (transform === 'MASK') return 'Đã che';
+  if (transform === 'REDACT') return 'Đã che thực thể';
   if (transform === 'HMAC') return 'Băm HMAC';
   if (transform === 'KEEP') return 'Giữ nguyên';
   return 'Đã loại bỏ';
@@ -49,14 +51,16 @@ export function getTransformAnalystHint(transform: TransformKind): string {
   if (transform === 'HMAC')
     return 'Mã thay thế cố định: dùng để ghép bảng hoặc đếm số khách riêng biệt; không thể giải ngược ra giá trị gốc.';
   if (transform === 'MASK') return 'Đã che một phần: chỉ để nhận biết dạng dữ liệu, không dùng để lọc hay ghép bảng.';
+  if (transform === 'REDACT')
+    return 'Văn bản vẫn đọc được; tên, số điện thoại, email... đã thay bằng nhãn như [PHONE]. Không dùng để ghép bảng.';
   return 'Đã bị loại khỏi dataset, Analyst không nhận được cột này.';
 }
 
 export function getTransformColor(transform: TransformKind): ChipTone {
   if (transform === 'DROPPED') return 'error';
-  if (transform === 'MASK') return 'warning';
+  if (transform === 'MASK' || transform === 'REDACT') return 'success';
   if (transform === 'HMAC') return 'info';
-  return 'success';
+  return 'warning';
 }
 
 export function getRiskTone(classification: string): ChipTone {

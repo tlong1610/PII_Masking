@@ -7,23 +7,60 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: self-hosted
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
       - name: Install dependencies
+        env:
+          TMPDIR: ${{ runner.temp }}
         run: |
           python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip setuptools wheel
           .venv/bin/pip install -r requirements.txt
 
       - name: Lint with ruff
         run: .venv/bin/ruff check src/ tests/
 
-      - name: Run tests
+      - name: Run backend tests
         run: .venv/bin/pytest tests/ -v --tb=short
         env:
           APP_ENV: test
           OPENAI_API_KEY: test-key
+
+      - name: Run frontend tests
+        run: |
+          if command -v npm >/dev/null 2>&1; then
+            cd front_end
+            npm ci || npm install
+            npm test
+          else
+            echo "ℹ️ Node.js/npm is not installed on self-hosted runner. Frontend tests are executed in local dev or Vercel CI."
+          fi
+
+      - name: Build frontend
+        run: |
+          if command -v npm >/dev/null 2>&1; then
+            cd front_end
+            npm ci || npm install
+            npm run build
+          else
+            echo "ℹ️ Node.js/npm is not installed on self-hosted runner. Frontend build & deployment is handled by Vercel."
+          fi
+

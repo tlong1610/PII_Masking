@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.api.deps import get_current_user, require_dpo
@@ -15,6 +15,7 @@ from src.config import get_settings
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
+    DatasetDetailOut,
     DatasetGrantCreate,
     DatasetGrantOut,
     DatasetOut,
@@ -22,9 +23,11 @@ from src.models.schemas import (
     DatasetPreviewColumn,
     DatasetRelationship,
     DatasetStatus,
+    DatasetVerification,
     PolicyAction,
     RunStatus,
     UserRole,
+    VerifierResultOut,
 )
 
 router = APIRouter(tags=["datasets"])
@@ -51,14 +54,37 @@ def _write_audit(
     )
 
 
-def _dataset_out(ds: db_models.Dataset) -> DatasetOut:
-    return DatasetOut(
-        id=ds.id,
-        run_id=ds.run_id,
-        dataset_name=ds.dataset_name,
-        status=DatasetStatus(ds.status),
-        output_location=ds.output_location,
-    )
+def _dataset_fields(ds: db_models.Dataset, grant_count: int | None = None) -> dict[str, Any]:
+    run = ds.run
+    return {
+        "id": ds.id,
+        "run_id": ds.run_id,
+        "dataset_name": ds.dataset_name,
+        "status": DatasetStatus(ds.status),
+        "output_location": ds.output_location,
+        "created_at": ds.created_at,
+        "published_at": ds.published_at,
+        "revoked_at": ds.revoked_at,
+        "source_id": run.source_id if run is not None else None,
+        "source_name": run.source_name if run is not None else None,
+        "engine": run.engine if run is not None else None,
+        "grant_count": grant_count,
+    }
+
+
+def _dataset_out(ds: db_models.Dataset, grant_count: int | None = None) -> DatasetOut:
+    return DatasetOut(**_dataset_fields(ds, grant_count))
+
+
+def _grant_counts(db: Session, dataset_ids: list[int]) -> dict[int, int]:
+    if not dataset_ids:
+        return {}
+    rows = db.execute(
+        select(db_models.DatasetGrant.dataset_id, func.count(db_models.DatasetGrant.id))
+        .where(db_models.DatasetGrant.dataset_id.in_(dataset_ids))
+        .group_by(db_models.DatasetGrant.dataset_id)
+    ).all()
+    return {dataset_id: count for dataset_id, count in rows}
 
 
 def _get_dataset(db: Session, dataset_id: int) -> db_models.Dataset | None:
@@ -117,7 +143,7 @@ def _visible_columns(columns: list[DatasetPreviewColumn], table: str) -> list[st
 
 def _preview_value(value: Any) -> str | int | float | bool | None:
     """Snapshot values are already protected; stringify anything non-JSON (ObjectId, datetime...)."""
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, str | int | float | bool):
         return value
     return str(value)
 
@@ -200,11 +226,15 @@ def _stub_preview_rows(columns: list[DatasetPreviewColumn], table: str, limit: i
 
 @router.get("/datasets", response_model=list[DatasetOut])
 def list_datasets(
+    status_filter: DatasetStatus | None = Query(default=None, alias="status", description="Lọc theo trạng thái"),
     user: SessionUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[DatasetOut]:
     """DPO sees non-failed datasets; Analyst only PUBLISHED datasets granted to them (§3, §14.2)."""
-    rows = db.scalars(select(db_models.Dataset).order_by(db_models.Dataset.id)).all()
+    stmt = select(db_models.Dataset).options(selectinload(db_models.Dataset.run)).order_by(db_models.Dataset.id)
+    if status_filter is not None:
+        stmt = stmt.where(db_models.Dataset.status == status_filter.value)
+    rows = db.scalars(stmt).all()
     if user.role == UserRole.ANALYST.value:
         granted_ids = set(
             db.scalars(
@@ -213,9 +243,40 @@ def list_datasets(
         )
         rows = [r for r in rows if r.status == DatasetStatus.PUBLISHED.value and r.id in granted_ids]
     else:
-        # DPO: hide nothing critical except do not pretend FAILED is usable for Analyst
-        rows = [r for r in rows if r.status != DatasetStatus.FAILED.value]
+        # DPO: FAILED builds are hidden unless explicitly requested via ?status=FAILED
+        if status_filter is None:
+            rows = [r for r in rows if r.status != DatasetStatus.FAILED.value]
+        counts = _grant_counts(db, [r.id for r in rows])
+        return [_dataset_out(r, counts.get(r.id, 0)) for r in rows]
     return [_dataset_out(r) for r in rows]
+
+
+@router.get("/datasets/{dataset_id}", response_model=DatasetDetailOut)
+def get_dataset(
+    dataset_id: int,
+    _user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> DatasetDetailOut:
+    """Dataset detail for DPO: verifier checks and column counts per action — metadata only."""
+    ds = _get_dataset(db, dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    verifier_rows = db.scalars(
+        select(db_models.VerifierResult)
+        .where(db_models.VerifierResult.dataset_id == ds.id)
+        .order_by(db_models.VerifierResult.id)
+    ).all()
+    action_counts: dict[str, int] = {}
+    if ds.run is not None:
+        for column in _preview_columns_from_run(ds.run):
+            action = "DROP" if column.transform == "DROPPED" else column.transform
+            action_counts[action] = action_counts.get(action, 0) + 1
+    return DatasetDetailOut(
+        **_dataset_fields(ds, _grant_counts(db, [ds.id]).get(ds.id, 0)),
+        run_status=RunStatus(ds.run.status) if ds.run is not None else None,
+        verifier_results=[VerifierResultOut.model_validate(v) for v in verifier_rows],
+        action_counts=action_counts,
+    )
 
 
 @router.post("/datasets/{dataset_id}/publish", response_model=DatasetOut)
@@ -301,15 +362,13 @@ def revoke_dataset(
         db_part = output_loc.removeprefix("mongodb://").split("/")[0]
         if db_part:
             try:
-                import os
-
                 from pymongo import MongoClient
 
-                mongo_target = (
-                    settings.mongo_source_uri
-                    or settings.mongo_uri
-                    or os.getenv("MONGO_URI", "mongodb://localhost:27017")
-                )
+                # User sources keep the protected DB on their own cluster, not the .env one.
+                if ds.run is not None:
+                    mongo_target = _mongo_uri_for_run(ds.run, db)
+                else:
+                    mongo_target = settings.mongo_source_uri or settings.mongo_uri
                 client = MongoClient(mongo_target)
                 client.drop_database(db_part)
                 client.close()
@@ -327,7 +386,8 @@ def revoke_dataset(
     ds.revoked_at = datetime.now(UTC)
     ds.output_location = f"[REVOKED_AND_DROPPED: {output_loc}]"
     if ds.run is not None:
-        ds.run.status = RunStatus.REVOKED.value
+        # Back to review with its decisions kept: the DPO can fix them, save (rebuilds this dataset) and republish.
+        ds.run.status = RunStatus.READY_TO_BUILD.value
 
     # 4. Record audit trail with rollback details
     _write_audit(
@@ -458,7 +518,15 @@ def preview_dataset(
                 )
             )
 
+    checks = db.scalars(
+        select(db_models.VerifierResult.status).where(db_models.VerifierResult.dataset_id == ds.id)
+    ).all()
+    verification = (
+        DatasetVerification(passed=sum(1 for c in checks if c == "PASSED"), total=len(checks)) if checks else None
+    )
+
     return DatasetPreview(
+        verification=verification,
         dataset_id=ds.id,
         dataset_name=ds.dataset_name,
         status=DatasetStatus(ds.status),
@@ -485,7 +553,20 @@ def list_dataset_grants(
         .where(db_models.DatasetGrant.dataset_id == dataset_id)
         .order_by(db_models.DatasetGrant.id)
     ).all()
-    return [DatasetGrantOut.model_validate(g) for g in grants]
+    usernames = _usernames(db, {g.user_id for g in grants})
+    return [
+        DatasetGrantOut.model_validate(g).model_copy(update={"username": usernames.get(g.user_id)})
+        for g in grants
+    ]
+
+
+def _usernames(db: Session, user_ids: set[int]) -> dict[int, str]:
+    if not user_ids:
+        return {}
+    rows = db.execute(
+        select(db_models.DemoUser.id, db_models.DemoUser.username).where(db_models.DemoUser.id.in_(user_ids))
+    ).all()
+    return {user_id: username for user_id, username in rows}
 
 
 @router.post("/datasets/{dataset_id}/grants", response_model=DatasetGrantOut, status_code=status.HTTP_201_CREATED)
@@ -511,7 +592,7 @@ def grant_dataset_access(
         )
     )
     if existing:
-        return DatasetGrantOut.model_validate(existing)
+        return DatasetGrantOut.model_validate(existing).model_copy(update={"username": target_user.username})
 
     grant = db_models.DatasetGrant(
         dataset_id=dataset_id,
@@ -529,7 +610,7 @@ def grant_dataset_access(
     )
     db.commit()
     db.refresh(grant)
-    return DatasetGrantOut.model_validate(grant)
+    return DatasetGrantOut.model_validate(grant).model_copy(update={"username": target_user.username})
 
 
 @router.delete("/datasets/{dataset_id}/grants/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

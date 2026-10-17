@@ -102,11 +102,21 @@ class SourceScopeItem(BaseModel):
     document_count: int | None = None
 
 
+class ScopeRelationship(BaseModel):
+    """Join between two tables/collections (declared FK, logical key or inferred Mongo reference)."""
+
+    source_table: str
+    source_column: str
+    target_table: str
+    target_column: str
+
+
 class SourceScope(BaseModel):
     source_id: str
     source_type: SourceType
     engine: str
     items: list[SourceScopeItem]
+    relationships: list[ScopeRelationship] = Field(default_factory=list)
 
 
 # --- Runs / field review / build ---
@@ -165,6 +175,10 @@ class RunCreate(BaseModel):
         default_factory=list,
         description="Selected table/collection names to scan",
     )
+    link_scope: list[str] = Field(
+        default_factory=list,
+        description="Link-only tables (missing parent/bridge tables): join keys default to HMAC, other fields DROP",
+    )
 
 
 class FieldProfileOut(BaseModel):
@@ -178,6 +192,7 @@ class FieldProfileOut(BaseModel):
     detector_source: DetectorSource
     coverage_status: str
     recommended_action: PolicyAction
+    confidence_score: float | None = None
 
     model_config = {"from_attributes": True}
 
@@ -243,6 +258,13 @@ class DatasetOut(BaseModel):
     dataset_name: str
     status: DatasetStatus
     output_location: str
+    created_at: datetime | None = None
+    published_at: datetime | None = None
+    revoked_at: datetime | None = None
+    source_id: str | None = None
+    source_name: str | None = None
+    engine: str | None = None
+    grant_count: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -261,6 +283,13 @@ class DatasetRelationship(BaseModel):
     target_column: str
 
 
+class DatasetVerification(BaseModel):
+    """Outcome of the downstream verifier for a dataset: counts only, safe to show an Analyst."""
+
+    passed: int
+    total: int
+
+
 class DatasetPreview(BaseModel):
     dataset_id: int
     dataset_name: str
@@ -271,6 +300,7 @@ class DatasetPreview(BaseModel):
     selected_table: str = Field(default="", description="Table/collection the rows belong to")
     note: str = "Processed output only; raw source values are never included"
     relationships: list[DatasetRelationship] = Field(default_factory=list)
+    verification: DatasetVerification | None = None
 
 
 class RunOut(BaseModel):
@@ -304,6 +334,40 @@ class VerifierResultOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RunSummaryOut(BaseModel):
+    """Lightweight run row for the DPO run history list (no field profiles, no values)."""
+
+    id: int
+    source_id: str
+    source_type: SourceType
+    source_name: str
+    engine: str
+    status: RunStatus
+    created_by: int
+    created_by_username: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    field_count: int = 0
+    pii_field_count: int = 0
+    decided_count: int = 0
+    latest_dataset_id: int | None = None
+    latest_dataset_status: DatasetStatus | None = None
+
+
+class DatasetDetailOut(DatasetOut):
+    """Dataset plus verifier checks and per-action column counts (metadata only)."""
+
+    run_status: RunStatus | None = None
+    verifier_results: list[VerifierResultOut] = Field(default_factory=list)
+    action_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    role: UserRole
+
+
 class BuildResponse(BaseModel):
     run: RunOut
     dataset: DatasetOut
@@ -325,6 +389,12 @@ class ColumnProfile(BaseModel):
     system_recommendation: str | None = Field(
         default=None, description="Gợi ý cứng của hệ thống (ví dụ: HASHING cho KEY)"
     )
+    length_mean: float | None = Field(default=None, description="Trung bình chiều dài dữ liệu cột")
+    length_variance: float | None = Field(default=None, description="Phương sai chiều dài dữ liệu cột")
+    # Distribution stats computed inside the source DB (counts only, never values). In-memory only.
+    profiled_values: int | None = Field(default=None, description="Số giá trị khác NULL đã thống kê")
+    distinct_ratio: float | None = Field(default=None, description="Số giá trị khác nhau / số giá trị khác NULL")
+    null_ratio: float | None = Field(default=None, description="Tỷ lệ NULL trên số dòng đã thống kê")
 
 
 class TableRelation(BaseModel):
@@ -359,6 +429,7 @@ class FieldScanResult(BaseModel):
     tier: str = Field(default="", description="Tầng ra quyết định (TIER_1, TIER_2, TIER_3)")
     bm25_score: float | None = Field(default=None, description="Điểm tần suất từ khóa BM25 (Tầng 2)")
     hybrid_score: float | None = Field(default=None, description="Điểm hỗn hợp Hybrid (Tầng 3.1)")
+    confidence_score: float | None = Field(default=None, description="Điểm tin cậy của tier (BM25 normalized, hybrid fusion, hoặc LLM softmax)")
     provider_meta: dict | None = Field(default=None, description="LLM provider metadata (usage/model), no data")
 
 # --- Schema cho Luồng Enterprise (Gate 2 - Không chứa raw PII) ---
@@ -406,6 +477,10 @@ class AuditEventOut(BaseModel):
     entry_hash: str
     request_id: str | None = None
     client_ip: str | None = None
+    actor_username: str | None = None
+    # Display context: the run the event belongs to (also for dataset events) and its source's name.
+    run_id: int | None = None
+    source_name: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -460,5 +535,6 @@ class DatasetGrantOut(BaseModel):
     user_id: int
     granted_by: int
     created_at: datetime
+    username: str | None = None
 
     model_config = {"from_attributes": True}

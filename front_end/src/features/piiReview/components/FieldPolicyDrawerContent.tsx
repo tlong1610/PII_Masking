@@ -37,6 +37,8 @@ interface FieldPolicyDrawerContentProps {
   getActionOptionNote: (action: PolicyAction) => string;
   onSave: (action: PolicyAction, note: FieldDecisionNote) => void;
   onClose: () => void;
+  /** Published runs are shown for reference only; saving is disabled. */
+  readOnly?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function FieldPolicyDrawerContent({
   getActionOptionNote,
   onSave,
   onClose,
+  readOnly = false,
 }: FieldPolicyDrawerContentProps): JSX.Element {
   const [draftAction, setDraftAction] = useState<PolicyAction>(initialAction);
   const [draftNote, setDraftNote] = useState<FieldDecisionNote>(initialNote);
@@ -126,13 +129,13 @@ export function FieldPolicyDrawerContent({
       {/* Legal Basis Callout */}
       <Box sx={{ p: 2, borderRadius: '6px', bgcolor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
         <Typography variant="caption" sx={{ fontWeight: 700, color: '#1E40AF', display: 'block' }}>
-          Căn cứ pháp lý Nghị định 13/2023/NĐ-CP:
+          Căn cứ pháp lý: Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP
         </Typography>
         <Typography variant="caption" sx={{ color: '#1E3A8A', mt: 0.5, display: 'block', lineHeight: 1.5 }}>
           {kind === 'SENSITIVE' &&
-            'Điều 2 Khoản 4: Dữ liệu cá nhân nhạy cảm gắn liền với quyền riêng tư của cá nhân. Bắt buộc áp dụng biện pháp bảo vệ cao nhất.'}
+            'Dữ liệu cá nhân nhạy cảm gắn liền với quyền riêng tư của cá nhân. Bắt buộc áp dụng biện pháp bảo vệ cao nhất.'}
           {kind === 'PII' &&
-            'Điều 2 Khoản 3: Dữ liệu cá nhân cơ bản giúp nhận dạng cá nhân. Giữ nguyên chỉ được phép dưới dạng ngoại lệ có thời hạn.'}
+            'Dữ liệu cá nhân cơ bản giúp nhận dạng cá nhân. Giữ nguyên chỉ được phép dưới dạng ngoại lệ có thời hạn.'}
           {kind === 'UNKNOWN' &&
             'Hệ thống chưa xác định được cột này. Nếu bạn chắc chắn đây không phải dữ liệu cá nhân, hãy xác nhận kèm lý do để được giữ nguyên.'}
           {kind === 'NON_PERSONAL' && 'Không phải dữ liệu cá nhân: có thể giữ nguyên để Analyst phân tích.'}
@@ -236,13 +239,8 @@ export function FieldPolicyDrawerContent({
 
       {/* Footer */}
       <Box sx={{ mt: 'auto', pt: 2 }}>
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={handleSave}
-          sx={{ bgcolor: '#1B51A4', '&:hover': { bgcolor: '#154185' } }}
-        >
-          Lưu &amp; Áp dụng thay đổi
+        <Button variant="contained" fullWidth onClick={handleSave} disabled={readOnly}>
+          {readOnly ? 'Quyết định đã khóa' : 'Lưu & áp dụng thay đổi'}
         </Button>
       </Box>
     </Stack>

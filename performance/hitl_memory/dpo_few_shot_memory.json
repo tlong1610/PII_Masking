@@ -1,0 +1,273 @@
+{
+  "stream_a_tabular_examples": [
+    {
+      "column_name": "business_tax_number",
+      "data_shape": [
+        "XXXXXXXXXX"
+      ],
+      "dpo_decision": "TAX_CODE_ORG",
+      "action": "KEEP",
+      "notes": "Mã số thuế doanh nghiệp/tổ chức (công khai trong hồ sơ B2B, không phải PII cá nhân)."
+    },
+    {
+      "column_name": "company_tax_id",
+      "data_shape": [
+        "XXXXXXXXXX"
+      ],
+      "dpo_decision": "TAX_CODE_ORG",
+      "action": "KEEP",
+      "notes": "Mã số thuế công ty đối tác, không che."
+    },
+    {
+      "column_name": "supplier_name",
+      "data_shape": [
+        "Cccccc Cccccc"
+      ],
+      "dpo_decision": "ORGANIZATION_NAME",
+      "action": "KEEP",
+      "notes": "Tên pháp nhân công ty / nhà cung cấp, giữ nguyên cho nghiệp vụ mua hàng."
+    },
+    {
+      "column_name": "source_account",
+      "data_shape": [
+        "XXXXXXXXXXXX"
+      ],
+      "dpo_decision": "BANK_ACCOUNT",
+      "action": "MASK",
+      "notes": "Tài khoản nguồn của khách hàng cá nhân trong bảng giao dịch, cần MASK."
+    },
+    {
+      "column_name": "destination_account",
+      "data_shape": [
+        "XXXXXXXXXXXX"
+      ],
+      "dpo_decision": "BANK_ACCOUNT",
+      "action": "MASK",
+      "notes": "Tài khoản đích nhận tiền của cá nhân, cần MASK."
+    },
+    {
+      "column_name": "so_tai_khoan",
+      "data_shape": [
+        "XXXXXXXXXXXX"
+      ],
+      "dpo_decision": "BANK_ACCOUNT",
+      "action": "MASK",
+      "notes": "Số tài khoản ngân hàng cá nhân, che mờ phần giữa."
+    },
+    {
+      "column_name": "account_number",
+      "data_shape": [
+        "XXXXXXXXXXXX"
+      ],
+      "dpo_decision": "BANK_ACCOUNT",
+      "action": "MASK",
+      "notes": "Số tài khoản ngân hàng, áp dụng Masking."
+    },
+    {
+      "column_name": "street_address",
+      "data_shape": [
+        "XX Cccccc Cccccc"
+      ],
+      "dpo_decision": "STREET_ADDRESS",
+      "action": "MASK",
+      "notes": "Địa chỉ nhà/đường phố cụ thể có tính định danh cao, cần MASK (khác với CITY)."
+    },
+    {
+      "column_name": "residential_address",
+      "data_shape": [
+        "XX Cccccc Cccccc"
+      ],
+      "dpo_decision": "STREET_ADDRESS",
+      "action": "MASK",
+      "notes": "Địa chỉ nơi cư trú của cá nhân, cần MASK."
+    },
+    {
+      "column_name": "address",
+      "data_shape": [
+        "XX Cccccc Cccccc"
+      ],
+      "dpo_decision": "STREET_ADDRESS",
+      "action": "MASK",
+      "notes": "Địa chỉ liên hệ cá nhân, cần MASK."
+    },
+    {
+      "column_name": "fingerprint_template",
+      "data_shape": [
+        "XXXXXXXXXX"
+      ],
+      "dpo_decision": "BIOMETRIC_DATA",
+      "action": "DROP",
+      "notes": "Dữ liệu sinh trắc học vân tay nhạy cảm cao, DROP khỏi view phân tích."
+    },
+    {
+      "column_name": "biometric_template",
+      "data_shape": [
+        "XXXXXXXXXX"
+      ],
+      "dpo_decision": "BIOMETRIC_DATA",
+      "action": "DROP",
+      "notes": "Mẫu sinh trắc học nhận dạng, DROP."
+    },
+    {
+      "column_name": "face_vector_512d",
+      "data_shape": [
+        "0.123, -0.456..."
+      ],
+      "dpo_decision": "BIOMETRIC_DATA",
+      "action": "DROP",
+      "notes": "Vector đặc trưng khuôn mặt 512 chiều, DROP."
+    },
+    {
+      "column_name": "id_card_back_path",
+      "data_shape": [
+        "/kyc/id_back.jpg"
+      ],
+      "dpo_decision": "OCR_IDENTITY_DOC",
+      "action": "DROP",
+      "notes": "Đường dẫn ảnh tài liệu KYC nhạy cảm, DROP."
+    },
+    {
+      "column_name": "extracted_raw_ocr",
+      "data_shape": [
+        "Cccccc XXXXXXXXX..."
+      ],
+      "dpo_decision": "OCR_IDENTITY_DOC",
+      "action": "DROP",
+      "notes": "Chuỗi ký tự trích xuất OCR nguyên bản từ giấy tờ tùy thân, DROP."
+    },
+    {
+      "column_name": "previous_termination_reason",
+      "data_shape": [
+        "None"
+      ],
+      "dpo_decision": "EMPTY_COLUMN",
+      "action": "DROP",
+      "notes": "Lý do chấm dứt hợp đồng nhạy cảm đặc biệt nhân sự / cột rỗng, DROP."
+    },
+    {
+      "column_name": "tax_exception_note",
+      "data_shape": [
+        "None"
+      ],
+      "dpo_decision": "EMPTY_COLUMN",
+      "action": "DROP",
+      "notes": "Ghi chú miễn trừ thuế / cột phụ rỗng, DROP."
+    }
+  ],
+  "stream_b_freetext_examples": [
+    {
+      "text_snippet": "The address of Persint is 6750 Koskikatu 25 Apt. 864 Artilleros, CO Uruguay 64677",
+      "entities": [
+        {
+          "text": "Persint",
+          "label": "organization",
+          "pii_type": "TAX_CODE_ORG",
+          "action": "KEEP"
+        },
+        {
+          "text": "6750 Koskikatu 25 Apt. 864 Artilleros, CO Uruguay 64677",
+          "label": "address",
+          "pii_type": "STREET_ADDRESS",
+          "action": "MASK"
+        }
+      ],
+      "dpo_notes": "Persint là tên tổ chức kinh doanh (KEEP). Chuỗi địa chỉ quốc tế bao gồm số nhà, căn hộ, thành phố và mã bưu điện cần được bao trọn vẹn thành 1 span duy nhất và MASK."
+    },
+    {
+      "text_snippet": "Vui lòng liên hệ với anh Nguyễn Văn Minh qua email minh.nguyen@example.vn hoặc gọi 0901234567.",
+      "entities": [
+        {
+          "text": "Nguyễn Văn Minh",
+          "label": "person",
+          "pii_type": "PERSON_NAME",
+          "action": "MASK"
+        },
+        {
+          "text": "minh.nguyen@example.vn",
+          "label": "email",
+          "pii_type": "EMAIL",
+          "action": "MASK"
+        },
+        {
+          "text": "0901234567",
+          "label": "phone number",
+          "pii_type": "PHONE",
+          "action": "MASK"
+        }
+      ],
+      "dpo_notes": "Họ và tên 3 âm tiết đứng sau danh xưng 'anh' -> MASK. Email và SĐT được bắt tự động bởi Tầng 1 Regex và kiểm chứng bởi Tầng 3."
+    },
+    {
+      "text_snippet": "Khách hàng James O'Brien, mang CCCD số 033254456184, hiện cư trú tại 123 Nguyễn Trãi, Phường 2, Quận 5, TP.HCM.",
+      "entities": [
+        {
+          "text": "James O'Brien",
+          "label": "person",
+          "pii_type": "PERSON_NAME",
+          "action": "MASK"
+        },
+        {
+          "text": "033254456184",
+          "label": "id document",
+          "pii_type": "CCCD",
+          "action": "HMAC"
+        },
+        {
+          "text": "123 Nguyễn Trãi, Phường 2, Quận 5, TP.HCM",
+          "label": "address",
+          "pii_type": "STREET_ADDRESS",
+          "action": "MASK"
+        }
+      ],
+      "dpo_notes": "Tên người nước ngoài có dấu nháy đơn 'O'Brien' phải giữ nguyên span. CCCD áp dụng HMAC. Địa chỉ chi tiết tới cấp quận/huyện cần MASK."
+    },
+    {
+      "text_snippet": "Công ty TNHH Giải Pháp Công Nghệ TechVina đã ký hợp đồng dịch vụ đám mây.",
+      "entities": [
+        {
+          "text": "Công ty TNHH Giải Pháp Công Nghệ TechVina",
+          "label": "organization",
+          "pii_type": "TAX_CODE_ORG",
+          "action": "KEEP"
+        }
+      ],
+      "dpo_notes": "Tên pháp nhân công ty chứa tiền tố 'Công ty TNHH' là thông tin B2B công khai, tuyệt đối KHÔNG MASK để giữ ngữ cảnh nghiệp vụ."
+    },
+    {
+      "text_snippet": "Bác sĩ Trần Thị Hương đã khám cho bệnh nhân tại Bệnh viện Bạch Mai ngày 12/04/2024.",
+      "entities": [
+        {
+          "text": "Trần Thị Hương",
+          "label": "person",
+          "pii_type": "PERSON_NAME",
+          "action": "MASK"
+        },
+        {
+          "text": "Bệnh viện Bạch Mai",
+          "label": "organization",
+          "pii_type": "TAX_CODE_ORG",
+          "action": "KEEP"
+        }
+      ],
+      "dpo_notes": "Phân định rõ ranh giới: tên người hành nghề y tế là PII cần che (MASK); tên cơ sở y tế / bệnh viện là pháp nhân tổ chức (KEEP)."
+    },
+    {
+      "text_snippet": "Tài khoản thụ hưởng chuyển tiền là 0123456789 mở tại Ngân hàng Vietcombank.",
+      "entities": [
+        {
+          "text": "0123456789",
+          "label": "bank account",
+          "pii_type": "BANK_ACCOUNT",
+          "action": "MASK"
+        },
+        {
+          "text": "Vietcombank",
+          "label": "organization",
+          "pii_type": "TAX_CODE_ORG",
+          "action": "KEEP"
+        }
+      ],
+      "dpo_notes": "Số tài khoản ngân hàng cá nhân phải MASK. Tên định chế tài chính ngân hàng giữ nguyên (KEEP)."
+    }
+  ]
+}

@@ -18,6 +18,7 @@ except ImportError:
     MongoClient = None
     PyMongoError = Exception
 
+from src.detection.column_stats import ratios_from_counts
 from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def _infer_data_type(value: Any) -> str:
         return "integer"
     if isinstance(value, float):
         return "float"
-    if isinstance(value, (datetime, date)):
+    if isinstance(value, datetime | date):
         return "date"
     if isinstance(value, list):
         return "array"
@@ -205,13 +206,19 @@ class MongoConnector:
                             field_metadata[field_path] = {
                                 "type": _infer_data_type(val) if val is not None else "string",
                                 "samples": set(),
+                                "lengths": [],
+                                # hash() of each value only: enough to count distinct values, keeps no value
+                                "value_hashes": set(),
                             }
-                        if val is not None and len(field_metadata[field_path]["samples"]) < sample_size:
+                        if val is not None:
                             val_str = str(val).strip()
-                            if val_str:
-                                field_metadata[field_path]["samples"].add(val_str)
-                        if val is not None and field_metadata[field_path]["type"] == "string":
-                            field_metadata[field_path]["type"] = _infer_data_type(val)
+                            field_metadata[field_path]["lengths"].append(len(val_str))
+                            field_metadata[field_path]["value_hashes"].add(hash(val_str))
+                            if len(field_metadata[field_path]["samples"]) < sample_size:
+                                if val_str:
+                                    field_metadata[field_path]["samples"].add(val_str)
+                            if field_metadata[field_path]["type"] == "string":
+                                field_metadata[field_path]["type"] = _infer_data_type(val)
 
                 # Build ColumnProfiles
                 column_profiles: list[ColumnProfile] = []
@@ -219,6 +226,22 @@ class MongoConnector:
                     is_pk = (field_path == "_id")
                     is_fk = (field_path in fk_columns)
                     system_rec = "HASHING" if (is_pk or is_fk) else None
+
+                    lengths = meta.get("lengths", [])
+                    length_mean = None
+                    length_variance = None
+                    if lengths:
+                        n = len(lengths)
+                        length_mean = sum(lengths) / n
+                        if n > 1:
+                            length_variance = sum((x - length_mean) ** 2 for x in lengths) / (n - 1)
+                        else:
+                            length_variance = 0.0
+
+                    # Missing fields count as empty: every scanned document either has a value or not.
+                    profiled_values, distinct_ratio, null_ratio = ratios_from_counts(
+                        len(flattened_docs), len(lengths), len(meta["value_hashes"])
+                    )
 
                     col_prof = ColumnProfile(
                         table_name=coll_name,
@@ -228,6 +251,11 @@ class MongoConnector:
                         is_foreign_key=is_fk,
                         samples=list(meta["samples"])[:sample_size],
                         system_recommendation=system_rec,
+                        length_mean=length_mean,
+                        length_variance=length_variance,
+                        profiled_values=profiled_values,
+                        distinct_ratio=distinct_ratio,
+                        null_ratio=null_ratio,
                     )
                     column_profiles.append(col_prof)
 

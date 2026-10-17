@@ -5,6 +5,9 @@ import * as api from '../api/realPiiReviewApi';
 // QUERY KEYS
 // ============================================================================
 
+// Dataset details (verification shown on the run page) are cached by the datasets feature under this key.
+const DATASET_DETAIL_KEY = ['datasets'] as const;
+
 export const piiReviewQueryKeys = {
   sources: ['pii-review', 'sources'] as const,
   sourceScope: (sourceId: string) => ['pii-review', 'source-scope', sourceId] as const,
@@ -73,14 +76,6 @@ export function useSourceScope(sourceId: string | null) {
 // RUNS
 // ============================================================================
 
-export function useRuns(sourceId?: string) {
-  return useQuery({
-    queryKey: [...piiReviewQueryKeys.runs, sourceId],
-    queryFn: () => api.listRuns(sourceId),
-    staleTime: 10000,
-  });
-}
-
 export function useRun(runId: number | null) {
   return useQuery({
     queryKey: piiReviewQueryKeys.run(runId!),
@@ -94,9 +89,18 @@ export function useCreateScanRun() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ sourceId, selectedScope }: { sourceId: string; selectedScope: string[] }) =>
-      api.createScanRun(sourceId, selectedScope),
-    onSuccess: () => {
+    mutationFn: ({
+      sourceId,
+      selectedScope,
+      linkScope = [],
+    }: {
+      sourceId: string;
+      selectedScope: string[];
+      linkScope?: string[];
+    }) => api.createScanRun(sourceId, selectedScope, linkScope),
+    onSuccess: (run) => {
+      // Seed the run so the review renders at once instead of refetching it.
+      queryClient.setQueryData(piiReviewQueryKeys.run(run.id), run);
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
     },
   });
@@ -130,6 +134,7 @@ export function useBuildDataset(runId: number) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      void queryClient.invalidateQueries({ queryKey: DATASET_DETAIL_KEY });
     },
   });
 }
@@ -153,6 +158,9 @@ export function usePublishDataset() {
     mutationFn: (datasetId: number) => api.publishDataset(datasetId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      void queryClient.invalidateQueries({ queryKey: DATASET_DETAIL_KEY });
+      // Publishing also moves the run to PUBLISHED.
+      void queryClient.invalidateQueries({ queryKey: ['pii-review', 'run'] });
     },
   });
 }
@@ -164,6 +172,10 @@ export function useRevokeDataset() {
     mutationFn: (datasetId: number) => api.revokeDataset(datasetId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
+      void queryClient.invalidateQueries({ queryKey: DATASET_DETAIL_KEY });
+      // Revoking sends the run back to review.
+      void queryClient.invalidateQueries({ queryKey: ['pii-review', 'run'] });
+      void queryClient.invalidateQueries({ queryKey: ['pii-review', 'risk-score'] });
     },
   });
 }

@@ -2,7 +2,7 @@
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.config import get_settings
@@ -55,7 +55,7 @@ def reset_engine() -> None:
 
 def seed_demo_users(db: Session) -> None:
     settings = get_settings()
-    if settings.app_env.lower() == "production":
+    if settings.app_env.lower() == "production" and not settings.seed_demo_users:
         return
     for row in DEMO_USERS:
         exists = db.scalar(select(DemoUser).where(DemoUser.username == row["username"]))
@@ -64,9 +64,28 @@ def seed_demo_users(db: Session) -> None:
     db.commit()
 
 
+# Nullable columns added after a table first shipped. create_all() never alters existing tables and there
+# are no migrations, so they are added here; each entry is (table, column, SQL type).
+_ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    ("field_profiles", "confidence_score", "FLOAT"),
+)
+
+
+def _add_missing_columns(engine) -> None:
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table, column, sql_type in _ADDED_COLUMNS:
+            if table not in tables:
+                continue
+            if column not in {c["name"] for c in inspector.get_columns(table)}:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
+
+
 def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns(engine)
     db = get_session_factory()()
     try:
         seed_demo_users(db)

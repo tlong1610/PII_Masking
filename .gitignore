@@ -16,6 +16,7 @@ env/
 .env
 .env.local
 .env.production
+front_end/.env.production
 
 # IDE
 .vscode/
@@ -73,3 +74,5 @@ out/
 **/mcp_config.json
 # Claude Code guidance (local)
 CLAUDE.md
+
+performance/data/AB_dataset/train.json

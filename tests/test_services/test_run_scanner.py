@@ -347,3 +347,20 @@ def test_llm_node_uses_temperature_zero_and_closed_labels(monkeypatch):
     out = tier3_llm_node({"column_profile": _text_col("ship_region_label"), "data_shape": ["CCCC"]})
     assert calls == [{"temperature": 0}]
     assert out["tier3_result"].inferred_pii_type == "UNKNOWN"
+
+
+def test_gender_is_basic_personal_data_and_never_proposed_keep():
+    """NĐ 13/2023 Điều 2 khoản 3 điểm c names gender as basic personal data: L2, masked by default."""
+    from src.services.risk_scorer import resolve_sensitivity_level
+
+    column = ColumnProfile(
+        column_name="gioi_tinh", data_type="varchar", is_primary_key=False, is_foreign_key=False, samples=[]
+    )
+    result = FieldScanResult(
+        field_name="gioi_tinh", inferred_pii_type="GENDER", confidence=0.9, recommended_action="KEEP", reasoning="r"
+    )
+    spec = field_profile_spec(table="patients", column=column, result=result)
+    assert spec["classification"] == "PERSONAL_BASIC"
+    assert spec["recommended_action"] == "MASK"
+    assert resolve_sensitivity_level(classification=spec["classification"], taxonomy_id="GENDER") == "L2"
+    assert resolve_sensitivity_level(field_path="gioi_tinh") == "L2"

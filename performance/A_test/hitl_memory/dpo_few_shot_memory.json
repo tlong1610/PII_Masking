@@ -1,0 +1,155 @@
+[
+  {
+    "column_name": "business_tax_number",
+    "data_shape": [
+      "XXXXXXXXXX"
+    ],
+    "dpo_decision": "TAX_CODE_ORG",
+    "action": "KEEP",
+    "notes": "Mã số thuế doanh nghiệp/tổ chức (công khai trong hồ sơ B2B, không phải PII cá nhân)."
+  },
+  {
+    "column_name": "company_tax_id",
+    "data_shape": [
+      "XXXXXXXXXX"
+    ],
+    "dpo_decision": "TAX_CODE_ORG",
+    "action": "KEEP",
+    "notes": "Mã số thuế công ty đối tác, không che."
+  },
+  {
+    "column_name": "supplier_name",
+    "data_shape": [
+      "Cccccc Cccccc"
+    ],
+    "dpo_decision": "ORGANIZATION_NAME",
+    "action": "KEEP",
+    "notes": "Tên pháp nhân công ty / nhà cung cấp, giữ nguyên cho nghiệp vụ mua hàng."
+  },
+  {
+    "column_name": "source_account",
+    "data_shape": [
+      "XXXXXXXXXXXX"
+    ],
+    "dpo_decision": "BANK_ACCOUNT",
+    "action": "MASK",
+    "notes": "Tài khoản nguồn của khách hàng cá nhân trong bảng giao dịch, cần MASK."
+  },
+  {
+    "column_name": "destination_account",
+    "data_shape": [
+      "XXXXXXXXXXXX"
+    ],
+    "dpo_decision": "BANK_ACCOUNT",
+    "action": "MASK",
+    "notes": "Tài khoản đích nhận tiền của cá nhân, cần MASK."
+  },
+  {
+    "column_name": "so_tai_khoan",
+    "data_shape": [
+      "XXXXXXXXXXXX"
+    ],
+    "dpo_decision": "BANK_ACCOUNT",
+    "action": "MASK",
+    "notes": "Số tài khoản ngân hàng cá nhân, che mờ phần giữa."
+  },
+  {
+    "column_name": "account_number",
+    "data_shape": [
+      "XXXXXXXXXXXX"
+    ],
+    "dpo_decision": "BANK_ACCOUNT",
+    "action": "MASK",
+    "notes": "Số tài khoản ngân hàng, áp dụng Masking."
+  },
+  {
+    "column_name": "street_address",
+    "data_shape": [
+      "XX Cccccc Cccccc"
+    ],
+    "dpo_decision": "STREET_ADDRESS",
+    "action": "MASK",
+    "notes": "Địa chỉ nhà/đường phố cụ thể có tính định danh cao, cần MASK (khác với CITY)."
+  },
+  {
+    "column_name": "residential_address",
+    "data_shape": [
+      "XX Cccccc Cccccc"
+    ],
+    "dpo_decision": "STREET_ADDRESS",
+    "action": "MASK",
+    "notes": "Địa chỉ nơi cư trú của cá nhân, cần MASK."
+  },
+  {
+    "column_name": "address",
+    "data_shape": [
+      "XX Cccccc Cccccc"
+    ],
+    "dpo_decision": "STREET_ADDRESS",
+    "action": "MASK",
+    "notes": "Địa chỉ liên hệ cá nhân, cần MASK."
+  },
+  {
+    "column_name": "fingerprint_template",
+    "data_shape": [
+      "XXXXXXXXXX"
+    ],
+    "dpo_decision": "BIOMETRIC_DATA",
+    "action": "DROP",
+    "notes": "Dữ liệu sinh trắc học vân tay nhạy cảm cao, DROP khỏi view phân tích."
+  },
+  {
+    "column_name": "biometric_template",
+    "data_shape": [
+      "XXXXXXXXXX"
+    ],
+    "dpo_decision": "BIOMETRIC_DATA",
+    "action": "DROP",
+    "notes": "Mẫu sinh trắc học nhận dạng, DROP."
+  },
+  {
+    "column_name": "face_vector_512d",
+    "data_shape": [
+      "0.123, -0.456..."
+    ],
+    "dpo_decision": "BIOMETRIC_DATA",
+    "action": "DROP",
+    "notes": "Vector đặc trưng khuôn mặt 512 chiều, DROP."
+  },
+  {
+    "column_name": "id_card_back_path",
+    "data_shape": [
+      "/kyc/id_back.jpg"
+    ],
+    "dpo_decision": "OCR_IDENTITY_DOC",
+    "action": "DROP",
+    "notes": "Đường dẫn ảnh tài liệu KYC nhạy cảm, DROP."
+  },
+  {
+    "column_name": "extracted_raw_ocr",
+    "data_shape": [
+      "Cccccc XXXXXXXXX..."
+    ],
+    "dpo_decision": "OCR_IDENTITY_DOC",
+    "action": "DROP",
+    "notes": "Chuỗi ký tự trích xuất OCR nguyên bản từ giấy tờ tùy thân, DROP."
+  },
+  {
+    "column_name": "previous_termination_reason",
+    "data_shape": [
+      "None"
+    ],
+    "dpo_decision": "EMPTY_COLUMN",
+    "action": "DROP",
+    "notes": "Lý do chấm dứt hợp đồng nhạy cảm đặc biệt nhân sự / cột rỗng, DROP."
+  },
+  {
+    "column_name": "tax_exception_note",
+    "data_shape": [
+      "None"
+    ],
+    "dpo_decision": "EMPTY_COLUMN",
+    "action": "DROP",
+    "notes": "Ghi chú miễn trừ thuế / cột phụ rỗng, DROP."
+  }
+]

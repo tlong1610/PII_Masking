@@ -57,6 +57,7 @@ def _check(name: str, status: str) -> CheckResult:
 
 @pytest.fixture
 def pg_live(monkeypatch):
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: bool(get_settings().enable_pg_snapshot))
     monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv("SOURCE_DATABASE_URL", SOURCE_URL)
     monkeypatch.setenv("SNAPSHOT_DATABASE_URL", SNAPSHOT_URL)
@@ -69,6 +70,10 @@ def pg_live(monkeypatch):
         return [dict(s) for s in FAKE_SPECS]
 
     monkeypatch.setattr("src.services.run_scanner.scan_postgres_source", fake_scan)
+    monkeypatch.setattr(
+        "src.connectors.postgres_connector.PostgresConnector.list_relations",
+        lambda self, schema_name="public": [],
+    )
     import os
     monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: os.getenv("ENABLE_PG_SNAPSHOT") == "true")
     yield calls
@@ -121,6 +126,7 @@ async def test_sql_source_status_follows_pg_config(client, monkeypatch):
     sql = next(s for s in listed.json() if s["id"] == "sql-demo")
     assert sql["status"] == "demo_stub"
 
+    monkeypatch.setattr("src.api.sources.pg_live_enabled", lambda: bool(get_settings().enable_pg_snapshot))
     monkeypatch.setenv("ENABLE_PG_SNAPSHOT", "true")
     monkeypatch.setenv("SOURCE_DATABASE_URL", SOURCE_URL)
     monkeypatch.setenv("SNAPSHOT_DATABASE_URL", SNAPSHOT_URL)
@@ -245,6 +251,7 @@ async def test_scanned_run_never_verifies_via_stub(client, pg_live, monkeypatch)
 @pytest.mark.asyncio
 async def test_pg_build_blocked_when_join_key_action_mismatch(client, pg_live, monkeypatch):
     """Build must return 422 when one end of a PG join-key uses a different action."""
+    _mock_pipeline(monkeypatch, pg_live, ("PASSED", "PASSED"))
     token = await _login(client, "dpo", "dpo123")
 
     # Scan produces FAKE_SPECS: customers.cccd=HMAC, orders.customer_cccd=HMAC

@@ -2,6 +2,16 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 
+# Fix brotlicffi Decompressor.decompress signature compatibility with httpx2
+try:
+    import brotlicffi
+    _orig_decompress = brotlicffi.Decompressor.decompress
+    def _safe_decompress(self, data, *args, **kwargs):
+        return _orig_decompress(self, data)
+    brotlicffi.Decompressor.decompress = _safe_decompress
+except (ImportError, AttributeError):
+    pass
+
 from src.config import get_settings
 
 
@@ -15,32 +25,33 @@ def get_llm(temperature: float | None = None) -> BaseChatModel:
     temp = settings.llm_temperature if temperature is None else temperature
     models: list[BaseChatModel] = []
 
-    # Mô hình chính (Primary): Sử dụng OpenRouter
+    # Mô hình chính (Primary): OpenAI trực tiếp (OPENAI_API_KEY + OPENAI_MODEL)
+    if settings.openai_api_key:
+        models.append(
+            ChatOpenAI(
+                api_key=settings.openai_api_key,
+                model=settings.openai_model or "gpt-4o-mini",
+                temperature=temp,
+                logprobs=True,
+            )
+        )
+
+    # Mô hình dự phòng 1 (Fallback 1): Sử dụng OpenRouter
     if settings.openrouter_api_key:
         models.append(
             ChatOpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=settings.openrouter_api_key,
-                model=settings.model_name,
+                model=settings.model_name or "gpt-4o-mini",
                 temperature=temp,
             )
         )
 
-    # OpenAI trực tiếp (OPENAI_API_KEY + OPENAI_MODEL)
-    if settings.openai_api_key:
-        models.append(
-            ChatOpenAI(
-                api_key=settings.openai_api_key,
-                model=settings.openai_model,
-                temperature=temp,
-            )
-        )
-
-    # Mô hình dự phòng (Fallback): Sử dụng Gemini 3.5 Flash Lite trực tiếp từ Google
+    # Mô hình dự phòng 2 (Fallback 2): Sử dụng Gemini trực tiếp từ Google
     if settings.google_api_key:
         models.append(
             ChatGoogleGenerativeAI(
-                model="gemini-3.5-flash-lite",
+                model="gemini-2.0-flash",
                 api_key=settings.google_api_key,
                 temperature=temp,
             )

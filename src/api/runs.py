@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.agents.orchestrator import build_orchestrator_graph
@@ -30,6 +30,7 @@ from src.models.schemas import (
     RunCreate,
     RunOut,
     RunStatus,
+    RunSummaryOut,
     SourceType,
     UserRole,
     VerifierCheckStatus,
@@ -111,6 +112,46 @@ def _stub_field_specs(source_type: SourceType, selected_scope: tuple[str, ...]) 
     return specs
 
 
+def _clean_names(names: list[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(name.strip() for name in names if name.strip()))
+
+
+Relation = tuple[str, str, str, str]
+
+
+def _relations_in_scope(relations: list[Relation], tables: set[str]) -> list[Relation]:
+    """Joins whose both ends were scanned; joins to tables outside the run are not checked or verified."""
+    return list(dict.fromkeys(r for r in relations if r[0] in tables and r[2] in tables))
+
+
+def _cut_relations(relations: list[Relation], tables: set[str]) -> list[str]:
+    """Joins with exactly one end in the run: linkage the DPO chose to leave out (names only)."""
+    return sorted(
+        {f"{r[0]}.{r[1]}->{r[2]}.{r[3]}" for r in relations if (r[0] in tables) != (r[2] in tables)}
+    )
+
+
+def _apply_link_table_defaults(specs: list[dict], link_tables: set[str], relations: list[Relation]) -> None:
+    """Link-only tables keep just their join keys (HMAC); every other field defaults to DROP.
+
+    The other end of a join to a link table is also proposed as HMAC so the snapshot still joins.
+    DPO still reviews every field.
+    """
+    if not link_tables:
+        return
+    keys: set[tuple[str, str]] = set()
+    for from_table, from_col, to_table, to_col in relations:
+        if from_table in link_tables or to_table in link_tables:
+            keys.add((from_table, from_col))
+            keys.add((to_table, to_col))
+    for spec in specs:
+        key = (spec["source_path"], spec["field_path"])
+        if key in keys:
+            spec["recommended_action"] = PolicyAction.HMAC.value
+        elif spec["source_path"] in link_tables:
+            spec["recommended_action"] = PolicyAction.DROP.value
+
+
 def _write_audit(
     db: Session,
     *,
@@ -145,6 +186,71 @@ def _load_run(db: Session, run_id: int) -> db_models.Run | None:
     )
 
 
+_EDITABLE_RUN_STATUSES = frozenset({RunStatus.REVIEW_REQUIRED.value, RunStatus.READY_TO_BUILD.value})
+
+
+def _latest_dataset(run: db_models.Run) -> db_models.Dataset | None:
+    return max(run.datasets, key=lambda ds: ds.id, default=None)
+
+
+def _is_rebuildable(run: db_models.Run) -> bool:
+    """Decisions may change (and the protected data be rebuilt) until the run is published.
+
+    FAILED only counts when a dataset exists, i.e. the verifier failed; a failed scan has nothing to rebuild.
+    """
+    if run.status in _EDITABLE_RUN_STATUSES or run.status == RunStatus.VERIFIED.value:
+        return True
+    return run.status == RunStatus.FAILED.value and bool(run.datasets)
+
+
+def _rebuild_blocked_message(run: db_models.Run) -> str:
+    if run.status == RunStatus.PUBLISHED.value:
+        return (
+            f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
+            "Dataset đã phát hành — thu hồi dataset trước khi chỉnh sửa."
+        )
+    return (
+        f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
+        "Chỉ cho phép khi lượt quét đang chờ duyệt hoặc đã lưu nhưng chưa phát hành."
+    )
+
+
+def _reopen_for_changes(run: db_models.Run) -> None:
+    """New decisions make the built data stale: it stays unpublishable until the next build replaces it."""
+    if run.status in _EDITABLE_RUN_STATUSES:
+        return
+    dataset = _latest_dataset(run)
+    if dataset is not None and dataset.status in (DatasetStatus.VERIFIED.value, DatasetStatus.FAILED.value):
+        dataset.status = DatasetStatus.STAGING.value
+    run.status = RunStatus.READY_TO_BUILD.value
+
+
+def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Dataset, bool]:
+    """One run has one dataset: a rebuild resets and reuses it (the snapshot target is per run anyway).
+
+    Returns (dataset, reused).
+    """
+    staging_location = f"staging://run/{run.id}/snapshot"
+    dataset = _latest_dataset(run)
+    if dataset is None:
+        dataset = db_models.Dataset(
+            run_id=run.id,
+            dataset_name=f"run-{run.id}-snapshot",
+            status=DatasetStatus.STAGING.value,
+            output_location=staging_location,
+        )
+        db.add(dataset)
+        db.flush()
+        return dataset, False
+    db.execute(delete(db_models.VerifierResult).where(db_models.VerifierResult.dataset_id == dataset.id))
+    dataset.status = DatasetStatus.STAGING.value
+    dataset.output_location = staging_location
+    dataset.published_at = None
+    dataset.revoked_at = None
+    db.flush()
+    return dataset, True
+
+
 def _run_to_out(run: db_models.Run) -> RunOut:
     return RunOut(
         id=run.id,
@@ -168,6 +274,7 @@ def _run_to_out(run: db_models.Run) -> RunOut:
                 detector_source=DetectorSource(p.detector_source),
                 coverage_status=p.coverage_status,
                 recommended_action=PolicyAction(p.recommended_action),
+                confidence_score=p.confidence_score,
             )
             for p in run.field_profiles
         ],
@@ -208,6 +315,9 @@ def _run_to_out(run: db_models.Run) -> RunOut:
                 dataset_name=ds.dataset_name,
                 status=DatasetStatus(ds.status),
                 output_location=ds.output_location,
+                created_at=ds.created_at,
+                published_at=ds.published_at,
+                revoked_at=ds.revoked_at,
             )
             for ds in run.datasets
         ],
@@ -228,7 +338,16 @@ async def _execute_create_run(
     conn = _connection_for(source, db)
     use_pg = source.engine == "postgresql" and conn.live
     use_mongo = source.engine == "mongodb" and conn.live
-    selected_scope = tuple(dict.fromkeys(item.strip() for item in body.selected_scope if item.strip()))
+    selected_scope = _clean_names(body.selected_scope)
+    # Link tables only make sense next to an explicit selection (an empty selection scans everything).
+    link_scope = tuple(t for t in _clean_names(body.link_scope) if t not in selected_scope) if selected_scope else ()
+    outside = [t for t in (*selected_scope, *link_scope) if conn.tables and t not in conn.tables]
+    if outside:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "Selected tables are outside the source allowlist", "tables": outside},
+        )
+    scan_scope = (*selected_scope, *link_scope)
 
     run = db_models.Run(
         source_id=source.id,
@@ -246,7 +365,7 @@ async def _execute_create_run(
         if use_pg:
             from src.services.run_scanner import scan_postgres_source
 
-            pg_tables = selected_scope if selected_scope else conn.tables
+            pg_tables = scan_scope if scan_scope else conn.tables
             specs = await scan_postgres_source(
                 conn.url,
                 use_ai=settings.enable_ai_scan,
@@ -259,7 +378,7 @@ async def _execute_create_run(
         elif use_mongo:
             from src.services.run_scanner import scan_mongo_source
 
-            mongo_cols = selected_scope if selected_scope else None
+            mongo_cols = scan_scope if scan_scope else conn.tables
             specs = await scan_mongo_source(
                 conn.url,
                 conn.namespace,
@@ -271,9 +390,19 @@ async def _execute_create_run(
             scope_str = ','.join(mongo_cols) if mongo_cols else 'all'
             scan_reason = f"source={source.id}; scope={scope_str}; scan=mongo-{mode}"
         else:
-            specs = _stub_field_specs(source.source_type, selected_scope or ("customers",))
+            specs = _stub_field_specs(source.source_type, scan_scope or ("customers",))
             scope_str = ','.join(selected_scope) if selected_scope else 'default'
             scan_reason = f"source={source.id}; scope={scope_str}; scan=stub"
+
+        if use_pg or use_mongo:
+            relations = _mongo_join_relations(conn) if use_mongo else _postgres_join_relations(conn)
+            scanned = {spec["source_path"] for spec in specs}
+            _apply_link_table_defaults(specs, set(link_scope), _relations_in_scope(relations, scanned))
+            cut = _cut_relations(relations, scanned)
+            if link_scope:
+                scan_reason += f"; link_tables={','.join(link_scope)}"
+            if cut:
+                scan_reason += f"; cut_links={','.join(cut)}"
 
         for spec in specs:
             db.add(db_models.FieldProfile(run_id=run.id, **spec))
@@ -335,6 +464,66 @@ async def request_run(
 
 
 
+def _run_summary(run: db_models.Run, usernames: dict[int, str]) -> RunSummaryOut:
+    decided = {d.field_profile_id for d in run.field_decisions}
+    latest = max(run.datasets, key=lambda ds: ds.id, default=None)
+    return RunSummaryOut(
+        id=run.id,
+        source_id=run.source_id,
+        source_type=SourceType(run.source_type),
+        source_name=run.source_name,
+        engine=run.engine,
+        status=RunStatus(run.status),
+        created_by=run.created_by,
+        created_by_username=usernames.get(run.created_by),
+        created_at=run.created_at,
+        updated_at=run.updated_at,
+        field_count=len(run.field_profiles),
+        pii_field_count=sum(1 for p in run.field_profiles if p.classification not in _RECLASSIFIABLE),
+        decided_count=len(decided),
+        latest_dataset_id=latest.id if latest is not None else None,
+        latest_dataset_status=DatasetStatus(latest.status) if latest is not None else None,
+    )
+
+
+@router.get("/runs", response_model=list[RunSummaryOut])
+def list_runs(
+    source_id: str | None = Query(default=None, description="Lọc theo source"),
+    status_filter: RunStatus | None = Query(default=None, alias="status", description="Lọc theo trạng thái"),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> list[RunSummaryOut]:
+    """Run history for the DPO, newest first — counts only, no field values."""
+    stmt = (
+        select(db_models.Run)
+        .options(
+            selectinload(db_models.Run.field_profiles),
+            selectinload(db_models.Run.field_decisions),
+            selectinload(db_models.Run.datasets),
+        )
+        .order_by(db_models.Run.id.desc())
+    )
+    if source_id is not None:
+        stmt = stmt.where(db_models.Run.source_id == source_id)
+    if status_filter is not None:
+        stmt = stmt.where(db_models.Run.status == status_filter.value)
+    runs = db.scalars(stmt.offset(offset).limit(limit)).all()
+    creator_ids = {r.created_by for r in runs}
+    usernames: dict[int, str] = {}
+    if creator_ids:
+        usernames = {
+            uid: name
+            for uid, name in db.execute(
+                select(db_models.DemoUser.id, db_models.DemoUser.username).where(
+                    db_models.DemoUser.id.in_(creator_ids)
+                )
+            ).all()
+        }
+    return [_run_summary(r, usernames) for r in runs]
+
+
 @router.get("/runs/{run_id}", response_model=RunOut)
 def get_run(
     run_id: int,
@@ -345,6 +534,38 @@ def get_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return _run_to_out(run)
+
+
+# A run whose snapshot still exists must be revoked first, so the physical snapshot is dropped
+# and Analyst grants are withdrawn through the normal, audited path.
+_LIVE_DATASET_STATUSES = frozenset({DatasetStatus.VERIFIED.value, DatasetStatus.PUBLISHED.value})
+
+
+@router.delete("/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_run(
+    run_id: int,
+    user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> None:
+    """Delete a run and its metadata (profiles, decisions, revoked/failed datasets). Audit events stay."""
+    from src.services.run_cleanup import delete_run_metadata
+
+    run = _load_run(db, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    live = [ds for ds in run.datasets if ds.status in _LIVE_DATASET_STATUSES]
+    if live:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Run còn dataset #{live[0].id} ({live[0].status}). Thu hồi dataset trước khi xoá run "
+                "để snapshot vật lý và quyền của Analyst được huỷ."
+            ),
+        )
+    reason = f"source={run.source_id}; status={run.status}; datasets={len(run.datasets)}"
+    delete_run_metadata(db, run.id)
+    _write_audit(db, actor=user, action="delete_run", entity_type="run", entity_id=str(run_id), reason=reason)
+    db.commit()
 
 
 @router.post("/runs/{run_id}/cancel", response_model=RunOut)
@@ -445,6 +666,7 @@ def get_run_report(
         db=db,
         requester_name=user.username,
         summary_only=summary_only,
+        row_count=_run_row_count(run, db),
     )
 
     _write_audit(
@@ -520,6 +742,67 @@ def get_run_join_keys(
     return out
 
 
+# Volume assumed when the source cannot be counted (demo stub or unreachable source).
+DEFAULT_RISK_ROW_COUNT = 5000
+
+
+def _pg_row_count(url: str, schema: str, tables: list[str]) -> int:
+    from psycopg import connect, sql
+
+    total = 0
+    with connect(url, connect_timeout=3) as conn, conn.cursor() as cur:
+        for table in tables:
+            # Planner estimate first (cheap); exact count only for never-analyzed tables.
+            cur.execute(
+                "SELECT c.reltuples FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'r'",
+                (schema, table),
+            )
+            row = cur.fetchone()
+            if row is None:
+                continue
+            if row[0] is not None and row[0] >= 0:
+                total += int(row[0])
+                continue
+            cur.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(schema, table)))
+            total += int(cur.fetchone()[0])
+    return total
+
+
+def _mongo_row_count(conn: SourceConnection, collections: list[str]) -> int:
+    from pymongo import MongoClient
+
+    client = mongo_client()
+    owned = client is None
+    if owned:
+        client = MongoClient(conn.url, serverSelectionTimeoutMS=3000)
+    try:
+        database = client[conn.namespace]
+        return sum(int(database[name].estimated_document_count()) for name in collections)
+    finally:
+        if owned:
+            client.close()
+
+
+def _run_row_count(run: db_models.Run, db: Session) -> int | None:
+    """Rows/documents across the scanned tables, or None when the source cannot be counted."""
+    tables = sorted({p.source_path for p in run.field_profiles if p.source_path})
+    source = get_source_by_id(run.source_id, db)
+    if source is None or not tables:
+        return None
+    try:
+        conn = resolve_connection(source, db)
+        if not conn.live:
+            return None
+        if run.engine == "postgresql":
+            return _pg_row_count(conn.url, conn.namespace or "public", tables)
+        if run.engine == "mongodb":
+            return _mongo_row_count(conn, tables)
+    except Exception:
+        return None
+    return None
+
+
 @router.get("/runs/{run_id}/risk-score")
 def get_run_risk_score(
     run_id: int,
@@ -534,11 +817,14 @@ def get_run_risk_score(
     _check_analyst_access_to_run(user, run, db)
 
     decision_map = {d.field_profile_id: d.action for d in run.field_decisions}
-    return calculate_risk_score(
+    row_count = _run_row_count(run, db)
+    result = calculate_risk_score(
         field_profiles=run.field_profiles,
         decisions=decision_map,
-        row_count=5000,
+        row_count=row_count if row_count is not None else DEFAULT_RISK_ROW_COUNT,
     )
+    result["row_count_estimated"] = row_count is None
+    return result
 
 
 @router.put("/runs/{run_id}/decisions", response_model=RunOut)
@@ -552,14 +838,8 @@ def put_decisions(
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    if run.status not in (RunStatus.REVIEW_REQUIRED.value, RunStatus.READY_TO_BUILD.value):
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"Không thể cập nhật quyết định cho lượt quét ở trạng thái '{run.status}'. "
-                "Chỉ cho phép cập nhật khi ở trạng thái REVIEW_REQUIRED hoặc READY_TO_BUILD."
-            ),
-        )
+    if not _is_rebuildable(run):
+        raise HTTPException(status_code=422, detail=_rebuild_blocked_message(run))
 
     settings = get_settings()
     is_self_approval = (run.created_by == user.id)
@@ -705,20 +985,38 @@ def put_decisions(
                 ),
             )
 
+    # Changing decisions after a build makes that data stale until the next build replaces it.
+    _reopen_for_changes(run)
+
     # Replace decisions for submitted field_profile_ids (upsert by profile id) + record history.
     existing = {d.field_profile_id: d for d in run.field_decisions}
     audit_changes: list[str] = []
+    # DPO corrections of the scanner's proposal, fed back to the LLM tier as few-shot examples (HITL).
+    corrections: list[dict] = []
 
     for item in body.decisions:
         profile = profiles_by_id[item.field_profile_id]
         field_label = f"{profile.source_path}.{profile.field_path}"
-        if item.classification_override is not None and profile.classification != item.classification_override:
+        reclassified = (
+            item.classification_override is not None and profile.classification != item.classification_override
+        )
+        if reclassified:
             audit_changes.append(
                 f"{field_label}: reclassified {profile.classification} -> {item.classification_override} by DPO"
             )
             profile.classification = item.classification_override
             profile.taxonomy_id = "NOT_PERSONAL_DATA"
             profile.detector_source = DetectorSource.DPO.value
+        if reclassified or item.action.value != profile.recommended_action:
+            corrections.append(
+                {
+                    "table_name": profile.source_path,
+                    # The scanner sees Mongo dot paths in snake_case, so learn under that name.
+                    "column_name": profile.field_path.replace(".", "_"),
+                    "dpo_decision": profile.taxonomy_id or profile.classification,
+                    "action": item.action.value,
+                }
+            )
         effective_reason = (
             item.reason.strip()
             if (item.reason and item.reason.strip())
@@ -814,6 +1112,11 @@ def put_decisions(
         reason=detailed_audit_reason,
     )
     db.commit()
+    # Only the LLM tier reads this memory, so learn only when the AI scan is on.
+    if corrections and settings.enable_ai_scan:
+        from src.detection.hitl_feedback import record_dpo_corrections
+
+        record_dpo_corrections(corrections)
     loaded = _load_run(db, run_id)
     assert loaded is not None
     return _run_to_out(loaded)
@@ -841,11 +1144,14 @@ def build_run(
             ),
         )
 
-    if run.status not in (RunStatus.READY_TO_BUILD.value, RunStatus.REVIEW_REQUIRED.value):
+    if not _is_rebuildable(run):
         raise HTTPException(
             status_code=422,
             detail={
-                "message": f"Build blocked: run is in state {run.status}, must be REVIEW_REQUIRED or READY_TO_BUILD",
+                "message": (
+                    f"Build blocked: run is in state {run.status}, must be REVIEW_REQUIRED, READY_TO_BUILD "
+                    "or an unpublished snapshot (VERIFIED / verifier FAILED)"
+                ),
             },
         )
 
@@ -912,6 +1218,8 @@ def build_run(
     mongo_scanned = run.engine == "mongodb" and any(
         p.coverage_status != "stub" for p in run.field_profiles
     )
+    scanned_tables = {p.source_path for p in run.field_profiles}
+    pg_relations: list[Relation] = []
     if pg_scanned:
         from src.transform.pg_pipeline import (
             actions_from_run_decisions as pg_actions_from_decisions,
@@ -919,8 +1227,8 @@ def build_run(
         from src.transform.pg_pipeline import pg_join_key_violations
 
         pg_table_actions = pg_actions_from_decisions(run.field_profiles, run.field_decisions)
-        all_pg_relations = _postgres_join_relations(conn)
-        pg_violations = pg_join_key_violations(pg_table_actions, relations=tuple(all_pg_relations))
+        pg_relations = _relations_in_scope(_postgres_join_relations(conn), scanned_tables)
+        pg_violations = pg_join_key_violations(pg_table_actions, relations=tuple(pg_relations))
         if pg_violations:
             raise HTTPException(
                 status_code=422,
@@ -944,9 +1252,10 @@ def build_run(
 
         mongo_actions = mongo_actions_from_decisions(run.field_profiles, run.field_decisions)
         try:
-            mongo_relations = MongoConnector(
-                conn.url, conn.namespace, client=mongo_client()
-            ).list_relations()
+            mongo_relations = _relations_in_scope(
+                MongoConnector(conn.url, conn.namespace, client=mongo_client()).list_relations(),
+                scanned_tables,
+            )
         except Exception as exc:
             mongo_connect_error = exc
         violations = join_key_violations(mongo_actions, mongo_relations)
@@ -960,18 +1269,11 @@ def build_run(
                 },
             )
 
-    # Failed prior datasets must not become readable.
+    # Failed prior datasets must not become readable; the run's dataset is rebuilt in place.
     run.status = RunStatus.BUILDING.value
     db.flush()
 
-    dataset = db_models.Dataset(
-        run_id=run.id,
-        dataset_name=f"run-{run.id}-snapshot",
-        status=DatasetStatus.STAGING.value,
-        output_location=f"staging://run/{run.id}/snapshot",
-    )
-    db.add(dataset)
-    db.flush()
+    dataset, reused = _dataset_for_build(db, run)
 
     check_rows: list[dict] = []
 
@@ -993,6 +1295,7 @@ def build_run(
                 source_schema=conn.namespace,
                 default_action=PolicyAction.DROP.value,
                 generic_verify=conn.user_supplied,
+                relations=tuple(pg_relations),
             )
             dataset.output_location = (
                 f"postgres://{conn.pg_snapshot_schema(run.id)}/"
@@ -1142,6 +1445,8 @@ def build_run(
         dataset.status = DatasetStatus.VERIFIED.value
         run.status = RunStatus.VERIFIED.value
         reason = "build -> VERIFIED (verifier passed)"
+    if reused:
+        reason = f"re{reason} (dataset rebuilt in place)"
 
     _write_audit(
         db,
@@ -1204,10 +1509,12 @@ def orchestrate_run(
                 })
 
     graph = build_orchestrator_graph()
+    row_count = _run_row_count(run, db)
     initial_state = {
         "run_id": str(run.id),
         "review_status": "approved" if approvals else "pending",
         "approvals": approvals,
+        "row_count": row_count if row_count is not None else DEFAULT_RISK_ROW_COUNT,
     }
 
     config = {"configurable": {"thread_id": f"api_run_{run.id}"}}

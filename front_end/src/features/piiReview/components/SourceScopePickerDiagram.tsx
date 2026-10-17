@@ -83,37 +83,6 @@ function normalizeDataType(dataType: string): string {
     .replace(/integer/gi, 'int');
 }
 
-function knownRelationshipPairs(sourceType: SourceScope['source_type']): Relationship[] {
-  if (sourceType === 'NOSQL') {
-    return [{ source: 'customers', target: 'orders', sourceField: 'customer_id', targetField: 'customer_id' }];
-  }
-
-  return [
-    { source: 'orders', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'orders', target: 'employees', sourceField: 'employee_id', targetField: 'employee_id' },
-    { source: 'orders', target: 'shippers', sourceField: 'ship_via', targetField: 'shipper_id' },
-    { source: 'order_details', target: 'orders', sourceField: 'order_id', targetField: 'order_id' },
-    { source: 'order_details', target: 'products', sourceField: 'product_id', targetField: 'product_id' },
-    { source: 'products', target: 'categories', sourceField: 'category_id', targetField: 'category_id' },
-    { source: 'products', target: 'suppliers', sourceField: 'supplier_id', targetField: 'supplier_id' },
-    { source: 'employee_territories', target: 'employees', sourceField: 'employee_id', targetField: 'employee_id' },
-    { source: 'employee_territories', target: 'territories', sourceField: 'territory_id', targetField: 'territory_id' },
-    { source: 'territories', target: 'region', sourceField: 'region_id', targetField: 'region_id' },
-    { source: 'support_tickets', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'support_tickets', target: 'orders', sourceField: 'order_id', targetField: 'order_id' },
-    { source: 'kyc_documents', target: 'customers', sourceField: 'customer_id', targetField: 'customer_id' },
-    { source: 'runs', target: 'demo_users', sourceField: 'created_by', targetField: 'id' },
-    { source: 'audit_events', target: 'demo_users', sourceField: 'actor_id', targetField: 'id' },
-    { source: 'data_sources', target: 'demo_users', sourceField: 'created_by', targetField: 'id' },
-    { source: 'field_profiles', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'datasets', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'runs', sourceField: 'run_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'field_profiles', sourceField: 'field_profile_id', targetField: 'id' },
-    { source: 'field_decisions', target: 'demo_users', sourceField: 'decided_by', targetField: 'id' },
-    { source: 'verifier_results', target: 'datasets', sourceField: 'dataset_id', targetField: 'id' },
-  ];
-}
-
 function calculateNodeHeight(fieldCount: number): number {
   return HEADER_HEIGHT + Math.min(fieldCount, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
 }
@@ -455,7 +424,8 @@ const edgeTypes = { relationship: RelationshipEdge } satisfies EdgeTypes;
 interface SourceScopePickerDiagramProps {
   items: SourceScopeItem[];
   selectedNames: string[];
-  sourceType: SourceScope['source_type'];
+  /** Joins reported by the backend (declared FKs, logical keys, inferred Mongo references). */
+  relationships: SourceScope['relationships'];
   onToggle: (name: string) => void;
   onSelectAll: () => void;
 }
@@ -463,7 +433,7 @@ interface SourceScopePickerDiagramProps {
 export function SourceScopePickerDiagram({
   items,
   selectedNames,
-  sourceType,
+  relationships: scopeRelationships,
   onToggle,
   onSelectAll,
 }: SourceScopePickerDiagramProps): JSX.Element {
@@ -474,6 +444,8 @@ export function SourceScopePickerDiagram({
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge<RelationshipEdgeData>>([]);
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  // Bumped when delayed edges land so the selection styling below is applied to them too.
+  const [edgesVersion, setEdgesVersion] = useState(0);
 
   // Tính relationships từ items, không phụ thuộc selection
   const relationships = useMemo(() => {
@@ -481,13 +453,20 @@ export function SourceScopePickerDiagram({
     const hasField = (tableName: string, fieldName: string): boolean =>
       itemByName.get(tableName)?.fields.some((field) => field.name === fieldName) ?? false;
 
-    return knownRelationshipPairs(sourceType).filter((rel) => (
-      itemByName.has(rel.source) &&
-      itemByName.has(rel.target) &&
-      hasField(rel.source, rel.sourceField) &&
-      hasField(rel.target, rel.targetField)
-    ));
-  }, [sourceType, items]);
+    return scopeRelationships
+      .map<Relationship>((rel) => ({
+        source: rel.source_table,
+        target: rel.target_table,
+        sourceField: rel.source_column,
+        targetField: rel.target_column,
+      }))
+      .filter((rel) => (
+        itemByName.has(rel.source) &&
+        itemByName.has(rel.target) &&
+        hasField(rel.source, rel.sourceField) &&
+        hasField(rel.target, rel.targetField)
+      ));
+  }, [scopeRelationships, items]);
 
   const highlightedFieldKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -550,18 +529,18 @@ export function SourceScopePickerDiagram({
       };
     });
 
-    setNodes(initialNodes);
+    // Layout needs no DOM: place nodes at their final position at once so they never jump
+    // and fitView frames the real layout.
+    const layouted = getLayoutedElements(initialNodes, initialEdges);
+    setNodes(layouted.nodes);
+    setEdges([]);
 
-    // FIX Bug 1: Delay setting edges AFTER nodes mount
-    // Đảm bảo TableNode đã render handles trước khi React Flow tìm chúng
-    setTimeout(() => {
-      setEdges(initialEdges);
-      
-      // Auto-layout sau khi edges set
-      const layouted = getLayoutedElements(initialNodes, initialEdges);
-      setNodes(layouted.nodes);
+    // Edges wait until TableNode has rendered its handles, otherwise React Flow cannot attach them.
+    const timer = setTimeout(() => {
       setEdges(layouted.edges);
-    }, 200); // Tăng lên 200ms
+      setEdgesVersion((version) => version + 1);
+    }, 200);
+    return () => clearTimeout(timer);
   }, [items, relationships, theme, setNodes, setEdges]); // BỎ selectedSet khỏi deps
 
   // Effect 2: Chỉ update selection state, KHÔNG rebuild nodes
@@ -607,7 +586,7 @@ export function SourceScopePickerDiagram({
         };
       }),
     );
-  }, [highlightedFieldKeys, hoveredEdgeId, hoveredField, selectedSet, theme, setNodes, setEdges]);
+  }, [edgesVersion, highlightedFieldKeys, hoveredEdgeId, hoveredField, selectedSet, theme, setNodes, setEdges]);
 
   // Auto layout callback
   const onLayout = useCallback(() => {
@@ -665,7 +644,7 @@ export function SourceScopePickerDiagram({
         variant="outlined"
         sx={{
           flex: 1,
-          height: { xs: 500, md: 700 },
+          height: { xs: 420, md: 560 },
           minWidth: 0,
           overflow: 'hidden',
           bgcolor: 'background.default',

@@ -1,7 +1,6 @@
 import json
 import os
-
-from src.detection.vector_store import PIIKnowledgeBase
+import threading
 
 CORPUS_PATH = "src/detection/pii_rag_corpus.json"
 FEW_SHOT_MEM_PATH = "src/detection/dpo_few_shot_memory.json"
@@ -42,6 +41,8 @@ def update_rag_corpus(column_name: str, pii_type: str, corpus_path: str = CORPUS
         # Re-initialize VectorDB in background
         print(f"[HITL] Đã tự động cập nhật từ khóa '{col_lower}' vào ChromaDB cho loại {pii_type}.")
         try:
+            from src.detection.vector_store import PIIKnowledgeBase
+
             kb = PIIKnowledgeBase()
             kb.initialize_db(corpus_path=corpus_path)
             # Cần chú ý: Hàm này dùng embeddings model, có thể tốn vài giây.
@@ -51,49 +52,114 @@ def update_rag_corpus(column_name: str, pii_type: str, corpus_path: str = CORPUS
 
     return updated
 
-def save_few_shot_example(column_name: str, data_shape: list[str], dpo_decision: str, action: str, memory_path: str = FEW_SHOT_MEM_PATH):
-    """
-    Ý tưởng 2: Lưu lại lịch sử quyết định của DPO vào file JSON
-    để làm Few-shot examples cho LLM.
-    """
-    data = []
-    if os.path.exists(memory_path):
-        with open(memory_path, encoding='utf-8') as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = []
+_memory_lock = threading.Lock()
 
-    # Tránh lưu trùng lặp tên cột
-    for item in data:
-        if item.get("column_name") == column_name:
-            return False
 
-    data.append({
-        "column_name": column_name,
-        "data_shape": data_shape,
-        "dpo_decision": dpo_decision,
-        "action": action
-    })
+def _runtime_memory_path(memory_path: str | None) -> str:
+    if memory_path:
+        return memory_path
+    from src.config import get_settings
 
-    with open(memory_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    return get_settings().hitl_memory_path
 
-    print(f"[HITL] Đã lưu example '{column_name}' -> '{dpo_decision}' vào Few-shot memory.")
-    return True
 
-def get_few_shot_examples(limit: int = 3, memory_path: str = FEW_SHOT_MEM_PATH) -> list[dict]:
-    """
-    Lấy ra n examples gần nhất để đính kèm vào System Prompt của LLM.
-    """
-    if not os.path.exists(memory_path):
+def _read_examples(path: str) -> list[dict]:
+    if not os.path.exists(path):
         return []
-
-    with open(memory_path, encoding='utf-8') as f:
+    with open(path, encoding="utf-8") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError:
             return []
+    return data if isinstance(data, list) else []
 
-    return data[-limit:]
 
+def save_few_shot_example(
+    column_name: str,
+    data_shape: list[str],
+    dpo_decision: str,
+    action: str,
+    memory_path: str | None = None,
+    *,
+    table_name: str | None = None,
+) -> bool:
+    """
+    Ý tưởng 2: Lưu lại lịch sử quyết định của DPO vào file JSON
+    để làm Few-shot examples cho LLM.
+
+    Writes to the runtime memory file (HITL_MEMORY_PATH), never the committed seed file. A newer DPO
+    decision for the same table+column replaces the older one, so a correction can itself be corrected.
+    Stores the column name, anonymised data shape and the decision only, never sample values.
+    """
+    path = _runtime_memory_path(memory_path)
+    entry = {
+        "column_name": column_name,
+        "table_name": table_name,
+        "data_shape": data_shape,
+        "dpo_decision": dpo_decision,
+        "action": action,
+    }
+    with _memory_lock:
+        data = [
+            item for item in _read_examples(path)
+            if not (item.get("column_name") == column_name and item.get("table_name") == table_name)
+        ]
+        data.append(entry)
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        tmp_path = f"{path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, path)
+    return True
+
+
+def record_dpo_corrections(corrections: list[dict]) -> int:
+    """Save DPO overrides from the review screen as few-shot examples; returns how many were stored.
+
+    Each correction is {"table_name", "column_name", "dpo_decision", "action"}. Samples are never
+    persisted, so the data shape is left empty. A failure is logged, never raised: learning is best-effort
+    and must not block saving decisions.
+    """
+    import logging
+
+    stored = 0
+    for item in corrections:
+        try:
+            save_few_shot_example(
+                column_name=item["column_name"],
+                data_shape=[],
+                dpo_decision=item["dpo_decision"],
+                action=item["action"],
+                table_name=item.get("table_name"),
+            )
+            stored += 1
+        except (OSError, KeyError, TypeError) as exc:
+            logging.getLogger(__name__).warning("HITL memory not updated: %s", type(exc).__name__)
+    return stored
+
+
+def get_few_shot_examples(
+    limit: int = 3,
+    memory_path: str | None = None,
+    *,
+    column_name: str | None = None,
+) -> list[dict]:
+    """
+    Lấy ra n examples để đính kèm vào System Prompt của LLM.
+
+    Merges the committed seed (FEW_SHOT_MEM_PATH) with the runtime DPO memory, newest last. With a
+    column_name, examples sharing a name token with it come first, so the LLM sees the most relevant ones.
+    """
+    examples = _read_examples(FEW_SHOT_MEM_PATH) + _read_examples(_runtime_memory_path(memory_path))
+    if not column_name:
+        return examples[-limit:]
+    from src.detection.regex_patterns import name_tokens
+
+    wanted = set(name_tokens(column_name))
+
+    def overlap(item: dict) -> int:
+        return len(wanted & set(name_tokens(str(item.get("column_name", "")))))
+
+    # Stable sort keeps recency order inside each relevance group; the best ones end up last.
+    ranked = sorted(examples, key=overlap)
+    return ranked[-limit:]

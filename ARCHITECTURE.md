@@ -1,215 +1,91 @@
-# PIIGuard Shield - Kiến Trúc Hệ Thống
+# PIIGuard Shield - Tổng Quan Kiến Trúc (Architecture Overview)
 
-Tài liệu này là bản kiến trúc ngắn gọn của PIIGuard Shield. Bản chi tiết hơn nằm ở [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md).
+**PIIGuard Shield** là nền tảng tự động phát hiện, phân loại PII (theo **Nghị định 13/2023/NĐ-CP** và **Luật 91/2025/QH15**) và tạo bản sao dữ liệu an toàn (Protected Snapshot) cho đội ngũ Phân tích dữ liệu (Analyst) và AI mà không làm lộ dữ liệu cá nhân thô.
 
-## 1. Tổng Quan
+> [!NOTE]
+> Đây là bản tóm lược kiến trúc cấp cao (High-Level Architecture). Để xem toàn bộ chi tiết kỹ thuật từng module, vui lòng tham khảo:
+> * 📖 [**Kiến trúc Hệ thống Chi tiết (System Architecture)**](docs/core/SYSTEM_ARCHITECTURE.md)
+> * 🤖 [**Kiến trúc Mô hình AI & NER Cascade (AI Architecture)**](docs/core/AI_ARCHITECTURE.md)
+> * 📊 [**Báo cáo Nghiệm thu Phase 1 (MVP Status Report)**](docs/core/MVP_STATUS_REPORT.md)
+> * 🔀 [**Sơ đồ Luồng Che mờ PII Đa tầng (Redaction Flowchart)**](docs/pii_redaction_flowchart.md)
 
-PIIGuard Shield giúp DPO tạo một dataset đã được bảo vệ trước khi chia sẻ cho Analyst.
+---
 
-Luồng P0:
-
-```text
-PostgreSQL/MongoDB source
-  -> scanner phát hiện PII
-  -> rules/agent đề xuất action
-  -> DPO duyệt
-  -> build protected snapshot
-  -> verifier kiểm tra JOIN/$lookup/aggregate
-  -> publish cho Analyst
-```
-
-P0 chỉ cam kết PostgreSQL và MongoDB. Kiến trúc có connector contract để mở rộng sau, nhưng không hứa rằng MVP có thể "ném bất cứ database nào vào cũng chạy".
-
-## 2. Sơ Đồ Kiến Trúc
-
-```mermaid
-flowchart TB
-    subgraph Client[Client]
-        FE[React + TypeScript Frontend]
-        DPO_UI[Luồng DPO review]
-        ANA_UI[Luồng Analyst preview]
-        FE --> DPO_UI
-        FE --> ANA_UI
-    end
-
-    subgraph API[FastAPI Application]
-        AUTH[Session + kiểm tra role]
-        SOURCES[Sources API]
-        RUNS[Runs API]
-        DATASETS[Datasets API]
-        SCANNER[Điều phối scanner]
-        POLICY[DPO decisions]
-        TRANSFORM[Transform pipeline]
-        VERIFY[Verifier]
-        AUDIT[Audit events]
-    end
-
-    subgraph Internal[AI/Detection nội bộ]
-        RULES[Regex/rules]
-        RETRIEVAL[BM25/dense scoring nếu dùng]
-        LLM[LLM tùy chọn]
-    end
-
-    subgraph AppState[Metadata ứng dụng]
-        APPDB[(App DB<br/>runs/decisions/datasets/audit)]
-    end
-
-    subgraph Sources[Nguồn chỉ đọc]
-        PG_SRC[(PostgreSQL source)]
-        MG_SRC[(MongoDB source)]
-    end
-
-    subgraph Outputs[Đầu ra đã bảo vệ]
-        PG_OUT[(PostgreSQL snapshot/view)]
-        MG_OUT[(MongoDB protected DB)]
-    end
-
-    FE -->|REST /api/v1| AUTH
-    AUTH --> SOURCES
-    AUTH --> RUNS
-    AUTH --> DATASETS
-    RUNS --> SCANNER
-    SCANNER --> RULES
-    SCANNER --> RETRIEVAL
-    SCANNER --> LLM
-    RUNS --> POLICY
-    RUNS --> TRANSFORM
-    TRANSFORM --> VERIFY
-    VERIFY --> DATASETS
-    RUNS --> AUDIT
-    SOURCES --> APPDB
-    RUNS --> APPDB
-    DATASETS --> APPDB
-    SCANNER --> PG_SRC
-    SCANNER --> MG_SRC
-    TRANSFORM --> PG_OUT
-    TRANSFORM --> MG_OUT
-    VERIFY --> PG_OUT
-    VERIFY --> MG_OUT
-```
-
-## 3. Trách Nhiệm Từng Thành Phần
-
-| Thành phần | File chính | Trách nhiệm |
-| --- | --- | --- |
-| Frontend | `front_end/src/` | UI cho DPO/Analyst, gọi backend API, không tự gánh bảo mật |
-| API | `src/api/` | REST endpoints, auth, kiểm tra role và trạng thái |
-| App DB | `src/db/` | Chỉ lưu metadata: source config, run, decision, dataset, verifier result, audit |
-| Models | `src/models/schemas.py` | Pydantic contract giữa API, scanner và FE |
-| Connectors | `src/connectors/` | Đọc schema/profile/batch từ PostgreSQL hoặc MongoDB |
-| Detection | `src/detection/` | Regex, rules, taxonomy, BM25 support |
-| Agent | `src/agents/`, `src/services/llm.py` | Luồng LLM tùy chọn cho field mơ hồ |
-| Transform | `src/transform/` | Áp dụng MASK, DROP, HMAC, KEEP vào protected output |
-| Verifier | `src/verifier/` | Kiểm tra SQL JOIN/aggregate hoặc Mongo `$lookup` trước khi publish |
-| Eval | `eval/` | Golden labels, expected downstream, reports |
-
-## 4. Luồng Dữ Liệu
-
-```mermaid
-sequenceDiagram
-    actor DPO
-    participant FE as Frontend
-    participant API as FastAPI
-    participant SRC as Source DB
-    participant DET as Rules/AI Scanner
-    participant OUT as Snapshot DB
-    participant VER as Verifier
-    participant ANA as Analyst
-
-    DPO->>FE: đăng nhập và chọn source/scope
-    FE->>API: POST /runs
-    API->>SRC: đọc schema/profile bằng tài khoản read-only
-    API->>DET: phân loại field profiles
-    DET-->>API: action proposals không chứa raw value public
-    API-->>FE: field profiles cho DPO review
-    DPO->>FE: duyệt/sửa decisions
-    FE->>API: PUT /runs/{id}/decisions
-    FE->>API: POST /runs/{id}/build
-    API->>OUT: ghi protected snapshot
-    API->>VER: so sánh source với protected output
-    VER-->>API: VERIFIED hoặc FAILED
-    DPO->>FE: publish nếu VERIFIED
-    FE->>API: POST /datasets/{id}/publish
-    ANA->>FE: mở published dataset
-    FE->>API: GET /datasets/{id}/preview
-```
-
-## 5. Ranh Giới Contract FieldProfile
-
-Detector nội bộ được dùng sample để tính regex/rules/BM25. Nhưng API/UI/LLM chỉ được thấy bản đã lọc.
-
-```text
-InternalFieldProfile
-  có sample_values giới hạn
-  chỉ dùng trong connector/scanner nội bộ
-
-PublicFieldProfile
-  không có raw sample_value
-  trả về API/UI/app DB
-
-LLMFieldProfile
-  không có raw sample_value
-  chỉ có path/type/statistics/pattern/data shape đã lọc
-```
-
-Output đề xuất không bắt buộc có một `confidence` chung. Nên lưu rõ:
-
-- `classification`
-- `action_proposal`
-- `reason`
-- `decision_tier`: `regex`, `retrieval`, `llm`, `human_review`
-- `evidence_scores`: regex matched, BM25 score, dense score nếu có
-- `provider_metadata` đã lọc: model/provider nếu có LLM
-
-## 6. Quy Tắc Bảo Mật
-
-- Source database là read-only.
-- Snapshot/protected output nằm ở schema/database riêng.
-- DPO và Analyst không bao giờ thấy raw PII.
-- Prompt LLM không bao giờ nhận raw sample values.
-- API không trả database URI, password, HMAC secret, API key hoặc raw source values.
-- Analyst chỉ đọc dataset `PUBLISHED`.
-- Backend chặn publish nếu verifier chưa đánh dấu dataset `VERIFIED`.
-- HMAC là keyed hash một chiều, không phải encryption.
-
-## 7. Mô Hình Deploy
-
-### Demo Gate 2
+## 1. Luồng Vận Hành Cấp Cao (High-Level Architecture)
 
 ```mermaid
 flowchart LR
-    subgraph LocalDocker[Máy Phúc / Docker Compose]
-        FE[Frontend]
-        BE[Backend]
-        PG[(PostgreSQL fixture)]
-        MG[(MongoDB fixture)]
-        APP[(App metadata DB)]
+    subgraph Source["1. Nguồn Dữ Liệu"]
+        PG[("Cloud PostgreSQL<br/>(Read-only)")]
+        MG[("Cloud MongoDB<br/>(Read-only)")]
     end
-    FE --> BE
-    BE --> PG
-    BE --> MG
-    BE --> APP
+
+    subgraph Engine["2. Worker Engine (In-Memory)"]
+        SCAN["Quét Cột & Thống Kê<br/>(Stream A: 100% Acc)"]
+        NER["Deep NER Cascade<br/>(Stream B: 97.86% Recall)"]
+        HITL["Bộ Nhớ Few-Shot HITL"]
+    end
+
+    subgraph Governance["3. DPO Workspace (Zero Raw PII)"]
+        REVIEW["Thẩm Định Rủi Ro FR-10<br/>& Duyệt 5 Hành Động"]
+        MERKLE["Audit Log Bất Biến<br/>(Merkle Tree SHA-256)"]
+    end
+
+    subgraph Target["4. Bản Sao An Toàn & Verifier"]
+        VERIFY["Downstream Verifier<br/>(Kiểm tra Join & Leak)"]
+        SNAPSHOT[("Target DB Snapshot<br/>(HMAC / MASK / REDACT)")]
+        ANALYST["Analyst Workspace<br/>(Data Grid, ERD, CSV)"]
+    end
+
+    Source --> Engine
+    Engine --> Governance
+    Governance -->|Approve & Build| Target
+    VERIFY -->|Pass| ANALYST
 ```
 
-Gate 2 deploy theo hướng demo local trước: Docker Compose, synthetic fixture, không dùng dữ liệu thật.
+---
 
-### Hướng doanh nghiệp
+## 2. Ba Trụ Cột Thiết Kế Cốt Lõi
 
-PIIGuard nên chạy gần dữ liệu của khách hàng:
+### ① Nguyên Tắc Zero Raw PII & Tách Bạch Vai Trò
+* **DPO (Governance):** Thao tác trên Web UI, thẩm định rủi ro dựa trên siêu dữ liệu (metadata), kiểu dữ liệu và phân phối thống kê (`column_stats.py`). DPO **không được cấp quyền truy cập CSDL nguồn** (Least Privilege).
+* **Worker Engine:** Kết nối nguồn qua Service Account độc lập, quét và biến đổi dữ liệu hoàn toàn trên **RAM (In-Memory Streaming)**, không lưu vết thô ra ổ đĩa hay log.
+* **CSDL Đích (Snapshot):** Chỉ lưu trữ dữ liệu đã được ẩn danh vĩnh viễn (`HMAC`, `REDACT`, `MASK`, `DROP`). DPO hay Analyst truy cập DB đích cũng chỉ xem được dữ liệu đã bảo vệ, loại bỏ triệt để nguy cơ rò rỉ nội bộ.
 
-- server nội bộ/on-premise; hoặc
-- private cloud/VPC do doanh nghiệp sở hữu.
+### ② Khoét Sâu Dữ Liệu (Deep Content Inspection) Song Hành Bảo Mật
+* **Luồng A (Dữ liệu bảng cấu trúc):** Kết hợp Regex, từ điển pháp lý NĐ 13 và LLM LangGraph. Đạt **100.00% Action Accuracy** trên 339 cột sau khi tích hợp bộ nhớ few-shot DPO.
+* **Luồng B (Văn bản tự do):** Cascade đa tầng (Regex $\rightarrow$ FlashText $\rightarrow$ GLiNER Multi-PII zero-shot), đạt **97.86% Recall** và 97.51% F1 để bóc tách PII ẩn giấu trong ghi chú, chat log.
+* **Trừu tượng hóa an toàn:** AI đọc sâu trong RAM nhưng chỉ trả về loại thực thể (`PER`, `PHONE`) và tỷ lệ phát hiện. DPO kiểm chứng qua **Live Sandbox** bằng dữ liệu giả lập (Synthetic Data) mà không cần xem văn bản thật của khách hàng.
 
-Doanh nghiệp cung cấp read-only source credentials và một snapshot target riêng. PIIGuard không yêu cầu người dùng upload raw database dump lên một dịch vụ public bên ngoài.
+### ③ Chiến Lược Che Mờ 5 Hành Động (Không Che Thô `***`)
+Bảo toàn tối đa giá trị khai thác dữ liệu (**Data Utility**) mà không đánh đổi bảo mật:
 
-## 8. Quyết Định Thiết Kế
+| Hành động | Bản chất kỹ thuật | Giá trị phân tích (Tại sao không che `***`?) |
+| :--- | :--- | :--- |
+| **`HMAC`** | Băm 1 chiều kèm Secret Salt | Giữ nguyên quan hệ khóa liên kết (`join_matched`), **tránh nổ tích Đề-các (Cartesian join)** làm sập DB phân tích. |
+| **`REDACT`** | Thay thực thể bằng nhãn (`[PHONE]`) | Giữ nguyên cấu trúc ngữ pháp cho đội AI/LLM phân tích ngữ nghĩa, phân loại khiếu nại và sentiment. |
+| **`MASK`** | Che đoạn giữa (`0912***789`) | Giữ đặc trưng thống kê (thị phần nhà mạng, domain email cá nhân vs DN, nhóm tuổi). |
+| **`DROP`** | Xóa hẳn cột khỏi snapshot | Loại bỏ hoàn toàn trường dữ liệu nặng và rủi ro cao (ảnh CCCD, sinh trắc học). |
+| **`KEEP`** | Giữ nguyên giá trị | Áp dụng cho các trường phi cá nhân (doanh thu, ngày tạo đơn) để đảm bảo số liệu báo cáo chuẩn xác. |
 
-| Quyết định | Lựa chọn | Lý do |
-| --- | --- | --- |
-| Backend | FastAPI + Pydantic | API contract rõ, Swagger tiện, hợp xử lý dữ liệu bằng Python |
-| Frontend | React + TypeScript + Vite | Dashboard app, không cần SSR |
-| P0 databases | PostgreSQL + MongoDB | Một nhánh SQL và một nhánh NoSQL có verifier thật |
-| AI | Rules-first, LLM tùy chọn cho field mơ hồ | Dễ kiểm soát, ít rủi ro, đo được so với baseline rules-only |
-| Vector store | Không thuộc P0 | Taxonomy nhỏ; BM25/dense scoring có thể dùng nội bộ nhưng không cần Chroma/RAG legal store |
-| Protection | MASK/DROP/HMAC/KEEP | Đủ cho MVP và verifier-friendly |
-| Deployment | Docker Compose cho demo, on-prem/private cloud cho hướng doanh nghiệp | Giữ dữ liệu nhạy cảm trong môi trường của khách hàng |
+---
+
+## 3. Tổng Quan Tech Stack
+
+| Tầng | Công nghệ sử dụng | Vai trò chính |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, TypeScript Strict, Vite, MUI, React Flow (`@xyflow/react`), Dagre Layout | Giao diện DPO 4 Tabs, Source Scope Picker, Live Sandbox, Visual Lineage ERD |
+| **Backend API** | FastAPI, Python 3.11+, Pydantic v2, SQLAlchemy, PyMongo | REST API, Role-based Access Control (`require_dpo`, `require_analyst_or_dpo`) |
+| **AI & Detection** | GLiNER (`urchade/gliner_multi_pii-v1`), FlashText, LangGraph, Few-Shot Memory | Quét mẫu PII, nhận diện thực thể văn bản tự do, học phản hồi DPO (HITL) |
+| **Storage & Snapshot** | Cloud PostgreSQL (RDS/Cloud SQL/Supabase/Neon), Cloud MongoDB Atlas | Lưu trữ nguồn đọc (Source) và CSDL đích an toàn (Snapshot) |
+| **Kiểm Định & Audit** | Merkle Tree (SHA-256 Hash Chain), SQL/Mongo Downstream Verifier | Kiểm tra tính toàn vẹn JOIN/Leak trước khi Publish; Chống chối bỏ theo NĐ 13 |
+
+---
+
+## 4. Tài Liệu Kỹ Thuật Tham Chiếu
+
+1. [Kiến Trúc Hệ Thống Chi Tiết (SYSTEM_ARCHITECTURE.md)](docs/core/SYSTEM_ARCHITECTURE.md)
+2. [Kiến Trúc Mô Hình AI & NER Cascade (AI_ARCHITECTURE.md)](docs/core/AI_ARCHITECTURE.md)
+3. [Đặc Tả Yêu Cầu Sản Phẩm (PRD.md)](docs/core/prd.md)
+4. [Báo Cáo Nghiệm Thu Hoàn Thành Phase 1 (MVP_STATUS_REPORT.md)](docs/core/MVP_STATUS_REPORT.md)
+5. [Kịch Bản Trình Diễn MVP 6 Bước (DEMO_FLOW.md)](docs/guide/DEMO_FLOW.md)

@@ -21,6 +21,31 @@ class PostgresConnector:
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
 
+    @staticmethod
+    def _distribution_stats(conn, cur, table: str, col_name: str) -> tuple[int | None, float | None, float | None]:
+        """Counts over the first STATS_ROW_LIMIT rows, computed in Postgres; only the three numbers come back.
+
+        Runs in a savepoint so a failure (odd type, permissions) skips the stats without aborting the scan.
+        """
+        from psycopg import sql
+
+        from src.detection.column_stats import STATS_ROW_LIMIT, ratios_from_counts
+
+        query = sql.SQL(
+            "SELECT COUNT(*) AS n_rows, COUNT(c) AS n_non_null, COUNT(DISTINCT c::TEXT) AS n_distinct "
+            "FROM (SELECT {} AS c FROM {} LIMIT {}) AS s"
+        ).format(sql.Identifier(col_name), sql.Identifier(table), sql.Literal(STATS_ROW_LIMIT))
+        try:
+            with conn.transaction():
+                cur.execute(query)
+                row = cur.fetchone()
+        except Exception as exc:
+            logger.warning("Distribution stats skipped for %s.%s: %s", table, col_name, type(exc).__name__)
+            return None, None, None
+        if not row:
+            return None, None, None
+        return ratios_from_counts(int(row["n_rows"]), int(row["n_non_null"]), int(row["n_distinct"]))
+
     def extract_database_profile(
         self,
         schema_name: str = "public",
@@ -135,6 +160,29 @@ class PostgresConnector:
                             logger.error(f"Lỗi khi trích xuất mẫu bảng {table} cột {col_name}: {e}")
                             samples = []
 
+                        # Tính mean và variance của độ dài dữ liệu
+                        stats_query = sql.SQL("SELECT AVG(LENGTH({}::TEXT)) as mean_len, COALESCE(VARIANCE(LENGTH({}::TEXT)), 0) as var_len FROM {} WHERE {} IS NOT NULL").format(
+                            sql.Identifier(col_name),
+                            sql.Identifier(col_name),
+                            sql.Identifier(table),
+                            sql.Identifier(col_name)
+                        )
+
+                        length_mean = None
+                        length_variance = None
+                        try:
+                            cur.execute(stats_query)
+                            stats_raw = cur.fetchone()
+                            if stats_raw:
+                                length_mean = float(stats_raw["mean_len"]) if stats_raw["mean_len"] is not None else None
+                                length_variance = float(stats_raw["var_len"]) if stats_raw["var_len"] is not None else None
+                        except Exception as e:
+                            logger.error(f"Lỗi khi tính toán thống kê độ dài bảng {table} cột {col_name}: {e}")
+
+                        profiled_values, distinct_ratio, null_ratio = self._distribution_stats(
+                            conn, cur, table, col_name
+                        )
+
                         col_prof = ColumnProfile(
                             table_name=table,
                             column_name=col_name,
@@ -142,7 +190,12 @@ class PostgresConnector:
                             is_primary_key=is_pk,
                             is_foreign_key=is_fk,
                             samples=samples,
-                            system_recommendation=system_rec
+                            system_recommendation=system_rec,
+                            length_mean=length_mean,
+                            length_variance=length_variance,
+                            profiled_values=profiled_values,
+                            distinct_ratio=distinct_ratio,
+                            null_ratio=null_ratio,
                         )
                         column_profiles.append(col_prof)
 

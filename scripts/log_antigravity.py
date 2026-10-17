@@ -152,7 +152,7 @@ def _unquote_arg(val):
 
 
 def _conv_cwds(transcript: Path) -> set[str]:
-    """All Cwd values that appear in tool calls inside this transcript."""
+    """All Cwd and workspace/file paths that appear in tool calls inside this transcript."""
     cwds: set[str] = set()
     try:
         with open(transcript, encoding="utf-8") as f:
@@ -166,14 +166,14 @@ def _conv_cwds(transcript: Path) -> set[str]:
                     continue
                 for tc in (entry.get("tool_calls") or []):
                     args = tc.get("args") or {}
-                    cwd = args.get("Cwd") or args.get("cwd")
-                    cwd = _unquote_arg(cwd)
-                    if isinstance(cwd, str):
-                        # Strip any residual quotes around the path
-                        cwd = cwd.strip().strip('"').strip("'")
-                        n = _normalize(cwd)
-                        if n:
-                            cwds.add(n)
+                    for key in ("Cwd", "cwd", "DirectoryPath", "SearchPath", "AbsolutePath", "TargetFile"):
+                        val = args.get(key)
+                        val = _unquote_arg(val)
+                        if isinstance(val, str):
+                            val = val.strip().strip('"').strip("'")
+                            n = _normalize(val)
+                            if n:
+                                cwds.add(n)
     except OSError:
         pass
     return cwds
@@ -357,6 +357,37 @@ def transcript_from_payload(data: dict) -> Path | None:
     return None
 
 
+def _get_conv_id_from_env(root: Path | None = None) -> str | None:
+    """Retrieve conversation ID from ANTIGRAVITY_CONV_ID in environment or .env file."""
+    # 1. Direct ANTIGRAVITY_CONV_ID in process environment
+    conv = os.environ.get("ANTIGRAVITY_CONV_ID")
+    if conv:
+        conv = conv.strip().strip('"').strip("'")
+        if conv and conv != "your-conversation-id-here":
+            return conv
+
+    # 2. Check ANTIGRAVITY_CONV_ID in .env file
+    env_file = (root or Path.cwd()) / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip()
+            if k == "ANTIGRAVITY_CONV_ID":
+                v = os.path.expandvars(v.strip('"').strip("'"))
+                if v and v != "your-conversation-id-here" and not v.startswith("$"):
+                    return v
+
+    # 3. Dynamic fallback: active conversation ID exported by Antigravity IDE
+    ide_conv = os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
+    if ide_conv:
+        return ide_conv.strip().strip('"').strip("'")
+
+    return None
+
+
 def log_from_hook(transcript: Path, data: dict) -> int:
     """Append every not-yet-logged prompt of this conversation; return how many.
 
@@ -370,14 +401,7 @@ def log_from_hook(transcript: Path, data: dict) -> int:
     workspaces = [w for w in (data.get("workspacePaths") or []) if w]
     root = Path(workspaces[0]) if workspaces else Path.cwd()
 
-    expected_conv = os.environ.get("ANTIGRAVITY_CONV_ID")
-    if not expected_conv:
-        env_file = root / ".env"
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                if line.startswith("ANTIGRAVITY_CONV_ID="):
-                    expected_conv = line.split("=", 1)[1].strip()
-                    break
+    expected_conv = _get_conv_id_from_env(root)
     if expected_conv and conv_id != expected_conv:
         return 0
 
@@ -481,14 +505,7 @@ def main() -> None:
     if not args.all:
         cutoff = datetime.now(tz=VN_TZ) - timedelta(hours=args.hours)
 
-    conv_id = args.conv_id or os.environ.get("ANTIGRAVITY_CONV_ID")
-    if not conv_id:
-        env_file = Path.cwd() / ".env"
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                if line.startswith("ANTIGRAVITY_CONV_ID="):
-                    conv_id = line.split("=", 1)[1].strip()
-                    break
+    conv_id = args.conv_id or _get_conv_id_from_env()
 
     repo_root_n = "" if args.no_repo_filter else _normalize(str(Path.cwd()))
 

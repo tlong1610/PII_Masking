@@ -3,13 +3,15 @@ services:
     name: piiguard-vn-api
     runtime: docker
     plan: free
-    autoDeploy: false
+    autoDeploy: true
     dockerfilePath: ./Dockerfile.render
     dockerContext: .
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
         value: production
+      - key: SEED_DEMO_USERS
+        value: "true"
       - key: APP_NAME
         value: PIIGuard Shield
       - key: LOG_LEVEL

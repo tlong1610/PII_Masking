@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # App
     app_name: str = "AI20K Agent"
     app_env: Literal["development", "production", "test"] = "development"
+    seed_demo_users: bool = False
     app_port: int = Field(default=8000, ge=1, le=65535)
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     openrouter_api_key: str = ""
     cerebras_api_key: str = ""
-    model_name: str = "gpt-oss-120b"
+    model_name: str = "gpt-4o-mini"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Database (app metadata)
@@ -46,6 +47,14 @@ class Settings(BaseSettings):
     enable_ai_scan: bool = False
     # Columns scanned in parallel by the AI scan (each waits on one LLM call); lower it on rate limits
     scan_concurrency: int = Field(default=4, ge=1, le=32)
+    # Free-text NER (REDACT action): regex tier always runs; the GLiNER model tier needs ENABLE_NER=true
+    # plus the gliner package installed (falls back to regex-only when unavailable).
+    enable_ner: bool = False
+    ner_model_name: str = "urchade/gliner_multi_pii-v1"
+    # Optional JSON {entity_type: [keywords]} for the dictionary tier (e.g. known customer names)
+    ner_dictionary_path: str = ""
+    # DPO corrections saved as few-shot examples for the LLM tier (runtime file, not committed)
+    hitl_memory_path: str = "./data/hitl/dpo_few_shot_memory.json"
 
     # MongoDB source (read-only) and protected snapshot database on the same cluster
     mongo_uri: str = ""
