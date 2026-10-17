@@ -1,0 +1,18 @@
+{
+  "name": "piiguard-release-qa",
+  "private": true,
+  "version": "1.0.0",
+  "description": "End-to-end QA (DPO + Analyst flows) and demo video recording for PIIGuard Shield release",
+  "type": "module",
+  "scripts": {
+    "stack:up": "bash scripts/start-stack.sh",
+    "stack:down": "bash scripts/stop-stack.sh",
+    "test": "playwright test",
+    "test:dpo": "playwright test specs/01-dpo-main-flow.spec.ts",
+    "test:analyst": "playwright test specs/02-analyst-flow.spec.ts",
+    "report": "playwright show-report reports/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.52.0"
+  }
+}

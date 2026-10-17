@@ -1,0 +1,7 @@
+node_modules/
+.run/
+reports/html/
+reports/artifacts/
+reports/last-run.json
+# The repo-wide "logs/" ignore is for runtime logs; the QA error log is a deliverable.
+!logs/
