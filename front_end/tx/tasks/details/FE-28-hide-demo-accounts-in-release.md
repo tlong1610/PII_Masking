@@ -9,7 +9,8 @@ Màn `/login` luôn hiển thị khối "Chọn nhanh tài khoản mẫu" kèm u
 
 ## Giải Pháp
 1. Tách dữ liệu tài khoản mẫu ra `model/demoAccounts.ts` + hàm thuần `isDemoLoginEnabled(env)`:
-   - Bật khi chạy dev (`import.meta.env.DEV`) hoặc khi build có `VITE_ENABLE_DEMO_LOGIN=true` (môi trường demo nội bộ).
+   - Bật khi chạy dev/test (`import.meta.env.MODE !== 'production'`) hoặc khi build có `VITE_ENABLE_DEMO_LOGIN=true` (môi trường demo nội bộ).
+   - Không dựa vào `DEV`: `NODE_ENV=development` trong `.env.local` làm `DEV=true` ngay cả khi `vite build` (đã gặp khi so sánh bản build local với production).
    - **Tắt mặc định trên bản build production.**
 2. Tách UI thẻ tài khoản mẫu ra `DemoAccountPicker.tsx` (giảm kích thước `LoginExperience`).
 3. Khi tắt: không render khối tài khoản mẫu, vạch "HOẶC NHẬP THÔNG TIN"; mô tả đổi thành "Nhập tài khoản được cấp để tiếp tục"; placeholder trung tính "Nhập tên tài khoản".
