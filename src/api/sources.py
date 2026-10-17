@@ -167,7 +167,6 @@ def get_source_scope(
         profile = PostgresConnector(conn.url).extract_database_profile(
             schema_name=conn.namespace,
             sample_size=0,
-            table_names=conn.tables,
         )
         tables = _allowed_tables(profile.tables, conn)
         return SourceScope(
