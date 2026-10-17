@@ -19,7 +19,7 @@ describe('MaskingShowcaseDialog', () => {
     const phoneChip = screen.getByText('Số điện thoại');
     fireEvent.click(phoneChip);
 
-    expect(screen.getByText('0912345678', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('0900000001', { exact: false })).toBeInTheDocument();
     expect(screen.getAllByText('***').length).toBeGreaterThan(0);
   });
 

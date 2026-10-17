@@ -29,5 +29,8 @@
 | **FE-25** | Mascot cho kết quả kiểm định & đăng nhập | Sprint 05 | **done** | Banner trạng thái tab “Dữ liệu cho Analyst”, Pango trên màn đăng nhập ([chi tiết](details/FE-25-mascot-verifier-result-and-login.md)) |
 | **FE-26** | Tài liệu & bằng chứng Brand / Mascot | Sprint 05 | **done** | Sprint 05, README_FE, link Figma Pango Mascot Kit ([chi tiết](details/FE-26-brand-docs-evidence.md)) |
 | **FE-27** | Fix Vite Dev Proxy Port | Sprint 05 | **done** | Proxy `/api` trỏ về backend 8000 (thay 8001 cũ), ghi đè bằng `VITE_PROXY_TARGET` ([chi tiết](details/FE-27-fix-dev-proxy-port.md)) |
+| **FE-28** | Hide Demo Accounts In Release | Sprint 05 | **done** | Ẩn thẻ tài khoản mẫu + mật khẩu khỏi bản build production, bật lại bằng `VITE_ENABLE_DEMO_LOGIN=true` ([chi tiết](details/FE-28-hide-demo-accounts-in-release.md)) |
+| **FE-29** | Masking Demo Layout & Consistency | Sprint 05 | **done** | Sửa tràn lưới 4 thẻ, Việt hoá tiêu đề, bảng cuộn ngang trên mobile, dữ liệu mẫu giả lập, HMAC khớp sandbox ([chi tiết](details/FE-29-masking-demo-layout-consistency.md)) |
+| **FE-30** | Sidebar Brand Subtitle Clipping | Sprint 05 | **done** | Phụ đề sidebar không còn bị cắt giữa chữ ([chi tiết](details/FE-30-sidebar-brand-subtitle-clipping.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

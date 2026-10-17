@@ -201,11 +201,13 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
           sx={{ px: 2.25, height: APP_HEADER_HEIGHT, flexShrink: 0, borderBottom: 1, borderColor: 'divider' }}
         >
           <BrandLogo size={32} />
-          <Box sx={fadingLabelSx(navCollapsed)}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+          <Box sx={[fadingLabelSx(navCollapsed), { minWidth: 0 }]}>
+            <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700, lineHeight: 1.1 }}>
               PIIGuard Shield
             </Typography>
-            <Typography variant="caption">Bảo vệ dữ liệu cho doanh nghiệp</Typography>
+            <Typography variant="caption" component="p" noWrap title="Bảo vệ dữ liệu cá nhân">
+              Bảo vệ dữ liệu cá nhân
+            </Typography>
           </Box>
         </Stack>
 

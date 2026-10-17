@@ -24,6 +24,7 @@ Pango và logo hiện là ảnh **WebP**, chưa có bản vector SVG trong sourc
 ## SVG có sẵn
 
 - [Brand DNA](svg/piiguard-brand-dna.svg) - bảng nhận diện thương hiệu.
+- [Brand DNA - bản PNG để xem nhanh](brand/piiguard-brand-dna.png) - logo hiện tại, bảng màu theo theme và 7 trạng thái Pango.
 - [UX board](svg/piiguard-user-experience-board.svg) - sơ đồ trải nghiệm.
 - [Login background](svg/login-background.svg) - nền màn hình đăng nhập.
 
