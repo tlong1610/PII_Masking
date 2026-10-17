@@ -8,7 +8,6 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
@@ -18,6 +17,7 @@ import type { Theme } from '@mui/material/styles';
 import { NavLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { APP_HEADER_HEIGHT } from '@/shared/config/layout';
+import { BrandLogo } from './BrandLogo';
 import { ConfirmDialog } from './ConfirmDialog';
 import { AppBarSlotContext, type AppBarSlotValue } from './appBarSlotContext';
 
@@ -200,9 +200,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
           alignItems="center"
           sx={{ px: 2.25, height: APP_HEADER_HEIGHT, flexShrink: 0, borderBottom: 1, borderColor: 'divider' }}
         >
-          <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-            <LayersOutlinedIcon fontSize="small" />
-          </Avatar>
+          <BrandLogo size={32} />
           <Box sx={fadingLabelSx(navCollapsed)}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
               PIIGuard Shield

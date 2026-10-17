@@ -19,7 +19,6 @@ import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
-import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import GppGoodOutlinedIcon from '@mui/icons-material/GppGoodOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -30,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { loginSchema, type LoginFormValues } from '../model/loginSchema';
 import { routes } from '@/shared/config/routes';
+import { BrandLogo, Mascot } from '@/shared/ui';
 import loginBackground from '@/assets/login-background.svg';
 
 interface DemoAccountPreset {
@@ -80,15 +80,14 @@ function BrandMark({ size }: { size: number }): JSX.Element {
         width: size,
         height: size,
         borderRadius: 2,
-        bgcolor: 'primary.main',
+        bgcolor: 'common.white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'common.white',
         flexShrink: 0,
       }}
     >
-      <LayersOutlinedIcon sx={{ fontSize: size * 0.58 }} />
+      <BrandLogo size={Math.round(size * 0.78)} />
     </Box>
   );
 }
@@ -105,6 +104,13 @@ function BrandPanel(): JSX.Element {
           </Typography>
           <Typography sx={{ opacity: 0.8 }}>Nền tảng bảo vệ dữ liệu cho doanh nghiệp</Typography>
         </Box>
+      </Stack>
+      <Stack direction="row" spacing={2.5} alignItems="center">
+        <Mascot pose="default" size={150} float />
+        <Typography sx={{ opacity: 0.85, lineHeight: 1.6 }}>
+          Xin chào, mình là <strong>Pango</strong>! Mình rà dữ liệu cá nhân trong cơ sở dữ liệu của bạn và giúp DPO che
+          đúng trước khi chia sẻ.
+        </Typography>
       </Stack>
       <Stack spacing={3}>
         {HIGHLIGHTS.map((item) => (

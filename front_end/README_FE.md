@@ -45,6 +45,13 @@ Override with:
 VITE_API_URL=http://localhost:8000/api/v1 npm run dev
 ```
 
+Or go through the Vite dev proxy (same origin, no CORS). `/api` is proxied to `http://localhost:8000` by default; set `VITE_PROXY_TARGET` when the backend runs elsewhere (docker-compose exposes `8002`):
+
+```bash
+VITE_API_URL=/api/v1 npm run dev
+VITE_API_URL=/api/v1 VITE_PROXY_TARGET=http://localhost:8002 npm run dev
+```
+
 Main integration file:
 
 ```text
@@ -96,6 +103,18 @@ src/
    - Table-based data preview (`previewDataset`) with limit selection (20, 50, 100, 200 rows).
    - Safe CSV download with automatic exclusion of `DROPPED` columns.
    - Analyst preview shows published snapshot values. PII `KEEP` exceptions are a known privacy gap; see the warning above.
+
+## Brand & Mascot (Pango)
+
+- Design source: Figma [PIIGuard Shield — Pango Mascot Kit](https://www.figma.com/design/xcSramnWgGISlpaGiHe4MQ) — component `Pango` (7 `State` variants) and `Logo`.
+- Assets: `src/assets/mascot/pango-<pose>.webp` (480px, ~40–50 kB each), `src/assets/brand/logo.webp`; favicon/touch icons in `public/`.
+- Components (`@/shared/ui`):
+  - `<Mascot pose="scanning" size={120} float />` — poses: `default`, `scanning`, `detected`, `awaiting`, `loading`, `error`, `protected`. Decorative by default (`alt=""`); pass `label` only when the image carries meaning not said in text. `float` bobbing respects `prefers-reduced-motion`.
+  - `<MascotLoader pose="loading" title="…" />` — busy state with `role="status"`.
+  - `StateNotice` shows Pango automatically (`empty` → `default`, `error` → `error`; override with `pose`).
+  - `BrandLogo` — app mark used in `AppShell` and the login screen.
+- Where it appears: login brand panel, DPO source loading / scanning, empty and error notices, Analyst loading / no dataset, and the status banner of tab “Dữ liệu cho Analyst” (`awaiting` / `error` / `protected`).
+- Plan & tasks: [Sprint 05](tx/planing/sprints/sprint_05_brand_mascot.md), FE-23 → FE-26 in [TASKS_INDEX](tx/tasks/TASKS_INDEX.md).
 
 ## Verification Checklist
 
