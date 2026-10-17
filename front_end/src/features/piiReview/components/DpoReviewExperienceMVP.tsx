@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography';
 
 import { AuditTrail } from '@/features/auditLog';
 import { getStoredSession } from '@/features/auth/model/authStorage';
-import { ApiError } from '@/shared/api/client';
+import { API_BASE_URL, ApiError } from '@/shared/api/client';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -509,7 +509,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     if (!currentRunId) return;
     const session = getStoredSession();
     const tokenParam = session?.token ? `&token=${encodeURIComponent(session.token)}` : '';
-    window.open(`/api/v1/runs/${currentRunId}/report?format=html${tokenParam}`, '_blank');
+    window.open(`${API_BASE_URL}/runs/${currentRunId}/report?format=html${tokenParam}`, '_blank');
   };
 
   // Same function every render, so the memoized rows only re-render when their own field changes.
