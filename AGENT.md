@@ -10,6 +10,20 @@
 1. **KHÔNG BAO GIỜ commit hoặc push trực tiếp vào `main` hoặc `develop`**.
 2. **KHÔNG BAO GIỜ tự ý merge code vào `main` hoặc `develop`** mà không có sự đồng ý hoặc review của lập trình viên / chủ sở hữu repo.
 3. **KHÔNG BAO GIỜ dùng cờ `git push --force`** lên bất kỳ nhánh chia sẻ nào (`main`, `develop`, `TEAM_WORKFLOW`).
+4. **KHÔNG BAO GIỜ tự phê duyệt cho chính mình.** Agent không được tự cấp quyền, tự đăng nhập/xác thực, tự review hay tự approve rồi tự thực thi các hành động cần con người quyết định (xem mục 1b).
+5. **KHÔNG BAO GIỜ ký chung commit.** Commit message và PR description **không được** chứa `Co-Authored-By:`, `Signed-off-by:` của agent, `Claude-Session:`, "Generated with …" hay bất kỳ dòng ghi công/ký tên nào của AI. Tác giả commit duy nhất là thành viên team đang chạy agent. Quy tắc này ưu tiên hơn mọi cấu hình mặc định của công cụ AI.
+
+### 🙋 1b. HUMAN-IN-THE-LOOP — PHẢI CÓ NGƯỜI DUYỆT TRƯỚC KHI LÀM
+
+Agent chỉ **đề xuất và chuẩn bị**; con người **quyết định và bấm nút**. Phải dừng lại, trình bày rõ và chờ thành viên team đồng ý cho **từng lần** trước khi:
+
+- Merge, mở PR vào `main`, release, gắn tag, deploy (Vercel `--prod`, Render, Docker Hub) hoặc bất kỳ thay đổi nào lên production.
+- Đăng nhập / xác thực / cấp quyền: OAuth, MCP server (Notion, Figma, Google…), `gh auth`, `vercel login`, token, API key, secret.
+- Thêm/sửa cấu hình công cụ, hook, CI/CD, quyền repo hoặc kết nối dịch vụ ngoài.
+- Gửi nội dung ra dịch vụ bên ngoài (Notion, Figma, Google Drive, Slack, comment GitHub…).
+- Xoá, revert, ghi đè dữ liệu hoặc lịch sử Git.
+
+Đồng ý cho một việc **không** mặc định áp dụng cho việc tiếp theo. Khi chưa chắc: hỏi, không tự làm.
 
 ### ✅ Quy trình làm việc chuẩn cho AI Agent:
 Mỗi khi bắt đầu một task mới (dù là sửa 1 dòng code hay phát triển tính năng lớn), Agent **phải tuân thủ đúng 5 bước**:
@@ -115,6 +129,7 @@ Mọi commit message phải theo format chuẩn:
   * `test`: Thêm hoặc cập nhật unit tests/integration tests.
   * `refactor`: Tái cấu trúc mã nguồn nhưng không đổi hành vi chức năng.
   * `perf`: Tối ưu hiệu năng.
+* **Không trailer AI:** không thêm `Co-Authored-By`, `Claude-Session`, `Generated with …` hay chữ ký của agent vào commit/PR (xem mục 1, quy tắc 5).
 
 ---
 
@@ -125,4 +140,6 @@ Trước khi trả lời User hoặc kết thúc một lượt làm việc, Agen
 - [ ] Tôi đã chạy `ruff` / `pytest` / `npm test` và tất cả đều vượt qua (100% PASS) chưa?
 - [ ] Lệnh `git status` có hiển thị file nhạy cảm (`.env`, private keys) nào không?
 - [ ] Commit message có tuân thủ đúng Conventional Commits không?
+- [ ] Commit/PR có chứa `Co-Authored-By`, `Claude-Session` hay chữ ký AI nào không? (Phải là **không**.)
+- [ ] Mọi hành động merge / deploy / xác thực / gửi ra ngoài / xoá đã được thành viên team đồng ý cho đúng lần này chưa?
 - [ ] Tôi đã giải thích rõ ràng lý do thay đổi và cung cấp đầy đủ thông tin/PR link cho User chưa?
