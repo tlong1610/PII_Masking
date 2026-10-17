@@ -33,4 +33,6 @@
 | **FE-29** | Masking Demo Layout & Consistency | Sprint 05 | **done** | Sửa tràn lưới 4 thẻ, Việt hoá tiêu đề, bảng cuộn ngang trên mobile, dữ liệu mẫu giả lập, HMAC khớp sandbox ([chi tiết](details/FE-29-masking-demo-layout-consistency.md)) |
 | **FE-30** | Sidebar Brand Subtitle Clipping | Sprint 05 | **done** | Phụ đề sidebar không còn bị cắt giữa chữ ([chi tiết](details/FE-30-sidebar-brand-subtitle-clipping.md)) |
 
+| **FE-31** | Login Background Production | Sprint 05 | **done** | Khôi phục SVG nền trên bản build production ([chi tiết](details/FE-31-login-background-production.md)) |
+
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.
