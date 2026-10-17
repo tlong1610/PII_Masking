@@ -10,8 +10,8 @@ import Tabs from '@mui/material/Tabs';
 import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 
 import { AuditTrail } from '@/features/auditLog';
-import { getStoredSession } from '@/features/auth/model/authStorage';
-import { API_BASE_URL, ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/client';
+import { fetchRunReportHtml } from '../api/realPiiReviewApi';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -506,9 +506,20 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const handleOpenReport = (): void => {
     if (!currentRunId) return;
-    const session = getStoredSession();
-    const tokenParam = session?.token ? `&token=${encodeURIComponent(session.token)}` : '';
-    window.open(`${API_BASE_URL}/runs/${currentRunId}/report?format=html${tokenParam}`, '_blank');
+    // Open the tab now (popup blockers), then load the report with the Authorization header so
+    // the session token never ends up in a URL, the browser history or server access logs.
+    const reportWindow = window.open('', '_blank');
+    void fetchRunReportHtml(currentRunId)
+      .then((html) => {
+        const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+        if (reportWindow) reportWindow.location.href = url;
+        else window.open(url, '_blank');
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      })
+      .catch((error: unknown) => {
+        reportWindow?.close();
+        notify(getErrorMessage(error, 'Không thể mở báo cáo tuân thủ. Vui lòng thử lại.'), 'error');
+      });
   };
 
   // Same function every render, so the memoized rows only re-render when their own field changes.

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, apiRequestText } from '@/shared/api/client';
 
 // ============================================================================
 // TYPES (matching backend schemas)
@@ -327,6 +327,11 @@ export const riskScoreSchema = z.object({
 });
 
 export type RiskScoreResult = z.infer<typeof riskScoreSchema>;
+
+/** Compliance report as an HTML document, fetched with the Authorization header (never ?token=). */
+export async function fetchRunReportHtml(runId: number): Promise<string> {
+  return apiRequestText(`/runs/${runId}/report?format=html`);
+}
 
 export async function fetchRiskScore(runId: number): Promise<RiskScoreResult> {
   const data = await apiRequest<RiskScoreResult>(`/runs/${runId}/risk-score`);

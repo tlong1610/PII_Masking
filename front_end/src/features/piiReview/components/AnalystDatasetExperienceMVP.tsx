@@ -53,8 +53,10 @@ function formatPreviewValue(value: string | number | boolean | null | undefined)
   return String(value);
 }
 
-function getDatasetFileName(datasetName: string): string {
-  const safeName = datasetName
+function getDatasetFileName(datasetName: string, table: string | null): string {
+  const safeName = [datasetName, table]
+    .filter(Boolean)
+    .join('-')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
@@ -70,7 +72,12 @@ function formatCsvCell(value: string | number | boolean | null | undefined): str
 }
 
 function buildProtectedCsv(preview: DatasetPreview): string {
-  const exportColumns = preview.columns.filter((column) => column.transform !== 'DROPPED');
+  // Columns of every table come back; export only the table on screen, like the grid shows it.
+  const exportColumns = preview.columns.filter(
+    (column) =>
+      column.transform !== 'DROPPED' &&
+      (!preview.selected_table || column.source_path === preview.selected_table),
+  );
   const header = exportColumns.map((column) => formatCsvCell(column.name)).join(',');
   const rows = preview.rows.map((row) =>
     exportColumns.map((column) => formatCsvCell(row[column.name])).join(','),
@@ -84,7 +91,7 @@ function downloadCsv(preview: DatasetPreview): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = getDatasetFileName(preview.dataset_name);
+  link.download = getDatasetFileName(preview.dataset_name, preview.selected_table ?? null);
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -374,9 +381,10 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
               alignItems={{ xs: 'flex-start', md: 'center' }}
               spacing={2}
             >
-              <Stack direction="row" spacing={1.5} alignItems="center">
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
                 <Box
                   sx={{
+                    flexShrink: 0,
                     width: 38,
                     height: 38,
                     borderRadius: '6px',
@@ -390,14 +398,14 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                 >
                   <TableChartOutlinedIcon />
                 </Box>
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827', letterSpacing: '-0.01em' }}>
                       {activeDataset?.dataset_name}
                     </Typography>
                   </Stack>
 
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                     {preview?.verification ? (
                       <Chip
                         icon={<VerifiedUserIcon sx={{ fontSize: '14px !important' }} />}
@@ -409,7 +417,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                     ) : (
                       <Chip label="Chưa có kết quả kiểm định" size="small" variant="outlined" />
                     )}
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                    <Typography variant="caption" sx={{ color: '#6B7280', wordBreak: 'break-all' }}>
                       Vị trí snapshot: {activeDataset?.output_location || '—'}
                     </Typography>
                   </Stack>
@@ -421,6 +429,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                   <Button
                     variant="outlined"
                     size="small"
+                    sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                     startIcon={
                       downloadingDatasetId !== null ? (
                         <CircularProgress size={14} color="inherit" />

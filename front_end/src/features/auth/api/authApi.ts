@@ -81,7 +81,10 @@ export async function fetchCurrentUser(token: string): Promise<AuthUser | null> 
       username: data.username,
       role: normalizeRole(data.role),
     };
-  } catch {
-    return null;
+  } catch (error) {
+    // Only a rejected token ends the session. A network blip or a request aborted by
+    // navigating away must not sign the user out, so those errors propagate instead.
+    if (error instanceof ApiError && error.status === 401) return null;
+    throw error;
   }
 }

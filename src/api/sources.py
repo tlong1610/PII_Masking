@@ -341,18 +341,19 @@ class SourceConnection:
     live: bool = False
     user_supplied: bool = False
 
+    # Every run gets its own snapshot target, so building run N+1 never overwrites the
+    # snapshot that a still-PUBLISHED dataset of run N is serving to Analysts.
     def pg_snapshot_schema(self, run_id: int) -> str:
         from src.config import get_settings
 
-        base = get_settings().snapshot_schema
-        return f"{base}_run{run_id}" if self.user_supplied else base
+        return f"{get_settings().snapshot_schema}_run{run_id}"
 
     def mongo_snapshot_db(self, run_id: int) -> str:
         from src.config import get_settings
 
         if self.user_supplied:
             return f"{self.namespace}_protected_run{run_id}"
-        return get_settings().mongo_snapshot_db
+        return f"{get_settings().mongo_snapshot_db}_run{run_id}"
 
 
 

@@ -123,12 +123,20 @@ def run_postgres_verifiers(
     table_actions: dict[str, dict[str, str]] | None = None,
 ) -> list[CheckResult]:
     expected = load_expected()
-    results = [
-        verify_join_hmac(snapshot_url, snapshot_schema=snapshot_schema, expected=expected),
-        verify_aggregate_revenue(
-            snapshot_url, snapshot_schema=snapshot_schema, expected=expected
-        ),
-    ]
+    # The demo baselines only hold when their tables were copied; a narrower scan scope skips them
+    # instead of failing the whole build on a missing table. tables=None keeps the full demo set.
+    built = set(tables) if tables is not None else {"orders", "customers", "order_details"}
+    results: list[CheckResult] = []
+    if {"orders", "customers"} <= built:
+        results.append(
+            verify_join_hmac(snapshot_url, snapshot_schema=snapshot_schema, expected=expected)
+        )
+    if {"orders", "customers", "order_details"} <= built:
+        results.append(
+            verify_aggregate_revenue(
+                snapshot_url, snapshot_schema=snapshot_schema, expected=expected
+            )
+        )
     if tables and table_actions:
         results.append(
             verify_zero_raw_pii_egress(

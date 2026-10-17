@@ -184,7 +184,7 @@ async def test_build_runs_real_pipeline_with_dpo_decisions(client, pg_live, monk
     body = built.json()
     assert body["run"]["status"] == "VERIFIED"
     assert body["dataset"]["status"] == "VERIFIED"
-    assert body["dataset"]["output_location"].startswith("postgres://piiguard_snapshot/")
+    assert body["dataset"]["output_location"].startswith(f"postgres://piiguard_snapshot_run{run['id']}/")
 
     checks = _checks(body)
     assert set(checks) == {"policy_complete", "sql_join_hmac", "sql_aggregate_revenue"}
