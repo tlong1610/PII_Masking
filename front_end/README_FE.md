@@ -45,6 +45,13 @@ Override with:
 VITE_API_URL=http://localhost:8000/api/v1 npm run dev
 ```
 
+Or go through the Vite dev proxy (same origin, no CORS). `/api` is proxied to `http://localhost:8000` by default; set `VITE_PROXY_TARGET` when the backend runs elsewhere (docker-compose exposes `8002`):
+
+```bash
+VITE_API_URL=/api/v1 npm run dev
+VITE_API_URL=/api/v1 VITE_PROXY_TARGET=http://localhost:8002 npm run dev
+```
+
 Main integration file:
 
 ```text

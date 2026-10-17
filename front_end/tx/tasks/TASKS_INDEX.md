@@ -28,5 +28,6 @@
 | **FE-24** | Mascot cho trạng thái rỗng / lỗi / đang tải | Sprint 05 | **done** | `StateNotice` + `MascotLoader`, DPO đang quét, Analyst đang tải / chưa có dataset ([chi tiết](details/FE-24-mascot-empty-error-loading-states.md)) |
 | **FE-25** | Mascot cho kết quả kiểm định & đăng nhập | Sprint 05 | **done** | Banner trạng thái tab “Dữ liệu cho Analyst”, Pango trên màn đăng nhập ([chi tiết](details/FE-25-mascot-verifier-result-and-login.md)) |
 | **FE-26** | Tài liệu & bằng chứng Brand / Mascot | Sprint 05 | **done** | Sprint 05, README_FE, link Figma Pango Mascot Kit ([chi tiết](details/FE-26-brand-docs-evidence.md)) |
+| **FE-27** | Fix Vite Dev Proxy Port | Sprint 05 | **done** | Proxy `/api` trỏ về backend 8000 (thay 8001 cũ), ghi đè bằng `VITE_PROXY_TARGET` ([chi tiết](details/FE-27-fix-dev-proxy-port.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

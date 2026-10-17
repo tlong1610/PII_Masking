@@ -34,6 +34,7 @@
 | FE-24 | Mascot cho trạng thái rỗng / lỗi / đang tải | `StateNotice` + `MascotLoader`, DPO scanning, Analyst empty/loading |
 | FE-25 | Mascot cho kết quả kiểm định & màn đăng nhập | `SnapshotTab` (Awaiting / Protected / Error), Pango trên brand panel |
 | FE-26 | Tài liệu & bằng chứng | TASKS_INDEX, README_FE, link Figma |
+| FE-27 | Sửa port proxy dev của Vite | `/api` → 8000, ghi đè bằng `VITE_PROXY_TARGET` |
 
 ## 4. Nguyên Tắc
 
