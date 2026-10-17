@@ -37,7 +37,7 @@ export function ScopeSelectionStep({
 }: ScopeSelectionStepProps): JSX.Element {
   return (
     <Stack spacing={2}>
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={2}
@@ -45,7 +45,7 @@ export function ScopeSelectionStep({
           alignItems={{ xs: 'stretch', md: 'center' }}
         >
           <div>
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography variant="subtitle1" component="h2" fontWeight={700}>
               Chọn phạm vi quét
             </Typography>
             <Typography variant="body2" color="text.secondary">

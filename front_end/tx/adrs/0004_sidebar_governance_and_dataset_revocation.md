@@ -1,5 +1,7 @@
 # ADR 0004: Sidebar Governance Hub & Dataset Revocation Architecture
 
+> ADR ghi lại quyết định tại thời điểm thiết kế. Mô tả 3 tab DPO bên dưới là lịch sử; UI hiện tại có tab thứ tư “Dữ liệu cho Analyst”. Phần Catalog/Revocation mô tả kiến trúc dự kiến, không tự chứng minh mọi mục đã có trên UI.
+
 ## Bối cảnh (Context)
 Trong giai đoạn mở rộng tính năng bảo vệ dữ liệu cá nhân (PIIGuard Shield) theo Luật BV DLCN 2025 và Nghị định 13/2023/NĐ-CP:
 1. DPO cần truy cập nhanh cẩm nang quy tắc pháp lý và trung tâm kiểm toán Sổ cái mật mã Merkle Root SHA-256 mọi lúc mọi nơi.

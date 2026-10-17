@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Alert from '@mui/material/Alert';
-import Chip from '@mui/material/Chip';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -14,18 +13,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import type { DatasetPreview } from '../api/datasetsApi';
 import { useDatasetPreview } from '../hooks/useDatasets';
-
-type Transform = DatasetPreview['columns'][number]['transform'];
-
-const TRANSFORM_COLORS: Record<Transform, 'warning' | 'secondary' | 'default' | 'error'> = {
-  MASK: 'warning',
-  REDACT: 'warning',
-  HMAC: 'secondary',
-  KEEP: 'default',
-  DROPPED: 'error',
-};
+import { TransformChip } from './TransformChip';
 
 type DatasetPreviewTableProps = {
   datasetId: number;
@@ -79,7 +68,7 @@ export function DatasetPreviewTable({ datasetId, available }: DatasetPreviewTabl
         )}
         <Typography variant="body2" color="text.secondary">
           {preview.rows.length} dòng · {columns.length} cột hiển thị
-          {droppedCount > 0 ? ` · ${droppedCount} cột đã loại bỏ (DROP)` : ''}
+          {droppedCount > 0 ? ` · ${droppedCount} cột đã loại bỏ` : ''}
         </Typography>
       </Stack>
       {preview.note ? <Alert severity="success">{preview.note}</Alert> : null}
@@ -89,14 +78,9 @@ export function DatasetPreviewTable({ datasetId, available }: DatasetPreviewTabl
             <TableRow>
               {columns.map((column) => (
                 <TableCell key={column.name}>
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ whiteSpace: 'nowrap' }}>
                     <span>{column.name}</span>
-                    <Chip
-                      label={column.transform}
-                      size="small"
-                      variant="outlined"
-                      color={TRANSFORM_COLORS[column.transform]}
-                    />
+                    <TransformChip transform={column.transform} />
                   </Stack>
                 </TableCell>
               ))}

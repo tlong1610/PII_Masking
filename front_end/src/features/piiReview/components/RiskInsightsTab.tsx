@@ -42,7 +42,7 @@ export function RiskInsightsTab({ riskScore, protectionRates, actionCounts, fiel
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <Card variant="outlined" sx={{ p: 2.5, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+            <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: 1.5 }}>
               Mức bảo vệ theo quyết định hiện tại
             </Typography>
             <Stack spacing={2}>
@@ -61,12 +61,12 @@ export function RiskInsightsTab({ riskScore, protectionRates, actionCounts, fiel
                     variant="determinate"
                     value={rate.percent ?? 100}
                     color={rate.percent === null || rate.percent === 100 ? 'success' : 'warning'}
-                    sx={{ height: 6, borderRadius: 3 }}
+                    sx={{ height: 6 }}
                   />
                 </Box>
               ))}
               <Typography variant="caption" color="text.secondary">
-                Cột được tính là đã bảo vệ khi được MASK, HMAC hoặc DROP. Cột cá nhân giữ nguyên (KEEP) chỉ được phép dưới
+                Cột được tính là đã bảo vệ khi được che, băm HMAC hoặc loại bỏ. Cột cá nhân giữ nguyên chỉ được phép dưới
                 dạng ngoại lệ có thời hạn.
                 {riskScore?.row_count_estimated ? ' Điểm rủi ro dùng số dòng ước lượng vì không đếm được nguồn.' : ''}
               </Typography>
@@ -76,15 +76,15 @@ export function RiskInsightsTab({ riskScore, protectionRates, actionCounts, fiel
 
         <Grid item xs={12} md={6}>
           <Card variant="outlined" sx={{ p: 2.5, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Phân bổ chính sách che giấu
+            <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: 1.5 }}>
+              Phân bổ hành động bảo vệ
             </Typography>
             <Stack spacing={1.5}>
               {POLICY_ACTIONS.map((action) => (
                 <Stack direction="row" justifyContent="space-between" alignItems="center" key={action}>
                   <ActionChip action={action} />
-                  <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                    {actionCounts[action]} trường (
+                  <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    {actionCounts[action]} cột (
                     {fieldCount > 0 ? Math.round((actionCounts[action] / fieldCount) * 100) : 0}%)
                   </Typography>
                 </Stack>

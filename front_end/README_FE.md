@@ -36,13 +36,20 @@ npm run preview    # Preview the production build locally
 The frontend calls the real backend API by default:
 
 ```text
-http://localhost:8001/api/v1
+http://localhost:8000/api/v1
 ```
 
 Override with:
 
 ```bash
-VITE_API_URL=http://localhost:8001/api/v1 npm run dev
+VITE_API_URL=http://localhost:8000/api/v1 npm run dev
+```
+
+Or go through the Vite dev proxy (same origin, no CORS). `/api` is proxied to `http://localhost:8000` by default; set `VITE_PROXY_TARGET` when the backend runs elsewhere (docker-compose exposes `8002`):
+
+```bash
+VITE_API_URL=/api/v1 npm run dev
+VITE_API_URL=/api/v1 VITE_PROXY_TARGET=http://localhost:8002 npm run dev
 ```
 
 Main integration file:
@@ -85,12 +92,8 @@ src/
    - `SourceScopePickerDiagram`: Visual table dependency graph for selecting scan scope with automatic hierarchical layout.
    - `ErdLineageDiagram`: Full lineage and ERD diagram showing database tables, column types, transformations (`MASK`, `HMAC`, `KEEP`, `DROPPED`), and PK/FK links.
 3. **DPO Governance & Risk Assessment Workspace (`DpoReviewExperienceMVP`):**
-   - **5-Tab Layout:**
-     - *Overview & PII Schema:* Field classification table, detection source, and masking actions.
-     - *Sample Data:* **DPO can inspect data (sample data / preview)** to assess risk and verify ambiguous fields.
-     - *Permissions & Grants:* RBAC management for metastores and snapshots.
-     - *Audit History & Hash-Chain:* Merkle Root SHA-256 cryptographic audit trail.
-     - *Risk & Insights:* Deterministic Risk Score (FR-10, 0–100), sensitivity levels, and protection ratios.
+   - **4 tabs:** Overview & PII Schema, Risk & Insights, Audit History, and Dữ liệu cho Analyst (Verifier + snapshot preview).
+   - The review UI does not render source values. However, an approved PII `KEEP` exception can put the original value into a published snapshot; do not describe Analyst access as unconditionally Zero Raw-PII until the backend blocks or safely transforms that path.
    - **Inspector Drawer (`FieldPolicyDrawerContent`):**
      - Detailed legal basis breakdown (Decree 13/2023/NĐ-CP & Personal Data Protection Law 2025).
      - Join key partner alerts and automatic action synchronization.
@@ -99,7 +102,19 @@ src/
 4. **Analyst Experience (`AnalystDatasetExperienceMVP`):**
    - Table-based data preview (`previewDataset`) with limit selection (20, 50, 100, 200 rows).
    - Safe CSV download with automatic exclusion of `DROPPED` columns.
-   - **Zero Raw-PII for Analyst:** Strictly displays only transformed/masked data.
+   - Analyst preview shows published snapshot values. PII `KEEP` exceptions are a known privacy gap; see the warning above.
+
+## Brand & Mascot (Pango)
+
+- Design source: Figma [PIIGuard Shield — Pango Mascot Kit](https://www.figma.com/design/xcSramnWgGISlpaGiHe4MQ) — component `Pango` (7 `State` variants) and `Logo`.
+- Assets: `src/assets/mascot/pango-<pose>.webp` (480px, ~40–50 kB each), `src/assets/brand/logo.webp`; favicon/touch icons in `public/`.
+- Components (`@/shared/ui`):
+  - `<Mascot pose="scanning" size={120} float />` — poses: `default`, `scanning`, `detected`, `awaiting`, `loading`, `error`, `protected`. Decorative by default (`alt=""`); pass `label` only when the image carries meaning not said in text. `float` bobbing respects `prefers-reduced-motion`.
+  - `<MascotLoader pose="loading" title="…" />` — busy state with `role="status"`.
+  - `StateNotice` shows Pango automatically (`empty` → `default`, `error` → `error`; override with `pose`).
+  - `BrandLogo` — app mark used in `AppShell` and the login screen.
+- Where it appears: login brand panel, DPO source loading / scanning, empty and error notices, Analyst loading / no dataset, and the status banner of tab “Dữ liệu cho Analyst” (`awaiting` / `error` / `protected`).
+- Plan & tasks: [Sprint 05](tx/planing/sprints/sprint_05_brand_mascot.md), FE-23 → FE-26 in [TASKS_INDEX](tx/tasks/TASKS_INDEX.md).
 
 ## Verification Checklist
 

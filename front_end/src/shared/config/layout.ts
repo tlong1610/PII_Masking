@@ -9,3 +9,6 @@ export const STICKY_PANEL_TOP = APP_HEADER_HEIGHT + STICKY_GAP;
 
 /** ...and stop the same gap above the bottom of the window. */
 export const STICKY_PANEL_HEIGHT = `calc(100vh - ${APP_HEADER_HEIGHT + STICKY_GAP * 2}px)`;
+
+/** Width of the right-hand detail drawers (field policy, audit event) on tablet and up. */
+export const DETAIL_DRAWER_WIDTH = 520;

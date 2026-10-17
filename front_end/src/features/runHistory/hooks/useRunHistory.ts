@@ -33,7 +33,7 @@ export function useDeleteRuns() {
           await deleteRun(runId);
           result.deleted.push(runId);
         } catch (error) {
-          result.failed.push({ runId, message: error instanceof Error ? error.message : 'Không xoá được run.' });
+          result.failed.push({ runId, message: error instanceof Error ? error.message : 'Không xóa được run.' });
         }
       }
       return result;

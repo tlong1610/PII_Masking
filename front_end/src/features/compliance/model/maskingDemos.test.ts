@@ -31,9 +31,9 @@ describe('maskingDemos model', () => {
   });
 
   it('masks various types of strings uniformly as ***', () => {
-    expect(maskString('phuc.nguyen@enterprise.vn')).toBe('***');
-    expect(maskString('0912345678')).toBe('***');
-    expect(maskString('Nguyễn Văn Phúc')).toBe('***');
+    expect(maskString('nguyenvana@example.com')).toBe('***');
+    expect(maskString('0900000001')).toBe('***');
+    expect(maskString('Nguyễn Văn A')).toBe('***');
     expect(maskString('')).toBe('***');
   });
 

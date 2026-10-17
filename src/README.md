@@ -76,7 +76,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-API được expose tại `http://localhost:8001/api/v1`; container backend lắng nghe port `8000`.
+API được expose tại `http://localhost:8002/api/v1` (mapping `8002:8000` trong `docker-compose.yml`); container backend lắng nghe port `8000`. Frontend mặc định gọi `http://localhost:8000/api/v1`, nên khi chạy bằng Compose cần đặt `VITE_API_URL=http://localhost:8002/api/v1`.
 
 ## Cấu Hình Môi Trường (.env)
 
@@ -155,7 +155,7 @@ src/
 
 ## Quy Ước Bảo Mật Cốt Lõi
 
-- **Zero Raw PII**: Không lưu raw PII, không gửi raw value vào LLM prompt hay log.
+- **Zero Raw PII**: Không gửi raw value vào LLM prompt hay log. Ngoại lệ: `PUT /runs/{id}/decisions` chấp nhận `KEEP` cho trường PII khi có `is_exception`, `reason` và `exception_until` còn hạn (`src/api/runs.py`); giá trị gốc khi đó được giữ trong snapshot.
 - **Source Database Read-Only**: Kết nối nguồn luôn ở chế độ chỉ đọc; snapshot ghi sang vùng riêng.
 - **HMAC Join Key Integrity**: Giữ toàn vẹn quan hệ phân tích bằng băm HMAC-SHA-256 có salt.
 - **Tamper-Evident Audit**: Mọi hành động của DPO và hệ thống được băm chuỗi Merkle Root SHA-256.

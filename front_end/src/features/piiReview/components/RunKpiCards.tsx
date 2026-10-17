@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -10,6 +9,7 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import type { RiskScoreResult } from '../api/realPiiReviewApi';
+import { StatusChip } from '@/shared/ui';
 import { type FieldStats, getProtectionPercent } from '../model/fieldStats';
 
 const TIER: Record<RiskScoreResult['tier'], { label: string; color: 'error' | 'warning' | 'info' | 'success' }> = {
@@ -21,9 +21,9 @@ const TIER: Record<RiskScoreResult['tier'], { label: string; color: 'error' | 'w
 
 function KpiCard({ title, aside, children }: { title: ReactNode; aside?: ReactNode; children: ReactNode }): JSX.Element {
   return (
-    <Paper variant="outlined" sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <Paper variant="outlined" sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+        <Typography variant="body2" component="h3" color="text.secondary" sx={{ fontWeight: 600 }}>
           {title}
         </Typography>
         {aside}
@@ -35,7 +35,7 @@ function KpiCard({ title, aside, children }: { title: ReactNode; aside?: ReactNo
 
 function BigNumber({ value, unit }: { value: ReactNode; unit?: string }): JSX.Element {
   return (
-    <Typography variant="h4" component="p" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+    <Typography variant="h4" component="p" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
       {value}
       {unit && (
         <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5, fontWeight: 400 }}>
@@ -60,7 +60,7 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
 const LEVELS = [
   { key: 'sensitive', label: 'L3 nhạy cảm', color: 'error.main' },
   { key: 'basic', label: 'L2 cơ bản', color: 'warning.main' },
-  { key: 'indirect', label: 'L1 gián tiếp', color: 'primary.main' },
+  { key: 'indirect', label: 'L1 gián tiếp', color: 'info.main' },
   { key: 'other', label: 'Khác', color: 'grey.400' },
 ] as const;
 
@@ -81,7 +81,7 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
     <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' } }}>
       <KpiCard
         title="Điểm rủi ro"
-        aside={tier && riskScore && <Chip size="small" color={tier.color} label={`${tier.label} · ${riskScore.action_required}`} />}
+        aside={tier && <StatusChip label={tier.label} tone={tier.color} />}
       >
         {riskScore && tier ? (
           <>
@@ -90,10 +90,10 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
               variant="determinate"
               value={Math.min(100, riskScore.score)}
               color={tier.color}
-              sx={{ height: 6, borderRadius: 3 }}
+              sx={{ height: 6 }}
             />
             <Typography variant="caption" color="text.secondary">
-              Mức nhạy cảm cao nhất: <strong>{riskScore.max_sensitivity_level}</strong>
+              Mức nhạy cảm cao nhất: <strong>{riskScore.max_sensitivity_level}</strong> · {riskScore.action_required}
             </Typography>
           </>
         ) : (
@@ -103,8 +103,8 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
         )}
       </KpiCard>
 
-      <KpiCard title="Trường PII phát hiện">
-        <BigNumber value={stats.total} unit="trường" />
+      <KpiCard title="Cột PII phát hiện">
+        <BigNumber value={stats.total} unit="cột" />
         <Box sx={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', bgcolor: 'action.hover' }}>
           {LEVELS.map(({ key, color }) =>
             stats[key] > 0 ? <Box key={key} sx={{ flexGrow: stats[key], bgcolor: color }} /> : null,
@@ -123,7 +123,7 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
           variant="determinate"
           value={protection ?? 100}
           color={unprotected > 0 ? 'warning' : 'primary'}
-          sx={{ height: 6, borderRadius: 3 }}
+          sx={{ height: 6 }}
         />
         <Typography variant="caption" color="text.secondary">
           {stats.protectedCount}/{stats.mustProtect} cột L2–L3 đã che, băm hoặc loại bỏ · <strong>{unprotected}</strong> cột
@@ -135,7 +135,7 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
         title={
           <Stack direction="row" spacing={0.75} alignItems="center" component="span">
             <AutoAwesomeOutlinedIcon fontSize="small" color="primary" />
-            <span>Đề xuất AI</span>
+            <span>Đề xuất của hệ thống</span>
           </Stack>
         }
       >

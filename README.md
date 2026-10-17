@@ -3,7 +3,7 @@
 > Hỗ trợ DPO rà soát dữ liệu cá nhân trong PostgreSQL và MongoDB, duyệt biện pháp bảo vệ và chia sẻ dataset vẫn dùng được cho tác vụ phân tích đã kiểm tra.
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
-**Bản thiết kế:** 21/09/2026 · **Trạng thái:** MVP/Gate 2 đã qua · **Giai đoạn P1 ĐÃ HOÀN THÀNH TOÀN DIỆN (100%)**
+**Bản thiết kế:** 21/09/2026 · **Trạng thái:** MVP/Gate 2 đã qua · **P1:** xem báo cáo nghiệm thu (số liệu tại thời điểm báo cáo)
 
 ---
 
@@ -17,7 +17,7 @@
 | **🩺 Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
 | **📦 Docker Hub Release** | `docker.io/len1652/piiguard-api:latest` | 🟢 Verified | Linux amd64 Image production đóng gói sẵn |
 | **🎬 Video Demo (3-5 phút)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Luồng E2E PostgreSQL/MongoDB ➔ DPO Review ➔ Masking ➔ Audit ➔ Analyst |
-| **📊 Pitch Deck (10 slides)** | [presentation/pitch_deck.pptx](presentation/pitch_deck.pptx) | 🟢 Ready | Báo cáo thuyết trình giải pháp bảo vệ dữ liệu NĐ 13 |
+| **📊 Pitch Deck** | [presentation/README.md](presentation/README.md) | 📝 Hướng dẫn | Cấu trúc slide tham khảo; file `.pptx` chưa có trong repo |
 
 ### 🔑 Tài Khoản Trải Nghiệm Demo (Demo Credentials)
 - **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`) — Phân loại PII, cấu hình Masking/HMAC, thẩm định rủi ro và phát hành snapshot.
@@ -30,10 +30,10 @@
 Dành cho Ban Giám Khảo / Hội đồng đánh giá muốn nắm bắt nhanh dự án trong 3–10 phút:
 
 1. ⏱️ **Bước 1 (2 phút — Tổng quan & Kết quả P1):**
-   * Đọc phần **Giải pháp** và bảng **Trạng thái P1 (100% hoàn thành)** ngay bên dưới trong [README.md](README.md).
+   * Đọc phần **Giải pháp** và bảng **Báo cáo nghiệm thu P1** ngay bên dưới trong [README.md](README.md).
 2. ⏱️ **Bước 2 (3 phút — Kiến trúc cốt lõi & 3 trụ cột thiết kế):**
    * Đọc bản tóm lược cấp cao tại [**`ARCHITECTURE.md`**](ARCHITECTURE.md):
-     * *Zero Raw PII & Least Privilege:* DPO duyệt siêu dữ liệu; Engine xử lý in-memory; CSDL đích là snapshot đã ẩn danh.
+     * *Giới hạn Zero Raw PII:* DPO duyệt metadata; xem cảnh báo bảo mật ngay dưới đây trước khi giới thiệu khả năng chia sẻ snapshot.
      * *Deep Content Inspection (Khoét sâu dữ liệu):* GLiNER Cascade đọc sâu text trong RAM, trừu tượng hóa an toàn về DPO.
      * *Chiến lược 5 hành động Masking:* Lý do không che thô `***` (HMAC giữ JOIN, REDACT giữ ngữ nghĩa NLP, MASK giữ phân tích).
 3. ⏱️ **Bước 3 (5 phút — Thẩm định chuyên sâu theo từng tiêu chí):**
@@ -55,10 +55,12 @@ DPO và đội dữ liệu mất công rà từng trường trước khi cung c�
 Các nguyên tắc không đổi trong P1:
 
 - Source database chỉ đọc; output là snapshot/protected database riêng.
-- DPO không xem raw PII; UI/API/report/prompt/log không được lộ raw value.
+- DPO workspace không render raw source values; log và prompt LLM không được chứa raw PII. PII được `KEEP` theo ngoại lệ vẫn có thể xuất hiện trong published snapshot cho Analyst.
 - Rules là baseline; LLM chỉ hỗ trợ field mơ hồ bằng metadata/statistics đã lọc.
-- `HMAC` giữ lookup/join/mapping; `MASK` che field; `DROP` loại field; `KEEP` chỉ cho non-personal.
+- `HMAC` giữ lookup/join/mapping; `MASK` che field; `DROP` loại field; `KEEP` dành cho non-personal, nhưng hiện backend cũng chấp nhận ngoại lệ PII có hạn.
 - Publish chỉ sau khi verifier pass.
+
+**Giới hạn cần xử lý trước khi khẳng định “Zero Raw PII” tuyệt đối:** backend hiện cho phép DPO chọn `KEEP` cho trường PII khi có ngoại lệ, lý do và hạn; `KEEP` sao chép giá trị gốc sang snapshot có thể được Analyst xem sau khi publish. Các mục bên dưới phản ánh mục tiêu và báo cáo nghiệm thu P1, không thay thế kiểm tra bảo mật của bản phát hành hiện tại.
 
 Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3) và [Nghị định 356/2025/NĐ-CP, Điều 3–4](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf). Mapping, độ phủ và giới hạn: [PRD](docs/core/prd.md).
 
@@ -69,19 +71,21 @@ Căn cứ danh mục: [Luật 91/2025/QH15](https://chinhphu.vn/?classid=1&docid
 | DPO / Data reviewer | Review có căn cứ, quyết định rõ và bằng chứng xử lý                      |
 | Analyst             | Dataset được phép dùng, có kiểm tra tác vụ và thời điểm snapshot rõ ràng |
 
-## Trạng Thái P1 — Đã Nghiệm Thu Hoàn Thành 100%
+## Trạng Thái P1 — Báo Cáo Nghiệm Thu
 
-Dự án đã hoàn thành toàn diện giai đoạn P1, vượt qua toàn bộ 5 chỉ tiêu kiểm soát trọng tâm:
+Các tỷ lệ và số bài test dưới đây là số liệu trong báo cáo nghiệm thu P1, không phải kết quả CI mới nhất. Khi phát hành, xem workflow hiện tại và chạy lại các phép kiểm tương ứng.
+
+Bảng dưới ghi lại kết quả nghiệm thu 5 hạng mục P1 tại thời điểm lập báo cáo:
 
 | Hạng mục P1 | Trọng tâm kiểm soát | Kết quả nghiệm thu |
 | --- | --- | --- |
 | **P1-1: Quét sâu field/patterns** | Quét sâu patterns trong PostgreSQL & MongoDB | **100% HOÀN THÀNH** — Luồng A đạt 100% Accuracy trên 339 cột doanh nghiệp sau HITL; Luồng B đạt 97.86% Recall, 97.16% Precision, 97.51% F1 với GLiNER zero-shot cascade. |
 | **P1-2: Đồng bộ Risk Scorer** | Risk score / report / UI chip đồng bộ chuẩn FR-10 | **100% HOÀN THÀNH** — Điểm rủi ro tất định 0–100, Privacy Risk Report API (`GET /runs/{id}/report`), và UI chips đồng bộ hoàn toàn. |
 | **P1-3: AI fallback & Memory** | Rules-only độc lập, LLM chỉ nhận metadata/stats | **100% HOÀN THÀNH** — Rules local chạy ổn định khi tắt AI; khi bật AI, LLM nhận thống kê phân phối rút gọn (`column_stats.py`) và bộ nhớ HITL Few-Shot Memory. |
-| **P1-4: Bảo mật Audit & Log** | Không lộ raw PII, credential, API key | **100% HOÀN THÀNH** — Tuân thủ tuyệt đối Zero Raw PII; Sổ cái kiểm toán Merkle Root SHA-256 (`/audit/verify`); giao diện nhật ký hoạt động ngôn ngữ tự nhiên. |
-| **P1-5: CI/CD & Testing** | CI xanh sạch: `ruff check .`, `pytest`, `vitest` | **100% HOÀN THÀNH** — 317 backend tests pass (11s), 160 frontend tests pass (35 test files), ruff lint clean 100%. |
+| **P1-4: Bảo mật Audit & Log** | Không lộ raw PII, credential, API key | **Theo báo cáo nghiệm thu** — Sổ cái Merkle Root SHA-256 (`/audit/verify`); lưu ý ngoại lệ `KEEP` có thể đưa PII vào snapshot (xem cảnh báo phía trên). |
+| **P1-5: CI/CD & Testing** | CI và tests | **Theo báo cáo nghiệm thu** — 317 backend tests, 160 frontend tests và Ruff sạch tại thời điểm báo cáo; xem CI mới nhất để xác nhận hiện trạng. |
 
-PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql` (14 bảng quan hệ, dữ liệu synthetic PII). MongoDB fixture tại `data/fixtures/mongo/seed_mongo.py` (91 customers, 830 orders). Toàn bộ dữ liệu là synthetic 100%. Theo nguyên tắc Zero Raw PII, sample values chỉ dùng nội bộ trong fixture/eval và tuyệt đối không hiển thị trong UI, report, prompt hoặc log.
+PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql` (14 bảng quan hệ, dữ liệu synthetic PII). MongoDB fixture tại `data/fixtures/mongo/seed_mongo.py` (91 customers, 830 orders). Toàn bộ dữ liệu là synthetic 100%. Sample values trong fixture/eval không được đưa vào prompt hoặc log; DPO workspace không render raw source values.
 
 ## Tech Stack
 
@@ -362,9 +366,13 @@ PYTHONPATH=. python eval/run_eval_full.py
 ```
 
 ## Tài Liệu Dự Án
+
+- [Assets dùng chung](assets/README.md) - SVG, mascot Pango, logo và cách dùng component trong frontend
+
+- [PDF hồ sơ Demo Day](docs/pdf/PIIGuard_Shield_Demo_Day.pdf) - Tổng quan, demo, kiến trúc, AI và bằng chứng để tải về hoặc chia sẻ qua Drive/Release
  
-- [Hướng Dẫn Phát Hành & Vận Hành Release](docs/ops/RELEASE_GUIDE.md) - Sổ tay hướng dẫn phát hành, vận hành Render/Vercel và gắn tag v1.0.0
-- [Báo Cáo Hoàn Thành P1](docs/core/MVP_STATUS_REPORT.md) - Nghiệm thu hoàn thành toàn diện giai đoạn P1
+- [Hướng Dẫn Phát Hành & Vận Hành Release](docs/ops/RELEASE_GUIDE.md) - Sổ tay phát hành, CI và triển khai Render/Vercel
+- [Báo Cáo Hoàn Thành P1](docs/core/MVP_STATUS_REPORT.md) - Kết quả nghiệm thu lịch sử P1, có ghi chú giới hạn đã biết
 - [Docs Index](docs/README.md) - Đọc file này trước để biết tài liệu nào còn dùng
 - [System Architecture](docs/core/SYSTEM_ARCHITECTURE.md) - Luồng hệ thống end-to-end
 - [AI Architecture](docs/core/AI_ARCHITECTURE.md) - Cách AI/rules/LLM đang được nối trong source

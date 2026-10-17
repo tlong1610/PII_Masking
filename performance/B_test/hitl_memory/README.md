@@ -40,6 +40,6 @@
 
 ## 3. 🎯 Kết Quả Đánh Giá Đối Chiếu
 Kết quả chi tiết được tổng hợp và đối chiếu tại:
-- [`performance/sau_HITL/report_stream_b.md`](../sau_HITL/report_stream_b.md)
-- [`performance/sau_HITL/performance_report.md`](../sau_HITL/performance_report.md)
+- [`performance/sau_HITL/report_stream_b.md`](../../sau_HITL/report_stream_b.md)
+- [`performance/sau_HITL/performance_report.md`](../../sau_HITL/performance_report.md)
 

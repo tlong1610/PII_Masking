@@ -3,24 +3,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardActionArea from '@mui/material/CardActionArea';
-import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
-import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
-import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import GppGoodOutlinedIcon from '@mui/icons-material/GppGoodOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import Visibility from '@mui/icons-material/Visibility';
@@ -28,37 +20,12 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { isDemoLoginEnabled, type DemoAccount } from '../model/demoAccounts';
 import { loginSchema, type LoginFormValues } from '../model/loginSchema';
+import { DemoAccountPicker } from './DemoAccountPicker';
 import { routes } from '@/shared/config/routes';
+import { BrandLogo, Mascot } from '@/shared/ui';
 import loginBackground from '@/assets/login-background.svg';
-
-interface DemoAccountPreset {
-  role: 'DPO' | 'Analyst';
-  username: string;
-  password: string;
-  title: string;
-  description: string;
-  icon: JSX.Element;
-}
-
-const DEMO_PRESETS: DemoAccountPreset[] = [
-  {
-    role: 'DPO',
-    username: 'dpo',
-    password: 'dpo123',
-    title: 'DPO / Người duyệt dữ liệu',
-    description: 'Quét nguồn dữ liệu, review phân loại PII, tạo snapshot, phê duyệt phát hành.',
-    icon: <AdminPanelSettingsOutlinedIcon sx={{ fontSize: 20, color: '#1B51A4' }} />,
-  },
-  {
-    role: 'Analyst',
-    username: 'analyst',
-    password: 'analyst123',
-    title: 'Chuyên viên phân tích (Analyst)',
-    description: 'Chỉ đọc snapshot đã phát hành (PUBLISHED), truy vấn tác vụ đã được duyệt.',
-    icon: <AnalyticsOutlinedIcon sx={{ fontSize: 20, color: '#0E7490' }} />,
-  },
-];
 
 const HIGHLIGHTS = [
   {
@@ -80,15 +47,14 @@ function BrandMark({ size }: { size: number }): JSX.Element {
         width: size,
         height: size,
         borderRadius: 2,
-        bgcolor: 'primary.main',
+        bgcolor: 'common.white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'common.white',
         flexShrink: 0,
       }}
     >
-      <LayersOutlinedIcon sx={{ fontSize: size * 0.58 }} />
+      <BrandLogo size={Math.round(size * 0.78)} />
     </Box>
   );
 }
@@ -105,6 +71,13 @@ function BrandPanel(): JSX.Element {
           </Typography>
           <Typography sx={{ opacity: 0.8 }}>Nền tảng bảo vệ dữ liệu cho doanh nghiệp</Typography>
         </Box>
+      </Stack>
+      <Stack direction="row" spacing={2.5} alignItems="center">
+        <Mascot pose="default" size={150} float />
+        <Typography sx={{ opacity: 0.85, lineHeight: 1.6 }}>
+          Xin chào, mình là <strong>Pango</strong>! Mình rà dữ liệu cá nhân trong cơ sở dữ liệu của bạn và giúp DPO che
+          đúng trước khi chia sẻ.
+        </Typography>
       </Stack>
       <Stack spacing={3}>
         {HIGHLIGHTS.map((item) => (
@@ -136,7 +109,14 @@ function BrandPanel(): JSX.Element {
   );
 }
 
-export function LoginExperience(): JSX.Element {
+type LoginExperienceProps = {
+  /** Demo account shortcuts; defaults to on in development, off in a release build. */
+  showDemoAccounts?: boolean;
+};
+
+export function LoginExperience({
+  showDemoAccounts = isDemoLoginEnabled(import.meta.env),
+}: LoginExperienceProps): JSX.Element {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError, user, logout } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -155,7 +135,7 @@ export function LoginExperience(): JSX.Element {
     },
   });
 
-  const handleSelectPreset = (preset: DemoAccountPreset): void => {
+  const handleSelectPreset = (preset: DemoAccount): void => {
     setSelectedPresetRole(preset.role);
     setValue('username', preset.username, { shouldValidate: true });
     setValue('password', preset.password, { shouldValidate: true });
@@ -248,91 +228,15 @@ export function LoginExperience(): JSX.Element {
                     Đăng nhập tài khoản
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#4B5563', mt: 0.5 }}>
-                    Chọn vai trò mẫu hoặc nhập thông tin ủy quyền của bạn
+                    {showDemoAccounts
+                      ? 'Chọn vai trò mẫu hoặc nhập thông tin ủy quyền của bạn'
+                      : 'Nhập tài khoản được cấp để tiếp tục'}
                   </Typography>
                 </Box>
 
-                {/* Preset Role Cards */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                      color: '#6B7280',
-                      letterSpacing: '0.04em',
-                      display: 'block',
-                      mb: 1,
-                    }}
-                  >
-                    Chọn nhanh tài khoản mẫu:
-                  </Typography>
-                  <Grid container spacing={1.5}>
-                    {DEMO_PRESETS.map((preset) => {
-                      const isSelected = selectedPresetRole === preset.role;
-                      return (
-                        <Grid item xs={12} sm={6} key={preset.username}>
-                          <Card
-                            variant="outlined"
-                            sx={{
-                              height: '100%',
-                              borderRadius: '8px',
-                              borderColor: isSelected ? '#1B51A4' : '#E5E7EB',
-                              bgcolor: isSelected ? '#F0F7FF' : '#FFFFFF',
-                              boxShadow: isSelected ? '0 0 0 1px #1B51A4' : 'none',
-                              transition: 'all 0.15s ease',
-                              '&:hover': {
-                                borderColor: '#1B51A4',
-                                bgcolor: '#F8FAFC',
-                              },
-                            }}
-                          >
-                            <CardActionArea
-                              onClick={() => handleSelectPreset(preset)}
-                              sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
-                            >
-                              <Stack spacing={0.75} sx={{ width: '100%' }}>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                    {preset.icon}
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
-                                      {preset.title}
-                                    </Typography>
-                                  </Stack>
-                                  {isSelected && <CheckCircleRoundedIcon sx={{ fontSize: 16, color: '#1B51A4' }} />}
-                                </Stack>
-                                <Typography variant="caption" sx={{ color: '#4B5563', fontSize: '0.72rem', lineHeight: 1.4 }}>
-                                  {preset.description}
-                                </Typography>
-                                <Box sx={{ pt: 0.5 }}>
-                                  <Chip
-                                    label={`${preset.username} / ${preset.password}`}
-                                    size="small"
-                                    sx={{
-                                      height: 20,
-                                      fontSize: '0.68rem',
-                                      fontFamily: 'monospace',
-                                      fontWeight: 600,
-                                      bgcolor: '#F3F4F6',
-                                      color: '#374151',
-                                      border: '1px solid #E5E7EB',
-                                    }}
-                                  />
-                                </Box>
-                              </Stack>
-                            </CardActionArea>
-                          </Card>
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
-                </Box>
-
-                <Divider sx={{ my: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontSize: '0.7rem', fontWeight: 600 }}>
-                    HOẶC NHẬP THÔNG TIN
-                  </Typography>
-                </Divider>
+                {showDemoAccounts ? (
+                  <DemoAccountPicker selectedRole={selectedPresetRole} onSelect={handleSelectPreset} />
+                ) : null}
 
                 {/* Form */}
                 <Box
@@ -358,7 +262,7 @@ export function LoginExperience(): JSX.Element {
                           {...field}
                           id="login-username"
                           label="Tài khoản"
-                          placeholder="Nhập tên tài khoản (VD: dpo hoặc analyst)"
+                          placeholder="Nhập tên tài khoản"
                           fullWidth
                           size="small"
                           autoComplete="username"

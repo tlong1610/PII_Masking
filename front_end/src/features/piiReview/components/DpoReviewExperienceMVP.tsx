@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 import Drawer from '@mui/material/Drawer';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Typography from '@mui/material/Typography';
+import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 
 import { AuditTrail } from '@/features/auditLog';
 import { getStoredSession } from '@/features/auth/model/authStorage';
 import { API_BASE_URL, ApiError } from '@/shared/api/client';
 import { routes } from '@/shared/config/routes';
-import { ConfirmDialog, StateNotice, useNotify } from '@/shared/ui';
+import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
   useBuildDataset,
   useCreateScanRun,
@@ -208,8 +207,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const getActionOptionNote = useCallback(
     (field: { id: number; classification: string }, action: PolicyAction): string => {
-      if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return '(Cấm với L3)';
-      if (joinGroups.has(field.id) && isActionDisabledFor(field, action)) return '(Khóa nối)';
+      if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return 'Cấm với L3';
+      if (joinGroups.has(field.id) && isActionDisabledFor(field, action)) return 'Khóa nối';
       return '';
     },
     [isActionDisabledFor, joinGroups],
@@ -436,7 +435,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     setBusyPhase('publishing');
     try {
       await publishDataset.mutateAsync(datasetId);
-      notify(`Đã phát hành run #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
+      notify(`Đã phát hành lượt quét #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
     } catch (error) {
       notify(getErrorMessage(error, 'Không thể phát hành.'), 'error');
     } finally {
@@ -518,23 +517,21 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   if (sourcesLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress size={36} />
-      </Box>
+      <MascotLoader title="Đang tải nguồn dữ liệu…" />
     );
   }
 
   const confirmCopy: Record<PendingConfirm['kind'], { title: string; description: string; label: string }> = {
     PUBLISH: {
-      title: `Phát hành run #${currentRunId ?? ''}?`,
+      title: `Phát hành lượt quét #${currentRunId ?? ''}?`,
       description:
-        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khoá cho tới khi thu hồi.',
+        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.',
       label: 'Phát hành',
     },
     REVOKE: {
-      title: `Thu hồi run #${currentRunId ?? ''}?`,
+      title: `Thu hồi lượt quét #${currentRunId ?? ''}?`,
       description:
-        'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xoá. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
+        'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xóa. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
       label: 'Thu hồi',
     },
     FORCE_DELETE_SOURCE: {
@@ -547,15 +544,11 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const renderReviewContent = (): JSX.Element => {
     if (busyPhase === 'scanning') {
       return (
-        <Stack alignItems="center" spacing={1.5} sx={{ py: 8, textAlign: 'center' }}>
-          <CircularProgress size={40} />
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Đang quét và phân tích dữ liệu PII…
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 &amp; Nghị định 356/2025/NĐ-CP.
-          </Typography>
-        </Stack>
+        <MascotLoader
+          pose="scanning"
+          title="Đang quét và phân tích dữ liệu PII…"
+          description="Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP."
+        />
       );
     }
     if (currentRunId !== null && !currentRun) {
@@ -683,7 +676,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         >
           <Tab label="Tổng quan & phân loại PII" />
           <Tab label="Rủi ro & đánh giá" />
-          <Tab label="Nhật ký kiểm toán" />
+          <Tab label="Nhật ký hoạt động" />
           <Tab label="Dữ liệu cho Analyst" />
         </Tabs>
       )}
@@ -730,7 +723,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         anchor="right"
         open={Boolean(activeInspectField)}
         onClose={() => setInspectFieldId(null)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, p: 3, display: 'flex', flexDirection: 'column' } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: DETAIL_DRAWER_WIDTH }, p: 3, display: 'flex', flexDirection: 'column' } }}
       >
         {activeInspectField && (
           <FieldPolicyDrawerContent

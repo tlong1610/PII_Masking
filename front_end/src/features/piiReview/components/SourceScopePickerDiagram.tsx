@@ -221,8 +221,8 @@ function TableNode({ data }: { data: TableNodeData }) {
           <Typography variant="subtitle2" fontWeight={700} noWrap flex={1}>
             {table.name}
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            {table.field_count} fields
+          <Typography variant="caption" color="inherit" sx={{ opacity: 0.85, whiteSpace: 'nowrap' }}>
+            {table.field_count} cột
           </Typography>
         </Stack>
 
@@ -366,7 +366,7 @@ function RelationshipEdge({
         border: `1px solid ${stroke}`,
         color: stroke,
         fontSize: 11,
-        fontWeight: 800,
+        fontWeight: 700,
         opacity: active ? 1 : 0.35,
         boxShadow: theme.shadows[1],
       }}
@@ -601,7 +601,7 @@ export function SourceScopePickerDiagram({
       <Paper variant="outlined" sx={{ width: { xs: '100%', lg: 320 }, p: 1.5 }}>
         <Stack spacing={1}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="subtitle2" fontWeight={800}>
+            <Typography variant="subtitle1" component="h2" fontWeight={700}>
               Chọn bảng
             </Typography>
             <Chip
@@ -629,7 +629,7 @@ export function SourceScopePickerDiagram({
                       {item.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {item.kind} • {item.field_count} fields
+                      {item.kind === 'collection' ? 'Collection' : 'Bảng'} • {item.field_count} cột
                     </Typography>
                   </Stack>
                 }
@@ -690,7 +690,7 @@ export function SourceScopePickerDiagram({
           }}
         >
           <Chip
-            label="Auto Layout"
+            label="Tự sắp xếp"
             size="small"
             onClick={onLayout}
             sx={{

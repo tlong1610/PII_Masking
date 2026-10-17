@@ -5,7 +5,7 @@
  */
 
 export type AuditCategory = 'scan' | 'publish' | 'source' | 'session';
-export type AuditTone = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
+export type AuditTone = 'default' | 'accent' | 'success' | 'warning' | 'error' | 'info';
 
 export interface DecisionChange {
   column: string;
@@ -73,7 +73,7 @@ const RUN_STATUS_LABELS: Record<string, string> = {
   PUBLISHED: 'đã phát hành',
   FAILED: 'lỗi',
   REVOKED: 'đã thu hồi',
-  CANCELLED: 'đã huỷ',
+  CANCELLED: 'đã hủy',
 };
 
 export function getPolicyLabel(action: string | null): string {
@@ -158,9 +158,9 @@ function describeBuild(reason: string): Pick<AuditDescription, 'summary' | 'tone
 
 function describeRevoke(reason: string): Pick<AuditDescription, 'summary' | 'tone'> {
   if (reason.includes('_failed')) {
-    return { summary: 'Analyst không còn truy cập · xoá dữ liệu đã bảo vệ gặp lỗi, cần kiểm tra', tone: 'error' };
+    return { summary: 'Analyst không còn truy cập · xóa dữ liệu đã bảo vệ gặp lỗi, cần kiểm tra', tone: 'error' };
   }
-  return { summary: 'Analyst không còn truy cập · đã xoá dữ liệu đã bảo vệ', tone: 'warning' };
+  return { summary: 'Analyst không còn truy cập · đã xóa dữ liệu đã bảo vệ', tone: 'warning' };
 }
 
 export function describeAuditEvent(event: DescribableEvent): AuditDescription {
@@ -170,7 +170,7 @@ export function describeAuditEvent(event: DescribableEvent): AuditDescription {
 
   switch (action) {
     case 'create_run':
-      return { ...base, title: 'Quét PII', summary: describeScan(reason), tone: 'primary' };
+      return { ...base, title: 'Quét PII', summary: describeScan(reason), tone: 'accent' };
     case 'save_decisions':
       return { ...base, title: 'Lưu quyết định', ...describeSave(reason), tone: 'info' };
     case 'build_run':
@@ -181,10 +181,10 @@ export function describeAuditEvent(event: DescribableEvent): AuditDescription {
       return { ...base, title: 'Thu hồi', ...describeRevoke(reason) };
     case 'delete_run': {
       const status = RUN_STATUS_LABELS[values.status ?? ''] ?? values.status ?? 'không rõ';
-      return { ...base, title: 'Xoá lượt quét', summary: `Xoá lượt quét đang ở trạng thái ${status}`, tone: 'error' };
+      return { ...base, title: 'Xóa lượt quét', summary: `Xóa lượt quét đang ở trạng thái ${status}`, tone: 'error' };
     }
     case 'cancel_run':
-      return { ...base, title: 'Huỷ lượt quét', summary: 'Lượt quét bị huỷ trước khi hoàn tất', tone: 'warning' };
+      return { ...base, title: 'Hủy lượt quét', summary: 'Lượt quét bị hủy trước khi hoàn tất', tone: 'warning' };
     case 'request_run':
       return { ...base, title: 'Yêu cầu quét', summary: 'Analyst gửi yêu cầu quét để DPO duyệt' };
     case 'orchestrate_run':
@@ -199,13 +199,13 @@ export function describeAuditEvent(event: DescribableEvent): AuditDescription {
     case 'grant_dataset':
       return { ...base, title: 'Cấp quyền xem', summary: `Cấp quyền cho Analyst #${values['grant to user_id'] ?? '?'}` };
     case 'revoke_dataset_grant':
-      return { ...base, title: 'Huỷ quyền xem', summary: 'Huỷ quyền xem của một Analyst', tone: 'warning' };
+      return { ...base, title: 'Hủy quyền xem', summary: 'Hủy quyền xem của một Analyst', tone: 'warning' };
     case 'create_source': {
       const engine = values.engine === 'mongodb' ? 'MongoDB' : values.engine === 'postgresql' ? 'PostgreSQL' : values.engine;
-      return { ...base, title: 'Thêm nguồn dữ liệu', summary: engine ? `Kết nối ${engine}` : 'Kết nối nguồn mới', tone: 'primary' };
+      return { ...base, title: 'Thêm nguồn dữ liệu', summary: engine ? `Kết nối ${engine}` : 'Kết nối nguồn mới', tone: 'accent' };
     }
     case 'delete_source':
-      return { ...base, title: 'Xoá nguồn dữ liệu', summary: 'Gỡ kết nối nguồn dữ liệu', tone: 'error' };
+      return { ...base, title: 'Xóa nguồn dữ liệu', summary: 'Gỡ kết nối nguồn dữ liệu', tone: 'error' };
     case 'login':
       return { ...base, title: 'Đăng nhập', summary: 'Đăng nhập thành công' };
     case 'logout':
@@ -213,7 +213,7 @@ export function describeAuditEvent(event: DescribableEvent): AuditDescription {
     case 'login_failed':
       return { ...base, title: 'Đăng nhập thất bại', summary: 'Sai tên đăng nhập hoặc mật khẩu', tone: 'warning' };
     case 'login_rate_limited':
-      return { ...base, title: 'Tạm khoá đăng nhập', summary: 'Thử sai quá nhiều lần', tone: 'error' };
+      return { ...base, title: 'Tạm khóa đăng nhập', summary: 'Thử sai quá nhiều lần', tone: 'error' };
     default:
       return { ...base, title: action, summary: reason || '—' };
   }

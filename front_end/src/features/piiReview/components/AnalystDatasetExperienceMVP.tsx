@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 
 import DownloadIcon from '@mui/icons-material/Download';
-import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
@@ -35,14 +34,12 @@ import TextFieldsIcon from '@mui/icons-material/TextFields';
 import '@xyflow/react/dist/style.css';
 
 import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
+import { MascotLoader, StateNotice } from '@/shared/ui';
 import { previewDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
-import {
-  DatasetStatusChip,
-  TransformChip,
-} from './PolicyChips';
+import { DatasetStatusBadge, TransformChip } from '@/features/datasets';
 import { getTransformAnalystHint } from '../model/policyLabels';
 import { buildJoinSnippets } from '../model/joinSnippets';
 
@@ -104,7 +101,7 @@ function JoinExamples({ preview }: { preview: DatasetPreview }): JSX.Element {
       </Typography>
       {snippets.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          Dataset này không có cặp khoá nối nào được giữ lại (KEEP hoặc HMAC ở cả hai đầu).
+          Dataset này không có cặp khóa nối nào được giữ lại (KEEP hoặc HMAC ở cả hai đầu).
         </Typography>
       ) : (
         snippets.map((snippet) => (
@@ -229,38 +226,18 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={36} sx={{ color: '#1B51A4' }} />
-      </Box>
+      <MascotLoader title="Đang tải các dataset đã phát hành…" />
     );
   }
 
   if (!datasets || datasets.length === 0) {
     return (
-      <Box textAlign="center" py={8} maxWidth={480} mx="auto">
-        <Box
-          sx={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            bgcolor: '#F3F4F6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 2,
-            color: '#6B7280',
-          }}
-        >
-          <StorageOutlinedIcon sx={{ fontSize: 32 }} />
-        </Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
-          Chưa có dataset nào được phát hành
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#6B7280', lineHeight: 1.6 }}>
-          DPO sẽ phát hành các bộ dữ liệu sau khi hoàn tất quét PII và áp dụng mức che tối thiểu.
-        </Typography>
-      </Box>
+      <StateNotice
+        kind="empty"
+        pose="awaiting"
+        title="Chưa có dataset nào được phát hành"
+        description="DPO sẽ phát hành các bộ dữ liệu sau khi hoàn tất quét PII và áp dụng mức che tối thiểu."
+      />
     );
   }
 
@@ -546,7 +523,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
 
                   {/* Summary transform chips for the selected table */}
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-                    <DatasetStatusChip status={preview.status} />
+                    <DatasetStatusBadge status={preview.status} />
                     <Typography variant="caption" color="text.secondary">
                       {preview.rows.length} dòng · {sampleColumns.length} cột
                     </Typography>
