@@ -7,6 +7,7 @@
 | File | Khi nào đọc |
 |---|---|
 | [`../README.md`](../README.md) | Tổng quan dự án, cách chạy app, API chính |
+| [`pdf/PIIGuard_Shield_Demo_Day.pdf`](pdf/PIIGuard_Shield_Demo_Day.pdf) | Hồ sơ tổng hợp 6 trang để chia sẻ Drive/Release, đọc khi không truy cập GitHub |
 | [`core/MVP_STATUS_REPORT.md`](core/MVP_STATUS_REPORT.md) | Báo cáo nghiệm thu hoàn thành toàn diện giai đoạn P1 |
 | [`core/SYSTEM_ARCHITECTURE.md`](core/SYSTEM_ARCHITECTURE.md) | Luồng DPO → scanner → snapshot → verifier → Analyst, 4 tabs DPO và giới hạn `KEEP`/PII |
 | [`core/AI_ARCHITECTURE.md`](core/AI_ARCHITECTURE.md) | Rules, BM25, column stats, GLiNER NER cascade, HITL few-shot memory |
