@@ -13,7 +13,7 @@ type SnapshotTabProps = {
 
 function Section({ title, children }: { title: string; children: JSX.Element }): JSX.Element {
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+    <Paper variant="outlined" sx={{ p: 2.5 }}>
       <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: 1.5 }}>
         {title}
       </Typography>
@@ -47,7 +47,7 @@ export function SnapshotTab({ datasetId, datasetStatus }: SnapshotTabProps): JSX
         </Alert>
       )}
       <Section title="Kết quả kiểm định">
-        {isLoading || !dataset ? <LinearProgress /> : <VerifierResultsTable results={dataset.verifier_results} />}
+        {isLoading || !dataset ? <LinearProgress aria-label="Đang tải kết quả kiểm chứng" /> : <VerifierResultsTable results={dataset.verifier_results} />}
       </Section>
       {hasData && (
         <Section title="Xem trước dữ liệu cho Analyst">

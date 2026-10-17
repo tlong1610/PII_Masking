@@ -49,7 +49,7 @@ export function AuditLogView(): JSX.Element {
       <SectionHeader
         eyebrow="Kiểm toán"
         title="Nhật ký hoạt động"
-        description="Ai đã quét, duyệt, phát hành hay thu hồi dữ liệu gì và khi nào. Nhật ký chỉ được ghi thêm; không ai sửa hay xoá được một dòng mà không bị phát hiện."
+        description="Ai đã quét, duyệt, phát hành hay thu hồi dữ liệu gì và khi nào. Nhật ký chỉ được ghi thêm; không ai sửa hay xóa được một dòng mà không bị phát hiện."
       />
 
       <ChainStatusBanner />
@@ -75,10 +75,16 @@ export function AuditLogView(): JSX.Element {
             description={error instanceof Error ? error.message : 'Vui lòng thử lại.'}
             actionLabel="Thử lại"
             onAction={() => void refetch()}
+            bordered={false}
           />
         ) : null}
         {events && events.length === 0 ? (
-          <StateNotice kind="empty" title="Chưa có hoạt động" description="Không có hoạt động nào trong nhóm này." />
+          <StateNotice
+            kind="empty"
+            title="Chưa có hoạt động"
+            description="Không có hoạt động nào trong nhóm này."
+            bordered={false}
+          />
         ) : null}
 
         {events && events.length > 0 ? <AuditActivityTable events={events} onSelect={setSelected} /> : null}

@@ -27,12 +27,19 @@ export function ConfirmDialog({
   onClose,
 }: ConfirmDialogProps): JSX.Element {
   return (
-    <Dialog open={open} onClose={onClose} aria-labelledby="confirm-dialog-title" maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-description"
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>{description}</DialogContentText>
+        <DialogContentText id="confirm-dialog-description">{description}</DialogContentText>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions>
         <Button variant="outlined" onClick={onClose} disabled={pending}>
           Hủy
         </Button>

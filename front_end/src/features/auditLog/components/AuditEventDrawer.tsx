@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
@@ -19,6 +18,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import { StatusChip } from '@/shared/ui';
+import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 import { Link as RouterLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { formatDateTime } from '@/shared/lib/formatDateTime';
@@ -145,17 +146,13 @@ export function AuditEventDrawer({ event, open, onClose }: AuditEventDrawerProps
   const description = describeAuditEvent(event);
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3 } }}>
+    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: DETAIL_DRAWER_WIDTH }, p: 3 } }}>
       <Stack spacing={2.5}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
           <Stack spacing={1}>
-            <Chip
-              size="small"
-              variant="outlined"
-              color={description.tone}
-              label={description.title}
-              sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
-            />
+            <Stack direction="row">
+              <StatusChip label={description.title} tone={description.tone} />
+            </Stack>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               {description.summary}
             </Typography>
@@ -173,12 +170,12 @@ export function AuditEventDrawer({ event, open, onClose }: AuditEventDrawerProps
           {event.run_id ? (
             <Fact label="Lượt quét">
               <Link component={RouterLink} to={routes.dpoRun(event.run_id)} onClick={onClose}>
-                Run #{event.run_id}
+                Lượt quét #{event.run_id}
               </Link>
               {event.source_name ? ` · ${event.source_name}` : ''}
             </Fact>
           ) : event.entity_type === 'source' ? (
-            <Fact label="Nguồn dữ liệu">{event.source_name ?? 'Đã xoá'}</Fact>
+            <Fact label="Nguồn dữ liệu">{event.source_name ?? 'Đã xóa'}</Fact>
           ) : null}
         </Stack>
 
@@ -197,8 +194,8 @@ export function AuditEventDrawer({ event, open, onClose }: AuditEventDrawerProps
             <Stack direction="row" spacing={1} alignItems="flex-start">
               <VerifiedUserOutlinedIcon fontSize="small" color="success" />
               <Typography variant="body2" color="text.secondary">
-                Mỗi hoạt động được khoá bằng một mã băm SHA-256 tính từ nội dung của nó và mã của hoạt động liền trước.
-                Sửa hay xoá bất kỳ dòng nào trong nhật ký sẽ làm các mã không còn khớp và bị phát hiện ngay.
+                Mỗi hoạt động được khóa bằng một mã băm SHA-256 tính từ nội dung của nó và mã của hoạt động liền trước.
+                Sửa hay xóa bất kỳ dòng nào trong nhật ký sẽ làm các mã không còn khớp và bị phát hiện ngay.
               </Typography>
             </Stack>
             <HashField label={`Mã của hoạt động #${event.id}`} hash={event.entry_hash} />

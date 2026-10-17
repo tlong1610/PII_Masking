@@ -47,7 +47,7 @@ export function RunHistoryRow({
               checked={selected}
               disabled={disabled || deleteBlocker !== null}
               onChange={() => onToggle(run.id)}
-              inputProps={{ 'aria-label': `Chọn run #${run.id}` }}
+              inputProps={{ 'aria-label': `Chọn lượt quét #${run.id}` }}
             />
           </span>
         </Tooltip>
@@ -86,7 +86,7 @@ export function RunHistoryRow({
           {action.kind === 'revoke' && (
             <Button
               size="small"
-              variant="contained"
+              variant="outlined"
               color="error"
               disabled={disabled}
               onClick={() => onRevoke(run, action.datasetId)}
@@ -97,12 +97,12 @@ export function RunHistoryRow({
           <Button component={RouterLink} to={routes.dpoRun(run.id)} size="small" variant="text">
             Mở
           </Button>
-          <Tooltip title={deleteBlocker ?? 'Xoá run'}>
+          <Tooltip title={deleteBlocker ?? 'Xóa lượt quét'}>
             <span>
               <IconButton
                 size="small"
                 color="error"
-                aria-label={`Xoá run #${run.id}`}
+                aria-label={`Xóa lượt quét #${run.id}`}
                 disabled={disabled || deleteBlocker !== null}
                 onClick={() => onDelete(run.id)}
               >

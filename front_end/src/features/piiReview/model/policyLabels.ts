@@ -1,9 +1,9 @@
+import type { StatusTone } from '@/shared/ui';
+
 export type PolicyAction = 'MASK' | 'REDACT' | 'HMAC' | 'DROP' | 'KEEP';
 export type DatasetStatus = 'STAGING' | 'VERIFIED' | 'PUBLISHED' | 'REVOKED' | 'FAILED';
 export type TransformKind = 'MASK' | 'REDACT' | 'HMAC' | 'KEEP' | 'DROPPED';
 export type DetectorSource = 'rule' | 'ai' | 'dpo' | 'unknown';
-export type ChipTone = 'default' | 'error' | 'info' | 'success' | 'warning';
-export type ActionTone = 'error' | 'info' | 'success' | 'warning';
 
 export const POLICY_ACTIONS: PolicyAction[] = ['MASK', 'REDACT', 'HMAC', 'DROP', 'KEEP'];
 export const TRANSFORMS: TransformKind[] = ['MASK', 'REDACT', 'HMAC', 'KEEP', 'DROPPED'];
@@ -16,33 +16,17 @@ export function getActionLabel(action: PolicyAction): string {
   return 'Giữ nguyên';
 }
 
-export function getActionColor(action: PolicyAction): ActionTone {
-  if (action === 'DROP') return 'error';
-  if (action === 'MASK' || action === 'REDACT') return 'success';
-  if (action === 'HMAC') return 'info';
-  return 'warning';
-}
+/** One colour per action, shared by the action dropdown, action chips and transform chips. */
+const ACTION_TONES: Record<PolicyAction, StatusTone> = {
+  KEEP: 'default',
+  MASK: 'warning',
+  REDACT: 'info',
+  HMAC: 'accent',
+  DROP: 'error',
+};
 
-export function getDatasetStatusLabel(status: DatasetStatus): string {
-  if (status === 'PUBLISHED') return 'Đã phát hành';
-  if (status === 'VERIFIED') return 'Đã xác minh';
-  if (status === 'STAGING') return 'Đang chuẩn bị';
-  if (status === 'REVOKED') return 'Đã thu hồi';
-  return 'Thất bại';
-}
-
-export function getDatasetStatusColor(status: DatasetStatus): ChipTone {
-  if (status === 'PUBLISHED' || status === 'VERIFIED') return 'success';
-  if (status === 'FAILED' || status === 'REVOKED') return 'error';
-  return 'warning';
-}
-
-export function getTransformLabel(transform: TransformKind): string {
-  if (transform === 'MASK') return 'Đã che';
-  if (transform === 'REDACT') return 'Đã che thực thể';
-  if (transform === 'HMAC') return 'Băm HMAC';
-  if (transform === 'KEEP') return 'Giữ nguyên';
-  return 'Đã loại bỏ';
+export function getActionTone(action: PolicyAction): StatusTone {
+  return ACTION_TONES[action];
 }
 
 /** What an Analyst can do with a column after protection. */
@@ -56,29 +40,6 @@ export function getTransformAnalystHint(transform: TransformKind): string {
   return 'Đã bị loại khỏi dataset, Analyst không nhận được cột này.';
 }
 
-export function getTransformColor(transform: TransformKind): ChipTone {
-  if (transform === 'DROPPED') return 'error';
-  if (transform === 'MASK' || transform === 'REDACT') return 'success';
-  if (transform === 'HMAC') return 'info';
-  return 'warning';
-}
-
-export function getRiskTone(classification: string): ChipTone {
-  if (classification.includes('NON_PERSONAL')) return 'default';
-  if (classification.includes('QUASI')) return 'info';
-  if (classification.includes('SENSITIVE')) return 'error';
-  if (classification.includes('PERSONAL')) return 'warning';
-  return 'default';
-}
-
-export function getRiskLabel(classification: string): string {
-  if (classification.includes('NON_PERSONAL')) return 'Rủi ro thấp';
-  if (classification.includes('QUASI')) return 'Định danh gián tiếp';
-  if (classification.includes('SENSITIVE')) return 'Nhạy cảm';
-  if (classification.includes('PERSONAL')) return 'Có PII';
-  if (classification.includes('UNKNOWN')) return 'Cần kiểm tra';
-  return 'Rủi ro thấp';
-}
 
 export function getClassificationLabel(classification: string): string {
   if (classification.includes('NON_PERSONAL')) return 'Không phải dữ liệu cá nhân';

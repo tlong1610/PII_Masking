@@ -1,7 +1,5 @@
 import { memo } from 'react';
 import Link from '@mui/material/Link';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -10,7 +8,8 @@ import Typography from '@mui/material/Typography';
 import LinkIcon from '@mui/icons-material/Link';
 import type { FieldProfile } from '../api/realPiiReviewApi';
 import { getPiiTypeLabel } from '../model/piiTypeLabels';
-import { POLICY_ACTIONS, getActionLabel, type PolicyAction } from '../model/policyLabels';
+import type { PolicyAction } from '../model/policyLabels';
+import { ActionSelect } from './ActionSelect';
 import { ActionChip, DetectorBadge, SensitivityChip } from './PolicyChips';
 
 type FieldReviewRowProps = {
@@ -92,21 +91,13 @@ export const FieldReviewRow = memo(function FieldReviewRow({
 
       <TableCell>
         {editable ? (
-          <Select
-            size="small"
-            fullWidth
+          <ActionSelect
             value={action}
-            onChange={(event) => onActionChange(field.id, event.target.value as PolicyAction)}
-            inputProps={{ 'aria-label': `Hành động cho ${field.field_path}` }}
-            renderValue={(value) => <ActionChip action={value} />}
-            sx={{ '& .MuiSelect-select': { py: 0.5 } }}
-          >
-            {POLICY_ACTIONS.map((option) => (
-              <MenuItem key={option} value={option} disabled={isActionDisabled(field, option)} sx={{ typography: 'body2' }}>
-                {getActionLabel(option)} {getActionOptionNote(field, option)}
-              </MenuItem>
-            ))}
-          </Select>
+            onChange={(next) => onActionChange(field.id, next)}
+            isDisabled={(option) => isActionDisabled(field, option)}
+            getNote={(option) => getActionOptionNote(field, option)}
+            ariaLabel={`Hành động cho ${field.field_path}`}
+          />
         ) : (
           <ActionChip action={action} />
         )}

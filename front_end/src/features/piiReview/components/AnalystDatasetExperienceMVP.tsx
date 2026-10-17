@@ -39,10 +39,7 @@ import { previewDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
-import {
-  DatasetStatusChip,
-  TransformChip,
-} from './PolicyChips';
+import { DatasetStatusBadge, TransformChip } from '@/features/datasets';
 import { getTransformAnalystHint } from '../model/policyLabels';
 import { buildJoinSnippets } from '../model/joinSnippets';
 
@@ -104,7 +101,7 @@ function JoinExamples({ preview }: { preview: DatasetPreview }): JSX.Element {
       </Typography>
       {snippets.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          Dataset này không có cặp khoá nối nào được giữ lại (KEEP hoặc HMAC ở cả hai đầu).
+          Dataset này không có cặp khóa nối nào được giữ lại (KEEP hoặc HMAC ở cả hai đầu).
         </Typography>
       ) : (
         snippets.map((snippet) => (
@@ -546,7 +543,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
 
                   {/* Summary transform chips for the selected table */}
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-                    <DatasetStatusChip status={preview.status} />
+                    <DatasetStatusBadge status={preview.status} />
                     <Typography variant="caption" color="text.secondary">
                       {preview.rows.length} dòng · {sampleColumns.length} cột
                     </Typography>

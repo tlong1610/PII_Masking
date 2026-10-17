@@ -3,11 +3,6 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
@@ -23,6 +18,7 @@ import type { Theme } from '@mui/material/styles';
 import { NavLink } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { APP_HEADER_HEIGHT } from '@/shared/config/layout';
+import { ConfirmDialog } from './ConfirmDialog';
 import { AppBarSlotContext, type AppBarSlotValue } from './appBarSlotContext';
 
 export interface AppShellUser {
@@ -208,7 +204,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
             <LayersOutlinedIcon fontSize="small" />
           </Avatar>
           <Box sx={fadingLabelSx(navCollapsed)}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
               PIIGuard Shield
             </Typography>
             <Typography variant="caption">Bảo vệ dữ liệu cho doanh nghiệp</Typography>
@@ -293,7 +289,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
                     {currentUser.username}
                   </Typography>
                   <Typography variant="caption" display="block" sx={{ lineHeight: 1.2 }}>
-                    {currentUser.role ?? 'User'}
+                    {currentUser.role ?? 'Người dùng'}
                   </Typography>
                 </Box>
               </Stack>
@@ -318,30 +314,17 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
         </Box>
       </Box>
 
-      <Dialog
+      <ConfirmDialog
         open={logoutDialogOpen}
+        title="Xác nhận đăng xuất"
+        description={`Bạn có chắc muốn đăng xuất${
+          currentUser?.username ? ` khỏi tài khoản "${currentUser.username}"` : ''
+        }? Các thay đổi chưa lưu trong màn hình duyệt sẽ bị mất.`}
+        confirmLabel="Đăng xuất"
+        destructive
+        onConfirm={handleConfirmLogout}
         onClose={() => setLogoutDialogOpen(false)}
-        aria-labelledby="logout-dialog-title"
-        aria-describedby="logout-dialog-description"
-        maxWidth="xs"
-      >
-        <DialogTitle id="logout-dialog-title">Xác nhận đăng xuất</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="logout-dialog-description">
-            Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc
-            {currentUser?.username ? ` của tài khoản "${currentUser.username}"` : ''}? Các thay đổi chưa lưu trong
-            màn hình duyệt sẽ bị mất.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setLogoutDialogOpen(false)} variant="outlined" size="small">
-            Hủy
-          </Button>
-          <Button onClick={handleConfirmLogout} variant="contained" color="error" size="small" autoFocus>
-            Đăng xuất
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 }

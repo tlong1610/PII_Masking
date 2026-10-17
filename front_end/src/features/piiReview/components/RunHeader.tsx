@@ -6,7 +6,6 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import LinearProgress from '@mui/material/LinearProgress';
 import Link from '@mui/material/Link';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import PublishOutlinedIcon from '@mui/icons-material/PublishOutlined';
@@ -15,7 +14,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import UnpublishedOutlinedIcon from '@mui/icons-material/UnpublishedOutlined';
 import { RunStatusBadge } from '@/features/runHistory';
 import { routes } from '@/shared/config/routes';
-import { AppBarSlot } from '@/shared/ui';
+import { AppBarSlot, SectionHeader } from '@/shared/ui';
 import type { Run } from '../api/realPiiReviewApi';
 import { getReviewActionLabel, type ReviewAction, type ReviewActions } from '../model/reviewActions';
 
@@ -64,60 +63,48 @@ export function RunHeader({
           {sourcePicker}
           {run && (
             <Typography variant="body2" color="text.primary" sx={{ fontWeight: 600 }}>
-              Run #{run.id}
+              Lượt quét #{run.id}
             </Typography>
           )}
         </Breadcrumbs>
       </AppBarSlot>
 
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        justifyContent="space-between"
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Stack direction="row" spacing={1.25} alignItems="center">
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 800 }}>
-              {run ? `Run #${run.id}` : 'Lượt quét mới'}
-            </Typography>
-            {run && <RunStatusBadge status={run.status} />}
-          </Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent={{ md: 'flex-end' }}>
-          {run && (
-            <Button variant="outlined" color="inherit" startIcon={<ArticleOutlinedIcon />} onClick={onOpenReport}>
-              Báo cáo tuân thủ
-            </Button>
-          )}
-          {actions.secondary && (
-            <Button
-              variant="outlined"
-              color={actions.secondary === 'REVOKE' ? 'error' : 'primary'}
-              startIcon={busyOnSecondary ? spinner : ACTION_ICONS[actions.secondary]}
-              disabled={busy}
-              onClick={() => actions.secondary && onAction(actions.secondary)}
-            >
-              {busyOnSecondary ? busyLabel : getReviewActionLabel(actions.secondary)}
-            </Button>
-          )}
-          {actions.primary && (
-            <Button
-              variant="contained"
-              startIcon={busy ? spinner : ACTION_ICONS[actions.primary]}
-              disabled={busy || primaryDisabled}
-              onClick={() => actions.primary && onAction(actions.primary)}
-              sx={{ minWidth: 120 }}
-            >
-              {busyLabel ?? getReviewActionLabel(actions.primary)}
-            </Button>
-          )}
-        </Stack>
-      </Stack>
+      <SectionHeader
+        title={run ? `Lượt quét #${run.id}` : 'Lượt quét mới'}
+        status={run ? <RunStatusBadge status={run.status} /> : null}
+        description={subtitle}
+        actions={
+          <>
+            {run && (
+              <Button variant="outlined" startIcon={<ArticleOutlinedIcon />} onClick={onOpenReport}>
+                Báo cáo tuân thủ
+              </Button>
+            )}
+            {actions.secondary && (
+              <Button
+                variant="outlined"
+                color={actions.secondary === 'REVOKE' ? 'error' : 'primary'}
+                startIcon={busyOnSecondary ? spinner : ACTION_ICONS[actions.secondary]}
+                disabled={busy}
+                onClick={() => actions.secondary && onAction(actions.secondary)}
+              >
+                {busyOnSecondary ? busyLabel : getReviewActionLabel(actions.secondary)}
+              </Button>
+            )}
+            {actions.primary && (
+              <Button
+                variant="contained"
+                startIcon={busy ? spinner : ACTION_ICONS[actions.primary]}
+                disabled={busy || primaryDisabled}
+                onClick={() => actions.primary && onAction(actions.primary)}
+                sx={{ minWidth: 120 }}
+              >
+                {busyLabel ?? getReviewActionLabel(actions.primary)}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {busy && (
         <LinearProgress

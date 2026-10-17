@@ -1,5 +1,4 @@
 import { Fragment } from 'react';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -11,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import { StatusChip } from '@/shared/ui';
 import type { FieldProfile } from '../api/realPiiReviewApi';
 import type { PolicyAction } from '../model/policyLabels';
 import { FieldReviewRow } from './FieldReviewRow';
@@ -72,11 +72,7 @@ export function FieldReviewTable({
         <TableHead>
           <TableRow>
             {COLUMNS.map((column) => (
-              <TableCell
-                key={column.label}
-                align={column.align}
-                sx={{ typography: 'overline', lineHeight: 1.5, color: 'text.secondary', fontWeight: 700 }}
-              >
+              <TableCell key={column.label} align={column.align}>
                 {column.label}
               </TableCell>
             ))}
@@ -105,7 +101,7 @@ export function FieldReviewTable({
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
                           {group.sourcePath}
                         </Typography>
-                        <Chip size="small" variant="outlined" label={`${group.fields.length} cột`} />
+                        <StatusChip label={`${group.fields.length} cột`} tone="default" />
                       </Stack>
                     </TableCell>
                   </TableRow>

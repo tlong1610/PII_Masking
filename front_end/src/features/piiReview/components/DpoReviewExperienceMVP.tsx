@@ -9,6 +9,7 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
+import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 
 import { AuditTrail } from '@/features/auditLog';
 import { getStoredSession } from '@/features/auth/model/authStorage';
@@ -208,8 +209,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const getActionOptionNote = useCallback(
     (field: { id: number; classification: string }, action: PolicyAction): string => {
-      if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return '(Cấm với L3)';
-      if (joinGroups.has(field.id) && isActionDisabledFor(field, action)) return '(Khóa nối)';
+      if (getFieldKind(field.classification) === 'SENSITIVE' && action === 'KEEP') return 'Cấm với L3';
+      if (joinGroups.has(field.id) && isActionDisabledFor(field, action)) return 'Khóa nối';
       return '';
     },
     [isActionDisabledFor, joinGroups],
@@ -436,7 +437,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     setBusyPhase('publishing');
     try {
       await publishDataset.mutateAsync(datasetId);
-      notify(`Đã phát hành run #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
+      notify(`Đã phát hành lượt quét #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
     } catch (error) {
       notify(getErrorMessage(error, 'Không thể phát hành.'), 'error');
     } finally {
@@ -526,15 +527,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const confirmCopy: Record<PendingConfirm['kind'], { title: string; description: string; label: string }> = {
     PUBLISH: {
-      title: `Phát hành run #${currentRunId ?? ''}?`,
+      title: `Phát hành lượt quét #${currentRunId ?? ''}?`,
       description:
-        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khoá cho tới khi thu hồi.',
+        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.',
       label: 'Phát hành',
     },
     REVOKE: {
-      title: `Thu hồi run #${currentRunId ?? ''}?`,
+      title: `Thu hồi lượt quét #${currentRunId ?? ''}?`,
       description:
-        'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xoá. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
+        'Analyst sẽ không xem được nữa và dữ liệu đã bảo vệ bị xóa. Quyết định được giữ nguyên: bạn có thể sửa, lưu và phát hành lại.',
       label: 'Thu hồi',
     },
     FORCE_DELETE_SOURCE: {
@@ -683,7 +684,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         >
           <Tab label="Tổng quan & phân loại PII" />
           <Tab label="Rủi ro & đánh giá" />
-          <Tab label="Nhật ký kiểm toán" />
+          <Tab label="Nhật ký hoạt động" />
           <Tab label="Dữ liệu cho Analyst" />
         </Tabs>
       )}
@@ -730,7 +731,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         anchor="right"
         open={Boolean(activeInspectField)}
         onClose={() => setInspectFieldId(null)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, p: 3, display: 'flex', flexDirection: 'column' } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: DETAIL_DRAWER_WIDTH }, p: 3, display: 'flex', flexDirection: 'column' } }}
       >
         {activeInspectField && (
           <FieldPolicyDrawerContent

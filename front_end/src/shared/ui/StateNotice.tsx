@@ -11,6 +11,8 @@ type StateNoticeProps = {
   description: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** False when the notice already sits inside a card, so it does not draw a second border. */
+  bordered?: boolean;
 };
 
 export function StateNotice({
@@ -19,23 +21,27 @@ export function StateNotice({
   description,
   actionLabel,
   onAction,
+  bordered = true,
 }: StateNoticeProps): JSX.Element {
   const Icon = kind === 'error' ? ErrorOutlineIcon : InboxOutlinedIcon;
 
   return (
     <Paper
-      variant="outlined"
+      variant={bordered ? 'outlined' : 'elevation'}
       sx={{
         p: { xs: 3, md: 4 },
-        minHeight: 280,
+        minHeight: bordered ? 280 : 240,
+        bgcolor: bordered ? 'background.paper' : 'transparent',
         display: 'grid',
         placeItems: 'center',
         textAlign: 'center',
       }}
     >
       <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520 }}>
-        <Icon color={kind === 'error' ? 'error' : 'primary'} sx={{ fontSize: 48 }} />
-        <Typography variant="h3">{title}</Typography>
+        <Icon color={kind === 'error' ? 'error' : 'primary'} sx={{ fontSize: 40 }} />
+        <Typography variant="h4" component="h2">
+          {title}
+        </Typography>
         <Typography color="text.secondary">{description}</Typography>
         {actionLabel && onAction ? (
           <Button variant="contained" onClick={onAction}>
