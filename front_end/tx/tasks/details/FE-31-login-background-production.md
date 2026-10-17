@@ -29,4 +29,4 @@ Vite chuyển SVG nền thành `data:image/svg+xml,...` chứa dấu nháy đơn
 - Vite preview tại `http://127.0.0.1:4173/login`: trình duyệt xác nhận background là SVG data URL hợp lệ, hiển thị gradient, chấm lưới và các họa tiết mạng/khiên.
 - Kiểm tra desktop 1280×720 và mobile 390×844: không tràn ngang, form và nút đăng nhập hiển thị đủ.
 - Bản public trước sửa: `background-image: none`; localhost build sau sửa: `url("data:image/svg+xml,...")`.
-- Thay đổi trên nhánh `codex/fix-login-background-production`; chưa deploy lại production. Dev server cũ ở cổng 5173 có lỗi phân giải alias khi kiểm tra; bằng chứng nghiệm thu dùng build production thật qua Vite preview.
+- Thay đổi trên nhánh `codex/fix-login-background-production`; đã deploy production từ commit `fdf9732` ngày 18/10/2026. URL public: https://frontend-alpha-fawn-53.vercel.app/login. Vercel deployment `dpl_8LaEYnwf1Vz5cr2Zp4jgK8bamjhK` ở trạng thái READY; kiểm tra trực tiếp xác nhận SVG nền hợp lệ và không tràn ngang. Dev server cũ ở cổng 5173 có lỗi phân giải alias khi kiểm tra; bằng chứng nghiệm thu dùng build production thật qua Vite preview.
