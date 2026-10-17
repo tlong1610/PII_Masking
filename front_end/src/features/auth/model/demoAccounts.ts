@@ -24,9 +24,12 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
   },
 ];
 
-type DemoLoginEnv = { DEV: boolean; VITE_ENABLE_DEMO_LOGIN?: string };
+type DemoLoginEnv = { MODE: string; VITE_ENABLE_DEMO_LOGIN?: string };
 
-/** Demo account shortcuts: on in development, off in a release build unless VITE_ENABLE_DEMO_LOGIN=true. */
+/**
+ * Demo account shortcuts: on for `vite` dev and tests, off in any `vite build` unless VITE_ENABLE_DEMO_LOGIN=true.
+ * Keyed on MODE, not DEV: a stray NODE_ENV=development (e.g. in .env.local) turns DEV on even in a build.
+ */
 export function isDemoLoginEnabled(env: DemoLoginEnv): boolean {
-  return env.DEV || env.VITE_ENABLE_DEMO_LOGIN === 'true';
+  return env.MODE !== 'production' || env.VITE_ENABLE_DEMO_LOGIN === 'true';
 }
