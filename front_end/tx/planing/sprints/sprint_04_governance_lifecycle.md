@@ -1,5 +1,7 @@
 # Sprint 04: Governance Hub, Audit Ledger & Dataset Lifecycle Management
 
+> Tài liệu ghi lại kế hoạch/nghiệm thu của Sprint 04. Giao diện hiện tại có **4 tab DPO**, thêm “Dữ liệu cho Analyst” sau sprint này; xem [product spec](../../specs/product.md) và code `DpoReviewExperienceMVP.tsx` khi mô tả bản hiện hành.
+
 **Trạng thái**: Hoàn thành (DONE)  
 **Mục tiêu**: Nâng cấp PIIGuard Shield thành nền tảng quản trị tuân thủ toàn diện: tích hợp cẩm nang pháp lý và quy định bảo vệ DLCN (L1 ➔ L2 ➔ L3), Trung tâm kiểm toán Sổ cái Hash-Chain, Showcase Demo che dữ liệu trực quan trên Sidebar (/dpo/masking), và tinh giản DPO Workspace 3 tabs cùng quản lý vòng đời ngoại lệ exceptionUntil.
 

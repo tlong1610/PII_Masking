@@ -1,5 +1,9 @@
 # FE-13: DPO Catalog Explorer — Option 1 & Dataset Revocation
 
+> Trạng thái theo [TASKS_INDEX](../TASKS_INDEX.md): closed/chuyển giao. Nội dung dưới đây là yêu cầu ban đầu, không xác nhận UI đã được triển khai.
+
+> Trạng thái theo [TASKS_INDEX](../TASKS_INDEX.md): closed/chuyển giao. Nội dung dưới đây là yêu cầu ban đầu, không xác nhận UI đã được triển khai.
+
 **Sprint**: Sprint 04  
 **Trạng thái**: Closed (Đã đóng: Chuyển giao dev khác phụ trách)  
 **Phân hệ**: `src/features/piiReview/components/DpoReviewExperienceMVP.tsx`, `src/features/piiReview/hooks/usePiiReview.ts`

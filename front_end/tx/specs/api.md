@@ -4,7 +4,7 @@ Frontend data access must go through feature `api/` modules and TanStack Query h
 
 Current integration file: `src/features/piiReview/api/realPiiReviewApi.ts`.
 
-API root should come from environment config. Local fallback is `http://localhost:8001/api/v1`.
+API root should come from environment config. Local fallback is `http://localhost:8000/api/v1`.
 
 ## Required Endpoints
 
@@ -55,11 +55,13 @@ It must not return database URI, username, password, token, or raw sample data.
 
 ```json
 {
-  "source_id": "sql-demo"
+  "source_id": "sql-demo",
+  "selected_scope": ["customers", "orders"],
+  "link_scope": []
 }
 ```
 
-MVP frontend does not require manual `selected_scope` selection. Backend scans the full configured demo scope for the source. If the backend still accepts `selected_scope` for compatibility, the frontend may omit it or send the full scope automatically. Fine-grained table/collection selection is P1.
+The frontend may send an explicit `selected_scope` from the source scope picker. An empty list keeps the backend default scope. `link_scope` contains optional link-only tables/collections: the backend preserves only join keys (HMAC) and drops other fields so downstream joins remain possible without exposing extra data.
 
 `GET /runs/{id}` returns field profiles. A field profile must contain enough metadata for DPO review, but no raw PII:
 

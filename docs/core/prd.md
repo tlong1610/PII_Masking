@@ -1,7 +1,9 @@
 # PRD — PIIGuard Shield
 
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4
-**Trạng thái:** MVP/Gate 2 đã qua · **Giai đoạn P1 ĐÃ HOÀN THÀNH TOÀN DIỆN (100%)**
+**Trạng thái:** PRD và báo cáo nghiệm thu P1; các số liệu/chức năng cần đối chiếu với code và CI hiện tại
+
+> Giới hạn bảo mật hiện tại: backend cho phép ngoại lệ `KEEP` cho PII với lý do và hạn. `KEEP` sao chép giá trị gốc vào snapshot; Analyst được phép xem snapshot đã publish. Do đó Zero Raw PII là mục tiêu, chưa phải bảo đảm tuyệt đối. Hạn ngoại lệ được kiểm tra khi lưu quyết định; tài liệu này không xác nhận có job tự động thu hồi snapshot khi hạn kết thúc.
 
 ---
 
@@ -16,7 +18,7 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokeni
 
 | Vai trò | Mô tả | Mục tiêu chính | Quyền hạn dữ liệu & Thao tác |
 |---|---|---|---|
-| **DPO** (Data Protection Officer) | Người chịu trách nhiệm rà soát tuân thủ & quản trị an toàn dữ liệu | Đánh giá chính xác mức độ rủi ro, phê duyệt chính sách che, kiểm tra toàn vẹn, bảo vệ an toàn pháp lý | **Toàn quyền quản trị luồng bảo vệ:** Quét dataset, thẩm định rủi ro dựa trên siêu dữ liệu/thống kê phân phối (**Zero Raw PII: không lộ giá trị PII gốc**), duyệt/sửa/từ chối policy, kiểm tra Downstream Verifier, phát hành (Publish) & thu hồi (Revoke) snapshot, xem nhật ký kiểm toán bất biến (Merkle Root SHA-256). |
+| **DPO** (Data Protection Officer) | Người chịu trách nhiệm rà soát tuân thủ & quản trị an toàn dữ liệu | Đánh giá rủi ro và phê duyệt cách xử lý | Quét dataset, review metadata/thống kê và protected preview, duyệt policy, verifier, publish/revoke. DPO UI không render raw source values; PII `KEEP` exception có thể được đưa vào snapshot cho Analyst. |
 | **Analyst** (Data Analyst) | Chuyên viên phân tích dữ liệu | Khai thác dữ liệu an toàn phục vụ nghiệp vụ | **Chỉ đọc dữ liệu đã che:** Chỉ truy cập các dataset ở trạng thái `PUBLISHED`. **Tuyệt đối KHÔNG được xem raw PII**, không được xem staging/chính sách nội bộ, không có quyền duyệt hay can thiệp pipeline. |
 
 ---
@@ -27,7 +29,7 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokeni
 - Là DPO, tôi muốn kết nối linh hoạt tới các cơ sở dữ liệu **PostgreSQL và MongoDB lưu trữ trên Cloud** (Cloud SQL, AWS RDS, Supabase, Neon, MongoDB Atlas) thông qua Connection URL.
 - Là DPO, tôi muốn xem sơ đồ quan hệ trực quan (**Source Scope Picker Diagram**) với layout tự động (`dagre`) để chọn đúng phạm vi bảng/collection cần quét.
 - Là DPO, tôi muốn hệ thống tự động quét và phân loại PII (L1/L2/L3) kết hợp Rules/Regex baseline và AI/LLM phân loại nâng cao qua thống kê phân phối (`column_stats.py`).
-- Là DPO, tôi muốn thẩm định rủi ro một cách an toàn mà **không bao giờ để lộ PII thô trên màn hình** (Zero Raw PII: xem kiểu dữ liệu, data shape, tỷ lệ null/cardinality, và mức rủi ro FR-10).
+- Là DPO, tôi muốn thẩm định rủi ro mà không render raw source values trong workspace (xem kiểu dữ liệu, data shape, thống kê và mức rủi ro FR-10).
 - Là DPO, tôi muốn có Inspector Drawer điều chỉnh chính sách chi tiết cho từng cột: xem căn cứ pháp lý, tự động đồng bộ hành động cho khóa nối (Join Keys), xác nhận trường Non-PII kèm lý do, hoặc thiết lập thời hạn ngoại lệ (`exceptionUntil`).
 - Là DPO, tôi muốn hệ thống tự động cảnh báo khi bỏ bảng cha/trung gian và hỗ trợ thêm **bảng liên kết** (`link_scope`) để giữ khóa nối HMAC, giúp Analyst vẫn JOIN được mà không lộ thêm PII.
 - Là DPO, tôi muốn kiểm tra kết quả Downstream Verifier (SQL JOIN / MongoDB `$lookup`) và điểm rủi ro tất định (Deterministic Risk Score 0–100) trước khi phát hành (Publish).
@@ -64,20 +66,20 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokeni
    - Downstream Verifier chạy các bài test kiểm tra tính toàn vẹn (SQL JOIN, `$lookup`, aggregate) nhằm đảm bảo việc che mờ không làm gãy logic phân tích.
 5. **Phát hành (Publish) & Thu hồi (Revoke):**
    - DPO xem báo cáo Verifier Pass/Fail. Chỉ khi Pass, DPO mới kích hoạt nút "Phát hành" (Publish). Khi phát hành, hệ thống tự động cấp quyền cho mọi Analyst.
-   - Nếu cần điều chỉnh, DPO chọn "Thu hồi" (Revoke): snapshot vật lý bị xóa, run quay về `READY_TO_BUILD` (giữ nguyên các quyết định đã duyệt) để tinh chỉnh và build lại.
+   - Nếu cần điều chỉnh, DPO chọn "Thu hồi" (Revoke): backend thu hồi snapshot và cập nhật trạng thái run để có thể xử lý lại. Catalog Explorer FE-13 chưa được xác nhận là UI hiện hành.
 6. **Analyst Khai thác:**
    - Analyst đăng nhập, xem dataset đã publish qua Data Grid, ERD Diagram, hoặc tải file CSV đã được bảo vệ an toàn.
 
 ---
 
-## 5. Nguyên Tắc Quản Trị & Bảo Mật Dữ Liệu Tuyệt Đối (Zero Raw PII)
+## 5. Nguyên Tắc Quản Trị & Bảo Mật Dữ Liệu
 
-- **Nguyên tắc Zero Raw PII xuyên suốt:**
-  - Cả DPO và Analyst đều **KHÔNG TIẾP XÚC RAW PII** trên giao diện, báo cáo hay log. DPO đánh giá rủi ro và ra quyết định dựa trên siêu dữ liệu, data shape, thống kê phân phối và gợi ý AI.
+- **Giới hạn Zero Raw PII:**
+  - DPO UI không render raw source values. Analyst chỉ đọc snapshot đã publish, nhưng PII được duyệt `KEEP` theo ngoại lệ có thể nằm nguyên giá trị trong snapshot. Không mô tả đây là Zero Raw PII tuyệt đối.
   - Prompt gửi tới LLM chỉ chứa tên bảng, tên cột, kiểu dữ liệu và tỷ lệ phân phối định tính từ `column_stats.py`; tuyệt đối không gửi `sample_value`.
 - **Human-in-the-Loop (HITL):**
   - AI chỉ đóng vai trò khuyến nghị. Không có bất kỳ thay đổi nào được tự động áp dụng hoặc phát hành nếu chưa có xác nhận và phê duyệt của DPO.
-  - Quyết định của DPO được ghi nhận vào bộ nhớ `dpo_few_shot_memory.json` để tự động học cho các lần quét sau.
+  - Một số pipeline dùng bộ nhớ HITL; cách lưu/áp dụng phụ thuộc cấu hình và cần xem AI Architecture trước khi bật.
 - **Đồng bộ khóa nối (Join Key Integrity):**
   - Hai đầu của một quan hệ khóa nối (PK/FK hoặc `$lookup`) bắt buộc phải áp dụng cùng hành động (`HMAC` hoặc `KEEP`). Không được phép áp dụng `MASK` hoặc `DROP` làm phá vỡ khả năng join của Analyst.
 
