@@ -350,7 +350,7 @@ def test_llm_node_uses_temperature_zero_and_closed_labels(monkeypatch):
 
 
 def test_gender_is_basic_personal_data_and_never_proposed_keep():
-    """NĐ 13/2023 Điều 2 khoản 3 điểm c names gender as basic personal data: L2, masked by default."""
+    """NĐ 356/2025 Điều 3 khoản 3 names gender as basic personal data: L2, masked by default."""
     from src.services.risk_scorer import resolve_sensitivity_level
 
     column = ColumnProfile(

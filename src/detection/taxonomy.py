@@ -86,7 +86,7 @@ LLM_PII_TYPES: dict[str, str] = {
     "PHONE": "Số điện thoại, fax, số máy lẻ của cá nhân.",
     "EMAIL": "Địa chỉ email.",
     "ADDRESS": "Địa chỉ cụ thể (số nhà, đường, phường).",
-    "GENDER": "Giới tính của một người (dữ liệu cá nhân cơ bản theo NĐ 13/2023).",
+    "GENDER": "Giới tính của một người (dữ liệu cá nhân cơ bản theo khoản 3 Điều 3 NĐ 356/2025).",
     "DOB": "Ngày sinh. CHỈ dùng khi cột thực sự là ngày sinh; ngày sự kiện (đặt hàng, tuyển dụng, tạo) KHÔNG phải DOB.",
     "CCCD": "Số CCCD/CMND/hộ chiếu/định danh cá nhân.",
     "TAX_CODE": "Mã số thuế cá nhân.",

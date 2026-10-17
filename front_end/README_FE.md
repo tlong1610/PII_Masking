@@ -95,7 +95,7 @@ src/
    - **4 tabs:** Overview & PII Schema, Risk & Insights, Audit History, and Dữ liệu cho Analyst (Verifier + snapshot preview).
    - The review UI does not render source values. However, an approved PII `KEEP` exception can put the original value into a published snapshot; do not describe Analyst access as unconditionally Zero Raw-PII until the backend blocks or safely transforms that path.
    - **Inspector Drawer (`FieldPolicyDrawerContent`):**
-     - Detailed legal basis breakdown (Decree 13/2023/NĐ-CP & Personal Data Protection Law 2025).
+     - Detailed legal basis breakdown (Personal Data Protection Law 91/2025/QH15 & Decree 356/2025/NĐ-CP).
      - Join key partner alerts and automatic action synchronization.
      - Confirmation of `UNKNOWN` fields as non-personal data (`notPersonal: true`).
      - Mandatory justifications for AI overrides and exception deadlines (`exceptionUntil`).

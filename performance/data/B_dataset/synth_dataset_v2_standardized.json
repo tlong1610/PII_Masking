@@ -4423,7 +4423,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -11984,7 +11984,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -14711,7 +14711,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -20708,7 +20708,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -24619,7 +24619,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -25257,7 +25257,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -26579,7 +26579,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -32429,7 +32429,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -32452,7 +32452,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -37263,7 +37263,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -37679,7 +37679,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -43171,7 +43171,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -44566,7 +44566,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]
@@ -46036,7 +46036,7 @@
         "expected_action": "MASK",
         "category": "basic",
         "sensitivity_level": "L2",
-        "legal_basis": "Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP",
+        "legal_basis": "Nghị định 356/2025/NĐ-CP",
         "reason": "Địa chỉ IP người dùng, dữ liệu định danh gián tiếp trong môi trường mạng."
       }
     ]

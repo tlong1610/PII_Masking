@@ -60,7 +60,7 @@ Mỗi khi bắt đầu một task mới (dù là sửa 1 dòng code hay phát tr
 
 ## 🔒 2. BẢO MẬT & ZERO RAW PII (AN TOÀN DỮ LIỆU)
 
-Dự án này là hệ thống bảo vệ quyền riêng tư và dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP. Agent phải là thực thể mẫu mực về an toàn thông tin:
+Dự án này là hệ thống bảo vệ quyền riêng tư và dữ liệu cá nhân theo Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và Nghị định 356/2025/NĐ-CP. Agent phải là thực thể mẫu mực về an toàn thông tin:
 
 1. **Tuyệt đối không commit bí mật:**
    * Không bao giờ commit file `.env`, API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,...), database connection string có mật khẩu, token xác thực, HMAC secrets.

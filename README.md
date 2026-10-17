@@ -39,7 +39,7 @@ Dành cho Ban Giám Khảo / Hội đồng đánh giá muốn nắm bắt nhanh 
 3. ⏱️ **Bước 3 (5 phút — Thẩm định chuyên sâu theo từng tiêu chí):**
    * 🤖 **Thẩm định mô hình AI & NER:** [AI Architecture](docs/core/AI_ARCHITECTURE.md) (Luồng A: 100% Accuracy, Luồng B GLiNER: 97.86% Recall).
    * 🎬 **Thẩm định quy trình Demo 4 Tabs DPO:** [Kịch bản Demo 6 bước](docs/guide/DEMO_FLOW.md).
-   * ⚖️ **Thẩm định Pháp lý & Tuân thủ:** [Đặc tả PRD Nghị định 13 & Luật 91](docs/core/prd.md) & [Báo cáo nghiệm thu P1](docs/core/MVP_STATUS_REPORT.md).
+   * ⚖️ **Thẩm định Pháp lý & Tuân thủ:** [Đặc tả PRD Luật 91 & Nghị định 356](docs/core/prd.md) & [Báo cáo nghiệm thu P1](docs/core/MVP_STATUS_REPORT.md).
    * 🗂️ **Bản đồ tài liệu toàn dự án:** [docs/README.md](docs/README.md).
 
 ---
@@ -247,7 +247,7 @@ Màn hình DPO trên frontend (`front_end/`):
 | `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu; tab "Dữ liệu cho Analyst" có kết quả kiểm định và bản xem trước |
 | `/dpo/runs`             | Nơi quản lý duy nhất: tab Chờ duyệt / Chờ phát hành / Đã phát hành / Lỗi; phát hành, thu hồi, xoá ngay trên danh sách (1 run = 1 dataset) |
 | `/dpo/masking`          | Demo che mờ: Live Sandbox thử nghiệm kỹ thuật MASK, REDACT, HMAC, DROP trực tiếp và bảng ma trận kỹ thuật bảo vệ dữ liệu (FE-15, FE-19) |
-| `/dpo/rules`            | Quy định NĐ 13 & Luật BV DLCN 2025: Ma trận bảo vệ L1 (Gián tiếp) → L2 (Cơ bản) → L3 (Nhạy cảm) kèm link nguồn pháp luật chính phủ (FE-16, FE-18, FE-20, FE-22) |
+| `/dpo/rules`            | Quy định Luật BV DLCN 2025 & NĐ 356: Ma trận bảo vệ L1 (Gián tiếp) → L2 (Cơ bản) → L3 (Nhạy cảm) kèm link nguồn pháp luật chính phủ (FE-16, FE-18, FE-20, FE-22) |
 | `/dpo/datasets[/:id]`   | Chỉ còn để link cũ chạy được: chuyển sang `/dpo/runs` hoặc trang run của dataset              |
 | `/dpo/audit`            | Nhật ký hoạt động: nhóm theo ngày, mỗi dòng một câu mô tả dễ hiểu (lọc Quét & duyệt / Phát hành / Nguồn / Đăng nhập); bấm để xem chi tiết sự kiện và mã băm toàn vẹn |
 

@@ -10,7 +10,7 @@
 ## 1. Bối cảnh & Mục tiêu
 
 Hệ thống giúp tự động rà soát, phát hiện và phân loại dữ liệu cá nhân (PII) nằm rải rác trong các dataset của doanh nghiệp/hệ thống y tế.
-Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokenization), sinh snapshot an toàn sang CSDL đích riêng biệt, tạo báo cáo tuân thủ nghị định bảo vệ dữ liệu (Luật 91/2025/QH15, Nghị định 356/2025/NĐ-CP & Nghị định 13/2023/NĐ-CP) và đảm bảo dữ liệu đầu ra vẫn dùng được cho các tác vụ phân tích đã kiểm định.
+Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokenization), sinh snapshot an toàn sang CSDL đích riêng biệt, tạo báo cáo tuân thủ nghị định bảo vệ dữ liệu (Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP) và đảm bảo dữ liệu đầu ra vẫn dùng được cho các tác vụ phân tích đã kiểm định.
 
 ---
 
@@ -34,7 +34,7 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokeni
 - Là DPO, tôi muốn hệ thống tự động cảnh báo khi bỏ bảng cha/trung gian và hỗ trợ thêm **bảng liên kết** (`link_scope`) để giữ khóa nối HMAC, giúp Analyst vẫn JOIN được mà không lộ thêm PII.
 - Là DPO, tôi muốn kiểm tra kết quả Downstream Verifier (SQL JOIN / MongoDB `$lookup`) và điểm rủi ro tất định (Deterministic Risk Score 0–100) trước khi phát hành (Publish).
 - Là DPO, tôi muốn theo dõi sổ cái kiểm toán bất biến (**Hash-Chain Merkle Root SHA-256**) với diễn giải hành động ngôn ngữ tự nhiên và nhóm theo ngày.
-- Là DPO, tôi muốn có màn hình **Demo Che mờ** (`/dpo/masking`) với Live Sandbox để thử nghiệm trực quan các kỹ thuật MASK, REDACT, HMAC, DROP và ma trận quy định NĐ 13 (`/dpo/rules`).
+- Là DPO, tôi muốn có màn hình **Demo Che mờ** (`/dpo/masking`) với Live Sandbox để thử nghiệm trực quan các kỹ thuật MASK, REDACT, HMAC, DROP và ma trận quy định pháp luật (`/dpo/rules`).
 
 ### Analyst
 - Là Analyst, tôi muốn xem danh sách các dataset đã được DPO duyệt và phát hành (`PUBLISHED`).
@@ -56,7 +56,7 @@ Mục tiêu: Đề xuất chính sách che dữ liệu (masking/redaction/tokeni
    - Hệ thống đề xuất hành động: `MASK` (che một phần/toàn phần), `REDACT` (thay thế thực thể PII trong câu), `HMAC` (băm một chiều cho khóa nối), `DROP` (loại bỏ trường rủi ro/không cần thiết), `KEEP` (giữ nguyên cho dữ liệu phi cá nhân hoặc ngoại lệ).
 3. **DPO Đánh giá rủi ro & Phê duyệt (HITL Review):**
    - DPO truy cập Workspace với 4 Tab chức năng:
-     - *Tab 0 — Tổng quan & phân loại PII:* Bảng danh sách cột, phân loại NĐ 13, sàn bảo mật tối thiểu, hành động đề xuất.
+     - *Tab 0 — Tổng quan & phân loại PII:* Bảng danh sách cột, phân loại theo NĐ 356, sàn bảo mật tối thiểu, hành động đề xuất.
      - *Tab 1 — Rủi ro & đánh giá:* Điểm rủi ro hệ thống (FR-10 Deterministic Risk Score 0–100), tỷ lệ bảo vệ L2/L3, phân bổ hành động.
      - *Tab 2 — Nhật ký kiểm toán:* Kiểm chứng chuỗi băm Merkle Root SHA-256 gắn với Run.
      - *Tab 3 — Dữ liệu cho Analyst:* Báo cáo kết quả kiểm định Downstream Verifier và bảng Preview của snapshot đã che.

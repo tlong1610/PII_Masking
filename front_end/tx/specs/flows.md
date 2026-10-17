@@ -32,7 +32,7 @@ DPO Catalog Explorer (Cột bên trái)
    - DPO tích chọn các bảng/collection cần quét và bấm "Bắt đầu quét" (`POST /runs`).
 3. **Rà soát chính sách tại DPO Workspace:**
    - DPO chuyển đổi qua các tab có giá trị thực tiễn:
-     - **Tab 0 — Overview & PII Schema:** Xem bảng các cột, phân loại NĐ 13, sàn bảo mật tối thiểu, chip đề xuất action.
+     - **Tab 0 — Overview & PII Schema:** Xem bảng các cột, phân loại theo NĐ 356, sàn bảo mật tối thiểu, chip đề xuất action.
      - **Tab 1 — Risk & Insights:** Xem Điểm rủi ro tất định FR-10 (0–100) và tỷ lệ bảo vệ L2/L3.
      - **Tab 2 — Audit History & Hash-Chain:** Xem sổ cái Merkle Root SHA-256 của phiên làm việc.
    - **Thao tác Drawer (`FieldPolicyDrawerContent`):** Click vào từng cột để mở Drawer: xem căn cứ pháp lý, đồng bộ khóa nối (Join Keys), xác nhận `UNKNOWN` thành Non-PII, nhập lý do ghi đè hoặc thiết lập thời hạn ngoại lệ (`exceptionUntil`).
@@ -90,13 +90,13 @@ Mục **Security & Compliance** trên Sidebar cung cấp 3 lối vào độc l�
 
 ```text
 Sidebar: Security & Compliance
-  ├── 1. [Nghị định 13 Rules]       ──> Mở Interactive Compliance Modal / Drawer
+  ├── 1. [Quy định pháp luật]       ──> Mở Interactive Compliance Modal / Drawer
   ├── 2. [Sổ cái Hash-Chain]       ──> Mở Cryptographic Audit Ledger Center
   └── 3. [Demo che dữ liệu]         ──> Mở Masking Showcase (nằm DƯỚI SỔ CÁI)
 ```
 
-### Luồng 4.1: Tra Cứu Quy Tắc Nghị Định 13 (Interactive Rules Hub)
-1. Người dùng bấm **"Nghị định 13 Rules"** trên Sidebar từ bất kỳ màn hình nào.
+### Luồng 4.1: Tra Cứu Quy Định Pháp Luật (Interactive Rules Hub)
+1. Người dùng bấm **"Quy định pháp luật"** trên Sidebar từ bất kỳ màn hình nào.
 2. Hệ thống mở Modal/Drawer hiển thị:
    - Bảng quy chuẩn Điều 2 Khoản 3 (PII cơ bản) và Điều 2 Khoản 4 (PII nhạy cảm).
    - Yêu cầu sàn bảo mật tối thiểu (Minimal Masking Floor) cho từng loại dữ liệu.
