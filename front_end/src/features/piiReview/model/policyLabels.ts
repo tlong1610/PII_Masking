@@ -34,7 +34,7 @@ export function getTransformAnalystHint(transform: TransformKind): string {
   if (transform === 'KEEP') return 'Dùng trực tiếp để phân tích (lọc, nhóm, tính tổng...).';
   if (transform === 'HMAC')
     return 'Mã thay thế cố định: dùng để ghép bảng hoặc đếm số khách riêng biệt; không thể giải ngược ra giá trị gốc.';
-  if (transform === 'MASK') return 'Đã che một phần: chỉ để nhận biết dạng dữ liệu, không dùng để lọc hay ghép bảng.';
+  if (transform === 'MASK') return 'Đã che toàn bộ (***): chỉ cho biết cột có dữ liệu, không dùng để lọc hay ghép bảng.';
   if (transform === 'REDACT')
     return 'Văn bản vẫn đọc được; tên, số điện thoại, email... đã thay bằng nhãn như [PHONE]. Không dùng để ghép bảng.';
   return 'Đã bị loại khỏi dataset, Analyst không nhận được cột này.';

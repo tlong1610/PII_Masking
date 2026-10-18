@@ -1188,25 +1188,23 @@ def build_run(
 
     # Protect active PUBLISHED datasets (§FR-08):
     # Ensure build run N+1 does not destroy an active PUBLISHED dataset sharing the same snapshot target.
-    active_published = db.scalar(
+    # Targets are per run, so this only fires if the snapshot naming settings change underneath.
+    target_prefixes = (
+        f"postgres://{conn.pg_snapshot_schema(run.id)}/",
+        f"mongodb://{conn.mongo_snapshot_db(run.id)}/",
+    )
+    for active_published in db.scalars(
         select(db_models.Dataset).where(
             db_models.Dataset.status == DatasetStatus.PUBLISHED.value,
             db_models.Dataset.run_id != run.id,
         )
-    )
-    if active_published and active_published.output_location:
-        target_pg = conn.pg_snapshot_schema(run.id)
-        target_mongo = conn.mongo_snapshot_db(run.id)
-        if (
-            f"postgres://{target_pg}/" in active_published.output_location
-            or f"mongodb://{target_mongo}/" in active_published.output_location
-        ):
+    ):
+        if (active_published.output_location or "").startswith(target_prefixes):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
-                    f"Build blocked: Target snapshot is currently occupied by active PUBLISHED dataset "
-                    f"id={active_published.id}. You must revoke dataset {active_published.id} before rebuilding, "
-                    "or isolate the target snapshot."
+                    f"Không thể build: vùng snapshot đích đang được lượt quét #{active_published.run_id} "
+                    "(đã phát hành) sử dụng. Thu hồi lượt quét đó trước khi build lại."
                 ),
             )
 

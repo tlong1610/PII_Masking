@@ -1,8 +1,8 @@
-import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { DatasetPreviewTable, VerifierResultsTable, useDatasetDetail } from '@/features/datasets';
+import { MascotLoader } from '@/shared/ui';
 import type { DatasetStatus } from '../model/policyLabels';
 import { SnapshotStatusBanner } from './SnapshotStatusBanner';
 
@@ -62,7 +62,11 @@ export function SnapshotTab({ datasetId, datasetStatus }: SnapshotTabProps): JSX
         </SnapshotStatusBanner>
       )}
       <Section title="Kết quả kiểm định">
-        {isLoading || !dataset ? <LinearProgress aria-label="Đang tải kết quả kiểm chứng" /> : <VerifierResultsTable results={dataset.verifier_results} />}
+        {isLoading || !dataset ? (
+          <MascotLoader compact title="Đang tải kết quả kiểm định…" />
+        ) : (
+          <VerifierResultsTable results={dataset.verifier_results} />
+        )}
       </Section>
       {hasData && (
         <Section title="Xem trước dữ liệu cho Analyst">

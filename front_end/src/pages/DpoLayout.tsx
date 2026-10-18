@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import LinearProgress from '@mui/material/LinearProgress';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined';
@@ -8,7 +7,7 @@ import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
 import { routes } from '@/shared/config/routes';
-import { AppShell, type AppShellNavItem } from '@/shared/ui';
+import { AppShell, MascotLoader, type AppShellNavItem } from '@/shared/ui';
 
 export function DpoLayout(): JSX.Element {
   const { user, logout } = useAuth();
@@ -30,7 +29,7 @@ export function DpoLayout(): JSX.Element {
   return (
     <AppShell activeRole="DPO" currentUser={user} onLogout={handleLogout} navItems={navItems}>
       {/* Keep the shell on screen while a lazily loaded DPO page arrives. */}
-      <Suspense fallback={<LinearProgress aria-label="Đang tải trang" />}>
+      <Suspense fallback={<MascotLoader title="Đang tải trang…" />}>
         <Outlet />
       </Suspense>
     </AppShell>

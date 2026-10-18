@@ -235,3 +235,65 @@ async def test_preview_lists_tables_and_respects_table_and_limit(client):
         headers=_auth(analyst),
     )
     assert too_many.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_export_zip_holds_every_table_with_protected_columns_only(client):
+    import csv
+    import io
+    import zipfile
+
+    dpo = await _login(client, "dpo", "dpo123")
+    analyst = await _login(client, "analyst", "analyst123")
+    ds = await _build_verified_dataset(client, dpo)
+    await client.post(f"/api/v1/datasets/{ds['id']}/publish", headers=_auth(dpo))
+    preview = (await client.get(f"/api/v1/datasets/{ds['id']}/preview", headers=_auth(analyst))).json()
+
+    exported = await client.get(f"/api/v1/datasets/{ds['id']}/export", headers=_auth(analyst))
+    assert exported.status_code == 200
+    assert exported.headers["content-type"] == "application/zip"
+    assert exported.headers["content-disposition"].endswith('.zip"')
+    with zipfile.ZipFile(io.BytesIO(exported.content)) as zf:
+        assert sorted(zf.namelist()) == sorted(f"{t}.csv" for t in preview["tables"])
+        for table in preview["tables"]:
+            text = zf.read(f"{table}.csv").decode("utf-8-sig")
+            header = next(csv.reader(io.StringIO(text)))
+            expected = [
+                c["name"] for c in preview["columns"] if c["source_path"] == table and c["transform"] != "DROPPED"
+            ]
+            assert header == expected
+
+    one = await client.get(
+        f"/api/v1/datasets/{ds['id']}/export", params={"table": preview["tables"][0]}, headers=_auth(analyst)
+    )
+    assert one.status_code == 200
+    assert one.headers["content-type"].startswith("text/csv")
+
+    missing = await client.get(
+        f"/api/v1/datasets/{ds['id']}/export", params={"table": "not_a_table"}, headers=_auth(analyst)
+    )
+    assert missing.status_code == 404
+
+    audit = await client.get("/api/v1/audit", headers=_auth(dpo))
+    assert audit.status_code == 200
+    assert any(e["action"] == "export_dataset" for e in audit.json())
+
+
+@pytest.mark.asyncio
+async def test_export_follows_preview_access_rules(client):
+    dpo = await _login(client, "dpo", "dpo123")
+    analyst = await _login(client, "analyst", "analyst123")
+    ds = await _build_verified_dataset(client, dpo)
+
+    unpublished = await client.get(f"/api/v1/datasets/{ds['id']}/export", headers=_auth(analyst))
+    assert unpublished.status_code == 403
+
+    await client.post(f"/api/v1/datasets/{ds['id']}/publish", headers=_auth(dpo))
+    me = (await client.get("/api/v1/me", headers=_auth(analyst))).json()
+    removed = await client.delete(f"/api/v1/datasets/{ds['id']}/grants/{me['id']}", headers=_auth(dpo))
+    assert removed.status_code == 204
+    no_grant = await client.get(f"/api/v1/datasets/{ds['id']}/export", headers=_auth(analyst))
+    assert no_grant.status_code == 403
+
+    anonymous = await client.get(f"/api/v1/datasets/{ds['id']}/export")
+    assert anonymous.status_code == 401

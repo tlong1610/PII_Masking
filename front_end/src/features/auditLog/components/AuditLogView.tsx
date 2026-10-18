@@ -6,7 +6,7 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { useSearchParams } from 'react-router-dom';
-import { SectionHeader, StateNotice } from '@/shared/ui';
+import { MascotLoader, SectionHeader, StateNotice } from '@/shared/ui';
 import type { AuditEvent } from '../api/auditApi';
 import { useAuditEvents } from '../hooks/useAuditLog';
 import { AUDIT_FILTERS, type AuditFilterValue } from '../model/auditDescribe';
@@ -67,7 +67,8 @@ export function AuditLogView(): JSX.Element {
           ))}
         </Tabs>
 
-        {isLoading || isFetching ? <LinearProgress aria-label="Đang tải nhật ký" /> : null}
+        {isLoading ? <MascotLoader compact title="Đang tải nhật ký…" /> : null}
+        {isFetching && !isLoading ? <LinearProgress aria-label="Đang làm mới nhật ký" /> : null}
         {isError ? (
           <StateNotice
             kind="error"

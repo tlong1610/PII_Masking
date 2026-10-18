@@ -9,6 +9,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -21,7 +22,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { ApiError } from '@/shared/api/client';
 import { StatusChip } from '@/shared/ui';
 import { useCreateDataSource, useTestDataSource } from '../hooks/usePiiReview';
-import { detectEngine, parseTables, sourceFormSchema, type SourceFormValues } from '../model/sourceForm';
+import { detectEngine, sourceFormSchema, type SourceFormValues } from '../model/sourceForm';
 
 interface AddSourceDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ interface AddSourceDialogProps {
   onCreated: (sourceId: string) => void;
 }
 
-const DEFAULT_VALUES: SourceFormValues = { name: '', url: '', namespace: '', tables: '' };
+const DEFAULT_VALUES: SourceFormValues = { name: '', url: '', namespace: '' };
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -39,6 +40,8 @@ function errorMessage(error: unknown): string {
 export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogProps): JSX.Element {
   const [showUrl, setShowUrl] = useState(false);
   const [testNote, setTestNote] = useState<{ ok: boolean; message: string } | null>(null);
+  // Schemas/databases found by "Kiểm tra kết nối"; null until a successful test for the current URL.
+  const [namespaceOptions, setNamespaceOptions] = useState<{ url: string; names: string[] } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const testSource = useTestDataSource();
@@ -50,6 +53,7 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
     getValues,
     trigger,
     reset,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<SourceFormValues>({
@@ -58,20 +62,24 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
     mode: 'onTouched',
   });
 
-  const engine = detectEngine(watch('url'));
+  const url = watch('url');
+  const engine = detectEngine(url);
+  const namespaces = namespaceOptions && namespaceOptions.url === url ? namespaceOptions.names : null;
   const busy = testSource.isPending || createSource.isPending;
 
   const toInput = (values: SourceFormValues) => ({
     name: values.name,
     url: values.url,
     namespace: values.namespace,
-    tables: parseTables(values.tables),
+    // Tables are chosen per scan on the "Chọn phạm vi" step, from the source's real table list.
+    tables: [],
   });
 
   const handleClose = (): void => {
     if (busy) return;
     reset(DEFAULT_VALUES);
     setTestNote(null);
+    setNamespaceOptions(null);
     setSubmitError(null);
     setShowUrl(false);
     onClose();
@@ -82,8 +90,15 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
     setTestNote(null);
     if (!(await trigger())) return;
     try {
-      const result = await testSource.mutateAsync(toInput(getValues()));
+      const values = getValues();
+      const result = await testSource.mutateAsync(toInput(values));
       setTestNote({ ok: result.ok, message: result.message });
+      if (result.ok && result.namespaces.length > 0) {
+        setNamespaceOptions({ url: values.url, names: result.namespaces });
+        if (!result.namespaces.includes(values.namespace)) {
+          setValue('namespace', result.default_namespace || (result.namespaces[0] ?? ''));
+        }
+      }
     } catch (error) {
       setTestNote({ ok: false, message: errorMessage(error) });
     }
@@ -197,39 +212,45 @@ export function AddSourceDialog({ open, onClose, onCreated }: AddSourceDialogPro
             <Controller
               name="namespace"
               control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label={engine === 'mongodb' ? 'Database (tùy chọn)' : 'Schema (tùy chọn)'}
-                  placeholder={engine === 'mongodb' ? 'Mặc định lấy từ URL' : 'Mặc định: public'}
-                  error={Boolean(errors.namespace)}
-                  helperText={
-                    errors.namespace?.message ??
-                    (engine === 'mongodb'
-                      ? 'Để trống = database trong đường dẫn URL. Phải tồn tại trên nguồn.'
-                      : 'Để trống = search_path / currentSchema trong URL, nếu không có thì public. Phải tồn tại trên nguồn.')
-                  }
-                  size="small"
-                  fullWidth
-                />
-              )}
+              render={({ field }) =>
+                namespaces ? (
+                  <TextField
+                    {...field}
+                    select
+                    label={engine === 'mongodb' ? 'Database' : 'Schema'}
+                    helperText={`${namespaces.length} ${engine === 'mongodb' ? 'database' : 'schema'} tìm thấy trên nguồn.`}
+                    size="small"
+                    fullWidth
+                  >
+                    {namespaces.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        {name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <TextField
+                    {...field}
+                    label={engine === 'mongodb' ? 'Database (tùy chọn)' : 'Schema (tùy chọn)'}
+                    placeholder={engine === 'mongodb' ? 'Mặc định lấy từ URL' : 'Mặc định: public'}
+                    error={Boolean(errors.namespace)}
+                    helperText={
+                      errors.namespace?.message ??
+                      `Bấm "Kiểm tra kết nối" để chọn từ danh sách ${engine === 'mongodb' ? 'database' : 'schema'} có trên nguồn. Để trống = ${
+                        engine === 'mongodb' ? 'database trong URL' : 'search_path trong URL, nếu không có thì public'
+                      }.`
+                    }
+                    size="small"
+                    fullWidth
+                  />
+                )
+              }
             />
 
-            <Controller
-              name="tables"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label={engine === 'mongodb' ? 'Collection cần quét (tùy chọn)' : 'Bảng cần quét (tùy chọn)'}
-                  placeholder="customers, orders, accounts"
-                  error={Boolean(errors.tables)}
-                  helperText={errors.tables?.message ?? 'Ngăn cách bằng dấu phẩy. Để trống để quét toàn bộ.'}
-                  size="small"
-                  fullWidth
-                />
-              )}
-            />
+            <Alert severity="info" variant="outlined" icon={false} sx={{ py: 0 }}>
+              Chọn bảng hoặc collection cần quét ở bước tiếp theo (<strong>Chọn phạm vi</strong>), từ danh sách thật lấy
+              từ nguồn sau khi kết nối.
+            </Alert>
 
             {testNote && (
               <Alert severity={testNote.ok ? 'success' : 'error'}>

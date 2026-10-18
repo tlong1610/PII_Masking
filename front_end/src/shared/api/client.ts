@@ -71,10 +71,7 @@ function getErrorMessage(responseBody: unknown, fallback: string): string {
   return fallback;
 }
 
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {},
-): Promise<T> {
+async function send(endpoint: string, options: RequestInit): Promise<Response> {
   const token = readStoredToken();
   const headers = new Headers(options.headers);
 
@@ -102,10 +99,37 @@ export async function apiRequest<T>(
     );
   }
 
+  return response;
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await send(endpoint, options);
   if (response.status === 204) {
     return undefined as T;
   }
 
   const data: unknown = await response.json();
   return data as T;
+}
+
+/** Like apiRequest, for endpoints that answer with a document (e.g. the HTML report) instead of JSON. */
+export async function apiRequestText(endpoint: string, options: RequestInit = {}): Promise<string> {
+  const response = await send(endpoint, options);
+  return response.text();
+}
+
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string | null;
+}
+
+/** For file downloads (e.g. the dataset export): the body as a Blob plus the server's filename. */
+export async function apiRequestFile(endpoint: string, options: RequestInit = {}): Promise<DownloadedFile> {
+  const response = await send(endpoint, options);
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+  return { blob: await response.blob(), filename };
 }
