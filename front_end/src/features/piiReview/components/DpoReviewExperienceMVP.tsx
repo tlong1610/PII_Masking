@@ -11,6 +11,7 @@ import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 import { AuditTrail } from '@/features/auditLog';
 import { ApiError } from '@/shared/api/client';
 import { fetchRunReportHtml } from '../api/realPiiReviewApi';
+import { useRenameDataset } from '@/features/datasets';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -68,7 +69,7 @@ const BUSY_LABELS: Record<BusyPhase, string> = {
   revoking: 'Đang thu hồi…',
 };
 
-type PendingConfirm = { kind: 'PUBLISH' } | { kind: 'REVOKE' } | { kind: 'FORCE_DELETE_SOURCE'; sourceId: string };
+type PendingConfirm = { kind: 'REVOKE' } | { kind: 'FORCE_DELETE_SOURCE'; sourceId: string };
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return formatJoinKeyViolations(error.response) ?? error.message;
@@ -101,7 +102,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [busyPhase, setBusyPhase] = useState<BusyPhase | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
-  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  // Saving and publishing both ask for the name the Analyst sees.
+  const [nameDialog, setNameDialog] = useState<'BUILD' | 'PUBLISH' | null>(null);
 
   // Inspector Drawer state
   const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
@@ -131,6 +133,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
   const revokeDataset = useRevokeDataset();
+  const renameDataset = useRenameDataset();
 
   const resetReview = (): void => {
     setDecisionOverrides({});
@@ -410,12 +413,12 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       notify(`Có ${issues.length} cột cần sửa trước khi lưu.`, 'warning');
       return;
     }
-    setNameDialogOpen(true);
+    setNameDialog('BUILD');
   };
 
   /** Saves every decision, then (re)builds and verifies the protected data the Analyst reads. */
   const handleSaveAndBuild = async (datasetName: string): Promise<void> => {
-    setNameDialogOpen(false);
+    setNameDialog(null);
     if (!currentRunId || !currentRun) return;
     setDecisionError(null);
     setDecisionIssues([]);
@@ -456,10 +459,14 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     }
   };
 
-  const handlePublish = async (): Promise<void> => {
+  const handlePublish = async (datasetName: string): Promise<void> => {
+    setNameDialog(null);
     if (!datasetId) return;
     setBusyPhase('publishing');
     try {
+      if (datasetName !== getLatestDataset(currentRun?.datasets ?? [])?.dataset_name) {
+        await renameDataset.mutateAsync({ datasetId, datasetName });
+      }
       await publishDataset.mutateAsync(datasetId);
       notify(`Đã phát hành lượt quét #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
     } catch (error) {
@@ -484,7 +491,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const handleAction = (action: ReviewAction): void => {
     if (action === 'BUILD') requestSaveAndBuild();
-    else if (action === 'PUBLISH') setPendingConfirm({ kind: 'PUBLISH' });
+    else if (action === 'PUBLISH') setNameDialog('PUBLISH');
     else if (action === 'REVOKE') setPendingConfirm({ kind: 'REVOKE' });
     else navigate(routes.dpo);
   };
@@ -509,8 +516,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const handleConfirm = async (): Promise<void> => {
     const confirm = pendingConfirm;
     setPendingConfirm(null);
-    if (confirm?.kind === 'PUBLISH') await handlePublish();
-    else if (confirm?.kind === 'REVOKE') await handleRevoke();
+    if (confirm?.kind === 'REVOKE') await handleRevoke();
     else if (confirm?.kind === 'FORCE_DELETE_SOURCE') {
       try {
         await removeSource(confirm.sourceId, true);
@@ -559,12 +565,6 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }
 
   const confirmCopy: Record<PendingConfirm['kind'], { title: string; description: string; label: string }> = {
-    PUBLISH: {
-      title: `Phát hành lượt quét #${currentRunId ?? ''}?`,
-      description:
-        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.',
-      label: 'Phát hành',
-    },
     REVOKE: {
       title: `Thu hồi lượt quét #${currentRunId ?? ''}?`,
       description:
@@ -763,12 +763,17 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       />
 
       <DatasetNameDialog
-        open={nameDialogOpen}
-        title="Đặt tên dữ liệu cho Analyst"
-        confirmLabel="Lưu"
+        open={nameDialog !== null}
+        title={nameDialog === 'PUBLISH' ? `Phát hành lượt quét #${currentRunId ?? ''}?` : 'Đặt tên dữ liệu cho Analyst'}
+        description={
+          nameDialog === 'PUBLISH'
+            ? 'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này dưới tên bên dưới. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.'
+            : undefined
+        }
+        confirmLabel={nameDialog === 'PUBLISH' ? 'Phát hành' : 'Lưu'}
         initialName={suggestedDatasetName}
-        onConfirm={(name) => void handleSaveAndBuild(name)}
-        onClose={() => setNameDialogOpen(false)}
+        onConfirm={(name) => void (nameDialog === 'PUBLISH' ? handlePublish(name) : handleSaveAndBuild(name))}
+        onClose={() => setNameDialog(null)}
       />
 
       {pendingConfirm && (
@@ -777,7 +782,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           title={confirmCopy[pendingConfirm.kind].title}
           description={confirmCopy[pendingConfirm.kind].description}
           confirmLabel={confirmCopy[pendingConfirm.kind].label}
-          destructive={pendingConfirm.kind !== 'PUBLISH'}
+          destructive
           onConfirm={() => void handleConfirm()}
           onClose={() => setPendingConfirm(null)}
         />

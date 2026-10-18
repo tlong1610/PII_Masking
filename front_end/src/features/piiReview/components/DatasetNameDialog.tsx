@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import { cleanDatasetName, DATASET_NAME_MAX } from '../model/datasetName';
@@ -10,6 +11,7 @@ import { cleanDatasetName, DATASET_NAME_MAX } from '../model/datasetName';
 type DatasetNameDialogProps = {
   open: boolean;
   title: string;
+  description?: string;
   confirmLabel: string;
   initialName: string;
   pending?: boolean;
@@ -21,6 +23,7 @@ type DatasetNameDialogProps = {
 export function DatasetNameDialog({
   open,
   title,
+  description,
   confirmLabel,
   initialName,
   pending = false,
@@ -45,6 +48,7 @@ export function DatasetNameDialog({
       >
         <DialogTitle id="dataset-name-dialog-title">{title}</DialogTitle>
         <DialogContent>
+          {description && <DialogContentText sx={{ mb: 1 }}>{description}</DialogContentText>}
           <TextField
             autoFocus
             fullWidth
