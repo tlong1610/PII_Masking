@@ -386,7 +386,10 @@ def revoke_dataset(
         if schema_part and settings.snapshot_database_url:
             try:
                 from sqlalchemy import create_engine, text
-                engine = create_engine(settings.snapshot_database_url)
+
+                from src.db.session import sqlalchemy_url
+
+                engine = create_engine(sqlalchemy_url(settings.snapshot_database_url))
                 with engine.connect() as conn:
                     conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_part}" CASCADE'))
                     conn.commit()

@@ -18,6 +18,17 @@ DEMO_USERS = (
 )
 
 
+def sqlalchemy_url(url: str) -> str:
+    """Pin plain Postgres URLs (e.g. Render's connectionString) to psycopg 3, the only driver installed.
+
+    SQLAlchemy reads "postgresql://" as psycopg2, which the Render image does not ship.
+    """
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url.removeprefix(prefix)
+    return url
+
+
 def get_engine():
     global _engine, _SessionLocal
     if _engine is None:
@@ -25,7 +36,7 @@ def get_engine():
         connect_args = {}
         if settings.database_url.startswith("sqlite"):
             connect_args["check_same_thread"] = False
-        _engine = create_engine(settings.database_url, connect_args=connect_args)
+        _engine = create_engine(sqlalchemy_url(settings.database_url), connect_args=connect_args)
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
     return _engine
 
