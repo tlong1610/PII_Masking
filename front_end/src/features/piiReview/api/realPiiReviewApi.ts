@@ -315,6 +315,42 @@ export async function exportDataset(datasetId: number, table?: string | null): P
 }
 
 // ============================================================================
+// ANALYST SQL ACCESS (read-only login to the protected snapshot store)
+// ============================================================================
+
+export const sqlAccessSchema = z.object({
+  enabled: z.boolean(),
+  has_credentials: z.boolean().default(false),
+  host: z.string().default(''),
+  port: z.number().default(5432),
+  database: z.string().default(''),
+  username: z.string().default(''),
+  sslmode: z.string().default('require'),
+  password: z.string().nullable().optional(),
+  datasets: z
+    .array(
+      z.object({
+        dataset_id: z.number(),
+        dataset_name: z.string(),
+        schema_name: z.string(),
+        tables: z.array(z.string()),
+      }),
+    )
+    .default([]),
+});
+
+export type SqlAccess = z.infer<typeof sqlAccessSchema>;
+
+export async function fetchSqlAccess(): Promise<SqlAccess> {
+  return sqlAccessSchema.parse(await apiRequest<unknown>('/sql-access'));
+}
+
+/** New password (creates the login the first time); the only response that carries it. */
+export async function issueSqlCredentials(): Promise<SqlAccess> {
+  return sqlAccessSchema.parse(await apiRequest<unknown>('/sql-access/credentials', { method: 'POST' }));
+}
+
+// ============================================================================
 // RISK SCORE API (FR-10, §9.4)
 // ============================================================================
 
