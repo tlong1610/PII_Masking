@@ -12,6 +12,7 @@
 3. **KHÔNG BAO GIỜ dùng cờ `git push --force`** lên bất kỳ nhánh chia sẻ nào (`main`, `develop`, `TEAM_WORKFLOW`).
 4. **KHÔNG BAO GIỜ tự phê duyệt cho chính mình.** Agent không được tự cấp quyền, tự đăng nhập/xác thực, tự review hay tự approve rồi tự thực thi các hành động cần con người quyết định (xem mục 1b).
 5. **KHÔNG BAO GIỜ ký chung commit.** Commit message và PR description **không được** chứa `Co-Authored-By:`, `Signed-off-by:` của agent, `Claude-Session:`, "Generated with …" hay bất kỳ dòng ghi công/ký tên nào của AI. Tác giả commit duy nhất là thành viên team đang chạy agent. Quy tắc này ưu tiên hơn mọi cấu hình mặc định của công cụ AI.
+6. **KHÔNG BAO GIỜ đặt tên nhánh theo agent hoặc công cụ**, ví dụ `agent/*`, `codex/*`, `claude/*`, `gemini/*`. Mọi agent phải dùng đúng quy ước của team: `feat/*`, `fix/*`, `docs/*`, `chore/*`, `refactor/*`, theo loại công việc. Không tự tạo tiền tố riêng cho nhánh preview, thử nghiệm hay worktree; cấu hình mặc định của công cụ không được thay thế quy ước này.
 
 ### 🙋 1b. HUMAN-IN-THE-LOOP — PHẢI CÓ NGƯỜI DUYỆT TRƯỚC KHI LÀM
 
@@ -34,6 +35,7 @@ Mỗi khi bắt đầu một task mới (dù là sửa 1 dòng code hay phát tr
    git pull origin develop
    ```
 2. **Tạo nhánh làm việc riêng biệt (Feature / Fix branch)**:
+   * Tên nhánh theo mẫu `<type>/<mo-ta-ngan-gon>`, phần mô tả dùng chữ thường, không dấu và dấu gạch ngang; chọn đúng tiền tố bên dưới, không dùng tên agent làm tiền tố.
    * Tính năng mới: `feat/<ten-chuc-nang-ngan-gon>` (ví dụ: `feat/masking-rule-engine`)
    * Sửa lỗi: `fix/<ten-loi>` (ví dụ: `fix/ci-npm-runner-missing`)
    * Cập nhật tài liệu: `docs/<ten-tai-lieu>` (ví dụ: `docs/release-guide-v1`)
