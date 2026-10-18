@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; background: #f3f7fd; }
+      </style>
+      <div data-hf-id="hf-dzp0" id="root" data-composition-id="s08" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-7n46" class="stage" id="s08-stage">
+          <video data-hf-id="hf-gs03" id="s08-v1" class="clip" src="assets/clips/review.webm" muted playsinline data-start="0" data-duration="6.0" data-media-start="35.6" data-track-index="0"></video>
+          <video data-hf-id="hf-ko0f" id="s08-v2" class="clip" src="assets/clips/review.webm" muted playsinline data-start="6.0" data-duration="9.2" data-media-start="51.2" data-hf-media-start-basis="local" data-track-index="0"></video>
+        </div>
+        <div data-hf-id="hf-kllc" class="chapter fx" id="s08-ch"><small data-hf-id="hf-lhgw">Bước 4</small><span data-hf-id="hf-it1u">Build &amp; kiểm chứng</span></div>
+        <div data-hf-id="hf-5ioh" class="callout fx" id="s08-c0" style="left: 330px; top: 770px"><span data-hf-id="hf-9gry" class="dot"></span>Đặt tên dataset · ghi ra bản sao riêng, nguồn không bị ghi</div>
+        <div data-hf-id="hf-m8kl" class="ring fx" id="s08-r1" style="left: 346px; top: 640px; width: 1528px; height: 250px"></div>
+        <div data-hf-id="hf-z1g8" class="callout fx" id="s08-c1" style="left: 960px; top: 520px"><span data-hf-id="hf-zcc2" class="dot"></span>31/31 kiểm tra đạt · 15 liên kết nối được · 0 rò rỉ</div>
+        <div data-hf-id="hf-s02y" class="ring no-dim fx" id="s08-r2" style="left: 1742px; top: 120px; width: 156px; height: 56px"></div>
+        <div data-hf-id="hf-9m9y" class="callout fx" id="s08-c2" style="left: 1000px; top: 200px"><span data-hf-id="hf-zqn3" class="dot"></span>Chưa kiểm chứng đạt thì không phát hành được</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const show = (sel, at, until) => {
+          tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at);
+          if (until) tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, until);
+        };
+        tl.fromTo("#s08-ch", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        show("#s08-c0", 1.4, 5.7);
+        show("#s08-r1", 7.5, 10.6);
+        show("#s08-c1", 7.7, 11.6);
+        show("#s08-r2", 11.8, 12.6);
+        show("#s08-c2", 12.0, 15.0);
+        window.__timelines["s08"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

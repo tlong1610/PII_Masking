@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #s06-w { position: absolute; inset: 0; font-family: "Be Vietnam Pro", sans-serif; color: var(--on-dark); }
+        #s06-stage { box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5); border-radius: 28px; }
+        #s06-w .title { position: absolute; left: 1100px; top: 180px; width: 740px; font-size: 46px; font-weight: 800; letter-spacing: -0.01em; }
+        #s06-w .funnel { position: absolute; left: 1100px; top: 270px; width: 740px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        #s06-w .tier { height: 92px; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; padding: 0 30px; }
+        #s06-w .tier b { font-size: 31px; font-weight: 800; }
+        #s06-w .tier span { font-size: 21px; font-weight: 600; opacity: 0.85; }
+        #s06-w .badges { position: absolute; left: 1100px; top: 740px; width: 740px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+        #s06-w .badge { padding: 14px 26px; border-radius: 999px; font-size: 27px; font-weight: 700; }
+      </style>
+      <div data-hf-id="hf-utsa" id="root" data-composition-id="s06" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-rll2" id="s06-w">
+          <div data-hf-id="hf-xwho" class="navy-bg"></div>
+          <div data-hf-id="hf-3o88" class="stage" id="s06-stage">
+            <video data-hf-id="hf-t03p" id="s06-v" class="clip" src="assets/clips/scope.webm" muted playsinline data-start="0" data-duration="15.61" data-media-start="28.6" data-track-index="0"></video>
+          </div>
+          <div data-hf-id="hf-en7e" class="title fx" id="s06-t">Phễu phát hiện nhiều tầng</div>
+          <div data-hf-id="hf-hli4" class="funnel">
+            <div data-hf-id="hf-tzls" class="tier fx" id="s06-t1" style="width: 740px; background: #1d4ed8"><b data-hf-id="hf-vkp5">Tầng 1 · Luật &amp; mẫu nhận diện</b><span data-hf-id="hf-rxv9">Theo Luật 91/2025 &amp; NĐ 356</span></div>
+            <div data-hf-id="hf-gsil" class="tier fx" id="s06-t2" style="width: 640px; background: #2563eb"><b data-hf-id="hf-8vg1">Tầng 2 · Tìm kiếm từ khóa</b><span data-hf-id="hf-5tuh">BM25 trên tri thức phân loại PII</span></div>
+            <div data-hf-id="hf-6tgw" class="tier fx" id="s06-t3" style="width: 540px; background: #4f46e5"><b data-hf-id="hf-7znb">Tầng 3 · Tìm kiếm ngữ nghĩa</b><span data-hf-id="hf-wk4i">Hybrid vector</span></div>
+            <div data-hf-id="hf-as67" class="tier fx" id="s06-t4" style="width: 440px; background: #7c3aed"><b data-hf-id="hf-uzfh">AI (LLM) · chỉ cột mơ hồ</b><span data-hf-id="hf-ht4y">Vùng xám còn lại</span></div>
+          </div>
+          <div data-hf-id="hf-1bhc" class="badges">
+            <div data-hf-id="hf-cr7x" class="badge fx" id="s06-b1" style="background: #dcfce7; color: #166534">Chỉ xem thông tin mô tả + thống kê</div>
+            <div data-hf-id="hf-thmi" class="badge fx" id="s06-b2" style="background: #fee2e2; color: #991b1b">Không bao giờ thấy giá trị thật</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#s06-stage", { scale: 1, x: 0, y: 0, borderRadius: 0 }, { scale: 0.5, x: 70, y: 270, borderRadius: 28, duration: 1.0, ease: "power3.inOut" }, 0.3);
+        tl.fromTo("#s06-t", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.0);
+        [["#s06-t1", 1.9], ["#s06-t2", 5.2], ["#s06-t3", 6.6], ["#s06-t4", 8.8]].forEach(([sel, at]) =>
+          tl.fromTo(sel, { opacity: 0, scaleX: 0.7 }, { opacity: 1, scaleX: 1, duration: 0.45, ease: "back.out(1.5)" }, at));
+        tl.fromTo("#s06-b1", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 11.4);
+        tl.fromTo("#s06-b2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 13.2);
+        window.__timelines["s06"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

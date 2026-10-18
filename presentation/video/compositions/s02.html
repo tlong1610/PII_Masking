@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #s02-w { position: absolute; inset: 0; font-family: "Be Vietnam Pro", sans-serif; color: var(--on-dark); }
+        #s02-w .kicker { position: absolute; left: 120px; top: 90px; font-weight: 800; font-size: 26px; letter-spacing: 0.18em; color: #93c5fd; }
+        #s02-w .laws { position: absolute; left: 120px; right: 120px; top: 250px; display: flex; gap: 36px; transform-origin: 50% 0; }
+        #s02-w .law { flex: 1; padding: 40px 36px; border-radius: 24px; background: rgba(255, 255, 255, 0.08);
+          border: 2px solid rgba(147, 197, 253, 0.35); }
+        #s02-w .law b { display: block; font-size: 50px; font-weight: 800; letter-spacing: -0.01em; }
+        #s02-w .law span { display: block; margin-top: 14px; font-size: 30px; font-weight: 600; color: var(--on-dark-muted); }
+        #s02-w .since { position: absolute; left: 120px; top: 160px; font-size: 40px; font-weight: 600; }
+        #s02-w .fine { position: absolute; left: 0; right: 0; top: 440px; display: flex; flex-direction: column; align-items: center; }
+        #s02-w .fine .num { font-size: 230px; font-weight: 800; line-height: 1; color: #fca5a5; letter-spacing: -0.04em; }
+        #s02-w .fine .lbl { margin-top: 6px; font-size: 52px; font-weight: 800; }
+        #s02-w .fine .note { margin-top: 18px; font-size: 30px; font-weight: 600; color: var(--on-dark-muted); }
+        #s02-w .pain-title { position: absolute; left: 120px; right: 120px; top: 250px; font-size: 64px; font-weight: 800; letter-spacing: -0.02em; }
+        #s02-w .pains { position: absolute; left: 120px; right: 120px; top: 420px; display: flex; gap: 36px; }
+        #s02-w .pain { flex: 1; padding: 40px 36px; border-radius: 24px; background: #ffffff; color: var(--ink); min-height: 300px; }
+        #s02-w .pain i { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 50%;
+          background: #fee2e2; color: var(--drop); font-style: normal; font-weight: 800; font-size: 38px; }
+        #s02-w .pain b { display: block; margin-top: 26px; font-size: 40px; font-weight: 800; line-height: 1.2; }
+        #s02-w .pain span { display: block; margin-top: 12px; font-size: 27px; font-weight: 400; color: var(--muted); line-height: 1.35; }
+      </style>
+      <div data-hf-id="hf-m6ce" id="root" data-composition-id="s02" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-fs1m" id="s02-w">
+          <div data-hf-id="hf-xwho" class="navy-bg"></div>
+          <div data-hf-id="hf-qfm7" class="kicker">VẤN ĐỀ</div>
+          <div data-hf-id="hf-jrku" id="s02-since" class="since">Khung pháp lý mới có hiệu lực từ 01/01/2026</div>
+          <div data-hf-id="hf-qw9s" id="s02-laws" class="laws">
+            <div data-hf-id="hf-fmsw" class="law"><b data-hf-id="hf-uypr">91/2025/QH15</b><span data-hf-id="hf-guec">Luật Bảo vệ dữ liệu cá nhân</span></div>
+            <div data-hf-id="hf-4cg8" class="law"><b data-hf-id="hf-w8z4">356/2025/NĐ-CP</b><span data-hf-id="hf-uf8f">Nghị định hướng dẫn thi hành</span></div>
+            <div data-hf-id="hf-35j5" class="law"><b data-hf-id="hf-0gmh">330/2026/NĐ-CP</b><span data-hf-id="hf-j23s">Xử phạt vi phạm hành chính</span></div>
+          </div>
+          <div data-hf-id="hf-jnn8" id="s02-fine" class="fine">
+            <div data-hf-id="hf-tfdb" class="num"><span data-hf-id="hf-vais" id="s02-pct">5</span>%</div>
+            <div data-hf-id="hf-xvg1" class="lbl">doanh thu năm trước</div>
+            <div data-hf-id="hf-hbr6" class="note">Mức phạt tối đa với vi phạm chuyển dữ liệu xuyên biên giới · Điều 8, Luật 91/2025/QH15</div>
+          </div>
+          <div data-hf-id="hf-m0ur" id="s02-pt" class="pain-title">Vậy mà người duyệt vẫn dò từng cột bằng tay</div>
+          <div data-hf-id="hf-l0zf" class="pains">
+            <div data-hf-id="hf-3uot" class="pain" id="s02-p1"><i data-hf-id="hf-943b">1</i><b data-hf-id="hf-rg4g">Sót một cột là lộ</b><span data-hf-id="hf-eclo">Hàng trăm cột, mỗi cột một quyết định thủ công.</span></div>
+            <div data-hf-id="hf-a0em" class="pain" id="s02-p2"><i data-hf-id="hf-8psa">2</i><b data-hf-id="hf-yx25">Che sai một khóa, gãy liên kết</b><span data-hf-id="hf-nnpf">Hai đầu quan hệ che lệch nhau, bảng không nối được nữa.</span></div>
+            <div data-hf-id="hf-dyin" class="pain" id="s02-p3"><i data-hf-id="hf-8bh9">3</i><b data-hf-id="hf-bfrr">Không ai trả lời được</b><span data-hf-id="hf-cmyb">Ai đã duyệt? Theo căn cứ pháp lý nào?</span></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#s02-w .kicker", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
+        tl.fromTo("#s02-since", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.4);
+        tl.fromTo("#s02-laws .law", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.45, ease: "power3.out" }, 0.8);
+        // 5% beat (sentence 2 starts ~6.95 scene-local)
+        tl.to("#s02-since", { opacity: 0, duration: 0.4 }, 6.6);
+        tl.to("#s02-laws", { y: -110, scale: 0.62, opacity: 0.55, duration: 0.8, ease: "power3.inOut" }, 6.6);
+        tl.fromTo("#s02-fine", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.5)" }, 7.0);
+        const pct = { v: 0 };
+        tl.fromTo(pct, { v: 0 }, { v: 5, duration: 1.2, ease: "power2.out", onUpdate: () => { document.getElementById("s02-pct").textContent = Math.round(pct.v); } }, 7.1);
+        // Pain points (sentence 3 starts ~12.3)
+        tl.to(["#s02-laws", "#s02-fine"], { opacity: 0, y: -40, duration: 0.5, ease: "power2.in" }, 12.0);
+        tl.fromTo("#s02-pt", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 12.4);
+        tl.fromTo("#s02-p1", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 15.9);
+        tl.fromTo("#s02-p2", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 17.8);
+        tl.fromTo("#s02-p3", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 20.4);
+        window.__timelines["s02"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

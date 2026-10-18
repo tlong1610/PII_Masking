@@ -1,0 +1,151 @@
+{
+  "voice": "vi-VN-NamMinhNeural",
+  "rate": "+10%",
+  "pitch": "+2Hz",
+  "note": "vi is the spoken TTS text: no English words (DPO -> người duyệt, Analyst -> chuyên viên phân tích, JOIN -> nối bảng). {PII} marks the product name; narration/tts.py speaks it as 'Pi Ai Ai Gát Siu'. en is the burned-in subtitle.",
+  "scenes": [
+    {
+      "id": "s01",
+      "name": "Hook",
+      "kind": "motion",
+      "vi": "Dữ liệu khách hàng là mỏ vàng. Nhưng chỉ cần chia sẻ nhầm một cột thông tin cá nhân, doanh nghiệp có thể trả giá rất đắt. Vì thế, chúng tôi làm ra {PII}.",
+      "en": [
+        "Customer data is gold.",
+        "But share one wrong personal-data column, and the price can be steep.",
+        "So we built PIIGuard Shield."
+      ]
+    },
+    {
+      "id": "s02",
+      "name": "Vấn đề",
+      "kind": "motion",
+      "vi": "Từ đầu năm 2026, Luật Bảo vệ dữ liệu cá nhân số 91 và Nghị định 356 chính thức có hiệu lực. Chuyển dữ liệu ra nước ngoài sai quy định, mức phạt có thể lên tới năm phần trăm doanh thu. Vậy mà người duyệt dữ liệu vẫn phải dò từng cột bằng tay. Sót một cột là lộ. Che sai một khóa là gãy liên kết. Còn khi bị hỏi ai đã duyệt, theo căn cứ nào, thì không ai trả lời được.",
+      "en": [
+        "Since 2026, Personal Data Protection Law 91 and Decree 356 are in force.",
+        "Illegal cross-border transfers can be fined up to 5% of revenue.",
+        "Yet data reviewers still check every column by hand.",
+        "Miss one column, and data leaks.",
+        "Mask one key wrong, and the joins break.",
+        "And who approved it, on what grounds? Nobody can say."
+      ]
+    },
+    {
+      "id": "s03",
+      "name": "Giải pháp",
+      "kind": "motion",
+      "vi": "{PII} đứng giữa cơ sở dữ liệu gốc và chuyên viên phân tích. Hệ thống tự tìm ra dữ liệu cá nhân. Người duyệt chọn cách bảo vệ cho từng cột: che bớt, thay bằng nhãn, băm thành mã bí mật, hoặc loại bỏ hẳn. Kiểm chứng xong, dữ liệu mới được phát hành.",
+      "en": [
+        "PIIGuard sits between the source database and analysts.",
+        "It finds personal data automatically.",
+        "The reviewer picks a protection for every column: mask, redact, hash with HMAC, or drop.",
+        "Only verified data gets published."
+      ]
+    },
+    {
+      "id": "s04",
+      "name": "Kết nối",
+      "kind": "screen",
+      "vi": "Bắt đầu nào! Người duyệt dán chuỗi kết nối tới một cơ sở dữ liệu thật trên đám mây. Mật khẩu bị ẩn ngay khi gõ, được mã hóa trước khi lưu, và không bao giờ hiện lại. Kiểm tra kết nối: thành công!",
+      "en": [
+        "Let's go! The reviewer pastes a connection string to a real cloud database.",
+        "The password is hidden as you type, encrypted before storage, and never shown again.",
+        "Test the connection: success!"
+      ]
+    },
+    {
+      "id": "s05",
+      "name": "Phạm vi",
+      "kind": "screen",
+      "vi": "Hệ thống chỉ có quyền đọc, không bao giờ ghi vào nguồn. Sơ đồ quan hệ hiện ra ngay, đủ khóa chính, khóa ngoại. Thử bỏ một bảng trung gian xem sao? Hệ thống cảnh báo liền, và đề nghị giữ lại dạng bảng liên kết, chỉ còn khóa nối, để vẫn nối bảng được. Bấm quét!",
+      "en": [
+        "Read-only access: nothing is ever written to the source.",
+        "The relationship diagram appears instantly, with primary and foreign keys.",
+        "Drop a bridge table? PIIGuard warns you and offers to keep it as a link table with join keys only.",
+        "Start the scan!"
+      ]
+    },
+    {
+      "id": "s06",
+      "name": "Phễu AI",
+      "kind": "screen+motion",
+      "vi": "Quét thế nào? Đầu tiên là luật và mẫu nhận diện theo Luật 91. Tiếp theo là tìm kiếm từ khóa và tìm kiếm ngữ nghĩa. Cột nào còn mơ hồ mới đến lượt trí tuệ nhân tạo, và nó chỉ được xem thông tin mô tả, tuyệt đối không thấy giá trị thật.",
+      "en": [
+        "How does the scan work?",
+        "First, rules and patterns mapped to Law 91.",
+        "Then keyword and semantic search.",
+        "Only ambiguous columns reach the LLM, and it sees metadata only, never real values."
+      ]
+    },
+    {
+      "id": "s07",
+      "name": "Người duyệt",
+      "kind": "screen",
+      "vi": "Mười bốn bảng, hơn trăm cột, phân loại xong xuôi. Mỗi cột có mức nhạy cảm và hành động đề xuất. Người duyệt không hề thấy dữ liệu thô. Mở một cột ra, căn cứ pháp lý nằm ngay đó. Không đồng ý với đề xuất? Đổi được, nhưng phải ghi lý do, và chính quyết định đó giúp lần quét sau chuẩn hơn. Tab rủi ro chấm điểm từ không đến một trăm.",
+      "en": [
+        "Fourteen tables, over a hundred columns, all classified.",
+        "Each column gets a sensitivity level and a recommended action.",
+        "The reviewer never sees raw data.",
+        "Open a column: the legal basis is right there.",
+        "Disagree? Change it, with a reason, and that decision sharpens the next scan.",
+        "The Risk tab scores the run from 0 to 100."
+      ]
+    },
+    {
+      "id": "s08",
+      "name": "Build & kiểm chứng",
+      "kind": "screen",
+      "vi": "Bấm Lưu. Hệ thống tạo một bản sao riêng đã được bảo vệ, rồi tự kiểm tra lại trên chính bản sao đó. Số dòng từng bảng khớp nguồn, liên kết còn nguyên, không rò rỉ một giá trị nào. Chưa kiểm chứng đạt thì đừng hòng phát hành!",
+      "en": [
+        "Save. PIIGuard builds a separate protected copy, then re-checks it.",
+        "Row counts match the source, links still join, and nothing leaks.",
+        "No verification, no publishing!"
+      ]
+    },
+    {
+      "id": "s09",
+      "name": "Nhật ký",
+      "kind": "screen",
+      "vi": "Mọi thao tác đều vào nhật ký, dòng sau móc nối với dòng trước bằng mã băm. Ai lén sửa một dòng, hệ thống chỉ ra ngay.",
+      "en": [
+        "Every action is logged, each entry chained to the previous one by a hash.",
+        "Tamper with one line, and verification points right to it."
+      ]
+    },
+    {
+      "id": "s10",
+      "name": "Chuyên viên phân tích",
+      "kind": "screen",
+      "vi": "Giờ đến lượt chuyên viên phân tích. Họ chỉ thấy bộ dữ liệu đã phát hành. Email đã che, mã khách hàng đã băm nhưng vẫn nối bảng được, còn cột ngày sinh thì biến mất. Muốn dùng ngoài hệ thống? Tải toàn bộ về dạng CSV, hoặc kết nối thẳng bằng tài khoản truy vấn chỉ đọc. Tất cả đều là dữ liệu đã bảo vệ.",
+      "en": [
+        "Now, the analyst. They only see published datasets.",
+        "Emails are masked, customer IDs are hashed but still join, and the birth-date column is gone.",
+        "Need it elsewhere? Download everything as CSV, or connect with a read-only SQL login.",
+        "All of it is protected data."
+      ]
+    },
+    {
+      "id": "s11",
+      "name": "Kết quả",
+      "kind": "motion",
+      "vi": "Kết quả thì sao? Sau vòng góp ý của người duyệt, độ chính xác phân loại cột tăng từ tám mươi lăm lên một trăm phần trăm, trên ba trăm ba mươi chín cột. Với văn bản tự do, độ phủ đạt gần chín mươi tám phần trăm. Và phía sau là gần năm trăm bài kiểm thử tự động.",
+      "en": [
+        "The results?",
+        "After reviewer feedback, column classification rose from 85% to 100% accuracy on 339 columns.",
+        "On free text, recall reaches nearly 98%.",
+        "All backed by almost 500 automated tests."
+      ]
+    },
+    {
+      "id": "s12",
+      "name": "Kết",
+      "kind": "motion",
+      "vi": "Với {PII}, người duyệt làm nhanh, có căn cứ, có bằng chứng. Chuyên viên phân tích nhận dữ liệu an toàn mà vẫn dùng được. Vì che dữ liệu thôi là chưa đủ, phải chứng minh nó vẫn dùng được. Cảm ơn các bạn đã theo dõi!",
+      "en": [
+        "With PIIGuard, reviewers work fast, grounded, and auditable.",
+        "Analysts get data that is safe and still usable.",
+        "Because masking isn't enough: you have to prove the data still works.",
+        "Thanks for watching!"
+      ]
+    }
+  ]
+}

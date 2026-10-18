@@ -1,0 +1,19 @@
+{
+  "name": "video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tts": "python narration/tts.py",
+    "record": "node record/record.mjs",
+    "build": "node build_timeline.mjs",
+    "dev": "npx --yes hyperframes@0.8.169 preview",
+    "check": "npx --yes hyperframes@0.8.169 check",
+    "render": "npx --yes hyperframes@0.8.169 render -o out/piiguard_demo.mp4",
+    "publish": "npx --yes hyperframes@0.8.169 publish"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
+    "playwright": "^1.56.1"
+  }
+}

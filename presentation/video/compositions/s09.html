@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; background: #f3f7fd; }
+      </style>
+      <div data-hf-id="hf-eu53" id="root" data-composition-id="s09" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-u7rn" class="stage" id="s09-stage">
+          <video data-hf-id="hf-an71" id="s09-v1" class="clip" src="assets/clips/audit.webm" muted playsinline data-start="0" data-duration="8.63" data-media-start="6.6" data-playback-rate="1.15" data-track-index="0"></video>
+        </div>
+        <div data-hf-id="hf-741r" class="chapter fx" id="s09-ch"><small data-hf-id="hf-l35v">Bước 5</small><span data-hf-id="hf-uyio">Nhật ký kiểm toán</span></div>
+        <div data-hf-id="hf-fs7f" class="ring fx" id="s09-r1" style="left: 320px; top: 248px; width: 1580px; height: 80px"></div>
+        <div data-hf-id="hf-52t0" class="callout fx" id="s09-c1" style="left: 330px; top: 770px"><span data-hf-id="hf-9gry" class="dot"></span>Mỗi dòng móc nối dòng trước bằng mã băm SHA-256</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const show = (sel, at, until) => {
+          tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at);
+          if (until) tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, until);
+        };
+        tl.fromTo("#s09-ch", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        show("#s09-r1", 0.6, 4.2);
+        show("#s09-c1", 5.4, 8.4);
+        window.__timelines["s09"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

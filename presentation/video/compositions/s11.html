@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #s11-w { position: absolute; inset: 0; font-family: "Be Vietnam Pro", sans-serif; color: var(--on-dark); }
+        #s11-w .kicker { position: absolute; left: 120px; top: 90px; font-weight: 800; font-size: 26px; letter-spacing: 0.18em; color: #93c5fd; }
+        #s11-w .panel { position: absolute; top: 160px; width: 820px; height: 560px; padding: 44px 48px; border-radius: 28px;
+          background: #fff; color: var(--ink); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
+        #s11-w .panel h3 { font-size: 24px; font-weight: 800; letter-spacing: 0.12em; color: var(--primary); }
+        #s11-w .panel h2 { margin-top: 8px; font-size: 44px; font-weight: 800; letter-spacing: -0.01em; }
+        #s11-w .bars { margin-top: 44px; display: flex; flex-direction: column; gap: 34px; }
+        #s11-w .bl { display: flex; justify-content: space-between; font-size: 28px; font-weight: 600; color: var(--muted); }
+        #s11-w .bl b { font-size: 40px; font-weight: 800; color: var(--ink); }
+        #s11-w .track { margin-top: 10px; width: 100%; height: 34px; border-radius: 12px; background: #eef2f7; overflow: hidden; }
+        #s11-w .fill { width: 100%; height: 100%; border-radius: 12px; transform-origin: 0 50%; }
+        #s11-w .foot { margin-top: 34px; font-size: 25px; color: var(--muted); }
+        #s11-w .stats { margin-top: 48px; display: flex; gap: 22px; }
+        #s11-w .stat { flex: 1; min-width: 0; padding: 30px 10px; border-radius: 20px; background: #f3f7fd; text-align: center; }
+        #s11-w .stat b { display: block; font-size: 48px; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+        #s11-w .stat span { display: block; margin-top: 6px; font-size: 26px; font-weight: 600; color: var(--muted); }
+        #s11-w .eng { position: absolute; left: 120px; right: 120px; top: 770px; display: flex; gap: 22px; }
+        #s11-w .chip { flex: 1; padding: 22px 18px; border-radius: 18px; background: rgba(255, 255, 255, 0.1);
+          border: 2px solid rgba(147, 197, 253, 0.35); text-align: center; font-size: 28px; font-weight: 600; }
+        #s11-w .chip b { font-weight: 800; color: #fff; }
+      </style>
+      <div data-hf-id="hf-ddfm" id="root" data-composition-id="s11" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-zzoq" id="s11-w">
+          <div data-hf-id="hf-xwho" class="navy-bg"></div>
+          <div data-hf-id="hf-n4na" class="kicker">KẾT QUẢ</div>
+          <div data-hf-id="hf-z2e7" class="panel" id="s11-a" style="left: 120px">
+            <h3 data-hf-id="hf-epi5">LUỒNG A · PHÂN LOẠI CỘT</h3>
+            <h2 data-hf-id="hf-shnz">Độ chính xác hành động</h2>
+            <div data-hf-id="hf-umx2" class="bars">
+              <div data-hf-id="hf-yeow"><div data-hf-id="hf-ypvu" class="bl"><span data-hf-id="hf-coll">Trước góp ý của người duyệt</span><b data-hf-id="hf-4ete">85,25%</b></div><div data-hf-id="hf-64lp" class="track"><div data-hf-id="hf-jk9k" class="fill" id="s11-f1" style="background: #94a3b8"></div></div></div>
+              <div data-hf-id="hf-y7yw"><div data-hf-id="hf-ar7y" class="bl"><span data-hf-id="hf-opvd">Sau góp ý (HITL)</span><b data-hf-id="hf-eel7">100%</b></div><div data-hf-id="hf-gav5" class="track"><div data-hf-id="hf-l52r" class="fill" id="s11-f2" style="background: var(--primary)"></div></div></div>
+            </div>
+            <div data-hf-id="hf-w8c1" class="foot">339 cột dữ liệu doanh nghiệp · performance/sau_HITL</div>
+          </div>
+          <div data-hf-id="hf-1lge" class="panel" id="s11-b" style="left: 980px">
+            <h3 data-hf-id="hf-svlq">LUỒNG B · VĂN BẢN TỰ DO</h3>
+            <h2 data-hf-id="hf-1gc1">Regex + từ điển + GLiNER</h2>
+            <div data-hf-id="hf-rhep" class="stats">
+              <div data-hf-id="hf-xa0m" class="stat"><b data-hf-id="hf-wphw">97,86%</b><span data-hf-id="hf-6fsp">Độ phủ (Recall)</span></div>
+              <div data-hf-id="hf-tx7e" class="stat"><b data-hf-id="hf-jd5f">97,16%</b><span data-hf-id="hf-sdzi">Độ chính xác</span></div>
+              <div data-hf-id="hf-ubif" class="stat"><b data-hf-id="hf-wku0">97,51%</b><span data-hf-id="hf-edto">F1</span></div>
+            </div>
+            <div data-hf-id="hf-pmse" class="foot">Phát hiện PII trong ghi chú, ticket, văn bản OCR</div>
+          </div>
+          <div data-hf-id="hf-olp8" class="eng">
+            <div data-hf-id="hf-mih1" class="chip"><b data-hf-id="hf-s8sh">312</b> kiểm thử backend</div>
+            <div data-hf-id="hf-o7az" class="chip"><b data-hf-id="hf-tn54">184</b> kiểm thử frontend</div>
+            <div data-hf-id="hf-9ern" class="chip">Ruff sạch · CI GitHub Actions</div>
+            <div data-hf-id="hf-v7zd" class="chip">Deploy Render + Vercel</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#s11-w .kicker", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
+        tl.fromTo("#s11-a", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.6);
+        tl.fromTo("#s11-f1", { scaleX: 0 }, { scaleX: 0.8525, duration: 1.2, ease: "power2.out" }, 2.4);
+        tl.fromTo("#s11-f2", { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "power2.out" }, 4.4);
+        tl.fromTo("#s11-b", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 8.7);
+        tl.fromTo("#s11-b .stat", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.45, stagger: 0.25, ease: "back.out(1.6)" }, 9.2);
+        tl.fromTo("#s11-w .chip", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, stagger: 0.35, ease: "power3.out" }, 12.7);
+        window.__timelines["s11"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

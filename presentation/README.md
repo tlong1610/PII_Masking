@@ -10,6 +10,7 @@
 | [`pitch_deck.pdf`](pitch_deck.pdf) | Bản PDF cùng layout, dùng để nộp hoặc chiếu khi máy không có PowerPoint |
 | [`thumbnail.png`](thumbnail.png) | Ảnh bìa 1920×1080 cho video demo và gallery dự án: màn DPO review trên monitor, Pango chỉ vào màn hình, badge số liệu nghiệm thu P1 |
 | [`source/build_deck.js`](source/build_deck.js) | Nguồn duy nhất của layout; sinh cả PPTX, PDF và thumbnail |
+| [`video/`](video/README.md) | Video demo khoảng 3:25 dựng bằng HyperFrames: lời đọc TTS tiếng Việt, phụ đề tiếng Anh, cảnh app quay bằng Playwright; cách xem trước và quay lại ở README trong thư mục |
 
 Video demo và app live có link riêng ở [README gốc](../README.md), nên deck không có slide demo/QR.
 

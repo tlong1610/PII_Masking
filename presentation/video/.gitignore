@@ -1,0 +1,11 @@
+node_modules/
+.hyperframes/
+.recording/
+out/
+# Regenerable media: re-record with record/record.mjs, re-voice with narration/tts.py
+assets/clips/*.webm
+assets/clips/_fail_*.png
+assets/audio/*.mp3
+assets/audio_hoaimy/
+.thumbnails/
+.waveform-cache/

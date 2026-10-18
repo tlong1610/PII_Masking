@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #s12-w { position: absolute; inset: 0; font-family: "Be Vietnam Pro", sans-serif; color: var(--on-dark); }
+        #s12-w .values { position: absolute; left: 160px; right: 160px; top: 230px; display: flex; gap: 40px; }
+        #s12-w .val { flex: 1; padding: 46px 48px; border-radius: 28px; background: #fff; color: var(--ink); }
+        #s12-w .val h3 { font-size: 26px; font-weight: 800; letter-spacing: 0.14em; color: var(--primary); }
+        #s12-w .val b { display: block; margin-top: 16px; font-size: 46px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; }
+        #s12-w .val span { display: block; margin-top: 16px; font-size: 28px; color: var(--muted); line-height: 1.4; }
+        #s12-w .quote { position: absolute; left: 200px; right: 200px; top: 330px; text-align: center; font-size: 72px; font-weight: 800;
+          line-height: 1.2; letter-spacing: -0.02em; }
+        #s12-w .quote em { font-style: normal; color: #93c5fd; }
+        #s12-w .close { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 80px; }
+        #s12-w .lockup { display: flex; align-items: center; gap: 36px; }
+        #s12-w .lockup img.logo { width: 130px; height: 130px; }
+        #s12-w .lockup h1 { font-size: 92px; font-weight: 800; letter-spacing: -0.03em; }
+        #s12-w .lockup img.pango { width: 250px; height: 250px; }
+        #s12-w .team { margin-top: 30px; font-size: 32px; font-weight: 600; color: var(--on-dark-muted); }
+        #s12-w .team b { color: #fff; }
+        #s12-w .url { margin-top: 26px; padding: 14px 30px; border-radius: 999px; background: rgba(255, 255, 255, 0.12);
+          font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 30px; color: #dbeafe; }
+      </style>
+      <div id="root" data-composition-id="s12" data-width="1920" data-height="1080">
+        <div id="s12-w">
+          <div class="navy-bg"></div>
+          <div class="values" id="s12-v">
+            <div class="val"><h3>NGƯỜI DUYỆT</h3><b>Duyệt nhanh, có căn cứ, có bằng chứng</b><span>Đề xuất theo Luật 91/2025, ghi đè có lý do, nhật ký chuỗi hash.</span></div>
+            <div class="val"><h3>CHUYÊN VIÊN PHÂN TÍCH</h3><b>Dữ liệu đã bảo vệ vẫn dùng được</b><span>HMAC giữ JOIN, kiểm chứng trước khi phát hành, tải CSV an toàn.</span></div>
+          </div>
+          <div class="quote" id="s12-q">Che dữ liệu thôi chưa đủ, <em>phải chứng minh dataset vẫn dùng được.</em></div>
+          <div class="close" id="s12-c">
+            <div class="lockup">
+              <img class="logo" src="assets/brand/logo.webp" alt="" />
+              <h1>PIIGuard Shield</h1>
+              <img class="pango" src="assets/brand/pango-protected.webp" alt="" />
+            </div>
+            <div class="team"><b>Team P-138</b> · Nguyễn Đình Phúc · Trần Xuân Tùng · Nguyễn Trung Kiên · Đoàn Tuấn Long</div>
+            <div class="url">frontend-alpha-fawn-53.vercel.app</div>
+          </div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#s12-v .val", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.7, stagger: 5.0, ease: "power3.out" }, 0.6);
+        tl.to("#s12-v", { opacity: 0, y: -40, duration: 0.5, ease: "power2.in" }, 8.8);
+        tl.fromTo("#s12-q", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, 9.2);
+        tl.to("#s12-q", { opacity: 0, y: -30, duration: 0.5, ease: "power2.in" }, 12.7);
+        tl.fromTo("#s12-c .logo", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.6)" }, 13.1);
+        tl.fromTo("#s12-c h1", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 13.3);
+        tl.fromTo("#s12-c .pango", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.7, ease: "back.out(1.4)" }, 13.5);
+        tl.fromTo("#s12-c .team", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 14.0);
+        tl.fromTo("#s12-c .url", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 14.4);
+        window.__timelines["s12"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

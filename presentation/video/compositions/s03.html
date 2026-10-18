@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #s03-w { position: absolute; inset: 0; font-family: "Be Vietnam Pro", sans-serif; color: var(--on-dark); }
+        #s03-w .kicker { position: absolute; left: 120px; top: 90px; font-weight: 800; font-size: 26px; letter-spacing: 0.18em; color: #93c5fd; }
+        #s03-w .flow { position: absolute; left: 110px; right: 110px; top: 170px; display: flex; align-items: center; }
+        #s03-w .node { width: 330px; padding: 30px 28px; border-radius: 22px; background: rgba(255, 255, 255, 0.08);
+          border: 2px solid rgba(147, 197, 253, 0.35); text-align: center; }
+        #s03-w .node b { display: block; font-size: 30px; font-weight: 800; white-space: nowrap; }
+        #s03-w .node span { display: block; margin-top: 8px; font-size: 22px; font-weight: 600; color: var(--on-dark-muted); }
+        #s03-w .node.hero { width: 380px; background: var(--primary); border-color: #60a5fa; box-shadow: 0 20px 60px rgba(37, 99, 235, 0.45); }
+        #s03-w .node.hero img { width: 74px; height: 74px; display: block; margin: 0 auto 10px; }
+        #s03-w .node.hero span { color: #dbeafe; }
+        #s03-w .arrow { flex: 1; height: 6px; margin: 0 14px; border-radius: 3px; background: #60a5fa; transform-origin: 0 50%; }
+        #s03-w .actions { position: absolute; left: 110px; right: 110px; top: 470px; display: flex; gap: 28px; }
+        #s03-w .act { flex: 1; padding: 26px 28px; border-radius: 20px; background: #fff; color: var(--ink); border-top: 10px solid; }
+        #s03-w .act b { display: block; font-size: 38px; font-weight: 800; letter-spacing: 0.02em; }
+        #s03-w .act span { display: block; margin-top: 8px; font-size: 25px; color: var(--muted); line-height: 1.3; }
+        #s03-w .steps { position: absolute; left: 110px; right: 110px; top: 760px; display: flex; gap: 12px; }
+        #s03-w .step { flex: 1; padding: 18px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.1); text-align: center;
+          font-size: 25px; font-weight: 600; border: 2px solid transparent; }
+        #s03-w .step i { display: block; font-style: normal; font-size: 19px; color: var(--on-dark-muted); }
+        #s03-w .step.gate { border-color: var(--warn); background: rgba(245, 158, 11, 0.16); }
+        #s03-w .gate-note { position: absolute; left: 110px; right: 110px; top: 870px; text-align: center; font-size: 24px; font-weight: 600; color: #fcd34d; }
+      </style>
+      <div id="root" data-composition-id="s03" data-width="1920" data-height="1080">
+        <div id="s03-w">
+          <div class="navy-bg"></div>
+          <div class="kicker">GIẢI PHÁP</div>
+          <div class="flow">
+            <div class="node" id="s03-n1"><b>Database gốc</b><span>PostgreSQL · MongoDB · chỉ đọc</span></div>
+            <div class="arrow" id="s03-a1"></div>
+            <div class="node hero" id="s03-n2"><img src="assets/brand/logo.webp" alt="" /><b>PIIGuard Shield</b><span>Phát hiện · DPO duyệt · kiểm chứng</span></div>
+            <div class="arrow" id="s03-a2"></div>
+            <div class="node" id="s03-n3"><b>Bản sao đã bảo vệ</b><span>Schema / database riêng</span></div>
+            <div class="arrow" id="s03-a3"></div>
+            <div class="node" id="s03-n4"><b>Analyst</b><span>Chỉ thấy bản đã phát hành</span></div>
+          </div>
+          <div class="actions">
+            <div class="act" style="border-color: var(--mask)"><b style="color: var(--mask)">MASK</b><span>Che bớt giá trị</span></div>
+            <div class="act" style="border-color: var(--redact)"><b style="color: var(--redact)">REDACT</b><span>Thay thông tin trong văn bản bằng nhãn</span></div>
+            <div class="act" style="border-color: var(--hmac)"><b style="color: var(--hmac)">HMAC</b><span>Băm thành mã bí mật, vẫn nối bảng</span></div>
+            <div class="act" style="border-color: var(--drop)"><b style="color: var(--drop)">DROP</b><span>Loại bỏ hẳn cột</span></div>
+          </div>
+          <div class="steps">
+            <div class="step"><i>1</i>Kết nối</div>
+            <div class="step"><i>2</i>Phạm vi</div>
+            <div class="step"><i>3</i>Quét</div>
+            <div class="step gate"><i>4</i>DPO duyệt</div>
+            <div class="step"><i>5</i>Build</div>
+            <div class="step gate"><i>6</i>Kiểm chứng</div>
+            <div class="step"><i>7</i>Publish</div>
+          </div>
+          <div class="gate-note" id="s03-gn">Hai cổng kiểm soát: backend chặn phát hành nếu chưa qua</div>
+        </div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.fromTo("#s03-w .kicker", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
+        tl.fromTo("#s03-n1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.4);
+        tl.fromTo("#s03-a1", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 0.9);
+        tl.fromTo("#s03-n2", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, 1.25);
+        tl.fromTo("#s03-a2", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 2.0);
+        tl.fromTo("#s03-n3", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 2.35);
+        tl.fromTo("#s03-a3", { scaleX: 0 }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 2.85);
+        tl.fromTo("#s03-n4", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.2);
+        tl.fromTo("#s03-w .act", { opacity: 0, y: 50, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.85, ease: "back.out(1.5)" }, 9.45);
+        tl.fromTo("#s03-w .step", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.12, ease: "power2.out" }, 13.7);
+        tl.fromTo("#s03-gn", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 14.8);
+        window.__timelines["s03"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

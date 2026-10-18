@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; background: #f3f7fd; }
+        #s10-leg { position: absolute; left: 340px; top: 420px; width: 330px; padding: 22px 24px; border-radius: 18px; background: rgba(8, 23, 51, 0.94);
+          color: #f8fafc; font-family: "Be Vietnam Pro", sans-serif; box-shadow: 0 18px 48px rgba(8, 23, 51, 0.35); }
+        #s10-leg h4 { font-size: 20px; font-weight: 800; letter-spacing: 0.1em; color: #93c5fd; }
+        #s10-leg .it { margin-top: 16px; }
+        #s10-leg .it b { display: block; font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 22px; }
+        #s10-leg .it span { display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 8px; font-size: 19px; font-weight: 800; }
+      </style>
+      <div data-hf-id="hf-8k65" id="root" data-composition-id="s10" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-lapl" class="stage" id="s10-stage">
+          <video data-hf-id="hf-3nlw" id="s10-v1" class="clip" src="assets/clips/analyst.webm" muted playsinline data-start="0" data-duration="3" data-media-start="1.8" data-track-index="0"></video>
+          <video data-hf-id="hf-rer6" id="s10-v2" class="clip" src="assets/clips/analyst.webm" muted playsinline data-start="3" data-duration="8" data-media-start="6.2" data-hf-media-start-basis="local" data-track-index="0"></video>
+          <video data-hf-id="hf-rcai" id="s10-v3" class="clip" src="assets/clips/analyst.webm" muted playsinline data-start="11" data-duration="4.4" data-media-start="17.8" data-hf-media-start-basis="local" data-track-index="0"></video>
+          <video data-hf-id="hf-uuvn" id="s10-v4" class="clip" src="assets/clips/analyst.webm" muted playsinline data-start="15.4" data-duration="5.13" data-media-start="23.2" data-hf-media-start-basis="local" data-track-index="0"></video>
+        </div>
+        <div data-hf-id="hf-yd41" class="chapter fx" id="s10-ch"><small data-hf-id="hf-kouu">Bước 6</small><span data-hf-id="hf-pvfz">Chuyên viên phân tích dùng dữ liệu</span></div>
+        <div data-hf-id="hf-cpyj" class="fx" id="s10-leg">
+          <h4 data-hf-id="hf-0u1v">BẢNG CUSTOMERS</h4>
+          <div data-hf-id="hf-7eyq" class="it fx" id="s10-i1"><b data-hf-id="hf-anhj">email</b><span data-hf-id="hf-gj4c" style="background: #fef3c7; color: #92400e">ĐÃ CHE · MASK</span></div>
+          <div data-hf-id="hf-3gup" class="it fx" id="s10-i2"><b data-hf-id="hf-cefa">customer_id, cccd</b><span data-hf-id="hf-jjty" style="background: #ede9fe; color: #5b21b6">BĂM HMAC · vẫn JOIN</span></div>
+          <div data-hf-id="hf-2p6w" class="it fx" id="s10-i3"><b data-hf-id="hf-kaot">date_of_birth</b><span data-hf-id="hf-8smm" style="background: #fee2e2; color: #991b1b">ĐÃ LOẠI BỎ · DROP</span></div>
+        </div>
+        <div data-hf-id="hf-rakh" class="ring no-dim fx" id="s10-r1" style="left: 1388px; top: 216px; width: 244px; height: 44px"></div>
+        <div data-hf-id="hf-c2h2" class="callout fx" id="s10-c1" style="left: 1000px; top: 300px"><span data-hf-id="hf-9gry" class="dot"></span>Tải toàn bộ dataset: mỗi bảng một file CSV, đã bảo vệ</div>
+        <div data-hf-id="hf-ot5h" class="callout fx" id="s10-c2" style="left: 340px; top: 770px"><span data-hf-id="hf-zcc2" class="dot"></span>Tài khoản SQL chỉ đọc · chỉ thấy dataset được cấp</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const show = (sel, at, until) => {
+          tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at);
+          if (until) tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, until);
+        };
+        tl.fromTo("#s10-ch", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 3.2);
+        show("#s10-leg", 5.2, 11.0);
+        show("#s10-i2", 5.5);
+        show("#s10-i1", 8.6);
+        show("#s10-i3", 9.6);
+        show("#s10-r1", 11.6, 14.6);
+        show("#s10-c1", 11.8, 15.2);
+        show("#s10-c2", 16.2, 20.3);
+        window.__timelines["s10"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

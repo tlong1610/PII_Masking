@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; background: #f3f7fd; }
+      </style>
+      <div data-hf-id="hf-fvbf" id="root" data-composition-id="s05" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-q6fz" class="stage" id="s05-stage">
+          <video data-hf-id="hf-r8by" id="s05-v1" class="clip" src="assets/clips/scope.webm" muted playsinline data-start="0" data-duration="18.32" data-media-start="13.8" data-playback-rate="0.82" data-track-index="0"></video>
+        </div>
+        <div data-hf-id="hf-kedv" class="chapter fx" id="s05-ch"><small data-hf-id="hf-j3mq">Bước 2</small><span data-hf-id="hf-z64t">Chọn phạm vi quét</span></div>
+        <div data-hf-id="hf-n60u" class="ring no-dim fx" id="s05-r1" style="left: 490px; top: 12px; width: 300px; height: 54px"></div>
+        <div data-hf-id="hf-p1sv" class="callout fx" id="s05-c1" style="left: 500px; top: 92px"><span data-hf-id="hf-9gry" class="dot"></span>Chỉ đọc · không bao giờ ghi vào nguồn</div>
+        <div data-hf-id="hf-3h93" class="callout fx" id="s05-c2" style="left: 340px; top: 150px"><span data-hf-id="hf-zcc2" class="dot"></span>Sơ đồ quan hệ: khóa chính (PK) · khóa ngoại (FK)</div>
+        <div data-hf-id="hf-1aub" class="ring fx" id="s05-r2" style="left: 320px; top: 322px; width: 1580px; height: 64px"></div>
+        <div data-hf-id="hf-kxvu" class="callout fx" id="s05-c3" style="left: 760px; top: 420px"><span data-hf-id="hf-zqn3" class="dot"></span>Bảng liên kết: chỉ giữ khóa nối, vẫn nối bảng được</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const show = (sel, at, until) => {
+          tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at);
+          if (until) tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, until);
+        };
+        tl.fromTo("#s05-ch", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        show("#s05-r1", 0.4, 3.2);
+        show("#s05-c1", 0.5, 3.2);
+        tl.fromTo("#s05-stage", { scale: 1, x: 0, y: 0 }, { scale: 1.5, x: -1260, y: -450, duration: 1.0, ease: "power2.inOut" }, 3.6);
+        tl.to("#s05-stage", { scale: 1, x: 0, y: 0, duration: 0.8, ease: "power2.inOut" }, 7.2);
+        show("#s05-c2", 4.1, 7.2);
+        show("#s05-r2", 10.3, 14.6);
+        show("#s05-c3", 10.6, 14.6);
+        window.__timelines["s05"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <link rel="stylesheet" href="assets/theme.css" />
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; background: #f3f7fd; }
+      </style>
+      <div data-hf-id="hf-h6so" id="root" data-composition-id="s04" data-width="1920" data-height="1080">
+        <div data-hf-id="hf-jpgi" class="stage" id="s04-stage">
+          <video data-hf-id="hf-d7hx" id="s04-v1" class="clip" src="assets/clips/connect.webm" muted playsinline data-start="0" data-duration="9.7" data-media-start="6.2" data-track-index="0"></video>
+          <video data-hf-id="hf-2m42" id="s04-v2" class="clip" src="assets/clips/connect.webm" muted playsinline data-start="9.7" data-duration="4.35" data-media-start="17.4" data-hf-media-start-basis="local" data-track-index="0"></video>
+        </div>
+        <div data-hf-id="hf-dg50" class="chapter fx" id="s04-ch"><small data-hf-id="hf-jhxr">Bước 1</small><span data-hf-id="hf-068j">Kết nối cơ sở dữ liệu</span></div>
+        <div data-hf-id="hf-mddv" class="ring no-dim fx" id="s04-r1" style="left: 578px; top: 476px; width: 764px; height: 60px"></div>
+        <div data-hf-id="hf-9be9" class="callout fx" id="s04-c1" style="left: 1356px; top: 474px"><span data-hf-id="hf-9gry" class="dot"></span>Mật khẩu ẩn · mã hóa khi lưu</div>
+        <div data-hf-id="hf-j5k3" class="ring no-dim fx" id="s04-r2" style="left: 578px; top: 732px; width: 764px; height: 60px"></div>
+        <div data-hf-id="hf-nl2h" class="callout fx" id="s04-c2" style="left: 1356px; top: 732px"><span data-hf-id="hf-zcc2" class="dot"></span>Kết nối thành công</div>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const show = (sel, at, until) => {
+          tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at);
+          if (until) tl.to(sel, { opacity: 0, duration: 0.3, ease: "power1.in" }, until);
+        };
+        tl.fromTo("#s04-ch", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.3);
+        show("#s04-r1", 4.2, 9.4);
+        show("#s04-c1", 4.4, 9.4);
+        show("#s04-r2", 10.3, 12.6);
+        show("#s04-c2", 10.5, 12.6);
+        window.__timelines["s04"] = tl;
+      </script>
+    </template>
+  </body>
+</html>
