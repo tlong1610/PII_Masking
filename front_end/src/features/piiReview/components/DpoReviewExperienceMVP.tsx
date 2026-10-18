@@ -12,6 +12,7 @@ import { AuditTrail } from '@/features/auditLog';
 import { ApiError } from '@/shared/api/client';
 import { fetchRunReportHtml } from '../api/realPiiReviewApi';
 import { useRenameDataset } from '@/features/datasets';
+import { useAlerts, useElapsedSeconds } from '@/shared/alerts';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -101,6 +102,18 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [busyPhase, setBusyPhase] = useState<BusyPhase | null>(null);
+  // Start of the scan or save in progress: drives the elapsed timer.
+  const [busyStartedAt, setBusyStartedAt] = useState<number | null>(null);
+  const busySeconds = useElapsedSeconds(busyStartedAt);
+  const alerts = useAlerts();
+  // A scan can outlive this screen: once the DPO has moved on, its result must not pull them back.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   // Saving and publishing both ask for the name the Analyst sees.
   const [nameDialog, setNameDialog] = useState<'BUILD' | 'PUBLISH' | null>(null);
@@ -175,6 +188,13 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }, [currentRunId, selectedSourceId, sources]);
 
   const datasetStatus = currentRun?.datasets.find((dataset) => dataset.id === datasetId)?.status ?? null;
+
+  // The run on screen is "seen": its red dot goes away (FE-32).
+  const { setViewingRun } = alerts;
+  useEffect(() => {
+    setViewingRun(currentRun ? currentRun.id : null);
+    return () => setViewingRun(null);
+  }, [currentRun, setViewingRun]);
   const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
   const { data: joinKeys } = useJoinKeys(currentRunId);
   const joinGroups = useMemo(() => buildJoinGroups(fields, joinKeys ?? []), [fields, joinKeys]);
@@ -312,7 +332,9 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const handleStartScan = async (): Promise<void> => {
     if (!selectedSourceId || selectedScope.length === 0) return;
+    const task = alerts.startLongTask();
     setBusyPhase('scanning');
+    setBusyStartedAt(task.startedAt);
     resetReview();
     try {
       const run = await createScan.mutateAsync({
@@ -320,17 +342,32 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         selectedScope,
         linkScope: activeLinkScope,
       });
-      justCreatedRunId.current = run.id;
-      hydratedRunId.current = run.id;
-      setCurrentRunId(run.id);
-      setDatasetId(null);
-      setActiveTab(TAB.REVIEW);
-      onRunCreated?.(run.id);
-      notify(`Đã quét xong: ${run.field_profiles.length} cột cần duyệt.`);
+      if (mounted.current) {
+        justCreatedRunId.current = run.id;
+        hydratedRunId.current = run.id;
+        setCurrentRunId(run.id);
+        setDatasetId(null);
+        setActiveTab(TAB.REVIEW);
+        onRunCreated?.(run.id);
+      }
+      const failed = run.status === 'FAILED';
+      notify(
+        failed ? `Lượt quét #${run.id} bị lỗi.` : `Đã quét xong: ${run.field_profiles.length} cột cần duyệt.`,
+        failed ? 'error' : 'success',
+      );
+      alerts.finishLongTask(task, {
+        kind: failed ? 'error' : 'done',
+        title: failed ? `Lượt quét #${run.id} bị lỗi` : `Đã quét xong lượt #${run.id}`,
+        body: failed ? 'Mở lượt quét để xem lỗi.' : `${run.field_profiles.length} cột cần duyệt.`,
+        runId: run.id,
+        flagUnread: true,
+      });
     } catch (error) {
       notify(getErrorMessage(error, 'Không thể quét nguồn dữ liệu.'), 'error');
+      alerts.finishLongTask(task, { kind: 'error', title: 'Không quét được nguồn dữ liệu' });
     } finally {
       setBusyPhase(null);
+      setBusyStartedAt(null);
     }
   };
 
@@ -422,6 +459,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     if (!currentRunId || !currentRun) return;
     setDecisionError(null);
     setDecisionIssues([]);
+    const task = alerts.startLongTask();
+    setBusyStartedAt(task.startedAt);
     try {
       setBusyPhase('saving');
       await updateDecisions.mutateAsync(
@@ -439,13 +478,23 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       setBusyPhase('building');
       const result = await buildDataset.mutateAsync(datasetName);
       setDatasetId(result.dataset.id);
-      if (result.dataset.status === 'VERIFIED') {
+      const verified = result.dataset.status === 'VERIFIED';
+      if (verified) {
         notify('Đã lưu và kiểm định xong. Có thể phát hành cho Analyst.');
       } else {
         setActiveTab(TAB.SNAPSHOT);
         notify('Đã lưu nhưng dữ liệu không qua kiểm định. Xem chi tiết và điều chỉnh quyết định.', 'error');
       }
+      alerts.finishLongTask(task, {
+        kind: verified ? 'done' : 'error',
+        title: verified ? `Lượt quét #${currentRunId}: đã kiểm định xong` : `Lượt quét #${currentRunId}: không qua kiểm định`,
+        body: verified ? 'Có thể phát hành cho Analyst.' : 'Mở lượt quét để xem chi tiết.',
+        runId: currentRunId,
+        // Only a failure needs coming back to; a pass is already on screen as a toast.
+        flagUnread: !verified,
+      });
     } catch (error) {
+      alerts.finishLongTask(task, { kind: 'error', title: `Lượt quét #${currentRunId}: chưa lưu được` });
       const serverIssues = error instanceof ApiError ? issuesFromApiError(error.response, fields) : [];
       if (serverIssues.length > 0) {
         showDecisionIssues(serverIssues);
@@ -456,6 +505,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       notify('Chưa lưu được.', 'error');
     } finally {
       setBusyPhase(null);
+      setBusyStartedAt(null);
     }
   };
 
@@ -583,8 +633,12 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       return (
         <MascotLoader
           pose="scanning"
-          title="Đang quét và phân tích dữ liệu PII…"
-          description="Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP."
+          title={`Đang quét và phân tích dữ liệu PII… ${busySeconds ?? 0} giây`}
+          description={
+            (busySeconds ?? 0) >= 5
+              ? 'Quét nhiều bảng có thể mất vài phút. Bạn có thể làm việc khác, hệ thống sẽ báo bằng âm thanh và chấm đỏ khi xong.'
+              : 'Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP.'
+          }
         />
       );
     }
@@ -716,7 +770,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         run={currentRun ?? null}
         subtitle={subtitle}
         actions={reviewActions}
-        busyLabel={busyPhase ? BUSY_LABELS[busyPhase] : null}
+        busyLabel={busyPhase ? `${BUSY_LABELS[busyPhase]}${busySeconds !== null && busySeconds >= 3 ? ` ${busySeconds}s` : ''}` : null}
         primaryDisabled={reviewActions.primary === 'BUILD' && fields.length === 0}
         onAction={handleAction}
         onOpenReport={handleOpenReport}

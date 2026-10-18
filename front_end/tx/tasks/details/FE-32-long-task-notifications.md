@@ -1,7 +1,7 @@
 # FE-32: Thông báo khi tác vụ dài hoàn tất (âm thanh, chấm đỏ, trạng thái chờ)
 
 **Sprint**: Sprint 06
-**Trạng thái**: Todo
+**Trạng thái**: Done (trừ thông báo trình duyệt khi tab ẩn: đã viết code, chưa kiểm tra trên trình duyệt thật)
 **Phân hệ**: `src/features/piiReview` (quét, lưu & kiểm định), `src/shared/ui` (thông báo), layout DPO
 
 ## Vấn đề
@@ -33,15 +33,17 @@ Tác vụ ngắn hoặc do chính người dùng vừa bấm và thấy ngay k�
 - Khoá nút "Bắt đầu quét" và nút "Lưu" trong lúc tác vụ đang chạy, để không tạo lượt quét trùng.
 
 ### 2. Âm thanh
-- Hai file ngắn trong `public/sounds/`: `done.mp3` và `error.mp3`. Mỗi file dưới 1 giây và dưới 20 KB, âm nhẹ, có giấy phép dùng tự do (ghi nguồn vào README).
+- Hai file ngắn trong `public/sounds/`: `done.wav` và `error.wav`, dài 0,5 giây, khoảng 20 KB. Âm được tạo bằng script (sóng sin) nên không vướng bản quyền; nguồn gốc ghi trong `public/sounds/README.md`.
 - Phát bằng `HTMLAudioElement`. Mỗi sự kiện chỉ phát một lần. Nếu trình duyệt chặn phát âm thanh thì bỏ qua, không báo lỗi.
 - Có nút bật/tắt âm thanh ở thanh trên cùng. Lựa chọn lưu trong `localStorage`, mặc định **bật**.
 
 ### 3. Chấm đỏ
 - Chấm đỏ có số đếm trên mục menu "Lịch sử quét" khi có kết quả chưa xem: quét xong, quét lỗi, hoặc kiểm định không đạt.
-- Khi tab bị ẩn, tiêu đề tab thành `(1) PIIGuard Shield`, có thể kèm chấm đỏ trên favicon.
+- Khi còn kết quả chưa xem, tiêu đề tab thành `(1) PIIGuard Shield` (không đổi favicon).
+- Trong "Lịch sử quét", dòng tương ứng có nhãn "Mới xong" hoặc "Có lỗi mới".
 - Chấm đỏ mất khi người dùng mở lượt quét đó. Mỗi kết quả chỉ đếm một lần.
-- Bản đầu tiên giữ trạng thái "chưa xem" ở phía trình duyệt (context hoặc state), chưa cần backend.
+- Trạng thái "chưa xem" lưu ở `localStorage` của trình duyệt, chưa cần backend.
+- Nếu DPO đã rời màn quét trong lúc chờ, quét xong **không** kéo họ quay lại lượt quét; họ thấy chấm đỏ và tự mở khi muốn.
 
 ### 4. Thông báo trình duyệt (tuỳ chọn)
 - Chỉ xin quyền khi người dùng bắt đầu một tác vụ dài lần đầu. Không xin quyền ngay khi vào trang.
@@ -55,10 +57,19 @@ Tác vụ ngắn hoặc do chính người dùng vừa bấm và thấy ngay k�
 
 ## Nghiệm thu
 
-- [ ] Quét trên 10 giây: có đồng hồ đếm thời gian, nút bị khoá, xong thì có toast, âm thanh và chấm đỏ trên "Lịch sử quét".
-- [ ] Tác vụ ngắn (đổi tên, phát hành, xem trước…): không có âm thanh và không có chấm đỏ.
-- [ ] Mở lượt quét vừa xong thì chấm đỏ mất. Tải lại trang không làm chấm đỏ đã xem hiện lại.
-- [ ] Tắt âm thanh thì không phát, và lựa chọn vẫn giữ sau khi tải lại trang.
-- [ ] Tab ẩn thì tiêu đề tab có `(1)`, và có thông báo trình duyệt nếu người dùng đã cho phép.
-- [ ] Không tạo được 2 lượt quét trùng bằng cách bấm liên tục.
-- [ ] Có unit test cho quy tắc "khi nào thông báo", test cho đếm chấm đỏ, và kiểm tra thật trên trình duyệt.
+- [x] Quét trên 10 giây: có đồng hồ đếm thời gian, nút bị khoá, xong thì có toast, âm thanh và chấm đỏ trên "Lịch sử quét".
+- [x] Tác vụ ngắn (đổi tên, phát hành, xem trước…): không có âm thanh và không có chấm đỏ.
+- [x] Mở lượt quét vừa xong thì chấm đỏ mất. Tải lại trang không làm chấm đỏ đã xem hiện lại.
+- [x] Tắt âm thanh thì không phát, và lựa chọn vẫn giữ sau khi tải lại trang.
+- [ ] Tab ẩn thì tiêu đề tab có `(1)`, và có thông báo trình duyệt nếu người dùng đã cho phép. Tiêu đề đã kiểm tra; thông báo trình duyệt đã viết code nhưng chưa kiểm tra được bằng trình duyệt headless.
+- [x] Không tạo được 2 lượt quét trùng bằng cách bấm liên tục (nút "Bắt đầu quét" bị khoá khi đang quét).
+- [x] Có unit test cho quy tắc "khi nào thông báo", test cho đếm chấm đỏ, và kiểm tra thật trên trình duyệt.
+
+## Kết quả kiểm tra — 18/10/2026
+
+- Code: `src/shared/alerts/` (quy tắc, provider, nút bật/tắt âm, đồng hồ), menu có chấm đỏ (`AppShell` nhận `badge`), nhãn trên dòng lịch sử, và luồng quét, lưu & kiểm định trong `DpoReviewExperienceMVP`.
+- `npm test`: 48 files, 204 tests pass; `tsc` và `eslint` sạch; `npm run build` pass, `dist/sounds/` có đủ 2 file.
+- Trình duyệt (Chrome, localhost, quét 29 bảng / 240 cột bằng AI):
+  - Màn chờ hiện "Đang quét và phân tích dữ liệu PII… 7 giây" kèm lời nhắn có thể làm việc khác.
+  - Trong lúc quét, DPO chuyển sang "Lịch sử quét". Sau khoảng 37 giây: phát `done.wav`, tiêu đề tab `(1) PIIGuard Shield`, menu "Lịch sử quét (1 kết quả mới)", dòng #34 có nhãn "Mới xong", và DPO không bị kéo về trang khác.
+  - Mở #34 thì chấm đỏ và `(1)` mất. Không có lỗi console.
