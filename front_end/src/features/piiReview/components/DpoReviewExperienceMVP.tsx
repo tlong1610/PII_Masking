@@ -112,7 +112,13 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
   const { data: currentRun } = useRun(currentRunId);
   // The table list is only needed to pick a scope before scanning, not while a run is open.
-  const { data: sourceScope } = useSourceScope(currentRunId === null ? selectedSourceId : null);
+  const {
+    data: sourceScope,
+    isError: scopeFailed,
+    error: scopeError,
+    refetch: refetchScope,
+    isFetching: scopeFetching,
+  } = useSourceScope(currentRunId === null ? selectedSourceId : null);
   // Run created by the scan button: the URL change that follows must not reset the screen.
   const justCreatedRunId = useRef<number | null>(null);
   const { data: riskScore } = useRiskScore(currentRunId);
@@ -583,7 +589,29 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           />
         );
       }
-      if (!sourceScope) return <Skeleton variant="rounded" height={320} />;
+      if (scopeFailed && !scopeFetching) {
+        return (
+          <StateNotice
+            kind="error"
+            title="Không đọc được danh sách bảng của nguồn này"
+            description={
+              scopeError instanceof ApiError
+                ? scopeError.message
+                : 'Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.'
+            }
+            actionLabel="Thử lại"
+            onAction={() => void refetchScope()}
+          />
+        );
+      }
+      if (!sourceScope) {
+        return (
+          <MascotLoader
+            title="Đang đọc danh sách bảng từ nguồn…"
+            description="Hệ thống chỉ đọc tên bảng, tên cột và khóa, không đọc dữ liệu. Nguồn ở xa có thể mất vài giây."
+          />
+        );
+      }
       return (
         <ScopeSelectionStep
           scope={sourceScope}

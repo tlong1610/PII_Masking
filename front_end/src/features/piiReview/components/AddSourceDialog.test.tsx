@@ -45,6 +45,6 @@ describe('AddSourceDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu & kết nối' }));
 
     await waitFor(() => expect(createMutation.mutateAsync).toHaveBeenCalled());
-    expect(createMutation.mutateAsync.mock.calls[0][0]).toMatchObject({ namespace: 'sales', tables: [] });
+    expect(createMutation.mutateAsync.mock.calls[0]?.[0]).toMatchObject({ namespace: 'sales', tables: [] });
   });
 });

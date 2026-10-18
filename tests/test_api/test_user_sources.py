@@ -255,3 +255,43 @@ def test_list_namespaces_falls_back_to_url_namespace_when_listing_fails(monkeypa
 
     monkeypatch.setattr("pymongo.MongoClient", denied)
     assert source_validation.list_namespaces(MONGO_URL, "mongodb", "corpdb") == ["corpdb"]
+
+
+def test_list_namespaces_hides_supabase_managed_schemas(monkeypatch):
+    from src.services import source_validation
+
+    schemas = ["auth", "extensions", "graphql", "pgbouncer", "piiguard_source", "public", "realtime", "storage", "vault"]
+
+    class FakeConn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def execute(self, query, params=None):
+            return self
+
+        def fetchall(self):
+            return [(name,) for name in schemas]
+
+    monkeypatch.setattr("psycopg.connect", lambda *a, **k: FakeConn())
+    assert source_validation.list_namespaces(PG_URL, "postgresql", "public") == ["piiguard_source", "public"]
+
+
+@pytest.mark.asyncio
+async def test_demo_sources_are_hidden_unless_enabled(client, monkeypatch):
+    """A real deployment lists only databases the DPO registered; the demo ids do not resolve."""
+    monkeypatch.setenv("ENABLE_DEMO_SOURCES", "false")
+    get_settings.cache_clear()
+    try:
+        token = await _login(client, "dpo", "dpo123")
+        listed = await client.get("/api/v1/sources", headers=_auth(token))
+        assert listed.status_code == 200
+        assert not {"sql-demo", "nosql-demo"} & {s["id"] for s in listed.json()}
+        scope = await client.get("/api/v1/sources/sql-demo/scope", headers=_auth(token))
+        assert scope.status_code == 404
+        run = await client.post("/api/v1/runs", headers=_auth(token), json={"source_id": "sql-demo"})
+        assert run.status_code in (404, 422)
+    finally:
+        get_settings.cache_clear()

@@ -166,7 +166,27 @@ def probe_namespace(url: str, engine: str, namespace: str) -> None:
         raise SourceUrlError(f"{kind} '{namespace}' not found in source")
 
 
-_PG_SYSTEM_SCHEMAS = ("pg_catalog", "information_schema")
+_PG_SYSTEM_SCHEMAS = frozenset(
+    {
+        "pg_catalog",
+        "information_schema",
+        # Managed by Supabase (auth, storage, realtime, ...), never business data to scan.
+        "auth",
+        "extensions",
+        "graphql",
+        "graphql_public",
+        "net",
+        "pgbouncer",
+        "pgsodium",
+        "pgsodium_masks",
+        "realtime",
+        "storage",
+        "supabase_functions",
+        "supabase_migrations",
+        "vault",
+        "cron",
+    }
+)
 _MONGO_SYSTEM_DATABASES = {"admin", "local", "config"}
 
 

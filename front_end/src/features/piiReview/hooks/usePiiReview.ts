@@ -69,6 +69,8 @@ export function useSourceScope(sourceId: string | null) {
     queryFn: () => api.fetchSourceScope(sourceId!),
     enabled: sourceId !== null,
     staleTime: 30000,
+    // A source that cannot be read fails the same way again: show the error after one retry, not three.
+    retry: 1,
   });
 }
 

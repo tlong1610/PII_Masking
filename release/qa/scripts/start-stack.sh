@@ -15,6 +15,7 @@ rm -f "$ROOT/data/qa_app.db"
 cd "$ROOT"
 DATABASE_URL="sqlite:///./data/qa_app.db" \
 CORS_ORIGINS="http://localhost:$FE_PORT" \
+ENABLE_DEMO_SOURCES=true \
 SNAPSHOT_SCHEMA="piiguard_qa_snapshot" \
 MONGO_SNAPSHOT_DB="mydatabase_qa_protected" \
 OPENAI_MODEL="${QA_OPENAI_MODEL:-gpt-4o-mini}" \

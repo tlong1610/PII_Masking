@@ -38,7 +38,7 @@ export default defineConfig({
     {
       command:
         `rm -f data/qa_app.db && DATABASE_URL=sqlite:///./data/qa_app.db ` +
-        `CORS_ORIGINS=http://localhost:${FRONTEND_PORT} SNAPSHOT_SCHEMA=piiguard_qa_snapshot ` +
+        `CORS_ORIGINS=http://localhost:${FRONTEND_PORT} ENABLE_DEMO_SOURCES=true SNAPSHOT_SCHEMA=piiguard_qa_snapshot ` +
         `MONGO_SNAPSHOT_DB=mydatabase_qa_protected OPENAI_MODEL=${process.env.QA_OPENAI_MODEL ?? 'gpt-4o-mini'} ` +
         `.venv/bin/uvicorn src.main:app --host 127.0.0.1 --port ${BACKEND_PORT}`,
       cwd: ROOT,
