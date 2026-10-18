@@ -34,5 +34,6 @@
 | **FE-30** | Sidebar Brand Subtitle Clipping | Sprint 05 | **done** | Phụ đề sidebar không còn bị cắt giữa chữ ([chi tiết](details/FE-30-sidebar-brand-subtitle-clipping.md)) |
 
 | **FE-31** | Login Background Production | Sprint 05 | **done** | Khôi phục SVG nền trên bản build production ([chi tiết](details/FE-31-login-background-production.md)) |
+| **FE-32** | Long Task Notifications | Sprint 06 | **done** | Âm thanh, chấm đỏ và đồng hồ chờ khi quét / lưu & kiểm định xong; chỉ cho tác vụ dài, không spam ([chi tiết](details/FE-32-long-task-notifications.md)) |
 
 Quy tắc: Chỉ chuyển trạng thái sang `done` khi mã nguồn, unit test và kiểm thử biên hoàn thành 100%.

@@ -70,6 +70,14 @@ export async function revokeDataset(datasetId: number): Promise<DatasetSummary> 
   return datasetSummarySchema.parse(data);
 }
 
+export async function renameDataset(datasetId: number, datasetName: string): Promise<DatasetSummary> {
+  const data = await apiRequest<unknown>(`/datasets/${datasetId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dataset_name: datasetName }),
+  });
+  return datasetSummarySchema.parse(data);
+}
+
 export async function fetchDatasetPreview(datasetId: number, table: string | null): Promise<DatasetPreview> {
   const query = table ? `?table=${encodeURIComponent(table)}` : '';
   return datasetPreviewSchema.parse(await apiRequest<unknown>(`/datasets/${datasetId}/preview${query}`));

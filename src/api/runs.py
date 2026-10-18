@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
@@ -17,6 +17,7 @@ from src.config import get_settings
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
+    BuildRequest,
     BuildResponse,
     DatasetOut,
     DatasetStatus,
@@ -225,9 +226,12 @@ def _reopen_for_changes(run: db_models.Run) -> None:
     run.status = RunStatus.READY_TO_BUILD.value
 
 
-def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Dataset, bool]:
+def _dataset_for_build(
+    db: Session, run: db_models.Run, dataset_name: str | None = None
+) -> tuple[db_models.Dataset, bool]:
     """One run has one dataset: a rebuild resets and reuses it (the snapshot target is per run anyway).
 
+    dataset_name is what the Analyst sees; a rebuild without one keeps the current name.
     Returns (dataset, reused).
     """
     staging_location = f"staging://run/{run.id}/snapshot"
@@ -235,7 +239,7 @@ def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Datas
     if dataset is None:
         dataset = db_models.Dataset(
             run_id=run.id,
-            dataset_name=f"run-{run.id}-snapshot",
+            dataset_name=dataset_name or f"run-{run.id}-snapshot",
             status=DatasetStatus.STAGING.value,
             output_location=staging_location,
         )
@@ -243,6 +247,8 @@ def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Datas
         db.flush()
         return dataset, False
     db.execute(delete(db_models.VerifierResult).where(db_models.VerifierResult.dataset_id == dataset.id))
+    if dataset_name:
+        dataset.dataset_name = dataset_name
     dataset.status = DatasetStatus.STAGING.value
     dataset.output_location = staging_location
     dataset.published_at = None
@@ -1125,6 +1131,7 @@ def put_decisions(
 @router.post("/runs/{run_id}/build", response_model=BuildResponse)
 def build_run(
     run_id: int,
+    body: BuildRequest | None = Body(default=None),
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
 ) -> BuildResponse:
@@ -1271,7 +1278,7 @@ def build_run(
     run.status = RunStatus.BUILDING.value
     db.flush()
 
-    dataset, reused = _dataset_for_build(db, run)
+    dataset, reused = _dataset_for_build(db, run, body.dataset_name if body else None)
 
     check_rows: list[dict] = []
 

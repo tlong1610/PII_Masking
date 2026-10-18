@@ -1,5 +1,6 @@
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -9,6 +10,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Link as RouterLink } from 'react-router-dom';
+import { useAlerts } from '@/shared/alerts';
 import { routes } from '@/shared/config/routes';
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import type { RunSummary } from '../api/runHistoryApi';
@@ -36,6 +38,7 @@ export function RunHistoryRow({
 }: RunHistoryRowProps): JSX.Element {
   const action = getRunNextAction(run);
   const deleteBlocker = getRunDeleteBlocker(run);
+  const unread = useAlerts().unread.find((item) => item.runId === run.id);
 
   return (
     <TableRow hover selected={selected}>
@@ -53,9 +56,18 @@ export function RunHistoryRow({
         </Tooltip>
       </TableCell>
       <TableCell>
-        <Link component={RouterLink} to={routes.dpoRun(run.id)} fontWeight={600}>
-          #{run.id}
-        </Link>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Link component={RouterLink} to={routes.dpoRun(run.id)} fontWeight={600}>
+            #{run.id}
+          </Link>
+          {unread && (
+            <Chip
+              size="small"
+              color={unread.kind === 'error' ? 'error' : 'primary'}
+              label={unread.kind === 'error' ? 'Có lỗi mới' : 'Mới xong'}
+            />
+          )}
+        </Stack>
       </TableCell>
       <TableCell>
         {run.source_name}

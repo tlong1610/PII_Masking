@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { BrowserRouter } from 'react-router-dom';
 import { appTheme } from '@/app/theme/theme';
 import { AuthProvider } from '@/features/auth';
+import { AlertsProvider } from '@/shared/alerts';
 import { NotificationProvider } from '@/shared/ui';
 
 const queryClient = new QueryClient({
@@ -23,7 +24,9 @@ export function AppProviders({ children }: PropsWithChildren): JSX.Element {
         <CssBaseline />
         <BrowserRouter>
           <NotificationProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AlertsProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </AlertsProvider>
           </NotificationProvider>
         </BrowserRouter>
       </ThemeProvider>

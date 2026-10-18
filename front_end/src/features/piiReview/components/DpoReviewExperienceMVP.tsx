@@ -11,6 +11,8 @@ import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 import { AuditTrail } from '@/features/auditLog';
 import { ApiError } from '@/shared/api/client';
 import { fetchRunReportHtml } from '../api/realPiiReviewApi';
+import { useRenameDataset } from '@/features/datasets';
+import { useAlerts, useElapsedSeconds } from '@/shared/alerts';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -27,6 +29,7 @@ import {
   useUpdateFieldDecisions,
 } from '../hooks/usePiiReview';
 import { useStableCallback } from '../hooks/useStableCallback';
+import { suggestDatasetName } from '../model/datasetName';
 import { type DecisionIssue, collectDecisionIssues, issuesFromApiError } from '../model/decisionIssues';
 import {
   EMPTY_FIELD_NOTE,
@@ -44,6 +47,7 @@ import { type ReviewAction, countPendingChanges, getReviewActions } from '../mod
 import { getLatestDataset, restoreSavedDecisions } from '../model/savedDecisions';
 import { analyzeScopeLinks, effectiveLinkScope } from '../model/scopeLinks';
 import { AddSourceDialog } from './AddSourceDialog';
+import { DatasetNameDialog } from './DatasetNameDialog';
 import { DecisionNotices } from './DecisionNotices';
 import { FieldPolicyDrawerContent } from './FieldPolicyDrawerContent';
 import { FieldReviewTable } from './FieldReviewTable';
@@ -66,7 +70,7 @@ const BUSY_LABELS: Record<BusyPhase, string> = {
   revoking: 'Đang thu hồi…',
 };
 
-type PendingConfirm = { kind: 'PUBLISH' } | { kind: 'REVOKE' } | { kind: 'FORCE_DELETE_SOURCE'; sourceId: string };
+type PendingConfirm = { kind: 'REVOKE' } | { kind: 'FORCE_DELETE_SOURCE'; sourceId: string };
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return formatJoinKeyViolations(error.response) ?? error.message;
@@ -98,7 +102,21 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const [collapsedSources, setCollapsedSources] = useState<Record<string, boolean>>({});
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [busyPhase, setBusyPhase] = useState<BusyPhase | null>(null);
+  // Start of the scan or save in progress: drives the elapsed timer.
+  const [busyStartedAt, setBusyStartedAt] = useState<number | null>(null);
+  const busySeconds = useElapsedSeconds(busyStartedAt);
+  const alerts = useAlerts();
+  // A scan can outlive this screen: once the DPO has moved on, its result must not pull them back.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  // Saving and publishing both ask for the name the Analyst sees.
+  const [nameDialog, setNameDialog] = useState<'BUILD' | 'PUBLISH' | null>(null);
 
   // Inspector Drawer state
   const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
@@ -128,6 +146,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const buildDataset = useBuildDataset(currentRunId || 0);
   const publishDataset = usePublishDataset();
   const revokeDataset = useRevokeDataset();
+  const renameDataset = useRenameDataset();
 
   const resetReview = (): void => {
     setDecisionOverrides({});
@@ -169,6 +188,13 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }, [currentRunId, selectedSourceId, sources]);
 
   const datasetStatus = currentRun?.datasets.find((dataset) => dataset.id === datasetId)?.status ?? null;
+
+  // The run on screen is "seen": its red dot goes away (FE-32).
+  const { setViewingRun } = alerts;
+  useEffect(() => {
+    setViewingRun(currentRun ? currentRun.id : null);
+    return () => setViewingRun(null);
+  }, [currentRun, setViewingRun]);
   const fields = useMemo(() => currentRun?.field_profiles ?? [], [currentRun?.field_profiles]);
   const { data: joinKeys } = useJoinKeys(currentRunId);
   const joinGroups = useMemo(() => buildJoinGroups(fields, joinKeys ?? []), [fields, joinKeys]);
@@ -267,6 +293,18 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     return tables.length > 3 ? `${tables.slice(0, 3).join(', ')} +${tables.length - 3}` : tables.join(', ');
   }, [fields]);
 
+  const suggestedDatasetName = useMemo(
+    () =>
+      currentRun
+        ? suggestDatasetName(
+            getLatestDataset(currentRun.datasets)?.dataset_name,
+            currentRun.source_name,
+            Array.from(new Set(fields.map((field) => field.source_path))),
+          )
+        : '',
+    [currentRun, fields],
+  );
+
   const activeInspectField = useMemo(
     () => fields.find((field) => field.id === inspectFieldId) ?? null,
     [fields, inspectFieldId],
@@ -294,7 +332,9 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const handleStartScan = async (): Promise<void> => {
     if (!selectedSourceId || selectedScope.length === 0) return;
+    const task = alerts.startLongTask();
     setBusyPhase('scanning');
+    setBusyStartedAt(task.startedAt);
     resetReview();
     try {
       const run = await createScan.mutateAsync({
@@ -302,17 +342,32 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         selectedScope,
         linkScope: activeLinkScope,
       });
-      justCreatedRunId.current = run.id;
-      hydratedRunId.current = run.id;
-      setCurrentRunId(run.id);
-      setDatasetId(null);
-      setActiveTab(TAB.REVIEW);
-      onRunCreated?.(run.id);
-      notify(`Đã quét xong: ${run.field_profiles.length} cột cần duyệt.`);
+      if (mounted.current) {
+        justCreatedRunId.current = run.id;
+        hydratedRunId.current = run.id;
+        setCurrentRunId(run.id);
+        setDatasetId(null);
+        setActiveTab(TAB.REVIEW);
+        onRunCreated?.(run.id);
+      }
+      const failed = run.status === 'FAILED';
+      notify(
+        failed ? `Lượt quét #${run.id} bị lỗi.` : `Đã quét xong: ${run.field_profiles.length} cột cần duyệt.`,
+        failed ? 'error' : 'success',
+      );
+      alerts.finishLongTask(task, {
+        kind: failed ? 'error' : 'done',
+        title: failed ? `Lượt quét #${run.id} bị lỗi` : `Đã quét xong lượt #${run.id}`,
+        body: failed ? 'Mở lượt quét để xem lỗi.' : `${run.field_profiles.length} cột cần duyệt.`,
+        runId: run.id,
+        flagUnread: true,
+      });
     } catch (error) {
       notify(getErrorMessage(error, 'Không thể quét nguồn dữ liệu.'), 'error');
+      alerts.finishLongTask(task, { kind: 'error', title: 'Không quét được nguồn dữ liệu' });
     } finally {
       setBusyPhase(null);
+      setBusyStartedAt(null);
     }
   };
 
@@ -378,8 +433,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     }, 50);
   };
 
-  /** "Lưu": saves every decision, then (re)builds and verifies the protected data the Analyst reads. */
-  const handleSaveAndBuild = async (): Promise<void> => {
+  /** "Lưu": checks the decisions first, then asks for the dataset name before saving anything. */
+  const requestSaveAndBuild = (): void => {
     if (!currentRunId || !currentRun) return;
 
     // Catch every problem up front so the DPO can fix them all, not one 422 at a time.
@@ -395,9 +450,17 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       notify(`Có ${issues.length} cột cần sửa trước khi lưu.`, 'warning');
       return;
     }
+    setNameDialog('BUILD');
+  };
 
+  /** Saves every decision, then (re)builds and verifies the protected data the Analyst reads. */
+  const handleSaveAndBuild = async (datasetName: string): Promise<void> => {
+    setNameDialog(null);
+    if (!currentRunId || !currentRun) return;
     setDecisionError(null);
     setDecisionIssues([]);
+    const task = alerts.startLongTask();
+    setBusyStartedAt(task.startedAt);
     try {
       setBusyPhase('saving');
       await updateDecisions.mutateAsync(
@@ -413,15 +476,25 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         ),
       );
       setBusyPhase('building');
-      const result = await buildDataset.mutateAsync();
+      const result = await buildDataset.mutateAsync(datasetName);
       setDatasetId(result.dataset.id);
-      if (result.dataset.status === 'VERIFIED') {
+      const verified = result.dataset.status === 'VERIFIED';
+      if (verified) {
         notify('Đã lưu và kiểm định xong. Có thể phát hành cho Analyst.');
       } else {
         setActiveTab(TAB.SNAPSHOT);
         notify('Đã lưu nhưng dữ liệu không qua kiểm định. Xem chi tiết và điều chỉnh quyết định.', 'error');
       }
+      alerts.finishLongTask(task, {
+        kind: verified ? 'done' : 'error',
+        title: verified ? `Lượt quét #${currentRunId}: đã kiểm định xong` : `Lượt quét #${currentRunId}: không qua kiểm định`,
+        body: verified ? 'Có thể phát hành cho Analyst.' : 'Mở lượt quét để xem chi tiết.',
+        runId: currentRunId,
+        // Only a failure needs coming back to; a pass is already on screen as a toast.
+        flagUnread: !verified,
+      });
     } catch (error) {
+      alerts.finishLongTask(task, { kind: 'error', title: `Lượt quét #${currentRunId}: chưa lưu được` });
       const serverIssues = error instanceof ApiError ? issuesFromApiError(error.response, fields) : [];
       if (serverIssues.length > 0) {
         showDecisionIssues(serverIssues);
@@ -432,13 +505,18 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       notify('Chưa lưu được.', 'error');
     } finally {
       setBusyPhase(null);
+      setBusyStartedAt(null);
     }
   };
 
-  const handlePublish = async (): Promise<void> => {
+  const handlePublish = async (datasetName: string): Promise<void> => {
+    setNameDialog(null);
     if (!datasetId) return;
     setBusyPhase('publishing');
     try {
+      if (datasetName !== getLatestDataset(currentRun?.datasets ?? [])?.dataset_name) {
+        await renameDataset.mutateAsync({ datasetId, datasetName });
+      }
       await publishDataset.mutateAsync(datasetId);
       notify(`Đã phát hành lượt quét #${currentRunId ?? ''}. Analyst có thể truy cập ngay.`);
     } catch (error) {
@@ -462,8 +540,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   };
 
   const handleAction = (action: ReviewAction): void => {
-    if (action === 'BUILD') void handleSaveAndBuild();
-    else if (action === 'PUBLISH') setPendingConfirm({ kind: 'PUBLISH' });
+    if (action === 'BUILD') requestSaveAndBuild();
+    else if (action === 'PUBLISH') setNameDialog('PUBLISH');
     else if (action === 'REVOKE') setPendingConfirm({ kind: 'REVOKE' });
     else navigate(routes.dpo);
   };
@@ -488,8 +566,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const handleConfirm = async (): Promise<void> => {
     const confirm = pendingConfirm;
     setPendingConfirm(null);
-    if (confirm?.kind === 'PUBLISH') await handlePublish();
-    else if (confirm?.kind === 'REVOKE') await handleRevoke();
+    if (confirm?.kind === 'REVOKE') await handleRevoke();
     else if (confirm?.kind === 'FORCE_DELETE_SOURCE') {
       try {
         await removeSource(confirm.sourceId, true);
@@ -538,12 +615,6 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   }
 
   const confirmCopy: Record<PendingConfirm['kind'], { title: string; description: string; label: string }> = {
-    PUBLISH: {
-      title: `Phát hành lượt quét #${currentRunId ?? ''}?`,
-      description:
-        'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.',
-      label: 'Phát hành',
-    },
     REVOKE: {
       title: `Thu hồi lượt quét #${currentRunId ?? ''}?`,
       description:
@@ -562,8 +633,12 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       return (
         <MascotLoader
           pose="scanning"
-          title="Đang quét và phân tích dữ liệu PII…"
-          description="Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP."
+          title={`Đang quét và phân tích dữ liệu PII… ${busySeconds ?? 0} giây`}
+          description={
+            (busySeconds ?? 0) >= 5
+              ? 'Quét nhiều bảng có thể mất vài phút. Bạn có thể làm việc khác, hệ thống sẽ báo bằng âm thanh và chấm đỏ khi xong.'
+              : 'Đối sánh mẫu nhận diện tiếng Việt và phân loại theo Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP.'
+          }
         />
       );
     }
@@ -695,7 +770,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         run={currentRun ?? null}
         subtitle={subtitle}
         actions={reviewActions}
-        busyLabel={busyPhase ? BUSY_LABELS[busyPhase] : null}
+        busyLabel={busyPhase ? `${BUSY_LABELS[busyPhase]}${busySeconds !== null && busySeconds >= 3 ? ` ${busySeconds}s` : ''}` : null}
         primaryDisabled={reviewActions.primary === 'BUILD' && fields.length === 0}
         onAction={handleAction}
         onOpenReport={handleOpenReport}
@@ -741,13 +816,27 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         onCreated={(sourceId) => handleSelectSource(sourceId)}
       />
 
+      <DatasetNameDialog
+        open={nameDialog !== null}
+        title={nameDialog === 'PUBLISH' ? `Phát hành lượt quét #${currentRunId ?? ''}?` : 'Đặt tên dữ liệu cho Analyst'}
+        description={
+          nameDialog === 'PUBLISH'
+            ? 'Mọi Analyst sẽ xem được dữ liệu đã bảo vệ của lượt quét này dưới tên bên dưới. Sau khi phát hành, quyết định bị khóa cho tới khi thu hồi.'
+            : undefined
+        }
+        confirmLabel={nameDialog === 'PUBLISH' ? 'Phát hành' : 'Lưu'}
+        initialName={suggestedDatasetName}
+        onConfirm={(name) => void (nameDialog === 'PUBLISH' ? handlePublish(name) : handleSaveAndBuild(name))}
+        onClose={() => setNameDialog(null)}
+      />
+
       {pendingConfirm && (
         <ConfirmDialog
           open
           title={confirmCopy[pendingConfirm.kind].title}
           description={confirmCopy[pendingConfirm.kind].description}
           confirmLabel={confirmCopy[pendingConfirm.kind].label}
-          destructive={pendingConfirm.kind !== 'PUBLISH'}
+          destructive
           onConfirm={() => void handleConfirm()}
           onClose={() => setPendingConfirm(null)}
         />
