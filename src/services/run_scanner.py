@@ -300,8 +300,14 @@ async def scan_postgres_source(
     from src.transform.pg_pipeline import logical_join_fields
 
     connector = PostgresConnector(connection_url)
-    db_profile = connector.extract_database_profile(
-        schema_name=schema_name, sample_size=5
+    # Profile only the requested tables: each column costs three round trips to the source, so
+    # profiling the whole schema made a few-table scan take minutes. The profiling is blocking
+    # I/O, so it runs in a thread and the API keeps answering other requests meanwhile.
+    db_profile = await asyncio.to_thread(
+        connector.extract_database_profile,
+        schema_name=schema_name,
+        sample_size=5,
+        table_names=tables or None,
     )
     wanted = set(tables) if tables else None
     rule_scanner = RuleBasedScanner()
@@ -376,7 +382,7 @@ async def scan_mongo_source(
     from src.detection.rule_engine import RuleBasedScanner
 
     connector = MongoConnector(uri, database_name, client=client)
-    db_profile = connector.extract_database_profile(sample_size=5)
+    db_profile = await asyncio.to_thread(connector.extract_database_profile, sample_size=5)
     wanted = set(collections) if collections else None
     rule_scanner = RuleBasedScanner()
     specs: list[dict[str, Any]] = []
