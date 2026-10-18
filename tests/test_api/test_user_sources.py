@@ -39,6 +39,7 @@ def enc(monkeypatch):
 def reachable(monkeypatch):
     monkeypatch.setattr("src.api.sources.probe_connection", lambda url, engine: None)
     monkeypatch.setattr("src.api.sources.probe_namespace", lambda url, engine, namespace: None)
+    monkeypatch.setattr("src.api.sources.list_namespaces", lambda url, engine, default="": [default] if default else [])
 
 
 @pytest.mark.asyncio
@@ -217,3 +218,40 @@ async def test_user_postgres_scan_is_live_even_without_snapshot_target(client, e
     assert [p["coverage_status"] for p in run["field_profiles"]] == ["full"]
     assert PASSWORD not in json.dumps(run)
     get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_connection_test_offers_namespaces_to_pick(client, enc, reachable, monkeypatch):
+    """The DPO cannot know schema names before connecting: the test call lists them."""
+    monkeypatch.setattr(
+        "src.api.sources.list_namespaces", lambda url, engine, default="": ["public", "sales", "hr"]
+    )
+    token = await _login(client, "dpo", "dpo123")
+    tested = await client.post("/api/v1/sources/test", headers=_auth(token), json={"name": "x", "url": PG_URL})
+    body = tested.json()
+    assert body["ok"] is True
+    assert body["namespaces"] == ["public", "sales", "hr"]
+    assert body["default_namespace"] == "public"
+    assert PASSWORD not in tested.text
+
+
+def test_list_namespaces_hides_system_and_snapshot_namespaces(monkeypatch):
+    from src.services import source_validation
+
+    client = mongomock.MongoClient()
+    for name in ("corpdb", "crm", "admin", "local", "config", "mydatabase_protected_run3", "corpdb_protected_run7"):
+        client[name]["probe"].insert_one({"x": 1})
+    monkeypatch.setattr("pymongo.MongoClient", lambda *a, **k: client)
+    get_settings.cache_clear()
+    names = source_validation.list_namespaces(MONGO_URL, "mongodb", "corpdb")
+    assert names == ["corpdb", "crm"]
+
+
+def test_list_namespaces_falls_back_to_url_namespace_when_listing_fails(monkeypatch):
+    from src.services import source_validation
+
+    def denied(*args, **kwargs):
+        raise PermissionError("not authorized to listDatabases")
+
+    monkeypatch.setattr("pymongo.MongoClient", denied)
+    assert source_validation.list_namespaces(MONGO_URL, "mongodb", "corpdb") == ["corpdb"]

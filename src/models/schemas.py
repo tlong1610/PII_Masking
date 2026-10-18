@@ -84,6 +84,10 @@ class SourceTestResult(BaseModel):
     ok: bool
     engine: str = ""
     message: str = ""
+    namespaces: list[str] = Field(
+        default_factory=list, description="Schemas (Postgres) or databases (Mongo) to pick from; names only"
+    )
+    default_namespace: str = Field(default="", description="Namespace used when the DPO picks none")
 
 
 class SourceScopeField(BaseModel):

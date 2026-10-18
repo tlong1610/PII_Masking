@@ -164,3 +164,49 @@ def probe_namespace(url: str, engine: str, namespace: str) -> None:
     if not found:
         kind = "Schema" if engine == "postgresql" else "Database"
         raise SourceUrlError(f"{kind} '{namespace}' not found in source")
+
+
+_PG_SYSTEM_SCHEMAS = ("pg_catalog", "information_schema")
+_MONGO_SYSTEM_DATABASES = {"admin", "local", "config"}
+
+
+def list_namespaces(url: str, engine: str, default: str = "") -> list[str]:
+    """Schemas (Postgres) or databases (Mongo) the DPO can pick, names only.
+
+    System namespaces and PIIGuard's own snapshot targets are left out. If listing is not
+    permitted, fall back to the namespace in the URL so the form still has one option.
+    """
+    settings = get_settings()
+    snapshot_prefixes = tuple(p for p in (settings.snapshot_schema, settings.mongo_snapshot_db) if p)
+    try:
+        if engine == "postgresql":
+            import psycopg
+
+            with psycopg.connect(url, connect_timeout=5) as conn:
+                rows = conn.execute(
+                    "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name"
+                ).fetchall()
+            names = [
+                r[0]
+                for r in rows
+                if r[0] not in _PG_SYSTEM_SCHEMAS and not r[0].startswith(("pg_toast", "pg_temp"))
+            ]
+        else:
+            from pymongo import MongoClient
+
+            client = MongoClient(url, serverSelectionTimeoutMS=5000)
+            try:
+                names = sorted(n for n in client.list_database_names() if n not in _MONGO_SYSTEM_DATABASES)
+            finally:
+                client.close()
+    except Exception:  # listing is a convenience: lacking the privilege must not fail the test
+        names = []
+    # User Mongo sources snapshot into "<db>_protected_run<id>" on their own cluster (see sources.py).
+    names = [
+        n
+        for n in names
+        if not (snapshot_prefixes and n.startswith(snapshot_prefixes)) and "_protected_run" not in n
+    ]
+    if default and default not in names:
+        names.insert(0, default)
+    return names

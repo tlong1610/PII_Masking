@@ -31,6 +31,7 @@ from src.services.source_validation import (
     ParsedSource,
     SourceUrlError,
     assert_not_snapshot_target,
+    list_namespaces,
     normalize_source_url,
     parse_source_url,
     probe_connection,
@@ -435,7 +436,13 @@ def test_source(body: SourceCreate, _user: SessionUser = Depends(require_dpo)) -
         parsed = _check_url(url)
     except SourceUrlError as exc:
         return SourceTestResult(ok=False, message=str(exc))
-    return SourceTestResult(ok=True, engine=parsed.engine, message="Connection OK")
+    return SourceTestResult(
+        ok=True,
+        engine=parsed.engine,
+        message="Connection OK",
+        namespaces=list_namespaces(url, parsed.engine, parsed.default_namespace),
+        default_namespace=parsed.default_namespace,
+    )
 
 
 @router.post("/sources", response_model=Source, status_code=status.HTTP_201_CREATED)

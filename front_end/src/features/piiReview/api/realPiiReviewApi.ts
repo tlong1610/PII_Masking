@@ -19,6 +19,8 @@ export const sourceTestResultSchema = z.object({
   ok: z.boolean(),
   engine: z.string(),
   message: z.string(),
+  namespaces: z.array(z.string()).default([]),
+  default_namespace: z.string().default(''),
 });
 
 export const sourceScopeSchema = z.object({

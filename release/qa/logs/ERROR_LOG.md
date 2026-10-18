@@ -22,6 +22,7 @@ Nhật ký lỗi phát hiện khi chạy kiểm thử E2E luồng DPO + Analyst.
 | BUG-07 | Thấp | Hướng dẫn Analyst hứa "che một phần" nhưng MASK thay toàn bộ bằng `***` | TC-AN-05 | [QA-07](../tasks/QA-07-mask-hint-promises-partial.md) | Đã sửa |
 | BUG-08 | Cao | Build lỗi "UndefinedTable" khi phạm vi quét thiếu `order_details` | TC-LC-01 | [QA-08](../tasks/QA-08-verifier-fails-on-partial-scope.md) | Đã sửa |
 | BUG-09 | Cao | Analyst chỉ tải được 1 bảng và tối đa 200 dòng, không có cách lấy đủ dataset để phân tích | TC-AN-03, TC-AN-03b | [QA-09](../tasks/QA-09-full-dataset-export.md) | Đã sửa |
+| BUG-10 | Trung bình (UX) | Form "Thêm nguồn dữ liệu" bắt gõ tên bảng/schema khi chưa kết nối nên DPO không biết tên nào | — (phản hồi chủ sản phẩm) | [QA-10](../tasks/QA-10-add-source-asks-tables-before-connect.md) | Đã sửa |
 | ENV-01 | Cao (môi trường dev) | `OPENAI_MODEL=GPT-4o-mini` viết hoa nên AI không chạy | TC-DPO-03 | — | Cần chủ repo sửa `.env` |
 | ENV-02 | Cao (môi trường dev) | `DATABASE_URL` trỏ vào chính DB nguồn | — | — | Cần chủ repo sửa `.env` |
 | ENV-03 | Thấp | Vite dev :5173 lỗi resolve `@/app/App` (server cũ) | — | — | Khởi động lại là hết |
