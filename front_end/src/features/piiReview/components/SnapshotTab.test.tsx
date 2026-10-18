@@ -4,6 +4,7 @@ import { SnapshotTab } from './SnapshotTab';
 
 vi.mock('@/features/datasets', () => ({
   useDatasetDetail: () => ({ data: undefined, isLoading: true }),
+  useRenameDataset: () => ({ mutateAsync: vi.fn(), isPending: false }),
   DatasetPreviewTable: () => null,
   VerifierResultsTable: () => null,
 }));

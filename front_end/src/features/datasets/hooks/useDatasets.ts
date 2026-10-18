@@ -41,3 +41,16 @@ export function useRevokeDataset() {
   const invalidate = useInvalidateDatasets();
   return useMutation({ mutationFn: api.revokeDataset, onSuccess: invalidate });
 }
+
+/** The new name shows on the DPO run page and in every Analyst list, so refresh both caches. */
+export function useRenameDataset() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ datasetId, datasetName }: { datasetId: number; datasetName: string }) =>
+      api.renameDataset(datasetId, datasetName),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: datasetQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['pii-review'] });
+    },
+  });
+}

@@ -254,9 +254,10 @@ export async function fetchJoinKeys(runId: number): Promise<JoinKey[]> {
   return z.array(joinKeySchema).parse(data);
 }
 
-export async function buildDataset(runId: number): Promise<BuildResponse> {
+export async function buildDataset(runId: number, datasetName?: string): Promise<BuildResponse> {
   const data = await apiRequest<BuildResponse>(`/runs/${runId}/build`, {
     method: 'POST',
+    ...(datasetName ? { body: JSON.stringify({ dataset_name: datasetName }) } : {}),
   });
   return buildResponseSchema.parse(data);
 }

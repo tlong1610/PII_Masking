@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type PropsWithChildren, type ReactNode } from 'react';
 import Avatar from '@mui/material/Avatar';
+import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -33,6 +34,8 @@ export interface AppShellNavItem {
   icon: ReactNode;
   /** Match the path exactly (for index routes such as `/dpo`). */
   end?: boolean;
+  /** Unseen results: a red dot with the count on the icon. */
+  badge?: number;
 }
 
 type AppShellProps = PropsWithChildren<{
@@ -41,6 +44,8 @@ type AppShellProps = PropsWithChildren<{
   onLogout?: () => void;
   /** Pages of the active workspace. Without it, the menu lists the workspaces the user may open. */
   navItems?: AppShellNavItem[];
+  /** Extra controls in the app bar, before the user (e.g. the alert sound toggle). */
+  toolbarExtra?: ReactNode;
 }>;
 
 const RAIL_WIDTH = 68;
@@ -120,6 +125,14 @@ function NavButton({ item, collapsed }: { item: AppShellNavItem; collapsed: bool
     );
   }
 
+  const icon = item.badge ? (
+    // Top-left: on the right it would cover the start of the label.
+    <Badge badgeContent={item.badge} color="error" max={9} anchorOrigin={{ vertical: 'top', horizontal: 'left' }}>
+      {item.icon}
+    </Badge>
+  ) : (
+    item.icon
+  );
   return (
     // aria-label keeps the link named while only icons show; the tooltip names it for sighted users.
     <Tooltip title={collapsed ? item.label : ''} placement="right">
@@ -127,9 +140,9 @@ function NavButton({ item, collapsed }: { item: AppShellNavItem; collapsed: bool
         component={NavLink}
         to={item.to ?? '#'}
         end={item.end}
-        aria-label={item.label}
+        aria-label={item.badge ? `${item.label} (${item.badge} kết quả mới)` : item.label}
         fullWidth
-        startIcon={item.icon}
+        startIcon={icon}
         sx={navButtonSx}
       >
         <Box component="span" sx={fadingLabelSx(collapsed)}>
@@ -140,7 +153,7 @@ function NavButton({ item, collapsed }: { item: AppShellNavItem; collapsed: bool
   );
 }
 
-export function AppShell({ activeRole, currentUser, onLogout, navItems, children }: AppShellProps): JSX.Element {
+export function AppShell({ activeRole, currentUser, onLogout, navItems, toolbarExtra, children }: AppShellProps): JSX.Element {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(readNavCollapsed);
   // Pages may replace the workspace title with their own navigation (see AppBarSlot).
@@ -271,6 +284,7 @@ export function AppShell({ activeRole, currentUser, onLogout, navItems, children
               size="small"
               sx={{ display: { xs: 'none', lg: 'inline-flex' }, fontWeight: 600 }}
             />
+            {toolbarExtra}
             {currentUser ? (
               <Stack direction="row" spacing={1} alignItems="center">
                 <Avatar

@@ -33,6 +33,11 @@ const run: Run = {
 
 const mutation = { mutateAsync: vi.fn(), isPending: false };
 
+vi.mock('@/features/datasets', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/datasets')>()),
+  useRenameDataset: () => mutation,
+}));
+
 vi.mock('../hooks/usePiiReview', () => ({
   // SQL demo comes first: before the fix it overwrote the run's own source.
   useDataSources: () => ({

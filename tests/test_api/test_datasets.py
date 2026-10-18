@@ -16,7 +16,7 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _build_verified_dataset(client, dpo_token: str) -> dict:
+async def _build_verified_dataset(client, dpo_token: str, build_body: dict | None = None) -> dict:
     created = await client.post(
         "/api/v1/runs",
         headers=_auth(dpo_token),
@@ -39,6 +39,7 @@ async def _build_verified_dataset(client, dpo_token: str) -> dict:
     built = await client.post(
         f"/api/v1/runs/{run['id']}/build",
         headers=_auth(dpo_token),
+        json=build_body,
     )
     assert built.status_code == 200
     return built.json()["dataset"]
@@ -297,3 +298,47 @@ async def test_export_follows_preview_access_rules(client):
 
     anonymous = await client.get(f"/api/v1/datasets/{ds['id']}/export")
     assert anonymous.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_dpo_names_the_dataset_on_save_and_a_rebuild_keeps_it(client):
+    dpo = await _login(client, "dpo", "dpo123")
+    ds = await _build_verified_dataset(client, dpo, {"dataset_name": "  Khách hàng   & đơn hàng Q3 "})
+    assert ds["dataset_name"] == "Khách hàng & đơn hàng Q3"
+
+    rebuilt = await client.post(f"/api/v1/runs/{ds['run_id']}/build", headers=_auth(dpo))
+    assert rebuilt.status_code == 200
+    assert rebuilt.json()["dataset"]["dataset_name"] == "Khách hàng & đơn hàng Q3"
+
+
+@pytest.mark.asyncio
+async def test_build_without_a_name_keeps_the_default(client):
+    dpo = await _login(client, "dpo", "dpo123")
+    ds = await _build_verified_dataset(client, dpo)
+    assert ds["dataset_name"] == f"run-{ds['run_id']}-snapshot"
+
+
+@pytest.mark.asyncio
+async def test_published_dataset_can_be_renamed_by_dpo_only(client):
+    dpo = await _login(client, "dpo", "dpo123")
+    analyst = await _login(client, "analyst", "analyst123")
+    ds = await _build_verified_dataset(client, dpo)
+    assert (await client.post(f"/api/v1/datasets/{ds['id']}/publish", headers=_auth(dpo))).status_code == 200
+
+    denied = await client.patch(
+        f"/api/v1/datasets/{ds['id']}", headers=_auth(analyst), json={"dataset_name": "x"}
+    )
+    assert denied.status_code == 403
+    blank = await client.patch(f"/api/v1/datasets/{ds['id']}", headers=_auth(dpo), json={"dataset_name": "   "})
+    assert blank.status_code == 422
+
+    renamed = await client.patch(
+        f"/api/v1/datasets/{ds['id']}", headers=_auth(dpo), json={"dataset_name": "Doanh thu theo khách"}
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["status"] == "PUBLISHED"
+
+    listed = await client.get("/api/v1/datasets", headers=_auth(analyst))
+    assert [d["dataset_name"] for d in listed.json() if d["id"] == ds["id"]] == ["Doanh thu theo khách"]
+    export = await client.get(f"/api/v1/datasets/{ds['id']}/export", headers=_auth(analyst))
+    assert 'filename="doanh-thu-theo-khach.zip"' in export.headers["content-disposition"]
