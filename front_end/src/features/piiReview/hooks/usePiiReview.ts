@@ -194,6 +194,25 @@ export function useDatasetPreview(datasetId: number | null, table?: string | nul
   });
 }
 
+export function useSqlAccess() {
+  return useQuery({
+    queryKey: ['pii-review', 'sql-access'] as const,
+    queryFn: api.fetchSqlAccess,
+    retry: false,
+  });
+}
+
+export function useIssueSqlCredentials() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.issueSqlCredentials,
+    onSuccess: (access) => {
+      // Cache without the password: it lives only in the panel that asked for it.
+      queryClient.setQueryData(['pii-review', 'sql-access'], { ...access, password: null });
+    },
+  });
+}
+
 export function useRiskScore(runId: number | null) {
   return useQuery({
     queryKey: ['pii-review', 'risk-score', runId] as const,

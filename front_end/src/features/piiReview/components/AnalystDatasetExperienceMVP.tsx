@@ -37,7 +37,8 @@ import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
 import { MascotLoader, StateNotice } from '@/shared/ui';
 import { exportDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
-import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
+import { useDatasets, useDatasetPreview, useSqlAccess } from '../hooks/usePiiReview';
+import { SqlAccessPanel } from './SqlAccessPanel';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
 import { DatasetStatusBadge, TransformChip } from '@/features/datasets';
 import { getTransformAnalystHint } from '../model/policyLabels';
@@ -108,6 +109,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [datasetSearch, setDatasetSearch] = useState<string>('');
   const [collapsedPreviewSources, setCollapsedPreviewSources] = useState<Record<string, boolean>>({});
   const [downloadingTarget, setDownloadingTarget] = useState<string | null>(null);
+  const sqlEnabled = useSqlAccess().data?.enabled ?? false;
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [rowLimit, setRowLimit] = useState<number>(ROW_LIMIT_OPTIONS[0]);
@@ -448,6 +450,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
             <Tab label="Dữ liệu đã bảo vệ" />
             <Tab label="Các cột & cách dùng" />
             <Tab label="Quan hệ giữa các bảng" />
+            {sqlEnabled && <Tab label="Kết nối SQL" />}
           </Tabs>
 
           {/* TAB 0: SAMPLE DATA */}
@@ -654,6 +657,13 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </Box>
+          )}
+
+          {/* TAB 3: READ-ONLY SQL LOGIN */}
+          {activeTab === 3 && sqlEnabled && selectedDatasetId !== null && (
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <SqlAccessPanel datasetId={selectedDatasetId} />
             </Box>
           )}
 
