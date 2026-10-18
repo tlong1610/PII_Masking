@@ -163,10 +163,12 @@ async def test_analyst_access_controls_and_summary_report(client):
     assert "metrics" in rep_data
     assert "risk_assessment" in rep_data
 
-    # 5. Access report via ?token= query parameter (browser new tab / download flow)
+    # 5. HTML report needs the Authorization header; a ?token= query parameter is refused
+    rep_html = await client.get(f"/api/v1/runs/{run_id}/report?format=html", headers=_auth(dpo_token))
+    assert rep_html.status_code == 200
+    assert "text/html" in rep_html.headers["content-type"]
     rep_query_token = await client.get(f"/api/v1/runs/{run_id}/report?format=html&token={dpo_token}")
-    assert rep_query_token.status_code == 200
-    assert "text/html" in rep_query_token.headers["content-type"]
+    assert rep_query_token.status_code == 401
 
 
 

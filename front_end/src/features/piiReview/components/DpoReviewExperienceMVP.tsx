@@ -3,15 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Paper from '@mui/material/Paper';
-import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { DETAIL_DRAWER_WIDTH } from '@/shared/config/layout';
 
 import { AuditTrail } from '@/features/auditLog';
-import { getStoredSession } from '@/features/auth/model/authStorage';
-import { API_BASE_URL, ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/client';
+import { fetchRunReportHtml } from '../api/realPiiReviewApi';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, StateNotice, useNotify } from '@/shared/ui';
 import {
@@ -112,7 +111,13 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useDataSources();
   const { data: currentRun } = useRun(currentRunId);
   // The table list is only needed to pick a scope before scanning, not while a run is open.
-  const { data: sourceScope } = useSourceScope(currentRunId === null ? selectedSourceId : null);
+  const {
+    data: sourceScope,
+    isError: scopeFailed,
+    error: scopeError,
+    refetch: refetchScope,
+    isFetching: scopeFetching,
+  } = useSourceScope(currentRunId === null ? selectedSourceId : null);
   // Run created by the scan button: the URL change that follows must not reset the screen.
   const justCreatedRunId = useRef<number | null>(null);
   const { data: riskScore } = useRiskScore(currentRunId);
@@ -506,9 +511,20 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
 
   const handleOpenReport = (): void => {
     if (!currentRunId) return;
-    const session = getStoredSession();
-    const tokenParam = session?.token ? `&token=${encodeURIComponent(session.token)}` : '';
-    window.open(`${API_BASE_URL}/runs/${currentRunId}/report?format=html${tokenParam}`, '_blank');
+    // Open the tab now (popup blockers), then load the report with the Authorization header so
+    // the session token never ends up in a URL, the browser history or server access logs.
+    const reportWindow = window.open('', '_blank');
+    void fetchRunReportHtml(currentRunId)
+      .then((html) => {
+        const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+        if (reportWindow) reportWindow.location.href = url;
+        else window.open(url, '_blank');
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      })
+      .catch((error: unknown) => {
+        reportWindow?.close();
+        notify(getErrorMessage(error, 'Không thể mở báo cáo tuân thủ. Vui lòng thử lại.'), 'error');
+      });
   };
 
   // Same function every render, so the memoized rows only re-render when their own field changes.
@@ -553,11 +569,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     }
     if (currentRunId !== null && !currentRun) {
       return (
-        <Stack spacing={2} aria-busy="true" aria-label="Đang tải run">
-          <Skeleton variant="rounded" height={56} />
-          <Skeleton variant="rounded" height={44} />
-          <Skeleton variant="rounded" height={320} />
-        </Stack>
+        <MascotLoader title="Đang mở lượt quét…" />
       );
     }
     if (!currentRun) {
@@ -572,7 +584,29 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
           />
         );
       }
-      if (!sourceScope) return <Skeleton variant="rounded" height={320} />;
+      if (scopeFailed && !scopeFetching) {
+        return (
+          <StateNotice
+            kind="error"
+            title="Không đọc được danh sách bảng của nguồn này"
+            description={
+              scopeError instanceof ApiError
+                ? scopeError.message
+                : 'Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.'
+            }
+            actionLabel="Thử lại"
+            onAction={() => void refetchScope()}
+          />
+        );
+      }
+      if (!sourceScope) {
+        return (
+          <MascotLoader
+            title="Đang đọc danh sách bảng từ nguồn…"
+            description="Hệ thống chỉ đọc tên bảng, tên cột và khóa, không đọc dữ liệu. Nguồn ở xa có thể mất vài giây."
+          />
+        );
+      }
       return (
         <ScopeSelectionStep
           scope={sourceScope}

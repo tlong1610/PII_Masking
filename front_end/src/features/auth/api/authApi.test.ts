@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loginWithApi } from './authApi';
+import { fetchCurrentUser, loginWithApi } from './authApi';
 
 describe('authApi', () => {
   beforeEach(() => {
@@ -72,5 +72,22 @@ describe('authApi', () => {
     const result = await loginWithApi({ username: 'dpo', password: 'dpo123' });
     expect(result.user.username).toBe('dpo');
     expect(result.user.role).toBe('DPO');
+  });
+
+  it('returns null from fetchCurrentUser when the token is rejected', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ detail: 'Invalid or expired session token' }),
+    } as Response);
+
+    await expect(fetchCurrentUser('expired-token')).resolves.toBeNull();
+  });
+
+  it('rethrows from fetchCurrentUser when the check itself fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(fetchCurrentUser('valid-token')).rejects.toThrow('Failed to fetch');
   });
 });

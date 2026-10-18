@@ -17,7 +17,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
-import { ConfirmDialog, SectionHeader, StateNotice, useNotify } from '@/shared/ui';
+import { ConfirmDialog, MascotLoader, SectionHeader, StateNotice, useNotify } from '@/shared/ui';
 import type { RunSummary } from '../api/runHistoryApi';
 import { useDeleteRuns, useRunDatasetAction, useRunHistory, type DeleteRunsResult } from '../hooks/useRunHistory';
 import { getRunDeleteBlocker, getRunTab, RUN_TABS, type RunTab } from '../model/runActions';
@@ -164,8 +164,9 @@ export function RunHistoryView(): JSX.Element {
           </Button>
         </Stack>
 
-        {isLoading || deleteRuns.isPending || datasetAction.isPending ? (
-          <LinearProgress aria-label="Đang tải lịch sử quét" />
+        {isLoading ? <MascotLoader compact title="Đang tải lịch sử quét…" /> : null}
+        {deleteRuns.isPending || datasetAction.isPending ? (
+          <LinearProgress aria-label="Đang cập nhật lịch sử quét" />
         ) : null}
         {isError ? (
           <StateNotice

@@ -104,7 +104,7 @@ export function RunKpiCards({ stats, riskScore, canRestoreAi, onRestoreAi }: Run
       </KpiCard>
 
       <KpiCard title="Cột PII phát hiện">
-        <BigNumber value={stats.total} unit="cột" />
+        <BigNumber value={stats.sensitive + stats.basic + stats.indirect} unit={`/ ${stats.total} cột`} />
         <Box sx={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', bgcolor: 'action.hover' }}>
           {LEVELS.map(({ key, color }) =>
             stats[key] > 0 ? <Box key={key} sx={{ flexGrow: stats[key], bgcolor: color }} /> : null,

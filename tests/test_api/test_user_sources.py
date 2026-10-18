@@ -39,6 +39,7 @@ def enc(monkeypatch):
 def reachable(monkeypatch):
     monkeypatch.setattr("src.api.sources.probe_connection", lambda url, engine: None)
     monkeypatch.setattr("src.api.sources.probe_namespace", lambda url, engine, namespace: None)
+    monkeypatch.setattr("src.api.sources.list_namespaces", lambda url, engine, default="": [default] if default else [])
 
 
 @pytest.mark.asyncio
@@ -217,3 +218,80 @@ async def test_user_postgres_scan_is_live_even_without_snapshot_target(client, e
     assert [p["coverage_status"] for p in run["field_profiles"]] == ["full"]
     assert PASSWORD not in json.dumps(run)
     get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_connection_test_offers_namespaces_to_pick(client, enc, reachable, monkeypatch):
+    """The DPO cannot know schema names before connecting: the test call lists them."""
+    monkeypatch.setattr(
+        "src.api.sources.list_namespaces", lambda url, engine, default="": ["public", "sales", "hr"]
+    )
+    token = await _login(client, "dpo", "dpo123")
+    tested = await client.post("/api/v1/sources/test", headers=_auth(token), json={"name": "x", "url": PG_URL})
+    body = tested.json()
+    assert body["ok"] is True
+    assert body["namespaces"] == ["public", "sales", "hr"]
+    assert body["default_namespace"] == "public"
+    assert PASSWORD not in tested.text
+
+
+def test_list_namespaces_hides_system_and_snapshot_namespaces(monkeypatch):
+    from src.services import source_validation
+
+    client = mongomock.MongoClient()
+    for name in ("corpdb", "crm", "admin", "local", "config", "mydatabase_protected_run3", "corpdb_protected_run7"):
+        client[name]["probe"].insert_one({"x": 1})
+    monkeypatch.setattr("pymongo.MongoClient", lambda *a, **k: client)
+    get_settings.cache_clear()
+    names = source_validation.list_namespaces(MONGO_URL, "mongodb", "corpdb")
+    assert names == ["corpdb", "crm"]
+
+
+def test_list_namespaces_falls_back_to_url_namespace_when_listing_fails(monkeypatch):
+    from src.services import source_validation
+
+    def denied(*args, **kwargs):
+        raise PermissionError("not authorized to listDatabases")
+
+    monkeypatch.setattr("pymongo.MongoClient", denied)
+    assert source_validation.list_namespaces(MONGO_URL, "mongodb", "corpdb") == ["corpdb"]
+
+
+def test_list_namespaces_hides_supabase_managed_schemas(monkeypatch):
+    from src.services import source_validation
+
+    schemas = ["auth", "extensions", "graphql", "pgbouncer", "piiguard_source", "public", "realtime", "storage", "vault"]
+
+    class FakeConn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def execute(self, query, params=None):
+            return self
+
+        def fetchall(self):
+            return [(name,) for name in schemas]
+
+    monkeypatch.setattr("psycopg.connect", lambda *a, **k: FakeConn())
+    assert source_validation.list_namespaces(PG_URL, "postgresql", "public") == ["piiguard_source", "public"]
+
+
+@pytest.mark.asyncio
+async def test_demo_sources_are_hidden_unless_enabled(client, monkeypatch):
+    """A real deployment lists only databases the DPO registered; the demo ids do not resolve."""
+    monkeypatch.setenv("ENABLE_DEMO_SOURCES", "false")
+    get_settings.cache_clear()
+    try:
+        token = await _login(client, "dpo", "dpo123")
+        listed = await client.get("/api/v1/sources", headers=_auth(token))
+        assert listed.status_code == 200
+        assert not {"sql-demo", "nosql-demo"} & {s["id"] for s in listed.json()}
+        scope = await client.get("/api/v1/sources/sql-demo/scope", headers=_auth(token))
+        assert scope.status_code == 404
+        run = await client.post("/api/v1/runs", headers=_auth(token), json={"source_id": "sql-demo"})
+        assert run.status_code in (404, 422)
+    finally:
+        get_settings.cache_clear()

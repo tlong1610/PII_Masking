@@ -52,7 +52,10 @@ def mongo_env(live_mongo, monkeypatch):
     client = MongoClient(uri, serverSelectionTimeoutMS=2000)
     yield client, source_db
     get_settings.cache_clear()
-    client.drop_database(SNAPSHOT_DB)
+    # Snapshots are written per run (<db>_run<id>); drop every one this test created.
+    for name in client.list_database_names():
+        if name.startswith(f"{SNAPSHOT_DB}_run"):
+            client.drop_database(name)
     client.close()
 
 
@@ -97,7 +100,7 @@ async def test_live_mongo_run_build_preserves_lookups(client, mongo_env):
             expected["mongo_lookup_cccd"]["baseline"]["matched_rows"]
         )
 
-    snap = mongo[SNAPSHOT_DB]
+    snap = mongo[f"{SNAPSHOT_DB}_run{run['id']}"]
     raw_cccd = {
         d["identity"]["cccd"]
         for d in source.customers.find({}, {"identity.cccd": 1})

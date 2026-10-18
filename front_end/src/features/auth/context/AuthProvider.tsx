@@ -68,6 +68,9 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
         setSession(verifiedSession);
         saveStoredSession(verifiedSession);
       })
+      .catch(() => {
+        // Session could not be checked (offline, aborted): keep it; a later 401 still signs out.
+      })
       .finally(() => {
         if (active) {
           setIsSessionReady(true);

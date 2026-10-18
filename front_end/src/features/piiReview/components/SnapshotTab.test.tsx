@@ -31,7 +31,8 @@ describe('SnapshotTab mascot banner', () => {
 
   it('celebrates published, protected data', () => {
     render(<SnapshotTab datasetId={4} datasetStatus="PUBLISHED" />);
-    expect(screen.getByRole('status')).toHaveTextContent('Đã phát hành cho Analyst');
+    // The banner comes first; the verifier section below shows Pango's loader while its results load.
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent('Đã phát hành cho Analyst');
     expect(pose()).toBe('protected');
   });
 });

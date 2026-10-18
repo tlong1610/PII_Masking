@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Alert from '@mui/material/Alert';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import LinearProgress from '@mui/material/LinearProgress';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
@@ -13,6 +12,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import { MascotLoader } from '@/shared/ui';
 import { useDatasetPreview } from '../hooks/useDatasets';
 import { TransformChip } from './TransformChip';
 
@@ -34,7 +34,7 @@ export function DatasetPreviewTable({ datasetId, available }: DatasetPreviewTabl
     return <Alert severity="error">{error instanceof Error ? error.message : 'Không tải được dữ liệu xem trước.'}</Alert>;
   }
   if (isLoading || !preview) {
-    return <LinearProgress aria-label="Đang tải dữ liệu xem trước" />;
+    return <MascotLoader compact title="Đang tải dữ liệu xem trước…" />;
   }
 
   const columns = preview.columns.filter(

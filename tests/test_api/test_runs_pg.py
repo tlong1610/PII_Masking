@@ -184,7 +184,7 @@ async def test_build_runs_real_pipeline_with_dpo_decisions(client, pg_live, monk
     body = built.json()
     assert body["run"]["status"] == "VERIFIED"
     assert body["dataset"]["status"] == "VERIFIED"
-    assert body["dataset"]["output_location"].startswith("postgres://piiguard_snapshot/")
+    assert body["dataset"]["output_location"].startswith(f"postgres://piiguard_snapshot_run{run['id']}/")
 
     checks = _checks(body)
     assert set(checks) == {"policy_complete", "sql_join_hmac", "sql_aggregate_revenue"}
@@ -289,3 +289,44 @@ async def test_pg_build_blocked_when_join_key_action_mismatch(client, pg_live, m
     run_after = await client.get(f"/api/v1/runs/{run['id']}", headers=_auth(token))
     assert run_after.json()["datasets"] == []
 
+
+
+@pytest.mark.asyncio
+async def test_departments_publish_different_tables_of_one_source_side_by_side(client, pg_live, monkeypatch):
+    """Two teams scan the same database for different tables: both datasets stay published."""
+
+    async def scoped_scan(url: str, **kwargs):
+        wanted = set(kwargs.get("tables") or ())
+        return [dict(s) for s in FAKE_SPECS if not wanted or s["source_path"] in wanted]
+
+    monkeypatch.setattr("src.services.run_scanner.scan_postgres_source", scoped_scan)
+    _mock_pipeline(monkeypatch, pg_live, ("PASSED", "PASSED"))
+    token = await _login(client, "dpo", "dpo123")
+
+    datasets = {}
+    for team_table in ("customers", "orders"):
+        created = await client.post(
+            "/api/v1/runs", headers=_auth(token), json={"source_id": "sql-demo", "selected_scope": [team_table]}
+        )
+        assert created.status_code == 201
+        run = created.json()
+        assert {p["source_path"] for p in run["field_profiles"]} == {team_table}
+        decisions = [
+            {"field_profile_id": p["id"], "action": p["recommended_action"], "reason": "reviewed"}
+            for p in run["field_profiles"]
+        ]
+        saved = await client.put(f"/api/v1/runs/{run['id']}/decisions", headers=_auth(token), json={"decisions": decisions})
+        assert saved.status_code == 200
+        built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
+        assert built.status_code == 200, built.text
+        dataset = built.json()["dataset"]
+        published = await client.post(f"/api/v1/datasets/{dataset['id']}/publish", headers=_auth(token))
+        assert published.status_code == 200
+        datasets[team_table] = published.json()
+
+    listed = {d["id"]: d for d in (await client.get("/api/v1/datasets", headers=_auth(token))).json()}
+    for team_table, dataset in datasets.items():
+        assert listed[dataset["id"]]["status"] == "PUBLISHED"
+        assert dataset["output_location"].endswith(f"/{team_table}")
+    schemas = {d["output_location"].split("/")[2] for d in datasets.values()}
+    assert len(schemas) == 2

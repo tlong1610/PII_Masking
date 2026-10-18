@@ -41,8 +41,13 @@ def pg_env(live_postgres, monkeypatch):
     get_settings.cache_clear()
     yield live_postgres
     get_settings.cache_clear()
+    # Snapshots are written per run (<schema>_run<id>); drop every one this test created.
     with psycopg.connect(live_postgres["snapshot"]) as conn:
-        conn.execute(f"DROP SCHEMA IF EXISTS {SNAPSHOT_SCHEMA} CASCADE")
+        schemas = conn.execute(
+            "SELECT nspname FROM pg_namespace WHERE nspname LIKE %s", (f"{SNAPSHOT_SCHEMA}_run%",)
+        ).fetchall()
+        for (schema,) in schemas:
+            conn.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
 
 
 @pytest.mark.asyncio
@@ -71,12 +76,13 @@ async def test_live_postgres_run_build_preserves_join_and_aggregate(client, pg_e
     assert checks["sql_join_hmac"]["status"] == "PASSED", checks["sql_join_hmac"]
     assert checks["sql_aggregate_revenue"]["status"] == "PASSED", checks["sql_aggregate_revenue"]
     assert body["run"]["status"] == "VERIFIED"
-    assert body["dataset"]["output_location"].startswith(f"postgres://{SNAPSHOT_SCHEMA}/")
+    run_schema = f"{SNAPSHOT_SCHEMA}_run{run['id']}"
+    assert body["dataset"]["output_location"].startswith(f"postgres://{run_schema}/")
 
     with psycopg.connect(pg_env["source"]) as src, psycopg.connect(pg_env["snapshot"]) as snap:
         raw_cccd = {r[0] for r in src.execute("SELECT cccd FROM customers WHERE cccd IS NOT NULL")}
         snap_cccd = {
-            r[0] for r in snap.execute(f"SELECT cccd FROM {SNAPSHOT_SCHEMA}.customers")
+            r[0] for r in snap.execute(f"SELECT cccd FROM {run_schema}.customers")
         }
         assert raw_cccd.isdisjoint(snap_cccd)
         assert all(v is None or len(v) == 64 for v in snap_cccd)

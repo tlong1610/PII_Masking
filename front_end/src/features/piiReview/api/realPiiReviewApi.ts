@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, apiRequestFile, apiRequestText, type DownloadedFile } from '@/shared/api/client';
 
 // ============================================================================
 // TYPES (matching backend schemas)
@@ -19,6 +19,8 @@ export const sourceTestResultSchema = z.object({
   ok: z.boolean(),
   engine: z.string(),
   message: z.string(),
+  namespaces: z.array(z.string()).default([]),
+  default_namespace: z.string().default(''),
 });
 
 export const sourceScopeSchema = z.object({
@@ -302,6 +304,15 @@ export async function previewDataset(
   return datasetPreviewSchema.parse(data);
 }
 
+/**
+ * Every protected row of a published dataset: a ZIP with one CSV per table, or one table's CSV.
+ * Values come from the snapshot, already MASK/HMAC/DROP — never raw PII.
+ */
+export async function exportDataset(datasetId: number, table?: string | null): Promise<DownloadedFile> {
+  const query = table ? `?table=${encodeURIComponent(table)}` : '';
+  return apiRequestFile(`/datasets/${datasetId}/export${query}`);
+}
+
 // ============================================================================
 // RISK SCORE API (FR-10, §9.4)
 // ============================================================================
@@ -327,6 +338,11 @@ export const riskScoreSchema = z.object({
 });
 
 export type RiskScoreResult = z.infer<typeof riskScoreSchema>;
+
+/** Compliance report as an HTML document, fetched with the Authorization header (never ?token=). */
+export async function fetchRunReportHtml(runId: number): Promise<string> {
+  return apiRequestText(`/runs/${runId}/report?format=html`);
+}
 
 export async function fetchRiskScore(runId: number): Promise<RiskScoreResult> {
   const data = await apiRequest<RiskScoreResult>(`/runs/${runId}/risk-score`);
