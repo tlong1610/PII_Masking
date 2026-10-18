@@ -166,6 +166,8 @@ def probe_namespace(url: str, engine: str, namespace: str) -> None:
         raise SourceUrlError(f"{kind} '{namespace}' not found in source")
 
 
+# Analyst SQL views of published datasets (src/services/analyst_sql.py).
+_ANALYST_VIEW_SCHEMA = re.compile(r"ds_\d+")
 _PG_SYSTEM_SCHEMAS = frozenset(
     {
         "pg_catalog",
@@ -225,7 +227,9 @@ def list_namespaces(url: str, engine: str, default: str = "") -> list[str]:
     names = [
         n
         for n in names
-        if not (snapshot_prefixes and n.startswith(snapshot_prefixes)) and "_protected_run" not in n
+        if not (snapshot_prefixes and n.startswith(snapshot_prefixes))
+        and "_protected_run" not in n
+        and not _ANALYST_VIEW_SCHEMA.fullmatch(n)
     ]
     if default and default not in names:
         names.insert(0, default)

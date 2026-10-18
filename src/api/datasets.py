@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 import re
 import unicodedata
 import zipfile
@@ -35,6 +36,8 @@ from src.models.schemas import (
     UserRole,
     VerifierResultOut,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["datasets"])
 
@@ -106,6 +109,27 @@ def _get_dataset(db: Session, dataset_id: int) -> db_models.Dataset | None:
 
 def _analyst_may_read(ds: db_models.Dataset) -> bool:
     return ds.status == DatasetStatus.PUBLISHED.value
+
+
+def _sync_sql_access(db: Session, user_ids: list[int]) -> None:
+    """Bring these Analysts' read-only SQL logins in line with their grants (see analyst_sql).
+
+    Raises on failure; callers decide whether that blocks the action.
+    """
+    from src.api.sql_access import sync_analyst
+    from src.services import analyst_sql
+
+    if not analyst_sql.enabled() or not user_ids:
+        return
+    with analyst_sql.connect() as conn:
+        for user_id in user_ids:
+            sync_analyst(conn, db, user_id)
+
+
+def _granted_user_ids(db: Session, dataset_id: int) -> list[int]:
+    return list(
+        db.scalars(select(db_models.DatasetGrant.user_id).where(db_models.DatasetGrant.dataset_id == dataset_id)).all()
+    )
 
 
 def _preview_columns_from_run(run: db_models.Run) -> list[DatasetPreviewColumn]:
@@ -384,6 +408,11 @@ def publish_dataset(
     )
     db.commit()
     db.refresh(ds)
+    try:
+        _sync_sql_access(db, _granted_user_ids(db, ds.id))
+    except Exception as exc:
+        # Publishing stands; the Analyst's SQL view appears on their next visit to the SQL panel.
+        logger.warning("SQL access sync after publish failed: %s", type(exc).__name__)
     return _dataset_out(ds)
 
 
@@ -441,6 +470,18 @@ def revoke_dataset(
                 rollback_notes.append(f"dropped_mongo_db={db_part}")
             except Exception as exc:
                 rollback_notes.append(f"drop_mongo_failed={type(exc).__name__}")
+
+    # Analyst SQL views die with the snapshot schema (CASCADE); drop their schema too.
+    if output_loc.startswith("postgres://"):
+        try:
+            from src.services import analyst_sql
+
+            if analyst_sql.enabled():
+                with analyst_sql.connect() as conn:
+                    analyst_sql.drop_views(conn, ds.id)
+                rollback_notes.append(f"dropped_sql_views={analyst_sql.dataset_schema(ds.id)}")
+        except Exception as exc:
+            rollback_notes.append(f"drop_sql_views_failed={type(exc).__name__}")
 
     # 2. Revoke and delete all active analyst grants (§3, §14.2)
     db.execute(
@@ -744,6 +785,10 @@ def grant_dataset_access(
     )
     db.commit()
     db.refresh(grant)
+    try:
+        _sync_sql_access(db, [body.user_id])
+    except Exception as exc:
+        logger.warning("SQL access sync after grant failed: %s", type(exc).__name__)
     return DatasetGrantOut.model_validate(grant).model_copy(update={"username": target_user.username})
 
 
@@ -763,6 +808,16 @@ def revoke_dataset_access(
     )
     if grant:
         db.delete(grant)
+        db.flush()
+        try:
+            # Fail closed: the grant only goes away once the Analyst's SQL login has lost it too.
+            _sync_sql_access(db, [user_id])
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Không thu hồi được quyền SQL của Analyst ({type(exc).__name__}). Thử lại.",
+            ) from exc
         _write_audit(
             db,
             actor=user,

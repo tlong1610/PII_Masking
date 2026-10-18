@@ -566,3 +566,24 @@ class DatasetGrantOut(BaseModel):
     username: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SqlAccessDataset(BaseModel):
+    dataset_id: int
+    dataset_name: str
+    schema_name: str = Field(..., description="Stable schema the Analyst queries: ds_<dataset id>")
+    tables: list[str]
+
+
+class SqlAccessOut(BaseModel):
+    """Read-only SQL login for an Analyst; password only in the response that issues it."""
+
+    enabled: bool
+    has_credentials: bool = False
+    host: str = ""
+    port: int = 5432
+    database: str = ""
+    username: str = ""
+    sslmode: str = "require"
+    password: str | None = None
+    datasets: list[SqlAccessDataset] = Field(default_factory=list)

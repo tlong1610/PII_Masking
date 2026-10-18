@@ -29,6 +29,12 @@ services:
         fromDatabase:
           name: piiguard-vn-db
           property: connectionString
+      # Analyst read-only SQL login (src/services/analyst_sql.py). Analysts connect to the
+      # database's external hostname; its IP allow list must admit them (set on the database).
+      - key: ENABLE_ANALYST_SQL
+        value: "true"
+      - key: ANALYST_SQL_HOST
+        value: dpg-dba9jvuq1p3s73arlii0-a.virginia-postgres.render.com
       - key: ENABLE_AI_SCAN
         value: "false"
       - key: ENABLE_PG_SNAPSHOT

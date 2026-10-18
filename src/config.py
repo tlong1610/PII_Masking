@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     # Off by default: a real deployment only shows databases the DPO registered. Tests and the
     # local QA stack turn it on to scan the seeded Docker databases.
     enable_demo_sources: bool = False
+    # Analysts get a read-only Postgres login to the published datasets in the snapshot store.
+    enable_analyst_sql: bool = False
+    # Public address of the snapshot server shown to Analysts (Render: the external hostname);
+    # empty = the host/port of SNAPSHOT_DATABASE_URL.
+    analyst_sql_host: str = ""
+    analyst_sql_port: int = 0
+    analyst_sql_sslmode: str = "require"
     app_port: int = Field(default=8000, ge=1, le=65535)
     app_host: str = "0.0.0.0"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
