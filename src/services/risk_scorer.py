@@ -58,7 +58,7 @@ _L2_KEYWORDS = frozenset(
         "PERSONAL_CONTEXT",
         "SO_DT",
         "SHIP_PHONE",
-        # NĐ 13/2023 Điều 2 khoản 3 điểm b, c: ngày sinh và giới tính là dữ liệu cá nhân cơ bản
+        # NĐ 356/2025 Điều 3 khoản 2, 3: ngày sinh và giới tính là dữ liệu cá nhân cơ bản
         "DOB",
         "DATE_OF_BIRTH",
         "BIRTH",

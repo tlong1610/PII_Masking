@@ -1,6 +1,6 @@
 # 🚀 Hướng Dẫn Phát Hành & Vận Hành Release (Release Guide)
 
-**Dự án:** PIIGuard Shield — Công cụ rà soát và bảo vệ dữ liệu cá nhân theo Nghị định 13 & Luật 91  
+**Dự án:** PIIGuard Shield — Công cụ rà soát và bảo vệ dữ liệu cá nhân theo Luật 91/2025 & Nghị định 356/2025  
 **Mã đề:** DATA-06 · **Đội:** P-138 · **Chương trình:** VinUni AI20K Build Phase — Cohort 4  
 **Quy trình hiện tại:** Release tự động sau khi PR `develop` → `main` được merge và quality gate đạt.
 

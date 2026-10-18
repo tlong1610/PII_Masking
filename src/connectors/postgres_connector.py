@@ -49,14 +49,16 @@ class PostgresConnector:
     def extract_database_profile(
         self,
         schema_name: str = "public",
-        sample_size: int = 5
+        sample_size: int = 5,
+        table_names: tuple[str, ...] | list[str] | set[str] | None = None,
     ) -> DatabaseProfile:
         """
         Trích xuất toàn bộ cấu trúc CSDL bao gồm quan hệ và dữ liệu mẫu.
 
         Args:
             schema_name: Tên schema cần quét (thường là 'public' trong Postgres)
-            sample_size: Số lượng giá trị mẫu cần trích xuất mỗi cột
+            sample_size: Số lượng giá trị mẫu cần trích xuất mỗi cột (nếu <= 0 sẽ chỉ quét schema siêu nhanh)
+            table_names: Danh sách bảng cụ thể cần lấy (nếu None sẽ lấy tất cả)
 
         Returns:
             DatabaseProfile: Object chứa cấu trúc DB chuẩn bị cho AI Agent
@@ -76,6 +78,9 @@ class PostgresConnector:
                     (schema_name,)
                 )
                 tables = [row["table_name"] for row in cur.fetchall()]
+                if table_names:
+                    allowed = set(table_names)
+                    tables = [t for t in tables if t in allowed]
 
                 # 2. Quét toàn bộ Primary Keys (Khóa chính)
                 cur.execute("""
@@ -142,46 +147,51 @@ class PostgresConnector:
                         # Hard-code recommend: Các trường khóa bắt buộc dùng HASHING
                         system_rec = "HASHING" if is_pk or is_fk else None
 
-                        # Lấy 3-5 mẫu (Sample data) khác NULL
-                        # Sử dụng psycopg.sql để format identifier an toàn tránh SQL Injection
-                        from psycopg import sql
-                        query = sql.SQL("SELECT DISTINCT {} FROM {} WHERE {} IS NOT NULL LIMIT {}").format(
-                            sql.Identifier(col_name),
-                            sql.Identifier(table),
-                            sql.Identifier(col_name),
-                            sql.Literal(sample_size)
-                        )
+                        if sample_size > 0:
+                            # Lấy mẫu (Sample data) khác NULL
+                            from psycopg import sql
+                            query = sql.SQL("SELECT DISTINCT {} FROM {} WHERE {} IS NOT NULL LIMIT {}").format(
+                                sql.Identifier(col_name),
+                                sql.Identifier(table),
+                                sql.Identifier(col_name),
+                                sql.Literal(sample_size)
+                            )
 
-                        try:
-                            cur.execute(query)
-                            samples_raw = cur.fetchall()
-                            samples = [str(r[col_name]) for r in samples_raw if r[col_name] is not None]
-                        except Exception as e:
-                            logger.error(f"Lỗi khi trích xuất mẫu bảng {table} cột {col_name}: {e}")
+                            try:
+                                cur.execute(query)
+                                samples_raw = cur.fetchall()
+                                samples = [str(r[col_name]) for r in samples_raw if r[col_name] is not None]
+                            except Exception as e:
+                                logger.error(f"Lỗi khi trích xuất mẫu bảng {table} cột {col_name}: {e}")
+                                samples = []
+
+                            # Tính mean và variance của độ dài dữ liệu
+                            stats_query = sql.SQL("SELECT AVG(LENGTH({}::TEXT)) as mean_len, COALESCE(VARIANCE(LENGTH({}::TEXT)), 0) as var_len FROM {} WHERE {} IS NOT NULL").format(
+                                sql.Identifier(col_name),
+                                sql.Identifier(col_name),
+                                sql.Identifier(table),
+                                sql.Identifier(col_name)
+                            )
+
+                            length_mean = None
+                            length_variance = None
+                            try:
+                                cur.execute(stats_query)
+                                stats_raw = cur.fetchone()
+                                if stats_raw:
+                                    length_mean = float(stats_raw["mean_len"]) if stats_raw["mean_len"] is not None else None
+                                    length_variance = float(stats_raw["var_len"]) if stats_raw["var_len"] is not None else None
+                            except Exception as e:
+                                logger.error(f"Lỗi khi tính toán thống kê độ dài bảng {table} cột {col_name}: {e}")
+
+                            profiled_values, distinct_ratio, null_ratio = self._distribution_stats(
+                                conn, cur, table, col_name
+                            )
+                        else:
                             samples = []
-
-                        # Tính mean và variance của độ dài dữ liệu
-                        stats_query = sql.SQL("SELECT AVG(LENGTH({}::TEXT)) as mean_len, COALESCE(VARIANCE(LENGTH({}::TEXT)), 0) as var_len FROM {} WHERE {} IS NOT NULL").format(
-                            sql.Identifier(col_name),
-                            sql.Identifier(col_name),
-                            sql.Identifier(table),
-                            sql.Identifier(col_name)
-                        )
-
-                        length_mean = None
-                        length_variance = None
-                        try:
-                            cur.execute(stats_query)
-                            stats_raw = cur.fetchone()
-                            if stats_raw:
-                                length_mean = float(stats_raw["mean_len"]) if stats_raw["mean_len"] is not None else None
-                                length_variance = float(stats_raw["var_len"]) if stats_raw["var_len"] is not None else None
-                        except Exception as e:
-                            logger.error(f"Lỗi khi tính toán thống kê độ dài bảng {table} cột {col_name}: {e}")
-
-                        profiled_values, distinct_ratio, null_ratio = self._distribution_stats(
-                            conn, cur, table, col_name
-                        )
+                            length_mean = None
+                            length_variance = None
+                            profiled_values, distinct_ratio, null_ratio = None, None, None
 
                         col_prof = ColumnProfile(
                             table_name=table,

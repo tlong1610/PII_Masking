@@ -21,7 +21,7 @@ HIGH_CONFIDENCE_COLUMNS = {
     PIIType.ADDRESS.value: ["address", "dia_chi", "street", "street_address"],
     # Thành phố / quận: định danh gián tiếp (L1) - được Giữ nguyên để phân tích, không cần ngoại lệ.
     "CITY": ["city", "district", "ward", "town", "quan_huyen", "phuong_xa"],
-    # Dữ liệu nhạy cảm (NĐ 13 Điều 2 khoản 4): tài chính, sinh trắc, sức khỏe.
+    # Dữ liệu nhạy cảm (NĐ 356/2025 Điều 4 khoản 1): tài chính, sinh trắc, sức khỏe.
     "CREDIT_CARD": [
         "credit_card", "card_number", "bank_account", "bank_account_no", "account_number", "so_tai_khoan",
     ],

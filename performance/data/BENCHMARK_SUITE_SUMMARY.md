@@ -34,7 +34,7 @@ Toàn bộ nhãn, kiểu dữ liệu và hành động đề xuất đều đư�
 | 9 | `BIOMETRIC_DATA` | `string` | **DROP** | L3 | Điểm đ K1 Đ4 NĐ 356 | **8** |
 | 10 | `TAX_CODE_PERSONAL` | `string` | **MASK** | L2 | Khoản 7 Điều 3 NĐ 356 | **15** |
 | 11 | `TAX_CODE_ORG` | `string` | **KEEP** | L0 | Khoản 1 Điều 2 Luật 91 | **31** |
-| 12 | `FREE_TEXT_PII` | `text / string` | **MASK** | L2 - L3 | NĐ 356 & NĐ 13 | **55** |
+| 12 | `FREE_TEXT_PII` | `text / string` | **MASK** | L2 - L3 | NĐ 356 | **55** |
 
 ### Các trường Phi cá nhân (Negative Cases để kiểm tra False Positives):
 | STT | Nhóm Phi PII | Kiểu dữ liệu | Hành động | Mục đích kiểm thử | Số mẫu |

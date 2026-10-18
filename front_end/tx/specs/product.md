@@ -8,7 +8,7 @@ PIIGuard Shield là nền tảng quản trị tuân thủ bảo vệ dữ liệu
 
 Hệ thống kết nối tới cơ sở dữ liệu **PostgreSQL và MongoDB trên Cloud** (AWS RDS, GCP Cloud SQL, Supabase, Neon; MongoDB Atlas qua `mongodb+srv://`), cho phép DPO:
 1. Quản lý trực quan cả hai nguồn: **Nguồn dữ liệu gốc (Data Sources)** để quét mới và **Lịch sử Snapshot đã phát hành (Published Snapshots)** để quản trị vòng đời.
-2. Quét phát hiện và phân loại PII tự động theo Luật BV DLCN 2025 và Nghị định 13/2023/NĐ-CP.
+2. Quét phát hiện và phân loại PII tự động theo Luật BV DLCN 2025 (91/2025/QH15) và Nghị định 356/2025/NĐ-CP.
 3. **Thẩm định rủi ro bằng bằng chứng đã khử nhạy cảm** trước khi phê duyệt chính sách che giấu (MASK, HMAC, DROP, KEEP).
 4. Cho phép DPO ghi nhận ngoại lệ có hạn (`exceptionUntil`) khi nghiệp vụ cần giữ nguyên PII; hiện backend kiểm tra hạn lúc lưu quyết định, nhưng chưa tự thu hồi snapshot khi ngoại lệ hết hạn.
 5. Kiểm thử downstream verifier trước khi phát hành.
@@ -42,7 +42,7 @@ Cột điều hướng Catalog bên trái của DPO Workspace được chia thà
 
 ### 3.2 DPO Workspace: Giữ Lại Các Tab Có Tác Dụng Thật
 Màn hình chi tiết của DPO Workspace loại bỏ các tab mockup rác và giữ lại các tab có giá trị thực tiễn:
-- **Tab 0 — Overview & PII Schema (Cốt lõi):** Bảng danh sách trường quét được, phân loại NĐ 13 (Cơ bản L2, Nhạy cảm L3, Gián tiếp L1, Non-PII, UNKNOWN), sàn bảo mật, và nút mở Inspector Drawer.
+- **Tab 0 — Overview & PII Schema (Cốt lõi):** Bảng danh sách trường quét được, phân loại theo NĐ 356 (Cơ bản L2, Nhạy cảm L3, Gián tiếp L1, Non-PII, UNKNOWN), sàn bảo mật, và nút mở Inspector Drawer.
 - **Tab 1 — Risk & Insights (Đo lường rủi ro):** Tỷ lệ bảo vệ L2/L3 (100%), Điểm rủi ro tất định FR-10 (0–100, Tier: Low/Medium/High/Critical), và biểu đồ phân bổ chính sách che mờ.
 - **Tab 2 — Audit History & Hash-Chain (Kiểm toán theo ngữ cảnh):** Bảng sổ cái Merkle Root SHA-256 lưu lại toàn bộ các phiên Quét, Duyệt, Build và Publish của chính database đó.
 - **Tab 3 — Dữ liệu cho Analyst:** Xem trạng thái và preview của snapshot đã bảo vệ, theo quyền hiện có.
@@ -50,7 +50,7 @@ Màn hình chi tiết của DPO Workspace loại bỏ các tab mockup rác và g
 
 ### 3.3 Thanh Điều Hướng Sidebar (`AppShell.tsx`): 3 Phân Hệ Độc Lập
 Mục **Security & Compliance** trên Sidebar cung cấp 3 công cụ cấp cao:
-1. **Nghị định 13 Rules**: Nút bấm interactive mở Modal/Drawer tra cứu cẩm nang pháp lý, phân loại dữ liệu cá nhân cơ bản/nhạy cảm và sàn bảo mật tối thiểu.
+1. **Quy định pháp luật**: Nút bấm interactive mở Modal/Drawer tra cứu cẩm nang pháp lý, phân loại dữ liệu cá nhân cơ bản/nhạy cảm và sàn bảo mật tối thiểu.
 2. **Sổ cái Hash-Chain**: Nút bấm interactive mở Trung tâm kiểm toán toàn vẹn Merkle Root SHA-256 toàn hệ thống kèm công cụ kiểm chứng chuỗi băm (Verify Chain Integrity).
 3. **Demo che dữ liệu (Masking Showcase)**: Nằm ngay **DƯỚI SỔ CÁI**, mở giao diện so sánh trực quan đa chiều (Side-by-side: Raw vs MASK vs HMAC vs DROP vs KEEP) cho từng loại dữ liệu (Họ tên, SĐT, CCCD, Email, Địa chỉ, Bệnh án, Khóa nối...).
 

@@ -18,7 +18,7 @@
 | `PHONE_NUM` | `PHONE_VN` | `string` | **MASK** | L2 (Cơ bản) | Khoản 7 Điều 3 NĐ 356 | Số điện thoại cá nhân |
 | `STREET_ADDRESS` | `STREET_ADDRESS` | `string` | **MASK** | L2 (Cơ bản) | Khoản 4 Điều 3 NĐ 356 | Địa chỉ nơi cư trú |
 | `ID_NUM` | `CCCD` | `string` | **HMAC / MASK** | L3 (Nhạy cảm) | Khoản 7 Điều 3 NĐ 356 | Mã số định danh học sinh / CCCD |
-| `URL_PERSONAL` | `FREE_TEXT_PII` | `string` | **MASK** | L2 (Cơ bản) | K11 Đ3 NĐ 356 & NĐ 13 | URL trang cá nhân (LinkedIn/GitHub) |
+| `URL_PERSONAL` | `FREE_TEXT_PII` | `string` | **MASK** | L2 (Cơ bản) | K11 Đ3 NĐ 356 | URL trang cá nhân (LinkedIn/GitHub) |
 
 ---
 
