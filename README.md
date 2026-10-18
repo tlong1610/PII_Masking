@@ -17,7 +17,7 @@
 | **🩺 Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
 | **📦 Docker Hub Release** | `docker.io/len1652/piiguard-api:latest` | 🟢 Verified | Linux amd64 Image production đóng gói sẵn |
 | **🎬 Video Demo (3-5 phút)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Luồng E2E PostgreSQL/MongoDB ➔ DPO Review ➔ Masking ➔ Audit ➔ Analyst |
-| **📊 Pitch Deck** | [presentation/README.md](presentation/README.md) | 📝 Hướng dẫn | Cấu trúc slide tham khảo; file `.pptx` chưa có trong repo |
+| **📊 Pitch Deck** | [pitch_deck.pdf](presentation/pitch_deck.pdf) · [.pptx](presentation/pitch_deck.pptx) | 🟢 Ready | 10 slide theo Brand DNA + [thumbnail video](presentation/thumbnail.png); hướng dẫn build tại [presentation/README.md](presentation/README.md) |
 
 ### 🔑 Tài Khoản Trải Nghiệm Demo (Demo Credentials)
 - **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`) — Phân loại PII, cấu hình Masking/HMAC, thẩm định rủi ro và phát hành snapshot.

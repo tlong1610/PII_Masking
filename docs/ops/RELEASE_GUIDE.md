@@ -16,7 +16,7 @@
 | **Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
 | **Docker Hub Image** | `docker.io/len1652/piiguard-api:latest` | 🟢 Ready | Build chuẩn `linux/amd64` độc lập |
 | **Video Demo (End-to-End)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Video ≤ 5 phút theo chuẩn 4 cảnh |
-| **Pitch Deck Báo Cáo** | [`presentation/README.md`](../../presentation/README.md) | 📝 Hướng dẫn | Cấu trúc deck; file `.pptx` chưa có trong repo |
+| **Pitch Deck Báo Cáo** | [`pitch_deck.pdf`](../../presentation/pitch_deck.pdf) · [`.pptx`](../../presentation/pitch_deck.pptx) | 🟢 Ready | 10 slide + thumbnail video; build lại theo [`presentation/README.md`](../../presentation/README.md) |
 
 ### 🔑 Tài Khoản Trải Nghiệm Demo
 - **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`)  
