@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Alert from '@mui/material/Alert';
-import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { MascotLoader } from '@/shared/ui';
 import type { AuditEvent } from '../api/auditApi';
 import { useAuditEvents } from '../hooks/useAuditLog';
 import { AuditActivityTable } from './AuditActivityTable';
@@ -22,7 +22,7 @@ export function AuditTrail({ runId }: AuditTrailProps): JSX.Element {
   return (
     <Stack spacing={2}>
       <ChainStatusBanner />
-      {isLoading ? <LinearProgress aria-label="Đang tải nhật ký" /> : null}
+      {isLoading ? <MascotLoader compact title="Đang tải nhật ký…" /> : null}
       {isError ? (
         <Alert severity="error">{error instanceof Error ? error.message : 'Không tải được nhật ký.'}</Alert>
       ) : null}

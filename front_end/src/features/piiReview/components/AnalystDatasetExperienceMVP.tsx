@@ -454,9 +454,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
           {activeTab === 0 && (
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               {previewLoading ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                  <CircularProgress size={30} sx={{ color: '#1B51A4' }} />
-                </Box>
+                <MascotLoader compact title="Đang tải dữ liệu đã bảo vệ…" />
               ) : preview ? (
                 <Stack spacing={2.5}>
                   <Alert severity="info" sx={{ borderRadius: '6px' }}>

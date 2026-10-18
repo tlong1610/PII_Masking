@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import Paper from '@mui/material/Paper';
-import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -570,11 +569,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     }
     if (currentRunId !== null && !currentRun) {
       return (
-        <Stack spacing={2} aria-busy="true" aria-label="Đang tải run">
-          <Skeleton variant="rounded" height={56} />
-          <Skeleton variant="rounded" height={44} />
-          <Skeleton variant="rounded" height={320} />
-        </Stack>
+        <MascotLoader title="Đang mở lượt quét…" />
       );
     }
     if (!currentRun) {
