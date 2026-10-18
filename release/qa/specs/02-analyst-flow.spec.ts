@@ -1,5 +1,16 @@
 import { readFile } from 'node:fs/promises';
-import { API, apiToken, expect, leakedColumns, login, test } from './helpers';
+import {
+  API,
+  apiToken,
+  expect,
+  leakedColumns,
+  login,
+  parseCsv,
+  readZip,
+  SCAN_TABLES,
+  sourceRowCounts,
+  test,
+} from './helpers';
 
 // Scenario: scenarios/02-analyst-flow.md. Consumes the dataset published by 01-dpo-main-flow.
 test.describe('Analyst flow', () => {
@@ -27,28 +38,49 @@ test.describe('Analyst flow', () => {
     }
   });
 
-  test('TC-AN-03 CSV download holds exactly the selected table, protected', async ({ page, problems: _ }) => {
+  test('TC-AN-03 full export: every table, every row, protected', async ({ page, problems: _ }) => {
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /Tải toàn bộ/ }).click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/\.zip$/);
+    const files = readZip(await download.path());
+    expect(Object.keys(files).sort()).toEqual(SCAN_TABLES.map((t) => `${t}.csv`).sort());
+    const expectedRows = sourceRowCounts(SCAN_TABLES);
+    for (const table of SCAN_TABLES) {
+      const [header, ...rows] = parseCsv(files[`${table}.csv`]);
+      expect(new Set(header).size, `duplicate columns in ${table}`).toBe(header.length);
+      expect(rows.length, `rows of ${table}`).toBe(expectedRows[table]);
+      expect(leakedColumns(files[`${table}.csv`]), `raw PII in ${table}`).toEqual([]);
+    }
+    expect(parseCsv(files['customers.csv'])[0], 'columns from other tables').not.toContain('ship_name');
+    expect(parseCsv(files['kyc_documents.csv'])[0]).not.toContain('ocr_text');
+  });
+
+  test('TC-AN-03b single-table CSV holds that table only, every row', async ({ page, problems: _ }) => {
     await page.getByRole('button', { name: 'customers', exact: true }).click();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: /Tải CSV/ }).click(),
+      page.getByRole('button', { name: /Tải CSV bảng customers/ }).click(),
     ]);
-    const csv = (await readFile(await download.path())).toString('utf8').replace(/^﻿/, '');
-    const header = csv.split(/\r?\n/)[0].split(',');
-    expect(new Set(header).size, 'duplicate CSV columns').toBe(header.length);
+    const csv = (await readFile(await download.path())).toString('utf8').replace(/^\uFEFF/, '');
+    const [header, ...rows] = parseCsv(csv);
     expect(header).toContain('contact_name');
     expect(header, 'columns from other tables').not.toContain('ship_name');
+    expect(rows.length).toBe(sourceRowCounts(['customers']).customers);
     expect(leakedColumns(csv)).toEqual([]);
   });
 
   test('TC-AN-04 dataset header actions stay inside the card', async ({ page, problems: _ }) => {
-    const button = page.getByRole('button', { name: /Tải CSV/ });
-    await expect(button).toBeVisible();
-    const box = await button.boundingBox();
     const viewport = page.viewportSize();
-    expect(box && viewport && box.x + box.width <= viewport.width - 16).toBeTruthy();
-    // A clipped label wraps onto several lines; a healthy button is a single line.
-    expect(box && box.height < 48).toBeTruthy();
+    for (const name of [/Tải toàn bộ/, /Tải CSV/]) {
+      const button = page.getByRole('button', { name });
+      await expect(button).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box && viewport && box.x + box.width <= viewport.width - 16).toBeTruthy();
+      // A clipped label wraps onto several lines; a healthy button is a single line.
+      expect(box && box.height < 48).toBeTruthy();
+    }
   });
 
   test('TC-AN-05 column guide explains every transform truthfully', async ({ page, problems: _ }) => {

@@ -21,6 +21,7 @@ Nhật ký lỗi phát hiện khi chạy kiểm thử E2E luồng DPO + Analyst.
 | BUG-06 | Trung bình | Thẻ "Cột PII phát hiện" hiện tổng số cột (53) thay vì số cột PII (21) | TC-DPO-04 | [QA-06](../tasks/QA-06-kpi-pii-count-shows-total.md) | Đã sửa |
 | BUG-07 | Thấp | Hướng dẫn Analyst hứa "che một phần" nhưng MASK thay toàn bộ bằng `***` | TC-AN-05 | [QA-07](../tasks/QA-07-mask-hint-promises-partial.md) | Đã sửa |
 | BUG-08 | Cao | Build lỗi "UndefinedTable" khi phạm vi quét thiếu `order_details` | TC-LC-01 | [QA-08](../tasks/QA-08-verifier-fails-on-partial-scope.md) | Đã sửa |
+| BUG-09 | Cao | Analyst chỉ tải được 1 bảng và tối đa 200 dòng, không có cách lấy đủ dataset để phân tích | TC-AN-03, TC-AN-03b | [QA-09](../tasks/QA-09-full-dataset-export.md) | Đã sửa |
 | ENV-01 | Cao (môi trường dev) | `OPENAI_MODEL=GPT-4o-mini` viết hoa nên AI không chạy | TC-DPO-03 | — | Cần chủ repo sửa `.env` |
 | ENV-02 | Cao (môi trường dev) | `DATABASE_URL` trỏ vào chính DB nguồn | — | — | Cần chủ repo sửa `.env` |
 | ENV-03 | Thấp | Vite dev :5173 lỗi resolve `@/app/App` (server cũ) | — | — | Khởi động lại là hết |
@@ -58,6 +59,11 @@ Nhật ký lỗi phát hiện khi chạy kiểm thử E2E luồng DPO + Analyst.
 ## BUG-04 — CSV xuất sai bảng
 - **Hiện tượng:** File tải về có header 52 cột của mọi bảng, `order_id` và `customer_id` lặp lại.
 - **Nguyên nhân gốc:** `buildProtectedCsv` không lọc `columns` theo `selected_table`, trong khi lưới hiển thị có lọc.
+
+## BUG-09 — Không tải được toàn bộ dataset
+- **Nguồn:** Phản hồi của chủ sản phẩm sau run 03 ("CSV tải về phải đầy đủ bảng để Analyst phân tích").
+- **Hiện tượng:** Nút "Tải CSV" chỉ xuất bảng đang xem. Trình duyệt tự ghép CSV từ API preview nên mỗi lần tối đa 200 dòng (`customers` có nhiều hơn thì bị thiếu mà không báo).
+- **Nguyên nhân gốc:** Không có API xuất dữ liệu. Frontend dùng tạm API xem trước (giới hạn `limit ≤ 200`) để ghép CSV.
 
 ## BUG-05 — Token phiên trong URL
 - **Hiện tượng:** Popup báo cáo có URL `/api/v1/runs/1/report?format=html&token=<redacted>`.

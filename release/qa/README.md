@@ -52,7 +52,7 @@ release/qa/
 # Tiền điều kiện: docker compose up -d db mongodb (đã seed), .venv và front_end/node_modules đã cài
 cd release/qa
 npm install            # lần đầu
-npm test               # toàn bộ 21 test case, ~3–5 phút
+npm test               # toàn bộ 22 test case, ~3–5 phút
 npm run test:dpo       # chỉ luồng DPO
 npm run report         # mở báo cáo HTML của lần chạy gần nhất
 ```

@@ -35,7 +35,7 @@ import '@xyflow/react/dist/style.css';
 
 import { STICKY_PANEL_HEIGHT, STICKY_PANEL_TOP } from '@/shared/config/layout';
 import { MascotLoader, StateNotice } from '@/shared/ui';
-import { previewDataset, type DatasetPreview } from '../api/realPiiReviewApi';
+import { exportDataset, type DatasetPreview } from '../api/realPiiReviewApi';
 import { ErdLineageDiagram } from './ErdLineageDiagram';
 import { useDatasets, useDatasetPreview } from '../hooks/usePiiReview';
 import { CollapsibleTableGroup } from './CollapsibleTableGroup';
@@ -44,7 +44,6 @@ import { getTransformAnalystHint } from '../model/policyLabels';
 import { buildJoinSnippets } from '../model/joinSnippets';
 
 const ROW_LIMIT_OPTIONS = [20, 50, 100, 200] as const;
-const DOWNLOAD_ROW_LIMIT = 200;
 
 function formatPreviewValue(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === '') {
@@ -53,45 +52,11 @@ function formatPreviewValue(value: string | number | boolean | null | undefined)
   return String(value);
 }
 
-function getDatasetFileName(datasetName: string, table: string | null): string {
-  const safeName = [datasetName, table]
-    .filter(Boolean)
-    .join('-')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return `${safeName || 'protected-dataset'}.csv`;
-}
-
-function formatCsvCell(value: string | number | boolean | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  const text = String(value);
-  if (!/[",\n\r]/.test(text)) return text;
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-function buildProtectedCsv(preview: DatasetPreview): string {
-  // Columns of every table come back; export only the table on screen, like the grid shows it.
-  const exportColumns = preview.columns.filter(
-    (column) =>
-      column.transform !== 'DROPPED' &&
-      (!preview.selected_table || column.source_path === preview.selected_table),
-  );
-  const header = exportColumns.map((column) => formatCsvCell(column.name)).join(',');
-  const rows = preview.rows.map((row) =>
-    exportColumns.map((column) => formatCsvCell(row[column.name])).join(','),
-  );
-  return [header, ...rows].join('\n');
-}
-
-function downloadCsv(preview: DatasetPreview): void {
-  const csv = buildProtectedCsv(preview);
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+function saveFile(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = getDatasetFileName(preview.dataset_name, preview.selected_table ?? null);
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -142,7 +107,7 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
   const [activeTab, setActiveTab] = useState<number>(0);
   const [datasetSearch, setDatasetSearch] = useState<string>('');
   const [collapsedPreviewSources, setCollapsedPreviewSources] = useState<Record<string, boolean>>({});
-  const [downloadingDatasetId, setDownloadingDatasetId] = useState<number | null>(null);
+  const [downloadingTarget, setDownloadingTarget] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [rowLimit, setRowLimit] = useState<number>(ROW_LIMIT_OPTIONS[0]);
@@ -217,17 +182,18 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
     }));
   };
 
+  /** table=null downloads every table of the dataset (ZIP, one CSV each); otherwise one table's CSV. */
   const handleDownloadDataset = async (datasetId: number, table: string | null) => {
     try {
       setDownloadError(null);
-      setDownloadingDatasetId(datasetId);
-      const datasetPreview = await previewDataset(datasetId, { table, limit: DOWNLOAD_ROW_LIMIT });
-      downloadCsv(datasetPreview);
+      setDownloadingTarget(table ?? 'all');
+      const { blob, filename } = await exportDataset(datasetId, table);
+      saveFile(blob, filename ?? `dataset-${datasetId}${table ? `-${table}.csv` : '.zip'}`);
     } catch (error) {
       console.error('Download failed:', error);
-      setDownloadError('Không thể tải dataset. Vui lòng mở xem trước rồi thử lại.');
+      setDownloadError('Không thể tải dataset. Vui lòng thử lại hoặc liên hệ DPO.');
     } finally {
-      setDownloadingDatasetId(null);
+      setDownloadingTarget(null);
     }
   };
 
@@ -424,29 +390,52 @@ export function AnalystDatasetExperienceMVP(): JSX.Element {
                 </Box>
               </Stack>
 
-              <Tooltip title={`Tải tối đa ${DOWNLOAD_ROW_LIMIT} dòng của bảng đang xem (đã bảo vệ, không có PII gốc)`}>
-                <span>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                    startIcon={
-                      downloadingDatasetId !== null ? (
-                        <CircularProgress size={14} color="inherit" />
-                      ) : (
-                        <DownloadIcon sx={{ fontSize: 16 }} />
-                      )
-                    }
-                    disabled={selectedDatasetId === null || downloadingDatasetId !== null}
-                    onClick={() =>
-                      selectedDatasetId !== null &&
-                      void handleDownloadDataset(selectedDatasetId, preview?.selected_table || null)
-                    }
-                  >
-                    Tải CSV bảng {preview?.selected_table || ''}
-                  </Button>
-                </span>
-              </Tooltip>
+              <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }} flexWrap="wrap" useFlexGap>
+                <Tooltip title="Tất cả các bảng của dataset, đủ mọi dòng: mỗi bảng một tệp CSV trong tệp ZIP (đã bảo vệ, không có PII gốc)">
+                  <span>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disableElevation
+                      sx={{ whiteSpace: 'nowrap' }}
+                      startIcon={
+                        downloadingTarget === 'all' ? (
+                          <CircularProgress size={14} color="inherit" />
+                        ) : (
+                          <DownloadIcon sx={{ fontSize: 16 }} />
+                        )
+                      }
+                      disabled={selectedDatasetId === null || downloadingTarget !== null}
+                      onClick={() => selectedDatasetId !== null && void handleDownloadDataset(selectedDatasetId, null)}
+                    >
+                      Tải toàn bộ ({preview?.tables.length ?? 0} bảng, ZIP)
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Chỉ bảng đang xem, đủ mọi dòng (đã bảo vệ, không có PII gốc)">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      sx={{ whiteSpace: 'nowrap' }}
+                      startIcon={
+                        downloadingTarget !== null && downloadingTarget !== 'all' ? (
+                          <CircularProgress size={14} color="inherit" />
+                        ) : (
+                          <DownloadIcon sx={{ fontSize: 16 }} />
+                        )
+                      }
+                      disabled={selectedDatasetId === null || !preview?.selected_table || downloadingTarget !== null}
+                      onClick={() =>
+                        selectedDatasetId !== null &&
+                        void handleDownloadDataset(selectedDatasetId, preview?.selected_table || null)
+                      }
+                    >
+                      Tải CSV bảng {preview?.selected_table || ''}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Stack>
             </Stack>
           </Box>
 

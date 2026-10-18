@@ -83,6 +83,66 @@ export function leakedColumns(text: string): string[] {
     .map(([column]) => column);
 }
 
+/** Row counts of source tables, to prove an export holds every row and not just a preview page. */
+export function sourceRowCounts(tables: string[]): Record<string, number> {
+  const out = execFileSync(
+    path.join(ROOT, '.venv/bin/python'),
+    [path.join(ROOT, 'release/qa/scripts/source_row_counts.py'), ...tables],
+    { cwd: ROOT, env: { ...process.env, PYTHONPATH: ROOT }, encoding: 'utf8' },
+  );
+  return JSON.parse(out) as Record<string, number>;
+}
+
+/** Files of a downloaded ZIP (names → UTF-8 text, BOM stripped), read with the system unzip. */
+export function readZip(file: string): Record<string, string> {
+  const names = execFileSync('unzip', ['-Z1', file], { encoding: 'utf8' }).split('\n').filter(Boolean);
+  return Object.fromEntries(
+    names.map((name) => [
+      name,
+      execFileSync('unzip', ['-p', file, name], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).replace(/^\uFEFF/, ''),
+    ]),
+  );
+}
+
+/** Splits CSV text into records of fields, honouring quoted fields that contain commas or newlines. */
+export function parseCsv(text: string): string[][] {
+  const records: string[][] = [];
+  let record: string[] = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      record.push(field);
+      field = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i += 1;
+      record.push(field);
+      records.push(record);
+      record = [];
+      field = '';
+    } else {
+      field += ch;
+    }
+  }
+  if (field || record.length) {
+    record.push(field);
+    records.push(record);
+  }
+  return records;
+}
+
 export function runIdFromUrl(url: string): number {
   const match = /\/dpo\/runs\/(\d+)/.exec(url);
   if (!match) throw new Error(`not a run URL: ${url}`);

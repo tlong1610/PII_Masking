@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiRequest, apiRequestText } from '@/shared/api/client';
+import { apiRequest, apiRequestFile, apiRequestText, type DownloadedFile } from '@/shared/api/client';
 
 // ============================================================================
 // TYPES (matching backend schemas)
@@ -300,6 +300,15 @@ export async function previewDataset(
     `/datasets/${datasetId}/preview${query ? `?${query}` : ''}`,
   );
   return datasetPreviewSchema.parse(data);
+}
+
+/**
+ * Every protected row of a published dataset: a ZIP with one CSV per table, or one table's CSV.
+ * Values come from the snapshot, already MASK/HMAC/DROP — never raw PII.
+ */
+export async function exportDataset(datasetId: number, table?: string | null): Promise<DownloadedFile> {
+  const query = table ? `?table=${encodeURIComponent(table)}` : '';
+  return apiRequestFile(`/datasets/${datasetId}/export${query}`);
 }
 
 // ============================================================================

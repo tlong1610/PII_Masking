@@ -120,3 +120,16 @@ export async function apiRequestText(endpoint: string, options: RequestInit = {}
   const response = await send(endpoint, options);
   return response.text();
 }
+
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string | null;
+}
+
+/** For file downloads (e.g. the dataset export): the body as a Blob plus the server's filename. */
+export async function apiRequestFile(endpoint: string, options: RequestInit = {}): Promise<DownloadedFile> {
+  const response = await send(endpoint, options);
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+  return { blob: await response.blob(), filename };
+}
