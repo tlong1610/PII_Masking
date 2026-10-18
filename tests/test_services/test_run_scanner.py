@@ -1,5 +1,7 @@
 """Unit tests for run_scanner mapping helpers (no live LLM / DB)."""
 
+import threading
+
 import pytest
 
 from src.models.schemas import (
@@ -121,15 +123,22 @@ FAKE_DB = DatabaseProfile(
 
 @pytest.fixture
 def fake_connector(monkeypatch):
+    calls: list[dict] = []
+
     class FakeConnector:
         def __init__(self, url):
             self.url = url
 
-        def extract_database_profile(self, schema_name="public", sample_size=5):
+        def extract_database_profile(self, schema_name="public", sample_size=5, table_names=None):
             assert sample_size == 5
-            return FAKE_DB
+            calls.append({"table_names": table_names, "thread": threading.current_thread()})
+            if table_names is None:
+                return FAKE_DB
+            # Mirror PostgresConnector: only the requested tables come back.
+            return FAKE_DB.model_copy(update={"tables": [t for t in FAKE_DB.tables if t.table_name in table_names]})
 
     monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector", FakeConnector)
+    return calls
 
 
 @pytest.mark.asyncio
@@ -163,6 +172,22 @@ async def test_scan_postgres_table_allowlist(fake_connector):
         "postgresql://fake/db", use_ai=False, tables=("customers",)
     )
     assert {s["source_path"] for s in specs} == {"customers"}
+
+
+@pytest.mark.asyncio
+async def test_scan_postgres_profiles_only_selected_tables_off_the_event_loop(fake_connector):
+    await scan_postgres_source("postgresql://fake/db", use_ai=False, tables=("customers", "orders"))
+
+    # Only the selected tables are profiled (not the whole schema), and in a worker thread
+    # so a long profile does not stall every other API request.
+    assert fake_connector[0]["table_names"] == ("customers", "orders")
+    assert fake_connector[0]["thread"] is not threading.main_thread()
+
+
+@pytest.mark.asyncio
+async def test_scan_postgres_without_selection_profiles_every_table(fake_connector):
+    await scan_postgres_source("postgresql://fake/db", use_ai=False, tables=())
+    assert fake_connector[0]["table_names"] is None
 
 
 @pytest.mark.asyncio
@@ -277,7 +302,7 @@ async def test_rule_scan_passes_table_name_to_table_scoped_rules(monkeypatch):
         def __init__(self, *_args, **_kwargs):
             pass
 
-        def extract_database_profile(self, schema_name="public", sample_size=5):
+        def extract_database_profile(self, schema_name="public", sample_size=5, table_names=None):
             return profile
 
     monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector", FakeConnector)
