@@ -3,7 +3,7 @@
 //
 //   cd presentation/source && npm install && npm run build      # or: node build_deck.js --qa
 //
-// Outputs: ../pitch_deck.pptx, ../pitch_deck.pdf, ../thumbnail.png (1280x720).
+// Outputs: ../pitch_deck.pptx, ../pitch_deck.pdf, ../thumbnail.png (1920x1080).
 // Intermediate HTML, PNG assets and QA renders go to ./build/ (gitignored).
 // Layout unit is the pixel of a 1280x720 canvas (96 px = 1 inch = LAYOUT_WIDE in PowerPoint).
 // Colors follow assets/svg/piiguard-brand-dna.svg. Never put raw PII or secrets on a slide.
@@ -478,29 +478,210 @@ slides.push({
   notes: 'Bốn thành viên và vai trò. Bước tiếp theo: ưu tiên chặn ngoại lệ KEEP cho PII; sau đó CDC realtime, quản lý khóa HMAC bằng KMS/Vault và SSO, mở rộng nguồn dữ liệu. Cảm ơn và mời hỏi đáp.',
 });
 
-// ---------------------------------------------------------------- thumbnail (1280x720, HTML only)
-const thumbnail = [
-  rect(0, 0, 1280, 720, { fill: C.bg }),
-  grad(32, 32, 780, 656, 32),
-  rect(80, 84, 76, 76, { fill: C.white, r: 18 }),
-  img(88, 92, 60, 60, 'img/logo.png', { alt: 'Logo PIIGuard Shield' }),
-  text(176, 84, 600, 76, [[{ text: 'DEMO DAY · DATA-06 · TEAM P-138', b: true }], [{ text: 'VinUni AI20K Build Phase · Cohort 4', color: C.onDark }]],
-    { size: 15, color: C.white, valign: 'middle', para: 4, spacing: 1 }),
-  text(80, 206, 720, 100, 'PIIGuard Shield', { size: 64, bold: true, color: C.white }),
-  text(80, 306, 720, 50, 'Protect data. Preserve utility.', { size: 30, color: C.white }),
-  text(80, 366, 700, 50, 'Che dữ liệu cá nhân — vẫn JOIN được.', { size: 24, bold: true, color: C.onDark }),
-  ...['Scan', 'DPO Review', 'Verify', 'Publish'].flatMap((t, i, arr) => {
-    const widths = [104, 170, 118, 128];
-    const x = 80 + widths.slice(0, i).reduce((a, b) => a + b + 34, 0);
-    const out = pill(x, 470, widths[i], 46, t, { fill: C.white, line: C.white, transp: 82, color: C.white, size: 17 });
-    if (i < arr.length - 1) out.push(arrow(x + widths[i] + 6, 493, x + widths[i] + 28, 493, { color: C.onDark }));
-    return out;
-  }),
-  text(80, 574, 700, 70, 'PostgreSQL · MongoDB · Luật 91/2025 · NĐ 356/2025', { size: 17, color: C.onDark, valign: 'middle' }),
-  rect(866, 120, 360, 360, { fill: C.softFill, r: 'full' }),
-  mascot('protected', 836, 90, 420),
-  ...pill(906, 548, 280, 58, 'VERIFIED ✓', { fill: C.verified, line: C.verified, color: C.white, size: 24 }),
+// ---------------------------------------------------------------- thumbnail (16:9, HTML only)
+// Marketing cover for the video / project gallery: the DPO review workspace on a tilted monitor,
+// Pango pointing at it, neon metric badges and a feature strip. The screen is a faithful mock of
+// the real UI (field paths, classes and actions only, never values).
+const THUMB_BADGES = [
+  ['100%', 'Accuracy', '339 cột · sau HITL', 'target', 'b1'],
+  ['97.86%', 'Recall PII', 'văn bản tự do', 'scan', 'b2'],
+  ['SHA-256', 'Audit chain', 'nhật ký bất biến', 'chain', 'b3'],
 ];
+const THUMB_FEATURES = [
+  ['user', 'Human-in-the-Loop', 'AI đề xuất · DPO quyết định'],
+  ['shield', 'Che PII đa kỹ thuật', 'MASK · HMAC · REDACT · DROP'],
+  ['check', 'Verifier → Publish', 'Kiểm chứng trước khi chia sẻ'],
+];
+const THUMB_ROWS = [
+  ['customer_id', 'varchar', 'Khóa nối', 'join', 'Rule', 'HMAC', 'hmac'],
+  ['contact_name', 'varchar', 'L2 · Cơ bản', 'l2', 'Regex', 'MASK', 'mask'],
+  ['mobile_phone', 'varchar', 'L2 · Cơ bản', 'l2', 'Regex', 'MASK', 'mask'],
+  ['email', 'varchar', 'L2 · Cơ bản', 'l2', 'Regex', 'MASK', 'mask'],
+  ['cccd', 'varchar', 'L2 · Cơ bản', 'l2', 'Regex', 'HMAC', 'hmac', true],
+  ['date_of_birth', 'date', 'L2 · Cơ bản', 'l2', 'Rule', 'MASK', 'mask'],
+  ['personal_notes', 'text', 'L2 · Cơ bản', 'l2', 'GLiNER', 'REDACT', 'redact'],
+  ['tax_code', 'varchar', 'L2 · Cơ bản', 'l2', 'Regex', 'MASK', 'mask'],
+  ['address', 'varchar', 'L2 · Cơ bản', 'l2', 'Rule', 'MASK', 'mask'],
+  ['region', 'varchar', 'Non-PII', 'non', 'Rule', 'KEEP', 'keep'],
+  ['country', 'varchar', 'Non-PII', 'non', 'Rule', 'KEEP', 'keep'],
+];
+const ICON = {
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/>',
+  chain: '<path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>',
+  user: '<circle cx="10" cy="8" r="4"/><path d="M3 20a7 7 0 0 1 12-5"/><path d="m15 18 2 2 4-4"/>',
+  shield: '<path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+};
+const icon = (name, size) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
+
+function thumbnailHtml() {
+  const badges = THUMB_BADGES.map(([n, t, s, ic, cls]) =>
+    `<div class="badge ${cls}"><div class="bi">${icon(ic, 34)}</div><div><div class="bn">${esc(n)}</div><div class="bt">${esc(t)}</div><div class="bs">${esc(s)}</div></div></div>`).join('');
+  const features = THUMB_FEATURES.map(([ic, t, s]) =>
+    `<div class="feat"><div class="fi">${icon(ic, 30)}</div><div><div class="ft">${esc(t)}</div><div class="fs">${esc(s)}</div></div></div>`).join('');
+  const rows = THUMB_ROWS.map(([f, type, cls, ccls, src, act, acls, sel]) =>
+    `<div class="tr${sel ? ' sel' : ''}"><div><b>${esc(f)}</b>${sel ? '<i>Nối với orders.customer_cccd</i>' : ''}</div><div class="mut">${type}</div>`
+    + `<div><span class="cls ${ccls}">${esc(cls)}</span></div><div><span class="src">${src}</span></div><div><span class="act ${acls}">${act}</span></div></div>`).join('');
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>PIIGuard Shield — Thumbnail</title><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 1280px; height: 720px; overflow: hidden; font-family: 'Segoe UI', Arial, Helvetica, sans-serif; background: #050B1A; }
+.stage { position: relative; width: 1280px; height: 720px; overflow: hidden; color: #fff;
+  background:
+    radial-gradient(700px 460px at 62% 42%, rgba(37,99,235,.42), transparent 70%),
+    radial-gradient(520px 360px at 100% 0%, rgba(15,118,110,.45), transparent 70%),
+    radial-gradient(560px 380px at 0% 100%, rgba(22,163,74,.28), transparent 70%),
+    linear-gradient(160deg, #071433 0%, #050B1A 60%, #04101C 100%); }
+.grid { position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(96,165,250,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(96,165,250,.07) 1px, transparent 1px);
+  background-size: 44px 44px; -webkit-mask-image: radial-gradient(900px 520px at 60% 50%, #000, transparent 80%); }
+.streak { position: absolute; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(56,189,248,.9), transparent); filter: blur(.4px); }
+.brand { position: absolute; left: 34px; top: 26px; display: flex; align-items: center; gap: 12px; z-index: 6; }
+.brand .tile { width: 46px; height: 46px; border-radius: 12px; background: #fff; display: grid; place-items: center; box-shadow: 0 0 24px rgba(56,189,248,.35); }
+.brand .tile img { width: 36px; height: 36px; }
+.brand b { display: block; font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+.brand span { display: block; font-size: 12px; font-weight: 700; color: #7DD3FC; letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
+
+/* monitor */
+.monitor { position: absolute; left: 352px; top: 58px; width: 860px; height: 520px; z-index: 2;
+  transform: perspective(1900px) rotateY(-13deg) rotateX(3deg); transform-origin: 30% 50%; }
+.bezel { position: absolute; inset: 0; border-radius: 22px; padding: 12px; background: linear-gradient(145deg, #334155, #0B1220 35%, #020617 70%, #334155); border: 1.5px solid rgba(148,163,184,.55);
+  box-shadow: 0 40px 90px rgba(0,0,0,.65), 0 0 60px rgba(37,99,235,.45); }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden; background: #F8F9FA; color: #111827; display: flex; font-size: 10.5px; }
+.glare { position: absolute; inset: 12px; border-radius: 10px; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.22), transparent 38%); }
+.side { width: 150px; background: #fff; border-right: 1px solid #E5E7EB; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+.logo { display: flex; gap: 7px; align-items: center; margin-bottom: 6px; }
+.logo img { width: 24px; height: 24px; }
+.logo b { display: block; font-size: 11px; }
+.logo span { display: block; font-size: 7.5px; color: #6B7280; }
+.newa { border: 1px solid #D1D5DB; border-radius: 6px; padding: 5px 8px; font-weight: 600; font-size: 9.5px; }
+.sec { margin-top: 6px; font-size: 7.5px; font-weight: 700; letter-spacing: .06em; color: #6B7280; }
+.nav { padding: 6px 8px; border-radius: 6px; font-size: 10px; color: #374151; }
+.nav.on { background: #EBF3FB; color: #1B51A4; font-weight: 700; }
+.who { margin-top: auto; display: flex; gap: 6px; align-items: center; font-size: 9.5px; }
+.who i { width: 20px; height: 20px; border-radius: 50%; background: #1B51A4; color: #fff; font-style: normal; display: grid; place-items: center; font-weight: 700; font-size: 9px; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.top { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: #fff; border-bottom: 1px solid #E5E7EB; }
+.crumb { font-weight: 700; font-size: 11.5px; }
+.crumb span { color: #6B7280; font-weight: 500; }
+.st { margin-left: auto; font-size: 8.5px; font-weight: 700; color: #1B51A4; background: #EBF3FB; border: 1px solid #BFDBFE; border-radius: 4px; padding: 2px 7px; }
+.pub { font-size: 9px; font-weight: 700; color: #fff; background: #1B51A4; border-radius: 5px; padding: 4px 10px; }
+.tabs { display: flex; gap: 14px; padding: 0 12px; background: #fff; border-bottom: 1px solid #E5E7EB; font-size: 9.5px; color: #4B5563; }
+.tabs div { padding: 7px 0; }
+.tabs .on { color: #1B51A4; font-weight: 700; border-bottom: 2px solid #1B51A4; }
+.body { flex: 1; display: flex; min-height: 0; }
+.tbl { flex: 1; padding: 8px 10px; display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.grp { font-weight: 700; font-size: 10px; padding: 5px 6px; background: #F3F4F6; border-radius: 4px; margin-bottom: 2px; }
+.th, .tr { display: grid; grid-template-columns: 1.5fr .8fr 1fr .7fr .7fr; align-items: center; padding: 5px 6px; border-bottom: 1px solid #F3F4F6; }
+.th { font-size: 7.5px; font-weight: 700; letter-spacing: .05em; color: #6B7280; text-transform: uppercase; }
+.tr b { font-family: Consolas, 'Courier New', monospace; font-size: 10px; display: block; }
+.tr i { display: block; font-style: normal; font-size: 7.5px; color: #2563EB; }
+.tr.sel { outline: 1.5px solid #DC2626; border-radius: 4px; background: #fff; }
+.mut { color: #6B7280; font-size: 9px; }
+.cls, .src, .act { display: inline-block; font-size: 8px; font-weight: 700; border-radius: 3px; padding: 2px 5px; }
+.cls.l2 { color: #92400E; background: #FFFBEB; border: 1px solid #FCD34D; }
+.cls.join { color: #1D4ED8; background: #EFF6FF; border: 1px solid #BFDBFE; }
+.cls.non { color: #4B5563; background: #F3F4F6; border: 1px solid #E5E7EB; }
+.src { color: #4B5563; background: #F9FAFB; border: 1px solid #E5E7EB; font-weight: 600; }
+.act { width: 50px; text-align: center; }
+.hmac { color: #6D28D9; background: #F5F3FF; border: 1px solid #DDD6FE; }
+.mask { color: #0F766E; background: #ECFDF5; border: 1px solid #99F6E4; }
+.redact { color: #B45309; background: #FFF7ED; border: 1px solid #FDBA74; }
+.keep { color: #4B5563; background: #F3F4F6; border: 1px solid #D1D5DB; }
+.ver { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 5px; background: #ECFDF5; border: 1px solid #A7F3D0; color: #064E3B; font-weight: 700; font-size: 9.5px; }
+.ver span { margin-left: auto; color: #fff; background: #16A34A; border-radius: 10px; padding: 1px 8px; font-size: 8px; }
+.drawer { width: 230px; background: #fff; border-left: 1px solid #E5E7EB; padding: 11px; display: flex; flex-direction: column; gap: 8px; }
+.dh { font-weight: 800; font-size: 11.5px; display: flex; align-items: center; gap: 6px; color: #111827; }
+.dh svg { color: #1B51A4; }
+.box { border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px; background: #F9FAFB; }
+.box small { display: block; font-size: 7.5px; color: #6B7280; letter-spacing: .05em; }
+.box b { font-family: Consolas, 'Courier New', monospace; font-size: 11px; }
+.chips { display: flex; gap: 4px; margin-top: 5px; }
+.info { border: 1px solid #BFDBFE; background: #EFF6FF; color: #1E3A8A; border-radius: 6px; padding: 7px; font-size: 8.5px; line-height: 1.4; }
+.law { border: 1px solid #BFDBFE; background: #F8FBFF; border-radius: 6px; padding: 7px; font-size: 8.5px; line-height: 1.4; color: #1E3A8A; }
+.law b { display: block; margin-bottom: 2px; }
+.lbl { font-size: 8.5px; font-weight: 700; color: #374151; }
+.sel2 { border: 1px solid #D1D5DB; border-radius: 5px; padding: 5px 7px; font-size: 9.5px; display: flex; }
+.sel2 span { margin-left: auto; color: #6B7280; }
+.save { margin-top: auto; background: #1B51A4; color: #fff; text-align: center; font-weight: 700; border-radius: 5px; padding: 7px; font-size: 9.5px; }
+.verified { position: absolute; right: 40px; top: 14px; z-index: 5; font-size: 12px; font-weight: 900; letter-spacing: .08em; color: #fff; background: #16A34A;
+  border-radius: 999px; padding: 8px 15px; box-shadow: 0 0 22px rgba(74,222,128,.6); }
+
+/* badges */
+.badge { position: absolute; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(8,47,73,.82), rgba(4,20,40,.82)); border: 1.5px solid rgba(56,189,248,.75);
+  box-shadow: 0 0 22px rgba(56,189,248,.45), inset 0 0 18px rgba(56,189,248,.18); }
+.bi { color: #67E8F9; filter: drop-shadow(0 0 6px rgba(103,232,249,.8)); }
+.bn { font-size: 30px; font-weight: 900; line-height: 1; letter-spacing: -.01em; text-shadow: 0 0 14px rgba(125,211,252,.6); }
+.bt { font-size: 15px; font-weight: 800; color: #E0F2FE; margin-top: 2px; }
+.bs { font-size: 11.5px; color: #7DD3FC; }
+.b1 { left: 30px; top: 104px; }
+.b2 { left: 44px; top: 214px; }
+.b3 { left: 24px; top: 488px; border-color: rgba(251,191,36,.8); box-shadow: 0 0 22px rgba(251,191,36,.4), inset 0 0 18px rgba(251,191,36,.15); }
+.b3 .bi { color: #FCD34D; filter: drop-shadow(0 0 6px rgba(252,211,77,.8)); }
+.b3 .bs { color: #FDE68A; }
+.pango { position: absolute; left: 150px; top: 238px; width: 360px; height: 360px; z-index: 4; filter: drop-shadow(0 22px 34px rgba(0,0,0,.6)) drop-shadow(0 0 30px rgba(37,99,235,.35)); }
+.floor { position: absolute; left: 170px; top: 560px; width: 330px; height: 40px; border-radius: 50%; background: radial-gradient(closest-side, rgba(56,189,248,.45), transparent); z-index: 3; }
+
+/* features */
+.feats { position: absolute; left: 400px; right: 40px; bottom: 26px; z-index: 5; display: grid; grid-template-columns: repeat(3, 1fr);
+  border-radius: 16px; background: linear-gradient(135deg, rgba(8,30,62,.88), rgba(5,15,35,.88)); border: 1.5px solid rgba(56,189,248,.6);
+  box-shadow: 0 0 26px rgba(56,189,248,.35); }
+.feat { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-left: 1px solid rgba(125,211,252,.22); }
+.feat:first-child { border-left: 0; }
+.fi { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #67E8F9; border: 1.5px solid rgba(103,232,249,.6); box-shadow: inset 0 0 12px rgba(103,232,249,.25); flex: none; }
+.ft { font-size: 16px; font-weight: 800; }
+.fs { font-size: 12.5px; color: #93C5FD; margin-top: 2px; }
+.note { position: absolute; left: 34px; bottom: 12px; font-size: 10.5px; color: #64748B; z-index: 5; }
+</style></head><body><div class="stage">
+<div class="grid"></div>
+<div class="streak" style="left:300px;top:610px;width:520px"></div>
+<div class="streak" style="left:820px;top:22px;width:380px;opacity:.6"></div>
+<div class="brand"><div class="tile"><img src="img/logo.png" alt=""></div><div><b>PIIGuard Shield</b><span>Enterprise PII Governance · P-138</span></div></div>
+<div class="monitor"><div class="bezel"><div class="screen">
+  <div class="side">
+    <div class="logo"><img src="img/logo.png" alt=""><div><b>PIIGuard Shield</b><span>Data Intelligence &amp; Governance</span></div></div>
+    <div class="newa">+ New Action</div>
+    <div class="sec">CATALOG &amp; WORKSPACES</div>
+    <div class="nav on">DPO · Quét &amp; duyệt</div>
+    <div class="nav">Runs &amp; datasets</div>
+    <div class="sec">SECURITY &amp; COMPLIANCE</div>
+    <div class="nav">Quy định NĐ 13</div>
+    <div class="nav">Demo che mờ</div>
+    <div class="nav">Audit Hash-Chain</div>
+    <div class="who"><i>D</i><div><b>dpo</b><br><span style="color:#6B7280">DPO</span></div></div>
+  </div>
+  <div class="main">
+    <div class="top"><div class="crumb">Northwind Production <span>› public › customers</span></div><div class="st">READY_TO_BUILD</div><div class="pub">Lưu &amp; build</div></div>
+    <div class="tabs"><div class="on">Tổng quan &amp; phân loại</div><div>Rủi ro &amp; đánh giá</div><div>Nhật ký kiểm toán</div><div>Dữ liệu cho Analyst</div></div>
+    <div class="body">
+      <div class="tbl">
+        <div class="grp">▾ customers</div>
+        <div class="th"><div>Cột</div><div>Kiểu</div><div>Phân loại</div><div>Nguồn</div><div>Hành động</div></div>
+        ${rows}
+        <div class="ver">Verifier · join_matched customers → orders<span>PASS</span></div>
+      </div>
+      <div class="drawer">
+        <div class="dh">${icon('shield', 14)}Chi tiết chính sách cột</div>
+        <div class="box"><small>CỘT DỮ LIỆU</small><b>cccd</b><div class="chips"><span class="cls l2">L2 · Cơ bản</span><span class="src">Regex Pattern</span></div></div>
+        <div class="info">Khóa nối với <b>orders.customer_cccd</b>. Hành động áp dụng cho mọi đầu nối để Analyst vẫn ghép bảng được.</div>
+        <div class="law"><b>Căn cứ pháp lý</b>Luật 91/2025/QH15 · NĐ 356/2025/NĐ-CP: dữ liệu cá nhân cơ bản giúp nhận dạng cá nhân.</div>
+        <div class="lbl">Hành động (đề xuất: Băm HMAC)</div>
+        <div class="sel2">Băm HMAC<span>▾</span></div>
+        <div class="save">Lưu &amp; Áp dụng thay đổi</div>
+      </div>
+    </div>
+  </div>
+</div></div><div class="glare"></div></div>
+<div class="verified">VERIFIED → PUBLISHED</div>
+${badges}
+<div class="floor"></div>
+<img class="pango" src="img/pango-scanning.png" alt="">
+<div class="feats">${features}</div>
+<div class="note">Số liệu báo cáo nghiệm thu P1</div>
+</div></body></html>`;
+}
 
 // ---------------------------------------------------------------- HTML renderer
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -741,11 +922,11 @@ function findChrome() {
   return found;
 }
 
-function chrome(args) {
-  execFileSync(findChrome(), ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+function chrome(args, scale = 1) {
+  execFileSync(findChrome(), ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--force-device-scale-factor=${scale}`,
     '--allow-file-access-from-files', '--run-all-compositor-stages-before-draw', '--virtual-time-budget=3000', ...args], { stdio: 'ignore' });
 }
-const screenshot = (html, png) => chrome([`--screenshot=${png}`, '--window-size=1280,720', pathToFileURL(html).href]);
+const screenshot = (html, png, scale = 1) => chrome([`--screenshot=${png}`, '--window-size=1280,720', pathToFileURL(html).href], scale);
 
 // ---------------------------------------------------------------- main
 async function main() {
@@ -757,8 +938,8 @@ async function main() {
   chrome(['--no-pdf-header-footer', `--print-to-pdf=${path.join(OUT, 'pitch_deck.pdf')}`, pathToFileURL(deckHtml).href]);
 
   const thumbHtml = path.join(BUILD, 'thumbnail.html');
-  fs.writeFileSync(thumbHtml, htmlDoc('PIIGuard Shield — Thumbnail', `<section class="slide">${thumbnail.map(htmlEl).join('')}</section>`));
-  screenshot(thumbHtml, path.join(OUT, 'thumbnail.png'));
+  fs.writeFileSync(thumbHtml, thumbnailHtml());
+  screenshot(thumbHtml, path.join(OUT, 'thumbnail.png'), 1.5); // 1920x1080
 
   if (QA) {
     fs.mkdirSync(path.join(BUILD, 'qa'), { recursive: true });

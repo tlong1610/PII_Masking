@@ -8,7 +8,7 @@
 | --- | --- |
 | [`pitch_deck.pptx`](pitch_deck.pptx) | Deck Demo Day 10 slide, sửa được trong PowerPoint/Google Slides; có speaker notes từng slide |
 | [`pitch_deck.pdf`](pitch_deck.pdf) | Bản PDF cùng layout, dùng để nộp hoặc chiếu khi máy không có PowerPoint |
-| [`thumbnail.png`](thumbnail.png) | Ảnh bìa video demo 1280×720 (Drive/YouTube) |
+| [`thumbnail.png`](thumbnail.png) | Ảnh bìa 1920×1080 cho video demo và gallery dự án: màn DPO review trên monitor, Pango chỉ vào màn hình, badge số liệu nghiệm thu P1 |
 | [`source/build_deck.js`](source/build_deck.js) | Nguồn duy nhất của layout; sinh cả PPTX, PDF và thumbnail |
 
 Video demo chưa nằm trong repo; link ở [README gốc](../README.md) và QR trên slide 8.
