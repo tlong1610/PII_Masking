@@ -2,7 +2,7 @@
   "name": "piiguard-release-qa",
   "private": true,
   "version": "1.0.0",
-  "description": "End-to-end QA (DPO + Analyst flows) and demo video recording for PIIGuard Shield release",
+  "description": "End-to-end QA (DPO + Analyst flows) for PIIGuard Shield release",
   "type": "module",
   "scripts": {
     "stack:up": "bash scripts/start-stack.sh",
