@@ -5,7 +5,7 @@ Nhật ký lỗi phát hiện khi chạy kiểm thử E2E luồng DPO + Analyst.
 **Bảo mật nhật ký:** Không ghi giá trị PII gốc, token hay mật khẩu DB vào file này. Khi có rò rỉ, chỉ ghi tên cột.
 
 **Môi trường:**
-- Nhánh `release/e2e-demo-video`, tách từ `develop` @ `7625ff6`.
+- Nhánh `release/e2e-qa`, tách từ `develop` @ `7625ff6`.
 - macOS, Chrome 155, Node 22, Python 3.11.
 - PostgreSQL và MongoDB chạy Docker local với dữ liệu seed tổng hợp.
 

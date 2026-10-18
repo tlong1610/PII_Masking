@@ -1,6 +1,6 @@
 # Run 03 — Kết quả cuối
 
-- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-demo-video`
+- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-qa`
 - **Kết quả:** **21/21 đạt** (49 giây)
 - **Không có:** lỗi console nào, API 5xx nào, giá trị PII gốc nào trên màn hình, trong báo cáo hay trong file CSV
 

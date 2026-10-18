@@ -1,6 +1,6 @@
 # Run 04 — Xuất toàn bộ dataset và nhiều bộ phận dùng chung một DB
 
-- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-demo-video`
+- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-qa`
 - **Lý do chạy:** phản hồi của chủ sản phẩm sau run 03:
   1. Nhiều bộ phận cùng lấy dữ liệu từ một database, nhưng mỗi bộ phận cần các bảng khác nhau.
   2. CSV tải về phải đủ các bảng để Analyst phân tích.

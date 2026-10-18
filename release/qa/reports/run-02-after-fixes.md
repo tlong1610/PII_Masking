@@ -1,6 +1,6 @@
 # Run 02 — Sau lượt sửa đầu (QA-01 … QA-07)
 
-- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-demo-video`
+- **Ngày chạy:** 2026-10-18 · Nhánh `release/e2e-qa`
 - **Kết quả lần 2a:** **18 đạt · 2 fail · 1 không chạy**
 
 | Test | Kết quả | Phân tích | Xử lý |
