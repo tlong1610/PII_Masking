@@ -18,8 +18,23 @@ services:
         value: INFO
       - key: CORS_ORIGINS
         value: https://frontend-alpha-fawn-53.vercel.app,http://localhost:5173,http://localhost:3000
+      # App data and protected snapshots live in the Render Postgres below: the container disk is
+      # wiped on every sleep/redeploy, and publishing needs a snapshot store the server can write.
+      # Snapshots go to their own piiguard_snapshot_run{N} schemas, apart from the app tables.
       - key: DATABASE_URL
-        value: sqlite:///./data/render_app.db
+        fromDatabase:
+          name: piiguard-vn-db
+          property: connectionString
+      - key: SNAPSHOT_DATABASE_URL
+        fromDatabase:
+          name: piiguard-vn-db
+          property: connectionString
+      # Analyst read-only SQL login (src/services/analyst_sql.py). Analysts connect to the
+      # database's external hostname; its IP allow list must admit them (set on the database).
+      - key: ENABLE_ANALYST_SQL
+        value: "true"
+      - key: ANALYST_SQL_HOST
+        value: dpg-dba9jvuq1p3s73arlii0-a.virginia-postgres.render.com
       - key: ENABLE_AI_SCAN
         value: "false"
       - key: ENABLE_PG_SNAPSHOT
@@ -30,3 +45,9 @@ services:
         generateValue: true
       - key: HMAC_KEY_VERSION
         value: v1
+
+databases:
+  - name: piiguard-vn-db
+    plan: free
+    databaseName: piiguard
+    user: piiguard

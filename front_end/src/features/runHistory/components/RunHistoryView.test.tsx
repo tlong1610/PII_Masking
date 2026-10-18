@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as datasetsApi from '@/features/datasets/api/datasetsApi';
 import * as api from '../api/runHistoryApi';
 import type { RunSummary } from '../api/runHistoryApi';
@@ -50,6 +50,8 @@ vi.mock('../api/runHistoryApi', () => ({
 }));
 
 vi.mock('@/features/datasets/api/datasetsApi', () => ({
+  fetchDatasetDetail: vi.fn(() => Promise.resolve({ id: 5, dataset_name: 'run-11-snapshot' })),
+  renameDataset: vi.fn(() => Promise.resolve({})),
   publishDataset: vi.fn(() => Promise.resolve({})),
   revokeDataset: vi.fn(() => Promise.resolve({})),
 }));
@@ -66,10 +68,16 @@ function renderView(): void {
 }
 
 describe('RunHistoryView', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   it('lists runs with the next action for each status', async () => {
     renderView();
 
-    expect(await screen.findByRole('link', { name: '#12' })).toHaveAttribute('href', '/dpo/runs/12');
+    expect(await screen.findByRole('link', { name: '#12' })).toHaveAttribute(
+      'href',
+      '/dpo/runs/12',
+    );
     expect(screen.getAllByRole('link', { name: 'Mở' })[0]).toHaveAttribute('href', '/dpo/runs/12');
     expect(screen.getByRole('button', { name: 'Phát hành' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Chờ phát hành (1)' })).toBeInTheDocument();
@@ -79,12 +87,41 @@ describe('RunHistoryView', () => {
     renderView();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Phát hành' }));
+    expect(await screen.findByRole('textbox', { name: 'Tên dataset' })).toHaveValue('SQL demo');
     expect(screen.getByText('Phát hành lượt quét #11?')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên dataset' }), {
+      target: { value: 'Khách hàng đã bảo vệ' },
+    });
     expect(datasetsApi.publishDataset).not.toHaveBeenCalled();
 
     const publishButtons = screen.getAllByRole('button', { name: 'Phát hành' });
     fireEvent.click(publishButtons[publishButtons.length - 1]!);
     await waitFor(() => expect(vi.mocked(datasetsApi.publishDataset).mock.calls[0]?.[0]).toBe(5));
+    expect(datasetsApi.renameDataset).toHaveBeenCalledWith(5, 'Khách hàng đã bảo vệ');
+    expect(vi.mocked(datasetsApi.renameDataset).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(datasetsApi.publishDataset).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('does not publish when the name dialog is cancelled', async () => {
+    renderView();
+    fireEvent.click(await screen.findByRole('button', { name: 'Phát hành' }));
+    await screen.findByRole('textbox', { name: 'Tên dataset' });
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
+    expect(datasetsApi.renameDataset).not.toHaveBeenCalled();
+    expect(datasetsApi.publishDataset).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when saving the name fails', async () => {
+    vi.mocked(datasetsApi.renameDataset).mockRejectedValueOnce(new Error('Không lưu được tên'));
+    renderView();
+    fireEvent.click(await screen.findByRole('button', { name: 'Phát hành' }));
+    await screen.findByRole('textbox', { name: 'Tên dataset' });
+    fireEvent.click(screen.getByRole('button', { name: 'Phát hành' }));
+    await waitFor(() => expect(datasetsApi.renameDataset).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Phát hành' })).toBeEnabled());
+    expect(datasetsApi.publishDataset).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', { name: 'Tên dataset' })).toBeInTheDocument();
   });
 
   it('filters runs by tab', async () => {

@@ -121,7 +121,7 @@ async def test_fixture_flow_verifies_830_matched_and_publishes(client, mongo):
     body = built.json()
     checks = _checks(body)
     assert body["dataset"]["status"] == "VERIFIED", checks
-    assert body["dataset"]["output_location"] == f"mongodb://{SNAPSHOT_DB}/customers,orders"
+    assert body["dataset"]["output_location"] == f"mongodb://{SNAPSHOT_DB}_run{run['id']}/customers,orders"
 
     expected = json.loads((ROOT / "eval" / "expected_downstream.json").read_text("utf-8"))
     cccd_baseline = expected["mongo_lookup_cccd"]["baseline"]
@@ -138,7 +138,7 @@ async def test_fixture_flow_verifies_830_matched_and_publishes(client, mongo):
     assert checks["doc_count:orders"]["actual_value"] == str(cccd_baseline["total_orders"])
     assert raw_cccd not in json.dumps(body)
 
-    snap = mongo[SNAPSHOT_DB]
+    snap = mongo[f"{SNAPSHOT_DB}_run{run['id']}"]
     protected = snap.customers.find_one({"company.name": customers[0]["company"]["name"]})
     assert re.fullmatch(r"[0-9a-f]{64}", protected["identity"]["cccd"])
     assert "***" in protected["contact"]["email"]
@@ -282,13 +282,13 @@ async def test_unprofiled_fields_never_reach_snapshot(client, mongo):
     mongo[SOURCE_DB].customers.update_many(
         {}, {"$set": {"late_pii": raw_phone, "kyc": {"scan": {"ocr": {"text": raw_phone}}}}}
     )
-    mongo[SNAPSHOT_DB].leftover.insert_one({"raw": raw_phone})
+    mongo[f"{SNAPSHOT_DB}_run{run['id']}"].leftover.insert_one({"raw": raw_phone})
 
     built = await client.post(f"/api/v1/runs/{run['id']}/build", headers=_auth(token))
     body = built.json()
     assert body["dataset"]["status"] == "VERIFIED", _checks(body)
 
-    snap = mongo[SNAPSHOT_DB]
+    snap = mongo[f"{SNAPSHOT_DB}_run{run['id']}"]
     assert sorted(snap.list_collection_names()) == ["customers", "orders"]
     assert snap.customers.count_documents({"late_pii": {"$exists": True}}) == 0
     assert snap.customers.count_documents({"kyc": {"$exists": True}}) == 0

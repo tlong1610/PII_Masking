@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import logging
+import re
+import unicodedata
+import zipfile
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -22,6 +28,7 @@ from src.models.schemas import (
     DatasetPreview,
     DatasetPreviewColumn,
     DatasetRelationship,
+    DatasetRename,
     DatasetStatus,
     DatasetVerification,
     PolicyAction,
@@ -29,6 +36,8 @@ from src.models.schemas import (
     UserRole,
     VerifierResultOut,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["datasets"])
 
@@ -102,6 +111,27 @@ def _analyst_may_read(ds: db_models.Dataset) -> bool:
     return ds.status == DatasetStatus.PUBLISHED.value
 
 
+def _sync_sql_access(db: Session, user_ids: list[int]) -> None:
+    """Bring these Analysts' read-only SQL logins in line with their grants (see analyst_sql).
+
+    Raises on failure; callers decide whether that blocks the action.
+    """
+    from src.api.sql_access import sync_analyst
+    from src.services import analyst_sql
+
+    if not analyst_sql.enabled() or not user_ids:
+        return
+    with analyst_sql.connect() as conn:
+        for user_id in user_ids:
+            sync_analyst(conn, db, user_id)
+
+
+def _granted_user_ids(db: Session, dataset_id: int) -> list[int]:
+    return list(
+        db.scalars(select(db_models.DatasetGrant.user_id).where(db_models.DatasetGrant.dataset_id == dataset_id)).all()
+    )
+
+
 def _preview_columns_from_run(run: db_models.Run) -> list[DatasetPreviewColumn]:
     decisions = {d.field_profile_id: d for d in run.field_decisions}
     columns: list[DatasetPreviewColumn] = []
@@ -148,7 +178,10 @@ def _preview_value(value: Any) -> str | int | float | bool | None:
     return str(value)
 
 
-def _preview_from_postgres_snapshot(*, schema: str, table: str, table_columns: list[str], limit: int) -> list[dict]:
+def _preview_from_postgres_snapshot(
+    *, schema: str, table: str, table_columns: list[str], limit: int | None
+) -> list[dict]:
+    """``limit=None`` reads the whole table (export); preview always passes a limit."""
     from psycopg import connect, sql
     from psycopg.rows import dict_row
 
@@ -180,7 +213,7 @@ def _mongo_uri_for_run(run: db_models.Run, db: Session) -> str:
 
 
 def _preview_from_mongo_snapshot(
-    *, uri: str, database: str, collection: str, table_columns: list[str], limit: int
+    *, uri: str, database: str, collection: str, table_columns: list[str], limit: int | None
 ) -> list[dict]:
     from pymongo import MongoClient
 
@@ -189,7 +222,7 @@ def _preview_from_mongo_snapshot(
         projection["_id"] = 0
     client: MongoClient = MongoClient(uri, serverSelectionTimeoutMS=5000)
     try:
-        docs = list(client[database][collection].find({}, projection).limit(limit))
+        docs = list(client[database][collection].find({}, projection).limit(limit or 0))
     finally:
         client.close()
 
@@ -222,6 +255,34 @@ def _stub_preview_rows(columns: list[DatasetPreviewColumn], table: str, limit: i
         if row:
             rows.append(row)
     return rows
+
+
+def _snapshot_rows(
+    ds: db_models.Dataset,
+    run: db_models.Run,
+    db: Session,
+    columns: list[DatasetPreviewColumn],
+    table: str,
+    limit: int | None,
+) -> list[dict]:
+    """Protected rows of one snapshot table, visible columns only; ``limit=None`` reads them all."""
+    table_columns = _visible_columns(columns, table)
+    location = ds.output_location
+    if not location.startswith(("postgres://", "mongodb://")):
+        return _stub_preview_rows(columns, table, limit or 3)
+    if not table_columns:
+        return []
+    if location.startswith("postgres://"):
+        schema = location.removeprefix("postgres://").split("/", 1)[0]
+        return _preview_from_postgres_snapshot(schema=schema, table=table, table_columns=table_columns, limit=limit)
+    database = location.removeprefix("mongodb://").split("/", 1)[0]
+    return _preview_from_mongo_snapshot(
+        uri=_mongo_uri_for_run(run, db),
+        database=database,
+        collection=table,
+        table_columns=table_columns,
+        limit=limit,
+    )
 
 
 @router.get("/datasets", response_model=list[DatasetOut])
@@ -279,6 +340,32 @@ def get_dataset(
     )
 
 
+@router.patch("/datasets/{dataset_id}", response_model=DatasetOut)
+def rename_dataset(
+    dataset_id: int,
+    body: DatasetRename,
+    user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> DatasetOut:
+    """Rename only: the protected data is untouched, so it works in any status (published included)."""
+    ds = _get_dataset(db, dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    previous = ds.dataset_name
+    ds.dataset_name = body.dataset_name
+    _write_audit(
+        db,
+        actor=user,
+        action="rename_dataset",
+        entity_type="dataset",
+        entity_id=str(ds.id),
+        reason=f"from={previous}; to={body.dataset_name}",
+    )
+    db.commit()
+    db.refresh(ds)
+    return _dataset_out(ds)
+
+
 @router.post("/datasets/{dataset_id}/publish", response_model=DatasetOut)
 def publish_dataset(
     dataset_id: int,
@@ -321,6 +408,11 @@ def publish_dataset(
     )
     db.commit()
     db.refresh(ds)
+    try:
+        _sync_sql_access(db, _granted_user_ids(db, ds.id))
+    except Exception as exc:
+        # Publishing stands; the Analyst's SQL view appears on their next visit to the SQL panel.
+        logger.warning("SQL access sync after publish failed: %s", type(exc).__name__)
     return _dataset_out(ds)
 
 
@@ -351,7 +443,10 @@ def revoke_dataset(
         if schema_part and settings.snapshot_database_url:
             try:
                 from sqlalchemy import create_engine, text
-                engine = create_engine(settings.snapshot_database_url)
+
+                from src.db.session import sqlalchemy_url
+
+                engine = create_engine(sqlalchemy_url(settings.snapshot_database_url))
                 with engine.connect() as conn:
                     conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_part}" CASCADE'))
                     conn.commit()
@@ -375,6 +470,18 @@ def revoke_dataset(
                 rollback_notes.append(f"dropped_mongo_db={db_part}")
             except Exception as exc:
                 rollback_notes.append(f"drop_mongo_failed={type(exc).__name__}")
+
+    # Analyst SQL views die with the snapshot schema (CASCADE); drop their schema too.
+    if output_loc.startswith("postgres://"):
+        try:
+            from src.services import analyst_sql
+
+            if analyst_sql.enabled():
+                with analyst_sql.connect() as conn:
+                    analyst_sql.drop_views(conn, ds.id)
+                rollback_notes.append(f"dropped_sql_views={analyst_sql.dataset_schema(ds.id)}")
+        except Exception as exc:
+            rollback_notes.append(f"drop_sql_views_failed={type(exc).__name__}")
 
     # 2. Revoke and delete all active analyst grants (§3, §14.2)
     db.execute(
@@ -404,15 +511,8 @@ def revoke_dataset(
 
 
 
-@router.get("/datasets/{dataset_id}/preview", response_model=DatasetPreview)
-def preview_dataset(
-    dataset_id: int,
-    table: str | None = Query(default=None, description="Snapshot table/collection; defaults to the first"),
-    limit: int = Query(default=PREVIEW_DEFAULT_LIMIT, ge=1, le=PREVIEW_MAX_LIMIT),
-    user: SessionUser = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> DatasetPreview:
-    """Return rows of the protected snapshot (already MASK/HMAC/DROP) — never raw source values."""
+def _readable_dataset(db: Session, dataset_id: int, user: SessionUser) -> db_models.Dataset:
+    """Dataset whose protected rows this user may read (preview and export share the guard)."""
     ds = _get_dataset(db, dataset_id)
     if ds is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
@@ -441,6 +541,19 @@ def preview_dataset(
         )
     if ds.status == DatasetStatus.REVOKED.value:
         raise HTTPException(status_code=403, detail="Dataset has been revoked")
+    return ds
+
+
+@router.get("/datasets/{dataset_id}/preview", response_model=DatasetPreview)
+def preview_dataset(
+    dataset_id: int,
+    table: str | None = Query(default=None, description="Snapshot table/collection; defaults to the first"),
+    limit: int = Query(default=PREVIEW_DEFAULT_LIMIT, ge=1, le=PREVIEW_MAX_LIMIT),
+    user: SessionUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DatasetPreview:
+    """Return rows of the protected snapshot (already MASK/HMAC/DROP) — never raw source values."""
+    ds = _readable_dataset(db, dataset_id, user)
 
     run = ds.run
     columns: list[DatasetPreviewColumn] = []
@@ -454,30 +567,13 @@ def preview_dataset(
         if table is not None and table not in tables:
             raise HTTPException(status_code=404, detail="Table not found in this dataset")
         selected_table = table or (tables[0] if tables else "")
-        table_columns = _visible_columns(columns, selected_table)
-        location = ds.output_location
-        if location.startswith(("postgres://", "mongodb://")):
-            if selected_table and table_columns:
-                try:
-                    if location.startswith("postgres://"):
-                        schema = location.removeprefix("postgres://").split("/", 1)[0]
-                        rows = _preview_from_postgres_snapshot(
-                            schema=schema, table=selected_table, table_columns=table_columns, limit=limit
-                        )
-                    else:
-                        database = location.removeprefix("mongodb://").split("/", 1)[0]
-                        rows = _preview_from_mongo_snapshot(
-                            uri=_mongo_uri_for_run(run, db),
-                            database=database,
-                            collection=selected_table,
-                            table_columns=table_columns,
-                            limit=limit,
-                        )
-                except Exception as exc:
-                    # Error type only: connection strings and values must never leak.
-                    note = f"Không đọc được snapshot ({type(exc).__name__}). Liên hệ DPO để build lại."
-        else:
-            rows = _stub_preview_rows(columns, selected_table, limit)
+        if selected_table:
+            try:
+                rows = _snapshot_rows(ds, run, db, columns, selected_table, limit)
+            except Exception as exc:
+                # Error type only: connection strings and values must never leak.
+                note = f"Không đọc được snapshot ({type(exc).__name__}). Liên hệ DPO để build lại."
+        if not ds.output_location.startswith(("postgres://", "mongodb://")):
             note = "Nguồn demo (không có snapshot thật): giá trị chỉ minh hoạ dạng dữ liệu sau bảo vệ."
 
     relationships: list[DatasetRelationship] = []
@@ -536,6 +632,85 @@ def preview_dataset(
         selected_table=selected_table,
         note=note,
         relationships=relationships,
+    )
+
+
+def _csv_bytes(table_columns: list[str], rows: list[dict]) -> bytes:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(table_columns)
+    for row in rows:
+        writer.writerow(["" if row.get(column) is None else row.get(column) for column in table_columns])
+    # BOM so Excel opens Vietnamese text as UTF-8.
+    return buffer.getvalue().encode("utf-8-sig")
+
+
+def _export_file_stem(ds: db_models.Dataset) -> str:
+    # ASCII only (the name goes into a Content-Disposition header): "Khách hàng" -> "khach-hang".
+    name = (ds.dataset_name or "").lower().replace("đ", "d")
+    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    stem = re.sub(r"[^a-z0-9._-]+", "-", ascii_name).strip("-")
+    return stem or f"dataset-{ds.id}"
+
+
+@router.get("/datasets/{dataset_id}/export")
+def export_dataset(
+    dataset_id: int,
+    table: str | None = Query(default=None, description="One table as CSV; omitted = every table in a ZIP"),
+    user: SessionUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Every protected row of the snapshot (MASK/HMAC/DROP already applied) — one CSV per table."""
+    ds = _readable_dataset(db, dataset_id, user)
+    run = ds.run
+    if run is None:
+        raise HTTPException(status_code=404, detail="Dataset has no run to export")
+    columns = _preview_columns_from_run(run)
+    tables = _snapshot_tables(ds.output_location, columns)
+    if table is not None and table not in tables:
+        raise HTTPException(status_code=404, detail="Table not found in this dataset")
+    selected = [table] if table is not None else tables
+    if not selected:
+        raise HTTPException(status_code=404, detail="Dataset has no table to export")
+
+    files: dict[str, bytes] = {}
+    for name in selected:
+        try:
+            rows = _snapshot_rows(ds, run, db, columns, name, None)
+        except Exception as exc:
+            # Error type only: connection strings and values must never leak.
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Không đọc được snapshot ({type(exc).__name__}). Liên hệ DPO để build lại.",
+            ) from exc
+        files[f"{name}.csv"] = _csv_bytes(_visible_columns(columns, name), rows)
+
+    _write_audit(
+        db,
+        actor=user,
+        action="export_dataset",
+        entity_type="dataset",
+        entity_id=str(ds.id),
+        reason=f"tables={','.join(selected)}",
+    )
+    db.commit()
+
+    stem = _export_file_stem(ds)
+    if table is not None:
+        filename = f"{stem}-{re.sub(r'[^A-Za-z0-9._-]+', '-', table)}.csv"
+        return Response(
+            content=files[f"{table}.csv"],
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name, content in files.items():
+            zf.writestr(name, content)
+    return Response(
+        content=archive.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{stem}.zip"'},
     )
 
 
@@ -610,6 +785,10 @@ def grant_dataset_access(
     )
     db.commit()
     db.refresh(grant)
+    try:
+        _sync_sql_access(db, [body.user_id])
+    except Exception as exc:
+        logger.warning("SQL access sync after grant failed: %s", type(exc).__name__)
     return DatasetGrantOut.model_validate(grant).model_copy(update={"username": target_user.username})
 
 
@@ -629,6 +808,16 @@ def revoke_dataset_access(
     )
     if grant:
         db.delete(grant)
+        db.flush()
+        try:
+            # Fail closed: the grant only goes away once the Analyst's SQL login has lost it too.
+            _sync_sql_access(db, [user_id])
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Không thu hồi được quyền SQL của Analyst ({type(exc).__name__}). Thử lại.",
+            ) from exc
         _write_audit(
             db,
             actor=user,

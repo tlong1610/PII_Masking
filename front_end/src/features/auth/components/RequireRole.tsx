@@ -1,11 +1,11 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
+import { MascotLoader } from '@/shared/ui';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../model/types';
 
@@ -21,7 +21,7 @@ export function RequireRole({ role, children }: RequireRoleProps): JSX.Element {
   if (!isSessionReady) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress aria-label="Đang kiểm tra phiên đăng nhập" />
+        <MascotLoader title="Đang kiểm tra phiên đăng nhập…" />
       </Box>
     );
   }

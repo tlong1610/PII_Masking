@@ -7,6 +7,8 @@ import * as api from '../api/realPiiReviewApi';
 
 // Dataset details (verification shown on the run page) are cached by the datasets feature under this key.
 const DATASET_DETAIL_KEY = ['datasets'] as const;
+// The run history page caches its list under this key; a new or rebuilt run must show up there.
+const RUN_HISTORY_KEY = ['run-history'] as const;
 
 export const piiReviewQueryKeys = {
   sources: ['pii-review', 'sources'] as const,
@@ -69,6 +71,8 @@ export function useSourceScope(sourceId: string | null) {
     queryFn: () => api.fetchSourceScope(sourceId!),
     enabled: sourceId !== null,
     staleTime: 30000,
+    // A source that cannot be read fails the same way again: show the error after one retry, not three.
+    retry: 1,
   });
 }
 
@@ -102,6 +106,7 @@ export function useCreateScanRun() {
       // Seed the run so the review renders at once instead of refetching it.
       queryClient.setQueryData(piiReviewQueryKeys.run(run.id), run);
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.runs });
+      void queryClient.invalidateQueries({ queryKey: RUN_HISTORY_KEY });
     },
   });
 }
@@ -130,11 +135,12 @@ export function useBuildDataset(runId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: () => api.buildDataset(runId),
+    mutationFn: (datasetName?: string) => api.buildDataset(runId, datasetName),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });
       void queryClient.invalidateQueries({ queryKey: DATASET_DETAIL_KEY });
+      void queryClient.invalidateQueries({ queryKey: RUN_HISTORY_KEY });
     },
   });
 }
@@ -185,6 +191,25 @@ export function useDatasetPreview(datasetId: number | null, table?: string | nul
     queryKey: piiReviewQueryKeys.datasetPreview(datasetId!, table, limit),
     queryFn: () => api.previewDataset(datasetId!, { table, limit }),
     enabled: datasetId !== null,
+  });
+}
+
+export function useSqlAccess() {
+  return useQuery({
+    queryKey: ['pii-review', 'sql-access'] as const,
+    queryFn: api.fetchSqlAccess,
+    retry: false,
+  });
+}
+
+export function useIssueSqlCredentials() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.issueSqlCredentials,
+    onSuccess: (access) => {
+      // Cache without the password: it lives only in the panel that asked for it.
+      queryClient.setQueryData(['pii-review', 'sql-access'], { ...access, password: null });
+    },
   });
 }
 

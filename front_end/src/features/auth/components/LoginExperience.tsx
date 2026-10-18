@@ -167,7 +167,8 @@ export function LoginExperience({
         px: { xs: 2, md: 6 },
         py: 2,
         bgcolor: 'primary.dark',
-        backgroundImage: `url(${loginBackground})`,
+        // Vite inlines this SVG in production; quote the URL so its SVG syntax remains valid CSS.
+        backgroundImage: `url("${loginBackground}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

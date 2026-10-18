@@ -223,6 +223,92 @@ class PostgresConnector:
             tables=tables_profile
         )
 
+    def extract_schema_overview(self, schema_name: str = "public") -> DatabaseProfile:
+        """Tables, columns, primary and foreign keys of one schema in three catalog queries.
+
+        For the DPO scope picker: no samples, and the number of round trips does not grow with
+        the number of tables (the per-table loop of ``extract_database_profile`` is slow on remote
+        hosts such as Supabase poolers).
+        """
+        if psycopg is None:
+            raise RuntimeError("Thư viện psycopg chưa được cài đặt. Không thể kết nối Database.")
+        db_name = self.connection_string.split("/")[-1].split("?")[0]
+        with psycopg.connect(self.connection_string, row_factory=dict_row, connect_timeout=10) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT c.table_name, c.column_name, c.data_type
+                    FROM information_schema.columns c
+                    JOIN information_schema.tables t
+                      ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+                    WHERE c.table_schema = %s AND t.table_type = 'BASE TABLE'
+                    ORDER BY c.table_name, c.ordinal_position
+                    """,
+                    (schema_name,),
+                )
+                columns = cur.fetchall()
+                cur.execute(
+                    """
+                    SELECT cls.relname AS table_name, att.attname AS column_name
+                    FROM pg_index idx
+                    JOIN pg_class cls ON cls.oid = idx.indrelid
+                    JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+                    JOIN pg_attribute att ON att.attrelid = cls.oid AND att.attnum = ANY(idx.indkey)
+                    WHERE idx.indisprimary AND ns.nspname = %s
+                    """,
+                    (schema_name,),
+                )
+                pk_set = {(r["table_name"], r["column_name"]) for r in cur.fetchall()}
+                cur.execute(
+                    """
+                    SELECT src.relname AS source_table, src_att.attname AS source_column,
+                           dst.relname AS target_table, dst_att.attname AS target_column
+                    FROM pg_constraint con
+                    JOIN pg_class src ON src.oid = con.conrelid
+                    JOIN pg_namespace ns ON ns.oid = src.relnamespace
+                    JOIN pg_class dst ON dst.oid = con.confrelid
+                    JOIN LATERAL unnest(con.conkey, con.confkey) AS k(src_num, dst_num) ON true
+                    JOIN pg_attribute src_att ON src_att.attrelid = src.oid AND src_att.attnum = k.src_num
+                    JOIN pg_attribute dst_att ON dst_att.attrelid = dst.oid AND dst_att.attnum = k.dst_num
+                    WHERE con.contype = 'f' AND ns.nspname = %s
+                    """,
+                    (schema_name,),
+                )
+                fks = cur.fetchall()
+
+        fk_map: dict[str, list[dict]] = {}
+        for fk in fks:
+            fk_map.setdefault(fk["source_table"], []).append(
+                {"from_column": fk["source_column"], "to_table": fk["target_table"], "to_column": fk["target_column"]}
+            )
+        by_table: dict[str, list[ColumnProfile]] = {}
+        for col in columns:
+            table, name = col["table_name"], col["column_name"]
+            is_pk = (table, name) in pk_set
+            is_fk = any(r["from_column"] == name for r in fk_map.get(table, []))
+            by_table.setdefault(table, []).append(
+                ColumnProfile(
+                    table_name=table,
+                    column_name=name,
+                    data_type=col["data_type"],
+                    is_primary_key=is_pk,
+                    is_foreign_key=is_fk,
+                    samples=[],
+                    system_recommendation="HASHING" if is_pk or is_fk else None,
+                )
+            )
+        return DatabaseProfile(
+            database_name=db_name,
+            tables=[
+                TableProfile(
+                    table_name=table,
+                    relations=[TableRelation(**r) for r in fk_map.get(table, [])],
+                    columns=cols,
+                )
+                for table, cols in by_table.items()
+            ],
+        )
+
     def export_profile_to_json(self, output_path: str, schema_name: str = "public", sample_size: int = 5):
         """
         Tiện ích: Trích xuất và lưu toàn bộ cấu trúc DB ra file JSON vật lý.

@@ -8,7 +8,7 @@ import pytest
 from cryptography.fernet import Fernet
 
 from src.config import get_settings
-from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile
+from src.models.schemas import ColumnProfile, DatabaseProfile, TableProfile, TableRelation
 from src.services.source_validation import SourceUrlError, parse_source_url
 from src.verifier.sql_verifier import CheckResult
 
@@ -150,12 +150,19 @@ async def test_selection_outside_allowlist_is_rejected(client, user_pg):
 
 @pytest.mark.asyncio
 async def test_scope_lists_only_allowlisted_tables(client, user_pg, monkeypatch):
-    def profile(self, schema_name="public", sample_size=5):
+    def overview(self, schema_name="public"):
         col = ColumnProfile(column_name="id", data_type="int", is_primary_key=True, is_foreign_key=False, samples=[])
-        tables = [TableProfile(table_name=t, relations=[], columns=[col]) for t in ("users", "roles", "user_roles")]
+        links = [
+            TableRelation(from_column="user_id", to_table="users", to_column="id"),
+            TableRelation(from_column="role_id", to_table="roles", to_column="id"),
+        ]
+        tables = [
+            TableProfile(table_name=t, relations=links if t == "user_roles" else [], columns=[col])
+            for t in ("users", "roles", "user_roles")
+        ]
         return DatabaseProfile(database_name="corpdb", tables=tables)
 
-    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector.extract_database_profile", profile)
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector.extract_schema_overview", overview)
     token = await _login(client)
     src = await _create_source(client, token, tables=["users", "roles"])
     scope = (await client.get(f"/api/v1/sources/{src['id']}/scope", headers=_auth(token))).json()
@@ -290,3 +297,44 @@ async def test_mongo_subset_without_parent_collection_verifies(client, monkeypat
     assert not any(r["check_name"].startswith("lookup_") for r in body["verifier_results"])
     assert "cut_links=" in _audit_reasons()
     get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_scope_reads_relations_with_the_overview_in_one_connection(client, user_pg, monkeypatch):
+    def overview(self, schema_name="public"):
+        col = ColumnProfile(column_name="id", data_type="int", is_primary_key=True, is_foreign_key=False, samples=[])
+        orders = TableProfile(
+            table_name="orders",
+            relations=[TableRelation(from_column="user_id", to_table="users", to_column="id")],
+            columns=[col],
+        )
+        return DatabaseProfile(
+            database_name="corpdb", tables=[TableProfile(table_name="users", relations=[], columns=[col]), orders]
+        )
+
+    def no_second_connection(self, schema_name="public"):
+        raise AssertionError("scope must reuse the FOREIGN KEYs it already read")
+
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector.extract_schema_overview", overview)
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector.list_relations", no_second_connection)
+    token = await _login(client)
+    src = await _create_source(client, token)
+    scope = (await client.get(f"/api/v1/sources/{src['id']}/scope", headers=_auth(token))).json()
+    assert {"source_table": "orders", "source_column": "user_id", "target_table": "users", "target_column": "id"} in [
+        {k: r[k] for k in ("source_table", "source_column", "target_table", "target_column")}
+        for r in scope["relationships"]
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unreadable_scope_is_a_clear_502_without_secrets(client, user_pg, monkeypatch):
+    def down(self, schema_name="public"):
+        raise ConnectionError(f"could not connect to postgresql://corp:{PASSWORD}@pg.corp.example")
+
+    monkeypatch.setattr("src.connectors.postgres_connector.PostgresConnector.extract_schema_overview", down)
+    token = await _login(client)
+    src = await _create_source(client, token)
+    r = await client.get(f"/api/v1/sources/{src['id']}/scope", headers=_auth(token))
+    assert r.status_code == 502
+    assert "ConnectionError" in r.json()["detail"]
+    assert PASSWORD not in r.text

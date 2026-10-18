@@ -9,7 +9,7 @@ except ImportError:
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ChatRequest(BaseModel):
@@ -84,6 +84,10 @@ class SourceTestResult(BaseModel):
     ok: bool
     engine: str = ""
     message: str = ""
+    namespaces: list[str] = Field(
+        default_factory=list, description="Schemas (Postgres) or databases (Mongo) to pick from; names only"
+    )
+    default_namespace: str = Field(default="", description="Namespace used when the DPO picks none")
 
 
 class SourceScopeField(BaseModel):
@@ -368,6 +372,30 @@ class UserOut(BaseModel):
     role: UserRole
 
 
+DATASET_NAME_MAX = 120
+
+
+def _clean_dataset_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = " ".join(value.split())
+    return cleaned or None
+
+
+class BuildRequest(BaseModel):
+    """Optional body of POST /runs/{id}/build: the name the Analyst sees (kept on rebuild when omitted)."""
+
+    dataset_name: str | None = Field(default=None, max_length=DATASET_NAME_MAX)
+
+    _clean = field_validator("dataset_name", mode="before")(_clean_dataset_name)
+
+
+class DatasetRename(BaseModel):
+    dataset_name: str = Field(..., min_length=1, max_length=DATASET_NAME_MAX)
+
+    _clean = field_validator("dataset_name", mode="before")(_clean_dataset_name)
+
+
 class BuildResponse(BaseModel):
     run: RunOut
     dataset: DatasetOut
@@ -538,3 +566,24 @@ class DatasetGrantOut(BaseModel):
     username: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SqlAccessDataset(BaseModel):
+    dataset_id: int
+    dataset_name: str
+    schema_name: str = Field(..., description="Stable schema the Analyst queries: ds_<dataset id>")
+    tables: list[str]
+
+
+class SqlAccessOut(BaseModel):
+    """Read-only SQL login for an Analyst; password only in the response that issues it."""
+
+    enabled: bool
+    has_credentials: bool = False
+    host: str = ""
+    port: int = 5432
+    database: str = ""
+    username: str = ""
+    sslmode: str = "require"
+    password: str | None = None
+    datasets: list[SqlAccessDataset] = Field(default_factory=list)

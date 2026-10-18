@@ -1,9 +1,12 @@
-import LinearProgress from '@mui/material/LinearProgress';
+import { useState } from 'react';
+import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { DatasetPreviewTable, VerifierResultsTable, useDatasetDetail } from '@/features/datasets';
+import { DatasetPreviewTable, VerifierResultsTable, useDatasetDetail, useRenameDataset } from '@/features/datasets';
+import { MascotLoader, useNotify } from '@/shared/ui';
 import type { DatasetStatus } from '../model/policyLabels';
+import { DatasetNameDialog } from './DatasetNameDialog';
 import { SnapshotStatusBanner } from './SnapshotStatusBanner';
 
 type SnapshotTabProps = {
@@ -51,6 +54,7 @@ export function SnapshotTab({ datasetId, datasetStatus }: SnapshotTabProps): JSX
 
   return (
     <Stack spacing={2}>
+      {dataset && <DatasetNameRow datasetId={dataset.id} name={dataset.dataset_name} />}
       {datasetStatus === 'FAILED' && (
         <SnapshotStatusBanner tone="error" title="Chưa qua kiểm định">
           Dữ liệu đã lưu không qua bước kiểm định nên chưa phát hành được. Điều chỉnh quyết định rồi bấm “Lưu” lại.
@@ -62,7 +66,11 @@ export function SnapshotTab({ datasetId, datasetStatus }: SnapshotTabProps): JSX
         </SnapshotStatusBanner>
       )}
       <Section title="Kết quả kiểm định">
-        {isLoading || !dataset ? <LinearProgress aria-label="Đang tải kết quả kiểm chứng" /> : <VerifierResultsTable results={dataset.verifier_results} />}
+        {isLoading || !dataset ? (
+          <MascotLoader compact title="Đang tải kết quả kiểm định…" />
+        ) : (
+          <VerifierResultsTable results={dataset.verifier_results} />
+        )}
       </Section>
       {hasData && (
         <Section title="Xem trước dữ liệu cho Analyst">
@@ -74,6 +82,46 @@ export function SnapshotTab({ datasetId, datasetStatus }: SnapshotTabProps): JSX
           </Stack>
         </Section>
       )}
+    </Stack>
+  );
+}
+
+/** Renaming only changes what the Analyst sees, so it is allowed even after publishing. */
+function DatasetNameRow({ datasetId, name }: { datasetId: number; name: string }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const rename = useRenameDataset();
+  const notify = useNotify();
+
+  const save = async (datasetName: string): Promise<void> => {
+    try {
+      await rename.mutateAsync({ datasetId, datasetName });
+      setOpen(false);
+      notify('Đã đổi tên dataset.');
+    } catch {
+      notify('Không đổi được tên. Vui lòng thử lại.', 'error');
+    }
+  };
+
+  return (
+    <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+      <Typography variant="body2" color="text.secondary">
+        Tên dataset:
+      </Typography>
+      <Typography variant="subtitle1" component="p" sx={{ fontWeight: 700 }}>
+        {name}
+      </Typography>
+      <Button size="small" variant="text" onClick={() => setOpen(true)}>
+        Đổi tên
+      </Button>
+      <DatasetNameDialog
+        open={open}
+        title="Đổi tên dataset"
+        confirmLabel="Đổi tên"
+        initialName={name}
+        pending={rename.isPending}
+        onConfirm={(value) => void save(value)}
+        onClose={() => setOpen(false)}
+      />
     </Stack>
   );
 }

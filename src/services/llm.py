@@ -19,7 +19,8 @@ def get_llm(temperature: float | None = None) -> BaseChatModel:
     """OpenRouter, then OpenAI, then Gemini as fallbacks; only providers that have a key are built.
 
     Building ChatOpenAI without a key raises immediately, which used to hide the Gemini fallback.
-    temperature overrides LLM_TEMPERATURE (classification passes 0 so the same column always gets the same label).
+    temperature overrides LLM_TEMPERATURE where supported. GPT-6 Luna uses the required
+    default temperature and disables reasoning for short classification calls.
     """
     settings = get_settings()
     temp = settings.llm_temperature if temperature is None else temperature
@@ -27,11 +28,13 @@ def get_llm(temperature: float | None = None) -> BaseChatModel:
 
     # Mô hình chính (Primary): OpenAI trực tiếp (OPENAI_API_KEY + OPENAI_MODEL)
     if settings.openai_api_key:
+        is_luna = settings.openai_model.startswith("gpt-6-luna")
         models.append(
             ChatOpenAI(
                 api_key=settings.openai_api_key,
                 model=settings.openai_model or "gpt-4o-mini",
-                temperature=temp,
+                temperature=1 if is_luna else temp,
+                reasoning_effort="none" if is_luna else None,
                 logprobs=True,
             )
         )

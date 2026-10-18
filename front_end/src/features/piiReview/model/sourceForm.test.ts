@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { detectEngine, isUserSource, parseTables, sourceFormSchema } from './sourceForm';
+import { detectEngine, isUserSource, sourceFormSchema } from './sourceForm';
 
-const valid = { name: 'Corp DB', url: 'postgresql://u:p@db.example.com:5432/shop', namespace: '', tables: '' };
+const valid = { name: 'Corp DB', url: 'postgresql://u:p@db.example.com:5432/shop', namespace: '' };
 
 describe('sourceFormSchema', () => {
   it('accepts postgres and mongo URLs', () => {
@@ -20,11 +20,6 @@ describe('helpers', () => {
     expect(detectEngine('postgres://u@h/db')).toBe('postgresql');
     expect(detectEngine('MONGODB://h')).toBe('mongodb');
     expect(detectEngine('http://h')).toBeNull();
-  });
-
-  it('parses the table allowlist', () => {
-    expect(parseTables(' customers, orders ,,')).toEqual(['customers', 'orders']);
-    expect(parseTables('')).toEqual([]);
   });
 
   it('recognises user-registered source ids', () => {

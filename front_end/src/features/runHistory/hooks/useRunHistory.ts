@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePublishDataset, useRevokeDataset } from '@/features/datasets';
+import { usePublishDataset, useRenameDataset, useRevokeDataset } from '@/features/datasets';
 import { deleteRun, fetchRunHistory } from '../api/runHistoryApi';
 import type { RunStatus } from '../model/runActions';
 
@@ -33,7 +33,10 @@ export function useDeleteRuns() {
           await deleteRun(runId);
           result.deleted.push(runId);
         } catch (error) {
-          result.failed.push({ runId, message: error instanceof Error ? error.message : 'Không xóa được run.' });
+          result.failed.push({
+            runId,
+            message: error instanceof Error ? error.message : 'Không xóa được run.',
+          });
         }
       }
       return result;
@@ -49,9 +52,22 @@ export function useRunDatasetAction() {
   const queryClient = useQueryClient();
   const publish = usePublishDataset();
   const revoke = useRevokeDataset();
+  const rename = useRenameDataset();
   return useMutation({
-    mutationFn: ({ kind, datasetId }: { kind: 'publish' | 'revoke'; datasetId: number }) =>
-      (kind === 'publish' ? publish : revoke).mutateAsync(datasetId),
+    mutationFn: async ({
+      kind,
+      datasetId,
+      datasetName,
+    }: {
+      kind: 'publish' | 'revoke';
+      datasetId: number;
+      datasetName?: string;
+    }) => {
+      if (kind === 'publish' && datasetName !== undefined) {
+        await rename.mutateAsync({ datasetId, datasetName });
+      }
+      return (kind === 'publish' ? publish : revoke).mutateAsync(datasetId);
+    },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: runHistoryQueryKeys.all });
     },

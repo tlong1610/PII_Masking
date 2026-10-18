@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import LinearProgress from '@mui/material/LinearProgress';
+import Box from '@mui/material/Box';
 import { AppProviders } from '@/app/providers/AppProviders';
 import { RequireRole } from '@/features/auth';
+import { MascotLoader } from '@/shared/ui';
 
 const DpoLayout = lazy(() => import('@/pages/DpoLayout').then((module) => ({ default: module.DpoLayout })));
 const DpoWorkspacePage = lazy(() =>
@@ -31,7 +32,13 @@ const AnalystWorkspacePage = lazy(() =>
 export function App(): JSX.Element {
   return (
     <AppProviders>
-      <Suspense fallback={<LinearProgress aria-label="Đang tải giao diện" />}>
+      <Suspense
+        fallback={
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+            <MascotLoader title="Đang tải giao diện…" />
+          </Box>
+        }
+      >
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, apiRequestFile, apiRequestText, type DownloadedFile } from '@/shared/api/client';
 
 // ============================================================================
 // TYPES (matching backend schemas)
@@ -19,6 +19,8 @@ export const sourceTestResultSchema = z.object({
   ok: z.boolean(),
   engine: z.string(),
   message: z.string(),
+  namespaces: z.array(z.string()).default([]),
+  default_namespace: z.string().default(''),
 });
 
 export const sourceScopeSchema = z.object({
@@ -252,9 +254,10 @@ export async function fetchJoinKeys(runId: number): Promise<JoinKey[]> {
   return z.array(joinKeySchema).parse(data);
 }
 
-export async function buildDataset(runId: number): Promise<BuildResponse> {
+export async function buildDataset(runId: number, datasetName?: string): Promise<BuildResponse> {
   const data = await apiRequest<BuildResponse>(`/runs/${runId}/build`, {
     method: 'POST',
+    ...(datasetName ? { body: JSON.stringify({ dataset_name: datasetName }) } : {}),
   });
   return buildResponseSchema.parse(data);
 }
@@ -302,6 +305,51 @@ export async function previewDataset(
   return datasetPreviewSchema.parse(data);
 }
 
+/**
+ * Every protected row of a published dataset: a ZIP with one CSV per table, or one table's CSV.
+ * Values come from the snapshot, already MASK/HMAC/DROP — never raw PII.
+ */
+export async function exportDataset(datasetId: number, table?: string | null): Promise<DownloadedFile> {
+  const query = table ? `?table=${encodeURIComponent(table)}` : '';
+  return apiRequestFile(`/datasets/${datasetId}/export${query}`);
+}
+
+// ============================================================================
+// ANALYST SQL ACCESS (read-only login to the protected snapshot store)
+// ============================================================================
+
+export const sqlAccessSchema = z.object({
+  enabled: z.boolean(),
+  has_credentials: z.boolean().default(false),
+  host: z.string().default(''),
+  port: z.number().default(5432),
+  database: z.string().default(''),
+  username: z.string().default(''),
+  sslmode: z.string().default('require'),
+  password: z.string().nullable().optional(),
+  datasets: z
+    .array(
+      z.object({
+        dataset_id: z.number(),
+        dataset_name: z.string(),
+        schema_name: z.string(),
+        tables: z.array(z.string()),
+      }),
+    )
+    .default([]),
+});
+
+export type SqlAccess = z.infer<typeof sqlAccessSchema>;
+
+export async function fetchSqlAccess(): Promise<SqlAccess> {
+  return sqlAccessSchema.parse(await apiRequest<unknown>('/sql-access'));
+}
+
+/** New password (creates the login the first time); the only response that carries it. */
+export async function issueSqlCredentials(): Promise<SqlAccess> {
+  return sqlAccessSchema.parse(await apiRequest<unknown>('/sql-access/credentials', { method: 'POST' }));
+}
+
 // ============================================================================
 // RISK SCORE API (FR-10, §9.4)
 // ============================================================================
@@ -327,6 +375,11 @@ export const riskScoreSchema = z.object({
 });
 
 export type RiskScoreResult = z.infer<typeof riskScoreSchema>;
+
+/** Compliance report as an HTML document, fetched with the Authorization header (never ?token=). */
+export async function fetchRunReportHtml(runId: number): Promise<string> {
+  return apiRequestText(`/runs/${runId}/report?format=html`);
+}
 
 export async function fetchRiskScore(runId: number): Promise<RiskScoreResult> {
   const data = await apiRequest<RiskScoreResult>(`/runs/${runId}/risk-score`);

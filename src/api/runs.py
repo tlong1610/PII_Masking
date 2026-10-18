@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
@@ -17,6 +17,7 @@ from src.config import get_settings
 from src.db import models as db_models
 from src.db.session import get_db
 from src.models.schemas import (
+    BuildRequest,
     BuildResponse,
     DatasetOut,
     DatasetStatus,
@@ -225,9 +226,12 @@ def _reopen_for_changes(run: db_models.Run) -> None:
     run.status = RunStatus.READY_TO_BUILD.value
 
 
-def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Dataset, bool]:
+def _dataset_for_build(
+    db: Session, run: db_models.Run, dataset_name: str | None = None
+) -> tuple[db_models.Dataset, bool]:
     """One run has one dataset: a rebuild resets and reuses it (the snapshot target is per run anyway).
 
+    dataset_name is what the Analyst sees; a rebuild without one keeps the current name.
     Returns (dataset, reused).
     """
     staging_location = f"staging://run/{run.id}/snapshot"
@@ -235,7 +239,7 @@ def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Datas
     if dataset is None:
         dataset = db_models.Dataset(
             run_id=run.id,
-            dataset_name=f"run-{run.id}-snapshot",
+            dataset_name=dataset_name or f"run-{run.id}-snapshot",
             status=DatasetStatus.STAGING.value,
             output_location=staging_location,
         )
@@ -243,6 +247,8 @@ def _dataset_for_build(db: Session, run: db_models.Run) -> tuple[db_models.Datas
         db.flush()
         return dataset, False
     db.execute(delete(db_models.VerifierResult).where(db_models.VerifierResult.dataset_id == dataset.id))
+    if dataset_name:
+        dataset.dataset_name = dataset_name
     dataset.status = DatasetStatus.STAGING.value
     dataset.output_location = staging_location
     dataset.published_at = None
@@ -1125,6 +1131,7 @@ def put_decisions(
 @router.post("/runs/{run_id}/build", response_model=BuildResponse)
 def build_run(
     run_id: int,
+    body: BuildRequest | None = Body(default=None),
     user: SessionUser = Depends(require_dpo),
     db: Session = Depends(get_db),
 ) -> BuildResponse:
@@ -1188,25 +1195,23 @@ def build_run(
 
     # Protect active PUBLISHED datasets (§FR-08):
     # Ensure build run N+1 does not destroy an active PUBLISHED dataset sharing the same snapshot target.
-    active_published = db.scalar(
+    # Targets are per run, so this only fires if the snapshot naming settings change underneath.
+    target_prefixes = (
+        f"postgres://{conn.pg_snapshot_schema(run.id)}/",
+        f"mongodb://{conn.mongo_snapshot_db(run.id)}/",
+    )
+    for active_published in db.scalars(
         select(db_models.Dataset).where(
             db_models.Dataset.status == DatasetStatus.PUBLISHED.value,
             db_models.Dataset.run_id != run.id,
         )
-    )
-    if active_published and active_published.output_location:
-        target_pg = conn.pg_snapshot_schema(run.id)
-        target_mongo = conn.mongo_snapshot_db(run.id)
-        if (
-            f"postgres://{target_pg}/" in active_published.output_location
-            or f"mongodb://{target_mongo}/" in active_published.output_location
-        ):
+    ):
+        if (active_published.output_location or "").startswith(target_prefixes):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
-                    f"Build blocked: Target snapshot is currently occupied by active PUBLISHED dataset "
-                    f"id={active_published.id}. You must revoke dataset {active_published.id} before rebuilding, "
-                    "or isolate the target snapshot."
+                    f"Không thể build: vùng snapshot đích đang được lượt quét #{active_published.run_id} "
+                    "(đã phát hành) sử dụng. Thu hồi lượt quét đó trước khi build lại."
                 ),
             )
 
@@ -1273,7 +1278,7 @@ def build_run(
     run.status = RunStatus.BUILDING.value
     db.flush()
 
-    dataset, reused = _dataset_for_build(db, run)
+    dataset, reused = _dataset_for_build(db, run, body.dataset_name if body else None)
 
     check_rows: list[dict] = []
 

@@ -31,6 +31,7 @@ from src.services.source_validation import (
     ParsedSource,
     SourceUrlError,
     assert_not_snapshot_target,
+    list_namespaces,
     normalize_source_url,
     parse_source_url,
     probe_connection,
@@ -164,11 +165,17 @@ def get_source_scope(
     if source.engine == "postgresql" and conn.live:
         from src.connectors.postgres_connector import PostgresConnector
 
-        profile = PostgresConnector(conn.url).extract_database_profile(
-            schema_name=conn.namespace,
-            sample_size=0,
-        )
+        try:
+            profile = PostgresConnector(conn.url).extract_schema_overview(schema_name=conn.namespace)
+        except Exception as exc:  # driver messages can echo the URL/password — report the type only
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Không đọc được cấu trúc bảng từ nguồn ({type(exc).__name__}). Kiểm tra kết nối rồi thử lại.",
+            ) from None
         tables = _allowed_tables(profile.tables, conn)
+        declared = [
+            (t.table_name, r.from_column, r.to_table, r.to_column) for t in profile.tables for r in t.relations
+        ]
         return SourceScope(
             source_id=source.id,
             source_type=source.source_type,
@@ -190,13 +197,19 @@ def get_source_scope(
                 )
                 for table in tables
             ],
-            relationships=_scope_relationships(source.engine, conn, {t.table_name for t in tables}),
+            relationships=_scope_relationships(source.engine, conn, {t.table_name for t in tables}, declared),
         )
 
     if source.engine == "mongodb" and conn.live:
         from src.connectors.mongo_connector import MongoConnector
 
-        profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
+        try:
+            profile = MongoConnector(conn.url, conn.namespace).extract_database_profile(sample_size=1)
+        except Exception as exc:  # driver messages can echo the URL/password — report the type only
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Không đọc được danh sách collection từ nguồn ({type(exc).__name__}). Kiểm tra kết nối rồi thử lại.",
+            ) from None
         collections = _allowed_tables(profile.tables, conn)
         return SourceScope(
             source_id=source.id,
@@ -299,11 +312,27 @@ _STUB_RELATIONSHIP = ScopeRelationship(
 )
 
 
-def _scope_relationships(engine: str, conn: SourceConnection, names: set[str]) -> list[ScopeRelationship]:
-    """Same join set the build guard uses (runs.py), restricted to tables present in the scope."""
+def _scope_relationships(
+    engine: str,
+    conn: SourceConnection,
+    names: set[str],
+    declared: list[tuple[str, str, str, str]] | None = None,
+) -> list[ScopeRelationship]:
+    """Same join set the build guard uses (runs.py), restricted to tables present in the scope.
+
+    ``declared`` are Postgres FOREIGN KEYs already read with the scope, which saves a second
+    connection to the source.
+    """
     from src.api import runs
 
-    relations = runs._mongo_join_relations(conn) if engine == "mongodb" else runs._postgres_join_relations(conn)
+    if engine == "mongodb":
+        relations = runs._mongo_join_relations(conn)
+    elif declared is not None:
+        from src.transform.pg_pipeline import LOGICAL_JOIN_KEYS
+
+        relations = [*LOGICAL_JOIN_KEYS, *declared]
+    else:
+        relations = runs._postgres_join_relations(conn)
     out: list[ScopeRelationship] = []
     seen: set[tuple[str, str, str, str]] = set()
     for relation in relations:
@@ -319,8 +348,14 @@ def _scope_relationships(engine: str, conn: SourceConnection, names: set[str]) -
     return out
 
 
+def _demo_sources() -> list[Source]:
+    from src.config import get_settings
+
+    return _DEMO_SOURCES if get_settings().enable_demo_sources else []
+
+
 def get_source_by_id(source_id: str, db: Session | None = None) -> Source | None:
-    for source in _DEMO_SOURCES:
+    for source in _demo_sources():
         if source.id == source_id:
             return _with_live_status(source)
     if db is not None and source_id.startswith(USER_SOURCE_PREFIX):
@@ -341,18 +376,19 @@ class SourceConnection:
     live: bool = False
     user_supplied: bool = False
 
+    # Every run gets its own snapshot target, so building run N+1 never overwrites the
+    # snapshot that a still-PUBLISHED dataset of run N is serving to Analysts.
     def pg_snapshot_schema(self, run_id: int) -> str:
         from src.config import get_settings
 
-        base = get_settings().snapshot_schema
-        return f"{base}_run{run_id}" if self.user_supplied else base
+        return f"{get_settings().snapshot_schema}_run{run_id}"
 
     def mongo_snapshot_db(self, run_id: int) -> str:
         from src.config import get_settings
 
         if self.user_supplied:
             return f"{self.namespace}_protected_run{run_id}"
-        return get_settings().mongo_snapshot_db
+        return f"{get_settings().mongo_snapshot_db}_run{run_id}"
 
 
 
@@ -423,7 +459,7 @@ def list_sources(
 ) -> list[Source]:
     """List demo + user-registered sources for DPO. No passwords or connection strings."""
     rows = db.scalars(select(db_models.DataSource).order_by(db_models.DataSource.created_at)).all()
-    return [_with_live_status(s) for s in _DEMO_SOURCES] + [_user_source_out(r) for r in rows]
+    return [_with_live_status(s) for s in _demo_sources()] + [_user_source_out(r) for r in rows]
 
 
 @router.post("/sources/test", response_model=SourceTestResult)
@@ -434,7 +470,13 @@ def test_source(body: SourceCreate, _user: SessionUser = Depends(require_dpo)) -
         parsed = _check_url(url)
     except SourceUrlError as exc:
         return SourceTestResult(ok=False, message=str(exc))
-    return SourceTestResult(ok=True, engine=parsed.engine, message="Connection OK")
+    return SourceTestResult(
+        ok=True,
+        engine=parsed.engine,
+        message="Connection OK",
+        namespaces=list_namespaces(url, parsed.engine, parsed.default_namespace),
+        default_namespace=parsed.default_namespace,
+    )
 
 
 @router.post("/sources", response_model=Source, status_code=status.HTTP_201_CREATED)
