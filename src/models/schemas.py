@@ -9,7 +9,7 @@ except ImportError:
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ChatRequest(BaseModel):
@@ -370,6 +370,30 @@ class UserOut(BaseModel):
     id: int
     username: str
     role: UserRole
+
+
+DATASET_NAME_MAX = 120
+
+
+def _clean_dataset_name(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = " ".join(value.split())
+    return cleaned or None
+
+
+class BuildRequest(BaseModel):
+    """Optional body of POST /runs/{id}/build: the name the Analyst sees (kept on rebuild when omitted)."""
+
+    dataset_name: str | None = Field(default=None, max_length=DATASET_NAME_MAX)
+
+    _clean = field_validator("dataset_name", mode="before")(_clean_dataset_name)
+
+
+class DatasetRename(BaseModel):
+    dataset_name: str = Field(..., min_length=1, max_length=DATASET_NAME_MAX)
+
+    _clean = field_validator("dataset_name", mode="before")(_clean_dataset_name)
 
 
 class BuildResponse(BaseModel):

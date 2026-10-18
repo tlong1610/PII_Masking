@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import unicodedata
 import zipfile
 from datetime import UTC, datetime
 from typing import Any
@@ -26,6 +27,7 @@ from src.models.schemas import (
     DatasetPreview,
     DatasetPreviewColumn,
     DatasetRelationship,
+    DatasetRename,
     DatasetStatus,
     DatasetVerification,
     PolicyAction,
@@ -314,6 +316,32 @@ def get_dataset(
     )
 
 
+@router.patch("/datasets/{dataset_id}", response_model=DatasetOut)
+def rename_dataset(
+    dataset_id: int,
+    body: DatasetRename,
+    user: SessionUser = Depends(require_dpo),
+    db: Session = Depends(get_db),
+) -> DatasetOut:
+    """Rename only: the protected data is untouched, so it works in any status (published included)."""
+    ds = _get_dataset(db, dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    previous = ds.dataset_name
+    ds.dataset_name = body.dataset_name
+    _write_audit(
+        db,
+        actor=user,
+        action="rename_dataset",
+        entity_type="dataset",
+        entity_id=str(ds.id),
+        reason=f"from={previous}; to={body.dataset_name}",
+    )
+    db.commit()
+    db.refresh(ds)
+    return _dataset_out(ds)
+
+
 @router.post("/datasets/{dataset_id}/publish", response_model=DatasetOut)
 def publish_dataset(
     dataset_id: int,
@@ -577,7 +605,10 @@ def _csv_bytes(table_columns: list[str], rows: list[dict]) -> bytes:
 
 
 def _export_file_stem(ds: db_models.Dataset) -> str:
-    stem = re.sub(r"[^a-z0-9._-]+", "-", (ds.dataset_name or "").lower()).strip("-")
+    # ASCII only (the name goes into a Content-Disposition header): "Khách hàng" -> "khach-hang".
+    name = (ds.dataset_name or "").lower().replace("đ", "d")
+    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    stem = re.sub(r"[^a-z0-9._-]+", "-", ascii_name).strip("-")
     return stem or f"dataset-{ds.id}"
 
 

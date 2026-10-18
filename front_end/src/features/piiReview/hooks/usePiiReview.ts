@@ -132,7 +132,7 @@ export function useBuildDataset(runId: number) {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: () => api.buildDataset(runId),
+    mutationFn: (datasetName?: string) => api.buildDataset(runId, datasetName),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.run(runId) });
       void queryClient.invalidateQueries({ queryKey: piiReviewQueryKeys.datasets() });

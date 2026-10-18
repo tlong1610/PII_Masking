@@ -27,6 +27,7 @@ import {
   useUpdateFieldDecisions,
 } from '../hooks/usePiiReview';
 import { useStableCallback } from '../hooks/useStableCallback';
+import { suggestDatasetName } from '../model/datasetName';
 import { type DecisionIssue, collectDecisionIssues, issuesFromApiError } from '../model/decisionIssues';
 import {
   EMPTY_FIELD_NOTE,
@@ -44,6 +45,7 @@ import { type ReviewAction, countPendingChanges, getReviewActions } from '../mod
 import { getLatestDataset, restoreSavedDecisions } from '../model/savedDecisions';
 import { analyzeScopeLinks, effectiveLinkScope } from '../model/scopeLinks';
 import { AddSourceDialog } from './AddSourceDialog';
+import { DatasetNameDialog } from './DatasetNameDialog';
 import { DecisionNotices } from './DecisionNotices';
 import { FieldPolicyDrawerContent } from './FieldPolicyDrawerContent';
 import { FieldReviewTable } from './FieldReviewTable';
@@ -99,6 +101,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [busyPhase, setBusyPhase] = useState<BusyPhase | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
 
   // Inspector Drawer state
   const [inspectFieldId, setInspectFieldId] = useState<number | null>(null);
@@ -267,6 +270,18 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     return tables.length > 3 ? `${tables.slice(0, 3).join(', ')} +${tables.length - 3}` : tables.join(', ');
   }, [fields]);
 
+  const suggestedDatasetName = useMemo(
+    () =>
+      currentRun
+        ? suggestDatasetName(
+            getLatestDataset(currentRun.datasets)?.dataset_name,
+            currentRun.source_name,
+            Array.from(new Set(fields.map((field) => field.source_path))),
+          )
+        : '',
+    [currentRun, fields],
+  );
+
   const activeInspectField = useMemo(
     () => fields.find((field) => field.id === inspectFieldId) ?? null,
     [fields, inspectFieldId],
@@ -378,8 +393,8 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
     }, 50);
   };
 
-  /** "Lưu": saves every decision, then (re)builds and verifies the protected data the Analyst reads. */
-  const handleSaveAndBuild = async (): Promise<void> => {
+  /** "Lưu": checks the decisions first, then asks for the dataset name before saving anything. */
+  const requestSaveAndBuild = (): void => {
     if (!currentRunId || !currentRun) return;
 
     // Catch every problem up front so the DPO can fix them all, not one 422 at a time.
@@ -395,7 +410,13 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
       notify(`Có ${issues.length} cột cần sửa trước khi lưu.`, 'warning');
       return;
     }
+    setNameDialogOpen(true);
+  };
 
+  /** Saves every decision, then (re)builds and verifies the protected data the Analyst reads. */
+  const handleSaveAndBuild = async (datasetName: string): Promise<void> => {
+    setNameDialogOpen(false);
+    if (!currentRunId || !currentRun) return;
     setDecisionError(null);
     setDecisionIssues([]);
     try {
@@ -413,7 +434,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         ),
       );
       setBusyPhase('building');
-      const result = await buildDataset.mutateAsync();
+      const result = await buildDataset.mutateAsync(datasetName);
       setDatasetId(result.dataset.id);
       if (result.dataset.status === 'VERIFIED') {
         notify('Đã lưu và kiểm định xong. Có thể phát hành cho Analyst.');
@@ -462,7 +483,7 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
   };
 
   const handleAction = (action: ReviewAction): void => {
-    if (action === 'BUILD') void handleSaveAndBuild();
+    if (action === 'BUILD') requestSaveAndBuild();
     else if (action === 'PUBLISH') setPendingConfirm({ kind: 'PUBLISH' });
     else if (action === 'REVOKE') setPendingConfirm({ kind: 'REVOKE' });
     else navigate(routes.dpo);
@@ -739,6 +760,15 @@ export function DpoReviewExperienceMVP({ initialRunId = null, onRunCreated }: Dp
         open={addSourceOpen}
         onClose={() => setAddSourceOpen(false)}
         onCreated={(sourceId) => handleSelectSource(sourceId)}
+      />
+
+      <DatasetNameDialog
+        open={nameDialogOpen}
+        title="Đặt tên dữ liệu cho Analyst"
+        confirmLabel="Lưu"
+        initialName={suggestedDatasetName}
+        onConfirm={(name) => void handleSaveAndBuild(name)}
+        onClose={() => setNameDialogOpen(false)}
       />
 
       {pendingConfirm && (
