@@ -18,8 +18,15 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { routes } from '@/shared/config/routes';
 import { ConfirmDialog, MascotLoader, SectionHeader, StateNotice, useNotify } from '@/shared/ui';
+import { useDatasetDetail } from '@/features/datasets';
+import { DatasetNameDialog, suggestDatasetName } from '@/features/piiReview';
 import type { RunSummary } from '../api/runHistoryApi';
-import { useDeleteRuns, useRunDatasetAction, useRunHistory, type DeleteRunsResult } from '../hooks/useRunHistory';
+import {
+  useDeleteRuns,
+  useRunDatasetAction,
+  useRunHistory,
+  type DeleteRunsResult,
+} from '../hooks/useRunHistory';
 import { getRunDeleteBlocker, getRunTab, RUN_TABS, type RunTab } from '../model/runActions';
 import { RunHistoryRow } from './RunHistoryRow';
 
@@ -54,7 +61,13 @@ export function RunHistoryView(): JSX.Element {
     [allRuns, tab],
   );
   const tabCounts = useMemo(() => {
-    const counts: Record<RunTab, number> = { ALL: allRuns?.length ?? 0, REVIEW: 0, READY: 0, PUBLISHED: 0, OTHER: 0 };
+    const counts: Record<RunTab, number> = {
+      ALL: allRuns?.length ?? 0,
+      REVIEW: 0,
+      READY: 0,
+      PUBLISHED: 0,
+      OTHER: 0,
+    };
     allRuns?.forEach((run) => {
       counts[getRunTab(run)] += 1;
     });
@@ -64,6 +77,9 @@ export function RunHistoryView(): JSX.Element {
   const datasetAction = useRunDatasetAction();
   const notify = useNotify();
   const [pendingAction, setPendingAction] = useState<DatasetAction | null>(null);
+  const publishDetail = useDatasetDetail(
+    pendingAction?.kind === 'publish' ? pendingAction.datasetId : null,
+  );
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<number[] | null>(null);
   const [lastResult, setLastResult] = useState<DeleteRunsResult | null>(null);
@@ -87,15 +103,18 @@ export function RunHistoryView(): JSX.Element {
 
   const toggleAll = (): void => setSelected(allSelected ? new Set() : new Set(deletableIds));
 
-  const handleConfirmAction = (): void => {
-    if (!pendingAction) return;
+  const handleConfirmAction = (datasetName?: string): void => {
+    if (!pendingAction || datasetAction.isPending) return;
     const { kind, run, datasetId } = pendingAction;
     datasetAction.mutate(
-      { kind, datasetId },
+      { kind, datasetId, datasetName },
       {
-        onSuccess: () => notify(DATASET_ACTION_COPY[kind].done(run.id)),
-        onError: (err) => notify(err instanceof Error ? err.message : 'Thao tác thất bại.', 'error'),
-        onSettled: () => setPendingAction(null),
+        onError: (err) =>
+          notify(err instanceof Error ? err.message : 'Thao tác thất bại.', 'error'),
+        onSuccess: () => {
+          notify(DATASET_ACTION_COPY[kind].done(run.id));
+          setPendingAction(null);
+        },
       },
     );
   };
@@ -105,7 +124,9 @@ export function RunHistoryView(): JSX.Element {
     deleteRuns.mutate(pendingDelete, {
       onSuccess: (result) => {
         setLastResult(result);
-        setSelected((current) => new Set([...current].filter((id) => !result.deleted.includes(id))));
+        setSelected(
+          (current) => new Set([...current].filter((id) => !result.deleted.includes(id))),
+        );
       },
       onSettled: () => setPendingDelete(null),
     });
@@ -160,7 +181,10 @@ export function RunHistoryView(): JSX.Element {
             disabled={selectedIds.length === 0 || deleteRuns.isPending}
             onClick={() => setPendingDelete(selectedIds)}
           >
-            Xóa {selectedIds.length > 0 ? `${selectedIds.length} lượt quét đã chọn` : 'lượt quét đã chọn'}
+            Xóa{' '}
+            {selectedIds.length > 0
+              ? `${selectedIds.length} lượt quét đã chọn`
+              : 'lượt quét đã chọn'}
           </Button>
         </Stack>
 
@@ -241,7 +265,36 @@ export function RunHistoryView(): JSX.Element {
         onClose={() => setPendingDelete(null)}
       />
 
-      {pendingAction && (
+      {pendingAction?.kind === 'publish' && !publishDetail.data && (
+        <StateNotice
+          kind={publishDetail.isError ? 'error' : 'empty'}
+          title={publishDetail.isError ? 'Không tải được tên dataset' : 'Đang tải tên dataset…'}
+          description="Chờ tải tên trước khi xác nhận phát hành."
+          actionLabel={publishDetail.isError ? 'Thử lại' : 'Hủy'}
+          onAction={() =>
+            publishDetail.isError ? void publishDetail.refetch() : setPendingAction(null)
+          }
+        />
+      )}
+      {pendingAction?.kind === 'publish' && publishDetail.data && (
+        <DatasetNameDialog
+          open
+          title={DATASET_ACTION_COPY.publish.title(pendingAction.run.id)}
+          description={DATASET_ACTION_COPY.publish.description}
+          confirmLabel="Phát hành"
+          initialName={suggestDatasetName(
+            publishDetail.data.dataset_name,
+            pendingAction.run.source_name,
+            [],
+          )}
+          pending={datasetAction.isPending}
+          onConfirm={handleConfirmAction}
+          onClose={() => {
+            if (!datasetAction.isPending) setPendingAction(null);
+          }}
+        />
+      )}
+      {pendingAction?.kind === 'revoke' && (
         <ConfirmDialog
           open
           title={DATASET_ACTION_COPY[pendingAction.kind].title(pendingAction.run.id)}
@@ -249,7 +302,7 @@ export function RunHistoryView(): JSX.Element {
           confirmLabel={DATASET_ACTION_COPY[pendingAction.kind].confirm}
           destructive={pendingAction.kind === 'revoke'}
           pending={datasetAction.isPending}
-          onConfirm={handleConfirmAction}
+          onConfirm={() => handleConfirmAction()}
           onClose={() => setPendingAction(null)}
         />
       )}
