@@ -1,36 +1,35 @@
 # Pitch Deck & Demo Materials
 
-![Thumbnail video Demo Day](thumbnail.png)
+![Thumbnail video demo](thumbnail.png)
 
 ## Files
 
 | File | Nội dung |
 | --- | --- |
-| [`pitch_deck.pptx`](pitch_deck.pptx) | Deck Demo Day 10 slide, sửa được trong PowerPoint/Google Slides; có speaker notes từng slide |
+| [`pitch_deck.pptx`](pitch_deck.pptx) | Deck 9 slide, sửa được trong PowerPoint/Google Slides; có speaker notes từng slide |
 | [`pitch_deck.pdf`](pitch_deck.pdf) | Bản PDF cùng layout, dùng để nộp hoặc chiếu khi máy không có PowerPoint |
 | [`thumbnail.png`](thumbnail.png) | Ảnh bìa 1920×1080 cho video demo và gallery dự án: màn DPO review trên monitor, Pango chỉ vào màn hình, badge số liệu nghiệm thu P1 |
 | [`source/build_deck.js`](source/build_deck.js) | Nguồn duy nhất của layout; sinh cả PPTX, PDF và thumbnail |
 
-Video demo chưa nằm trong repo; link ở [README gốc](../README.md) và QR trên slide 8.
+Video demo và app live có link riêng ở [README gốc](../README.md), nên deck không có slide demo/QR.
 
-## Cấu trúc deck (theo `docs/guide/chapter-09.md` §9.6)
+## Cấu trúc deck
 
-1. **Title** — logo, tagline “Protect data. Preserve utility.”, DATA-06 · P-138
-2. **Problem** — bỏ sót PII, che sai làm hỏng JOIN, thiếu căn cứ; DPO và Analyst
-3. **Solution** — cổng bảo mật giữa raw database và Analyst; Brand Core / Promise / Positioning
-4. **Product flow** — 7 bước Connect → Scope → Scan → DPO Review → Build → Verify → Publish
-5. **Architecture** — React (Vercel) → FastAPI (Render) → engine → snapshot riêng
-6. **AI / LLM** — phễu rules → BM25 → hybrid → LLM vùng xám; số liệu Luồng A/B
-7. **Technical highlights** — tests, CI/CD, audit hash-chain
-8. **Demo** — QR video + live app, tài khoản demo
-9. **Challenges & learnings** — HMAC/`link_scope`, LLM chỉ thấy metadata, giới hạn `KEEP`
-10. **Team & next steps** — 4 thành viên, roadmap, Q&A
+1. **Title** — logo, tagline, 4 cách bảo vệ, Team P-138
+2. **Vấn đề** — khung pháp lý mới (Luật 91/2025/QH15, NĐ 356/2025/NĐ-CP, NĐ 330/2026/NĐ-CP), mức phạt tối đa theo Điều 8 Luật 91, ba nỗi đau của DPO
+3. **Giải pháp** — cổng bảo mật giữa database gốc và Analyst; 4 cách bảo vệ MASK · REDACT · HMAC · DROP
+4. **Sản phẩm** — 7 bước Kết nối → Phạm vi → Quét → DPO duyệt → Build → Kiểm chứng → Publish
+5. **Kiến trúc** — đường dữ liệu, đường điều khiển và 3 lớp kiểm soát, viết cho người không chuyên dev
+6. **AI / LLM** — phễu rules → BM25 → hybrid → LLM vùng xám; số liệu Luồng A/B sau HITL
+7. **Kỹ thuật** — số test, CI/CD, nhật ký chuỗi hash SHA-256
+8. **Bài học** — HMAC/`link_scope`, LLM chỉ thấy metadata, giới hạn `KEEP`
+9. **Team & bước tiếp theo** — 4 thành viên, lộ trình, lời cảm ơn
 
-Số liệu test/benchmark là số của báo cáo nghiệm thu P1 và được ghi chú như vậy trên slide.
+Căn cứ pháp lý ở slide 2 lấy từ bản gốc trong [`docs/legal/`](../docs/legal/). Số liệu AI ở slide 6 lấy từ `performance/sau_HITL/`. Số test ở slide 7 là kết quả chạy lại ngày 18/10/2026 (backend 312 pass + 5 skip cần DB live, frontend 184 pass); khi số test thay đổi thì sửa `techStats` trong `build_deck.js` và build lại.
 
-## Nhận diện (Brand DNA)
+## Nhận diện
 
-Theo [`assets/svg/piiguard-brand-dna.svg`](../assets/svg/piiguard-brand-dna.svg): nền `#F8FAFC`, gradient `#0F172A → #0F766E → #16A34A`, card trắng bo 22px, màu ngữ nghĩa Verified `#16A34A` / Warning `#D97706` / Blocked `#DC2626`. Mascot Pango và logo lấy từ [`assets/`](../assets/README.md) (WebP được chuyển sang PNG khi build). Font Arial để chiếu ổn định trên mọi máy.
+Màu theo theme của app ([`front_end/src/app/theme/theme.ts`](../front_end/src/app/theme/theme.ts)): primary `#1B51A4`, nền sáng xanh nhạt, card trắng viền `#E5E7EB`. Slide bìa và các panel nhấn mạnh dùng nền navy của màn đăng nhập ([`assets/svg/login-background.svg`](../assets/svg/login-background.svg)). Màu 4 hành động khớp chip trong giao diện DPO: MASK cam `#D97706`, REDACT xanh `#2563EB`, HMAC tím `#7C3AED`, DROP đỏ `#DC2626`. Mascot Pango và logo lấy từ [`assets/`](../assets/README.md) (WebP được chuyển sang PNG khi build). Font Arial để chiếu ổn định trên mọi máy.
 
 ## Build lại
 

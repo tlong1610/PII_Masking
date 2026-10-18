@@ -1,4 +1,4 @@
-// Builds the Demo Day pitch deck and the video thumbnail from ONE layout source, so the
+// Builds the pitch deck and the video thumbnail from ONE layout source, so the
 // editable PPTX and the PDF/PNG renders stay identical.
 //
 //   cd presentation/source && npm install && npm run build      # or: node build_deck.js --qa
@@ -6,7 +6,8 @@
 // Outputs: ../pitch_deck.pptx, ../pitch_deck.pdf, ../thumbnail.png (1920x1080).
 // Intermediate HTML, PNG assets and QA renders go to ./build/ (gitignored).
 // Layout unit is the pixel of a 1280x720 canvas (96 px = 1 inch = LAYOUT_WIDE in PowerPoint).
-// Colors follow assets/svg/piiguard-brand-dna.svg. Never put raw PII or secrets on a slide.
+// Colors follow the app theme (front_end/src/app/theme/theme.ts) and the login background
+// (assets/svg/login-background.svg). Never put raw PII or secrets on a slide.
 
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +15,6 @@ const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const pptxgen = require('pptxgenjs');
 const sharp = require('sharp');
-const QRCode = require('qrcode');
 
 const JSZip = require(require.resolve('jszip', { paths: [require.resolve('pptxgenjs')] }));
 
@@ -23,459 +23,551 @@ const OUT = path.resolve(__dirname, '..');
 const BUILD = path.join(__dirname, 'build');
 const QA = process.argv.includes('--qa');
 
-// ---------------------------------------------------------------- Brand DNA tokens
+// ---------------------------------------------------------------- app design tokens
 const C = {
-  navy: '0F172A', // Primary
-  trust: '0F766E', // Trust
-  verified: '16A34A', // Verified
-  warning: 'D97706',
-  blocked: 'DC2626',
-  bg: 'F8FAFC',
-  white: 'FFFFFF',
-  body: '334155',
-  muted: '64748B',
-  border: 'D9E2EC',
-  flow: 'CBD5E1',
-  onDark: 'CCFBF1',
-  softFill: 'ECFDF5', softLine: '99F6E4',
-  dpoFill: 'F0FDF4', dpoLine: '86EFAC',
-  analystFill: 'EFF6FF', analystLine: '93C5FD',
-  warnFill: 'FFF7ED', warnLine: 'FDBA74',
-  dangerFill: 'FEF2F2', dangerLine: 'FCA5A5',
-  pillFill: 'E0F2FE', pillLine: '7DD3FC', pillText: '0369A1',
+  ink: '111827', body: '374151', muted: '6B7280', border: 'E5E7EB', bg: 'F5F8FC', white: 'FFFFFF', code: 'F9FAFB',
+  primary: '1B51A4', primaryLight: 'EBF3FB', primaryLine: 'BFD4F0', primaryDark: '123A75',
+  navy: '0F2F63', navyDeep: '081733', onDark: 'BFDBFE', onDarkMuted: '93C5FD', sky: '7DD3FC',
+  info: '2563EB', infoLight: 'EFF6FF', infoLine: 'BFDBFE',
+  accent: '7C3AED', accentLight: 'F5F3FF', accentLine: 'DDD6FE',
+  success: '16A34A', successLight: 'ECFDF5', successLine: 'A7F3D0',
+  warning: 'D97706', warningLight: 'FFFBEB', warningLine: 'FCD34D',
+  error: 'DC2626', errorLight: 'FEF2F2', errorLine: 'FECACA',
 };
-const GRADIENT = [['0%', C.navy], ['62%', C.trust], ['100%', C.verified]];
+// [main, light fill, border] per tone; action tones match policyLabels.ts (MASK warning, REDACT info, HMAC accent, DROP error).
+const TONE = {
+  primary: [C.primary, C.primaryLight, C.primaryLine],
+  info: [C.info, C.infoLight, C.infoLine],
+  accent: [C.accent, C.accentLight, C.accentLine],
+  success: [C.success, C.successLight, C.successLine],
+  warning: [C.warning, C.warningLight, C.warningLine],
+  error: [C.error, C.errorLight, C.errorLine],
+};
+const PANEL = [['0%', C.navyDeep], ['55%', C.navy], ['100%', C.primary]];
 const FONT = 'Arial';
 const THEME = {
-  name: 'PIIGuard Shield DNA',
+  name: 'PIIGuard Shield',
   colors: {
-    dk1: C.navy, lt1: C.white, dk2: C.body, lt2: C.bg,
-    accent1: C.trust, accent2: C.verified, accent3: '2563EB', accent4: C.warning, accent5: C.blocked, accent6: '7C3AED',
-    hlink: C.trust, folHlink: C.muted,
+    dk1: C.ink, lt1: C.white, dk2: C.navy, lt2: C.bg,
+    accent1: C.primary, accent2: C.info, accent3: C.accent, accent4: C.success, accent5: C.warning, accent6: C.error,
+    hlink: C.primary, folHlink: C.muted,
   },
 };
-const LINKS = {
-  video: 'https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing',
-  app: 'https://frontend-alpha-fawn-53.vercel.app',
-  docs: 'https://piiguard-vn-api.onrender.com/docs',
-  repo: 'https://github.com/AI20K-Build-Phase-Cohort-4/P-138',
+
+// Stroke icons (24x24, lucide style), rendered to PNG for the deck and inlined in the thumbnail.
+const ICONS = {
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/>',
+  chain: '<path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>',
+  user: '<circle cx="10" cy="8" r="4"/><path d="M3 20a7 7 0 0 1 12-5"/><path d="m15 18 2 2 4-4"/>',
+  shield: '<path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  gavel: '<path d="m14.5 12.5-8 8a2.1 2.1 0 1 1-3-3l8-8"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/>',
+  unlink: '<path d="m18.8 12.3 1.8-1.8a5 5 0 0 0-7.1-7.1l-1.7 1.8"/><path d="m5.2 11.7-1.7 1.8a5 5 0 0 0 7.1 7.1l1.7-1.8"/><path d="M8 2v3M2 8h3M16 22v-3M22 16h-3"/>',
+  fileq: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 12a2 2 0 1 1 2.5 1.9c-.3.1-.5.4-.5.7V15"/><path d="M12 18h.01"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+  monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  server: '<rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/>',
+  cpu: '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+  copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  sparkles: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  flask: '<path d="M9 3h6"/><path d="M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/>',
+  code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+  git: '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7"/><path d="M18 10.5c0 4-6 3-11 6"/>',
+  rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="m12 15-3-3a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0"/><path d="M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z"/>',
+  key: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  plus: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/>',
+  bulb: '<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
 };
 
 // ---------------------------------------------------------------- layout primitives
 const rect = (x, y, w, h, o = {}) => ({ t: 'rect', x, y, w, h, ...o });
 const text = (x, y, w, h, content, o = {}) => ({ t: 'text', x, y, w, h, content, ...o });
 const img = (x, y, w, h, src, o = {}) => ({ t: 'img', x, y, w, h, src, ...o });
-const arrow = (x1, y1, x2, y2, o = {}) => ({ t: 'arrow', x1, y1, x2, y2, ...o });
+const hl = (t, color = C.primary) => ({ text: t, color });
 
 const gradients = new Map();
-function grad(x, y, w, h, r, o = {}) {
+function grad(x, y, w, h, r) {
   const key = `grad-${w}x${h}-r${r}.png`;
   gradients.set(key, { w, h, r });
-  return img(x, y, w, h, `gen/${key}`, { alt: '', ...o });
+  return img(x, y, w, h, `gen/${key}`, { alt: '' });
 }
+const icons = new Map();
+function ico(x, y, d, name, color) {
+  const key = `ic-${name}-${color}.png`;
+  icons.set(key, { name, color });
+  return img(x, y, d, d, `gen/${key}`, { alt: '' });
+}
+const iconChip = (x, y, d, name, tone, o = {}) => {
+  const [main, light, line] = TONE[tone];
+  return [
+    rect(x, y, d, d, { fill: o.fill ?? light, line: o.line ?? line, lineW: 1, r: Math.round(d * 0.28) }),
+    ico(x + d * 0.22, y + d * 0.22, d * 0.56, name, o.color ?? main),
+  ];
+};
+const chevron = (x, y, d = 28) => ico(x, y, d, 'chevron', C.primaryLine);
 const card = (x, y, w, h, o = {}) =>
-  rect(x, y, w, h, { fill: C.white, line: C.border, lineW: 1.5, r: 22, shadow: true, ...o });
+  rect(x, y, w, h, { fill: C.white, line: C.border, lineW: 1, r: 14, shadow: true, ...o });
 const pill = (x, y, w, h, label, o = {}) => [
-  rect(x, y, w, h, { fill: o.fill ?? C.pillFill, line: o.line ?? C.pillLine, lineW: 1, r: h / 2, transp: o.transp }),
-  text(x, y, w, h, label, { size: o.size ?? 13, bold: o.bold ?? true, color: o.color ?? C.navy, align: 'center', valign: 'middle' }),
+  rect(x, y, w, h, { fill: o.fill ?? C.primaryLight, line: o.line ?? C.primaryLine, lineW: 1, r: h / 2, transp: o.transp }),
+  text(x, y, w, h, label, { size: o.size ?? 12, bold: o.bold ?? true, color: o.color ?? C.primary, align: 'center', valign: 'middle' }),
 ];
-const badge = (x, y, d, label, fill, line, color) => [
-  rect(x, y, d, d, { fill, line, lineW: 1.5, r: 'full' }),
-  text(x, y, d, d, label, { size: 18, bold: true, color, align: 'center', valign: 'middle' }),
-];
+const actionPill = (x, y, w, h, label, tone, size = 12) =>
+  pill(x, y, w, h, label, { fill: TONE[tone][0], line: TONE[tone][0], color: C.white, size });
 const mascot = (pose, x, y, d) =>
   img(x, y, d, d, `img/pango-${pose}.png`, { alt: `Mascot Pango (${pose})` });
+const panel = (x, y, w, h, r = 18) => grad(x, y, w, h, r);
 
 // ---------------------------------------------------------------- slide layouts (masters)
 const MASTERS = {
   CONTENT: {
     objects: [
-      img(56, 675, 20, 20, 'img/logo.png'),
-      text(84, 672, 640, 26, 'PIIGuard Shield · DATA-06 · Team P-138', { size: 11, color: C.muted, valign: 'middle' }),
+      img(0, 0, 1280, 720, 'gen/bg-light.png', { alt: '' }),
+      img(1068, 30, 22, 22, 'img/logo.png'),
+      text(1096, 30, 128, 22, 'PIIGuard Shield', { size: 12, bold: true, color: C.navy, valign: 'middle' }),
     ],
-    title: { x: 56, y: 84, w: 1168, h: 56, size: 32, color: C.navy },
-    number: { x: 1124, y: 672, w: 100, h: 26, size: 11, color: C.muted },
+    title: { x: 56, y: 62, w: 1168, h: 50, size: 30, color: C.ink },
   },
   COVER: {
-    objects: [grad(32, 32, 1216, 656, 32)],
-    title: { x: 88, y: 206, w: 700, h: 84, size: 60, color: C.white },
-  },
-  HERO: {
-    objects: [grad(32, 32, 1216, 656, 32)],
-    title: { x: 88, y: 72, w: 860, h: 56, size: 34, color: C.white },
+    objects: [img(0, 0, 1280, 720, 'gen/bg-dark.png', { alt: '' })],
+    title: { x: 184, y: 206, w: 600, h: 80, size: 58, color: C.white },
   },
 };
 
-const kicker = (label) => [
-  grad(56, 44, Math.round(label.length * 8.4 + 34), 28, 14),
-  text(56, 44, Math.round(label.length * 8.4 + 34), 28, label, { size: 11, bold: true, color: C.white, align: 'center', valign: 'middle', spacing: 1 }),
-];
+// "02 | Vấn đề" in the top-left corner of every content slide; the number follows slide order.
+const header = (n, label) => text(56, 30, 700, 22, [[
+  { text: String(n).padStart(2, '0'), b: true, color: C.primary },
+  { text: '  |  ', color: 'CBD5E1' },
+  { text: label, color: C.muted },
+]], { size: 12, bold: true, valign: 'middle' });
 
 // ---------------------------------------------------------------- slides
 const slides = [];
 
 // 1 — Title
 slides.push({
-  master: 'COVER', section: 'Mở đầu', title: 'PIIGuard Shield',
+  master: 'COVER', title: 'PIIGuard Shield',
   els: [
-    rect(88, 96, 72, 72, { fill: C.white, r: 18 }),
-    img(96, 104, 56, 56, 'img/logo.png', { alt: 'Logo PIIGuard Shield' }),
-    text(180, 98, 600, 68, [
-      [{ text: 'VinUni AI20K Build Phase · Cohort 4', b: true }],
-      [{ text: 'Mã đề DATA-06 · Team P-138', color: C.onDark }],
-    ], { size: 15, color: C.white, valign: 'middle', para: 4 }),
-    text(88, 304, 700, 48, 'Protect data. Preserve utility.', { size: 30, color: C.white }),
-    text(88, 370, 620, 96,
-      'Hỗ trợ DPO rà soát dữ liệu cá nhân trong PostgreSQL và MongoDB, duyệt biện pháp bảo vệ và chia sẻ dataset vẫn dùng được cho phân tích.',
-      { size: 18, color: C.onDark }),
-    ...pill(88, 560, 200, 40, 'Demo Day · 10/2026', { fill: C.white, line: C.white, transp: 82, color: C.white, size: 14 }),
-    ...pill(300, 560, 250, 40, 'Luật 91/2025 · NĐ 356/2025', { fill: C.white, line: C.white, transp: 82, color: C.white, size: 14 }),
-    rect(815, 160, 390, 390, { fill: C.white, r: 'full', transp: 86 }),
-    mascot('default', 790, 145, 440),
+    ...pill(88, 128, 440, 34, 'Bảo vệ dữ liệu cá nhân theo Luật 91/2025/QH15', { fill: C.white, line: C.white, transp: 86, color: C.white, size: 13 }),
+    rect(88, 206, 76, 76, { fill: C.white, r: 18 }),
+    img(98, 216, 56, 56, 'img/logo.png', { alt: 'Logo PIIGuard Shield' }),
+    text(88, 300, 660, 72, [[{ text: 'Bảo vệ dữ liệu cá nhân, ' }, hl('giữ nguyên giá trị phân tích', C.sky)]], { size: 25, bold: true, color: C.white }),
+    text(88, 392, 600, 84,
+      'Giúp DPO rà soát dữ liệu cá nhân trong PostgreSQL và MongoDB, duyệt cách bảo vệ từng trường và phát hành bản sao an toàn cho Analyst.',
+      { size: 17, color: C.onDark }),
+    ...[['MASK', 'warning'], ['REDACT', 'info'], ['HMAC', 'accent'], ['DROP', 'error']]
+      .flatMap(([a, tone], i) => actionPill(88 + i * 106, 490, 96, 32, a, tone, 13)),
+    rect(88, 556, 360, 76, { fill: C.white, r: 16, transp: 88 }),
+    ...iconChip(106, 572, 44, 'users', 'primary', { fill: C.white, line: C.white }),
+    text(166, 568, 270, 52, [
+      [{ text: 'Team P-138', b: true, size: 17 }],
+      [{ text: 'Phúc · Tùng · Kiên · Long', color: C.onDark }],
+    ], { size: 14, color: C.white, valign: 'middle', para: 2 }),
+    rect(810, 140, 400, 400, { fill: C.white, r: 'full', transp: 90 }),
+    mascot('protected', 790, 120, 440),
+    card(900, 540, 300, 84, { r: 16 }),
+    ...iconChip(918, 560, 44, 'check', 'success'),
+    text(976, 556, 214, 52, [
+      [{ text: 'Verifier PASS', b: true, color: C.ink, size: 16 }],
+      [{ text: 'Sẵn sàng cho Analyst' }],
+    ], { size: 13, color: C.muted, valign: 'middle', para: 2 }),
   ],
-  notes: 'PIIGuard Shield — cổng bảo mật giữa database gốc và Analyst. Tagline: Protect data. Preserve utility. Team P-138, mã đề DATA-06.',
+  notes: 'PIIGuard Shield là cổng bảo mật giữa database gốc và Analyst: phát hiện dữ liệu cá nhân, DPO duyệt cách bảo vệ từng trường (MASK, REDACT, HMAC, DROP), kiểm chứng rồi mới phát hành. Team P-138: Phúc, Tùng, Kiên, Long.',
 });
 
-// 2 — Problem
+// 2 — Problem: the legal frame tightened in 2026
+const laws = [
+  ['Hiệu lực 01/01/2026', 'primary', 'Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15', 'Luật riêng đầu tiên về dữ liệu cá nhân; cấm mua bán, cố ý làm lộ dữ liệu (Điều 7).'],
+  ['Hiệu lực 01/01/2026', 'primary', 'Nghị định 356/2025/NĐ-CP', 'Hướng dẫn thi hành Luật: danh mục dữ liệu cơ bản và nhạy cảm (Điều 3–4), thay NĐ 13/2023.'],
+  ['Ký 19/08/2026', 'error', 'Nghị định 330/2026/NĐ-CP', 'Xử phạt hành chính về an ninh mạng và bảo vệ dữ liệu cá nhân: chế tài cho từng hành vi.'],
+];
+const fines = [
+  ['5%', 'doanh thu năm trước: vi phạm chuyển dữ liệu cá nhân xuyên biên giới'],
+  ['10×', 'khoản thu có được: mua bán dữ liệu cá nhân'],
+  ['3 tỷ đ', 'các vi phạm khác về bảo vệ dữ liệu cá nhân'],
+];
 const pains = [
-  ['1', 'Bỏ sót dữ liệu cá nhân', 'PII nằm rải rác trong hàng trăm cột, cả văn bản tự do và document MongoDB lồng nhau.', C.dangerFill, C.dangerLine, C.blocked],
-  ['2', 'Che sai làm hỏng JOIN', 'Khóa nối bị che không nhất quán, Analyst mất liên kết giữa các bảng.', C.warnFill, C.warnLine, C.warning],
-  ['3', 'Thiếu căn cứ và bằng chứng', 'Khó chứng minh ai duyệt, theo điều luật nào, đã kiểm tra tác động chưa.', C.pillFill, C.pillLine, C.pillText],
+  ['scan', 'error', 'Bỏ sót dữ liệu cá nhân', 'PII rải rác trong hàng trăm cột, văn bản tự do và document MongoDB lồng nhau.'],
+  ['unlink', 'warning', 'Che sai làm hỏng JOIN', 'Khóa nối bị che không nhất quán, Analyst mất liên kết giữa các bảng.'],
+  ['fileq', 'primary', 'Thiếu căn cứ, bằng chứng', 'Khó chứng minh ai duyệt, theo điều luật nào, đã kiểm tra tác động chưa.'],
 ];
 slides.push({
-  master: 'CONTENT', section: 'Vấn đề & giải pháp', kicker: '02 · VẤN ĐỀ',
-  title: 'DPO rà từng trường bằng tay trước khi chia sẻ',
+  master: 'CONTENT', label: 'Vấn đề',
+  title: ['Luật đã có ', hl('chế tài', C.error), ', DPO vẫn rà dữ liệu bằng tay'],
   els: [
-    ...pains.flatMap(([n, t, b, fill, line, color], i) => {
-      const y = 172 + i * 156;
+    card(56, 128, 652, 372),
+    ...iconChip(80, 148, 36, 'gavel', 'primary'),
+    text(128, 148, 560, 36, 'Khung pháp lý mới về dữ liệu cá nhân', { size: 17, bold: true, color: C.ink, valign: 'middle' }),
+    ...laws.flatMap(([when, tone, name, desc], i) => {
+      const y = 206 + i * 96;
+      const out = [
+        ...pill(80, y + 2, 150, 28, when, { fill: TONE[tone][1], line: TONE[tone][2], color: TONE[tone][0], size: 11 }),
+        text(246, y, 440, 26, name, { size: 16, bold: true, color: C.ink, valign: 'middle' }),
+        text(246, y + 30, 440, 50, desc, { size: 13.5 }),
+      ];
+      if (i < laws.length - 1) out.push(rect(80, y + 86, 604, 1, { fill: C.border }));
+      return out;
+    }),
+    panel(728, 128, 496, 372, 16),
+    text(756, 150, 440, 20, 'MỨC PHẠT TIỀN TỐI ĐA · ĐIỀU 8 LUẬT 91/2025', { size: 11, bold: true, color: C.onDarkMuted, spacing: 1 }),
+    ...fines.flatMap(([n, desc], i) => {
+      const y = 184 + i * 90;
+      const out = [
+        text(756, y, 168, 80, n, { size: 36, bold: true, color: C.white, valign: 'middle' }),
+        text(932, y, 268, 80, desc, { size: 14, color: C.onDark, valign: 'middle' }),
+      ];
+      if (i < fines.length - 1) out.push(rect(756, y + 84, 440, 1, { fill: C.white, transp: 80 }));
+      return out;
+    }),
+    text(756, 460, 440, 24, 'Áp dụng cho tổ chức; cá nhân tối đa bằng một nửa.', { size: 12, color: C.onDarkMuted, valign: 'middle' }),
+    ...pains.flatMap(([icon, tone, t, b], i) => {
+      const x = 56 + i * 396;
       return [
-        card(56, y, 700, 140, { r: 18 }),
-        ...badge(84, y + 30, 46, n, fill, line, color),
-        text(152, y + 24, 580, 30, t, { size: 20, bold: true, color: C.navy }),
-        text(152, y + 60, 580, 60, b, { size: 15 }),
+        card(x, 520, 376, 124),
+        ...iconChip(x + 20, 540, 40, icon, tone),
+        text(x + 74, 536, 284, 26, t, { size: 16, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 74, 564, 284, 64, b, { size: 13 }),
       ];
     }),
-    mascot('detected', 862, 150, 300),
-    rect(792, 466, 212, 174, { fill: C.dpoFill, line: C.dpoLine, lineW: 1.5, r: 18 }),
-    text(812, 484, 176, 24, 'DPO / Reviewer', { size: 15, bold: true, color: C.navy }),
-    text(812, 516, 176, 110, 'Cần căn cứ, quyết định rõ và bằng chứng xử lý.', { size: 14 }),
-    rect(1012, 466, 212, 174, { fill: C.analystFill, line: C.analystLine, lineW: 1.5, r: 18 }),
-    text(1032, 484, 176, 24, 'Analyst / AI team', { size: 15, bold: true, color: C.navy }),
-    text(1032, 516, 176, 110, 'Cần dataset được phép dùng, vẫn JOIN và tổng hợp được.', { size: 14 }),
+    text(56, 656, 1168, 20, 'Nguồn: Luật 91/2025/QH15 (Điều 7, 8), NĐ 356/2025/NĐ-CP, NĐ 330/2026/NĐ-CP. Bản gốc trong docs/legal/.', { size: 10.5, color: C.muted, valign: 'middle' }),
   ],
-  notes: 'Ba nỗi đau: bỏ sót PII, che khóa không nhất quán làm hỏng JOIN, và thiếu căn cứ/người duyệt/kiểm tra tác động trước khi chia sẻ. Hai người dùng: DPO và Analyst.',
+  notes: 'Từ 01/01/2026, Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 và Nghị định 356/2025/NĐ-CP có hiệu lực, thay Nghị định 13/2023. Ngày 19/08/2026 Chính phủ ký Nghị định 330/2026/NĐ-CP về xử phạt hành chính trong lĩnh vực an ninh mạng và bảo vệ dữ liệu cá nhân. Theo Điều 8 Luật 91, mức phạt tối đa với tổ chức: 5% doanh thu năm trước khi vi phạm chuyển dữ liệu xuyên biên giới, 10 lần khoản thu khi mua bán dữ liệu, 3 tỷ đồng với các vi phạm khác; cá nhân bằng một nửa. Trong khi đó DPO vẫn rà từng trường bằng tay: dễ bỏ sót PII, che sai làm hỏng JOIN, và thiếu bằng chứng ai duyệt, theo căn cứ nào.',
 });
 
 // 3 — Solution
-const dna = [
-  ['Brand Core', 'Cổng bảo mật giữa raw database và workload Analyst / AI.', 'Raw data in. Verified protected dataset out.'],
-  ['Brand Promise', 'Bảo vệ dữ liệu cá nhân mà không phá JOIN, lookup và giá trị phân tích.', 'DPO governs. Backend enforces. Verifier proves.'],
-  ['Positioning', 'Hạ tầng dữ liệu an toàn cho đội analytics và AI doanh nghiệp.', 'Not a masking toy. A governed publishing flow.'],
+const methods = [
+  ['MASK', 'warning', 'Che dữ liệu', '0912 *** 789', 'Che định danh trực tiếp; chỉ còn nhận biết được dạng dữ liệu.'],
+  ['REDACT', 'info', 'Che thực thể (NER)', 'Gọi [PHONE] lúc 9h', 'Văn bản tự do vẫn đọc được; tên, SĐT, email được thay bằng nhãn.'],
+  ['HMAC', 'accent', 'Băm HMAC', 'c7f3e1…9a21', 'Mã thay thế cố định: vẫn ghép bảng, đếm khách; không giải ngược.'],
+  ['DROP', 'error', 'Loại bỏ', '(cột bị loại)', 'Trường rủi ro hoặc không cần cho phân tích; Analyst không nhận cột.'],
 ];
 slides.push({
-  master: 'CONTENT', section: 'Vấn đề & giải pháp', kicker: '03 · GIẢI PHÁP',
-  title: 'Cổng bảo mật giữa raw database và Analyst',
+  master: 'CONTENT', label: 'Giải pháp',
+  title: ['Cổng bảo mật giữa ', hl('database gốc'), ' và Analyst'],
   els: [
-    card(56, 192, 300, 180),
-    text(82, 214, 250, 18, 'INPUT', { size: 11, bold: true, color: C.muted, spacing: 1 }),
-    text(82, 238, 250, 32, 'Raw database', { size: 22, bold: true, color: C.navy }),
-    text(82, 280, 250, 76, [['PostgreSQL · MongoDB'], ['Chỉ đọc, không ghi ngược']], { size: 15, para: 4 }),
-    arrow(366, 282, 436, 282),
-    grad(446, 172, 388, 220, 24),
-    mascot('protected', 458, 192, 180),
-    text(646, 200, 172, 164, [
-      [{ text: 'PIIGuard Shield', b: true, size: 21 }],
-      [{ text: 'Quét → DPO duyệt', color: C.onDark }],
-      [{ text: 'Verify → Publish', color: C.onDark }],
-    ], { size: 14, color: C.white, valign: 'middle', para: 8 }),
-    arrow(844, 282, 914, 282),
-    card(924, 192, 300, 180),
-    text(950, 214, 250, 18, 'OUTPUT', { size: 11, bold: true, color: C.muted, spacing: 1 }),
-    text(950, 238, 250, 32, 'Verified dataset', { size: 22, bold: true, color: C.navy }),
-    text(950, 280, 250, 76, [['MASK · HMAC · DROP'], ['Analyst chỉ thấy PUBLISHED']], { size: 15, para: 4 }),
-    ...dna.flatMap(([t, b, s], i) => {
-      const x = 56 + i * 396;
+    card(56, 128, 324, 190),
+    ...iconChip(80, 150, 44, 'database', 'warning'),
+    text(80, 206, 280, 30, 'Database gốc', { size: 20, bold: true, color: C.ink }),
+    text(80, 242, 280, 60, [['PostgreSQL · MongoDB'], ['Chỉ đọc, không ghi ngược']], { size: 14, para: 3 }),
+    chevron(390, 209),
+    panel(428, 128, 424, 190, 18),
+    mascot('protected', 438, 136, 174),
+    text(616, 146, 220, 154, [
+      [{ text: 'PIIGuard Shield', b: true, size: 20, color: C.white }],
+      ['Quét → DPO duyệt'],
+      ['Build → Kiểm chứng'],
+      ['→ Publish'],
+    ], { size: 14, color: C.onDark, valign: 'middle', para: 4 }),
+    chevron(862, 209),
+    card(900, 128, 324, 190),
+    ...iconChip(924, 150, 44, 'shield', 'success'),
+    text(924, 206, 280, 30, 'Dataset đã bảo vệ', { size: 20, bold: true, color: C.ink }),
+    text(924, 242, 280, 60, [['Bản sao riêng, đã kiểm chứng'], ['Analyst chỉ thấy bản PUBLISHED']], { size: 14, para: 3 }),
+    text(56, 340, 1168, 28, [[hl('4 cách bảo vệ'), { text: ', DPO chọn cho từng trường dữ liệu' }]], { size: 18, bold: true, color: C.ink, valign: 'middle' }),
+    ...methods.flatMap(([a, tone, name, ex, use], i) => {
+      const x = 56 + i * 296;
       return [
-        card(x, 420, 376, 212),
-        text(x + 26, 444, 324, 28, t, { size: 19, bold: true, color: C.navy }),
-        text(x + 26, 482, 324, 76, b, { size: 16 }),
-        text(x + 26, 572, 324, 40, s, { size: 13, bold: true, italic: true, color: C.trust }),
+        card(x, 380, 280, 254),
+        ...actionPill(x + 20, 400, 92, 28, a, tone),
+        text(x + 20, 440, 240, 28, name, { size: 18, bold: true, color: C.ink, valign: 'middle' }),
+        rect(x + 20, 478, 240, 40, { fill: C.code, line: C.border, lineW: 1, r: 8 }),
+        text(x + 32, 478, 216, 40, ex, { size: 14, bold: true, color: TONE[tone][0], valign: 'middle', font: 'Courier New' }),
+        text(x + 20, 530, 240, 90, use, { size: 14 }),
       ];
     }),
+    text(56, 648, 1168, 20, 'Dữ liệu không phải dữ liệu cá nhân được giữ nguyên (KEEP). Ví dụ trên là dữ liệu tổng hợp.', { size: 11, color: C.muted, valign: 'middle' }),
   ],
-  notes: 'PIIGuard là cổng bảo mật: nguồn chỉ đọc, output là snapshot riêng đã MASK/HMAC/DROP, chỉ publish sau khi verifier pass. HMAC giữ JOIN/lookup. Không phải công cụ che dữ liệu đơn thuần mà là một quy trình phát hành có quản trị.',
+  notes: 'PIIGuard đứng giữa database gốc và Analyst. Nguồn chỉ đọc; đầu ra là một bản sao riêng đã được bảo vệ và kiểm chứng, Analyst chỉ thấy bản đã PUBLISHED. DPO chọn một trong 4 cách bảo vệ cho từng trường: MASK che một phần, REDACT thay thực thể PII trong văn bản tự do bằng nhãn như [PHONE], HMAC tạo mã thay thế cố định để vẫn ghép bảng được, DROP loại cột. Dữ liệu không phải dữ liệu cá nhân thì giữ nguyên (KEEP).',
 });
 
 // 4 — Product flow
 const steps = [
-  ['Connect DB', 'read-only'], ['Chọn scope', 'bảng · collection'], ['Quét PII', 'rules + AI'],
-  ['DPO Review', '4 tab, có căn cứ'], ['Build', 'snapshot riêng'], ['Verify', 'JOIN · $lookup'], ['Publish', 'Analyst xem'],
+  ['Kết nối nguồn', 'chỉ đọc'], ['Chọn phạm vi', 'bảng · collection'], ['Quét PII', 'rules + AI'],
+  ['DPO duyệt', 'có căn cứ pháp lý'], ['Build', 'bản sao riêng'], ['Kiểm chứng', 'thử nối bảng (JOIN)'], ['Publish', 'Analyst sử dụng'],
 ];
+const GATES = [3, 5];
 const moments = [
-  ['scanning', 'Quét & đề xuất', 'Rules làm nền, AI hỗ trợ field mơ hồ. Mỗi field có phân loại, căn cứ pháp lý và action đề xuất.'],
-  ['awaiting', 'DPO duyệt trên 4 tab', 'Tổng quan · Rủi ro · Nhật ký kiểm toán · Dữ liệu cho Analyst. Ghi đè AI phải kèm lý do.'],
-  ['protected', 'Verifier PASS mới Publish', 'Snapshot được kiểm tra JOIN / $lookup. Analyst chỉ thấy dataset PUBLISHED, không đọc source.'],
+  ['scanning', 'Quét & đề xuất', 'Rules làm nền, AI hỗ trợ trường mơ hồ. Mỗi trường có phân loại, căn cứ pháp lý và hành động đề xuất.'],
+  ['awaiting', 'DPO duyệt trên 4 tab', 'Tổng quan & phân loại PII · Rủi ro & đánh giá · Nhật ký hoạt động · Dữ liệu cho Analyst. Ghi đè đề xuất của AI bắt buộc ghi lý do.'],
+  ['protected', 'Có PASS mới Publish', 'Bản sao được chạy thử phép nối bảng trên cả PostgreSQL và MongoDB. Analyst chỉ thấy dataset đã PUBLISHED.'],
 ];
+const COL = 1168 / 7;
 slides.push({
-  master: 'CONTENT', section: 'Sản phẩm', kicker: '04 · SẢN PHẨM',
-  title: '7 bước từ kết nối đến phát hành, có người duyệt',
+  master: 'CONTENT', label: 'Sản phẩm',
+  title: ['7 bước từ kết nối đến phát hành, ', hl('có người duyệt')],
   els: [
+    rect(56 + COL / 2, 150, COL * 6, 3, { fill: C.primaryLine }),
     ...steps.flatMap(([t, s], i) => {
-      const x = 57 + i * 170;
-      const hi = i === 3 || i === 5;
+      const cx = Math.round(56 + COL * (i + 0.5));
+      const gate = GATES.includes(i);
       const out = [
-        rect(x, 172, 146, 100, { fill: hi ? C.dpoFill : C.white, line: hi ? C.dpoLine : C.flow, lineW: 1.5, r: 14 }),
-        text(x + 14, 184, 118, 16, `0${i + 1}`, { size: 11, bold: true, color: C.trust }),
-        text(x + 14, 204, 124, 24, t, { size: 15, bold: true, color: C.navy }),
-        text(x + 14, 232, 124, 30, s, { size: 12, color: C.muted }),
+        rect(cx - 22, 130, 44, 44, { fill: gate ? C.primary : C.white, line: C.primary, lineW: 2, r: 'full' }),
+        text(cx - 22, 130, 44, 44, String(i + 1), { size: 16, bold: true, color: gate ? C.white : C.primary, align: 'center', valign: 'middle' }),
+        text(cx - 80, 184, 160, 22, t, { size: 15, bold: true, color: C.ink, align: 'center', valign: 'middle' }),
+        text(cx - 80, 208, 160, 22, s, { size: 12, color: C.muted, align: 'center', valign: 'middle' }),
       ];
-      if (i < steps.length - 1) out.push(arrow(x + 150, 222, x + 166, 222));
+      if (gate) out.push(...pill(cx - 58, 236, 116, 22, 'Cổng kiểm soát', { size: 10 }));
       return out;
     }),
     ...moments.flatMap(([pose, t, b], i) => {
       const x = 56 + i * 396;
       return [
-        card(x, 300, 376, 344),
-        mascot(pose, x + 108, 310, 160),
-        text(x + 26, 478, 324, 28, t, { size: 18, bold: true, color: C.navy }),
-        text(x + 26, 514, 324, 110, b, { size: 15 }),
+        card(x, 280, 376, 364),
+        mascot(pose, x + 103, 292, 170),
+        text(x + 26, 474, 324, 28, t, { size: 18, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 26, 510, 324, 124, b, { size: 15 }),
       ];
     }),
   ],
-  notes: 'Luồng 7 bước: kết nối nguồn chỉ đọc, chọn scope, quét, DPO duyệt trên 4 tab, build snapshot riêng, verifier chạy JOIN/$lookup, publish cho Analyst. Bước DPO Review và Verify là hai cổng kiểm soát.',
+  notes: 'Luồng 7 bước: kết nối nguồn ở chế độ chỉ đọc, chọn bảng/collection cần quét, quét PII bằng rules và AI, DPO duyệt, build bản sao riêng, kiểm chứng bằng cách chạy thử phép nối bảng (JOIN trên PostgreSQL, $lookup là phép nối tương đương trên MongoDB), rồi publish cho Analyst. Bước 4 (DPO duyệt) và bước 6 (Kiểm chứng) là hai cổng kiểm soát: backend chặn publish nếu chưa qua.',
 });
 
-// 5 — Architecture
-const archCols = [
-  [56, 230, 'React SPA', 'Vercel', ['DPO workspace', 'Analyst workspace', 'Scope picker · ERD', 'Masking sandbox']],
-  [336, 250, 'FastAPI', 'Render · Docker', ['Auth & role guard', 'Sources · Runs', 'Datasets · Publish', 'Audit hash-chain']],
-  [636, 290, 'Processing engine', 'Python 3.11', ['Scanner + LangGraph', 'Transform MASK · HMAC · DROP', 'Downstream verifier', 'HITL few-shot memory']],
+// 5 — Architecture, explained by what each layer guarantees
+const dataLane = [
+  ['database', 'warning', 'Database gốc', 'PostgreSQL · MongoDB, chỉ đọc'],
+  ['cpu', 'primary', 'Bộ xử lý', 'Quét PII, che theo quyết định của DPO'],
+  ['copy', 'primary', 'Bản sao đã bảo vệ', 'Schema / DB riêng, tạo lại mỗi lần build'],
+  ['check', 'success', 'Kiểm chứng', 'Thử nối bảng; chưa PASS thì chặn'],
+  ['users', 'info', 'Analyst', 'Chỉ xem dataset đã PUBLISHED'],
 ];
-const techPills = ['Python 3.11 · FastAPI · Pydantic', 'React · TypeScript · Vite · MUI', 'PostgreSQL · MongoDB', 'Docker · GitHub Actions'];
+const controlLane = [
+  ['monitor', 'Giao diện web', 'React · Vercel. DPO và Analyst làm việc trên trình duyệt'],
+  ['server', 'Máy chủ API', 'FastAPI · Render. Kiểm tra đăng nhập, vai trò, trạng thái'],
+  ['chain', 'Nhật ký hoạt động', 'Mọi thao tác ghi thành chuỗi hash SHA-256'],
+];
+const layers = [
+  ['lock', 'warning', 'Lớp 1 · Chỉ đọc nguồn', 'Hệ thống không ghi vào database gốc, nên vận hành của doanh nghiệp không bị ảnh hưởng.'],
+  ['copy', 'primary', 'Lớp 2 · Che trên bản sao riêng', 'Mỗi lần build tạo lại bản sao mới. Cấu hình sai thì sửa và build lại, dữ liệu gốc vẫn nguyên.'],
+  ['check', 'success', 'Lớp 3 · Kiểm chứng trước khi chia sẻ', 'Che xong phải chứng minh các bảng vẫn nối được. Chưa PASS thì backend chặn Publish.'],
+];
 slides.push({
-  master: 'CONTENT', section: 'Sản phẩm', kicker: '05 · KIẾN TRÚC',
-  title: 'Nguồn chỉ đọc, snapshot riêng, verifier gác cổng',
+  master: 'CONTENT', label: 'Kiến trúc',
+  title: ['Dữ liệu đi qua ', hl('3 lớp kiểm soát'), ' trước khi tới Analyst'],
   els: [
-    ...archCols.flatMap(([x, w, t, s, items]) => [
-      card(x, 172, w, 388, { r: 18 }),
-      text(x + 20, 190, w - 40, 26, t, { size: 18, bold: true, color: C.navy }),
-      text(x + 20, 218, w - 40, 20, s, { size: 13, color: C.muted }),
-      ...items.flatMap((it, j) => [
-        rect(x + 16, 254 + j * 74, w - 32, 60, { fill: C.bg, line: 'E2E8F0', lineW: 1, r: 10 }),
-        text(x + 30, 254 + j * 74, w - 60, 60, it, { size: 13, bold: true, color: C.body, valign: 'middle' }),
-      ]),
-    ]),
-    text(290, 336, 42, 18, 'REST', { size: 10, bold: true, color: C.muted, align: 'center' }),
-    arrow(292, 366, 330, 366),
-    arrow(592, 366, 630, 366),
-    rect(976, 172, 248, 180, { fill: C.white, line: C.border, lineW: 1.5, r: 18, shadow: true }),
-    text(996, 190, 208, 26, 'Source DB', { size: 18, bold: true, color: C.navy }),
-    text(996, 220, 208, 44, 'PostgreSQL · MongoDB', { size: 14 }),
-    ...pill(996, 296, 120, 32, 'READ-ONLY', { fill: C.warnFill, line: C.warnLine, color: C.warning, size: 11 }),
-    rect(976, 380, 248, 180, { fill: C.softFill, line: C.softLine, lineW: 1.5, r: 18 }),
-    text(996, 398, 208, 26, 'Protected DB', { size: 18, bold: true, color: C.navy }),
-    text(996, 428, 208, 50, 'Schema / DB riêng, build lại mỗi lần', { size: 14 }),
-    ...pill(996, 504, 208, 32, 'VERIFIED → PUBLISHED', { fill: C.verified, line: C.verified, color: C.white, size: 11 }),
-    text(930, 240, 42, 18, 'đọc', { size: 10, bold: true, color: C.muted, align: 'center' }),
-    arrow(970, 266, 932, 266),
-    text(930, 444, 42, 18, 'ghi', { size: 10, bold: true, color: C.muted, align: 'center' }),
-    arrow(932, 470, 970, 470),
-    ...techPills.flatMap((t, i) => pill(56 + i * 295, 588, 283, 40, t, { size: 13 })),
+    text(56, 122, 600, 18, 'ĐƯỜNG DỮ LIỆU', { size: 11, bold: true, color: C.muted, spacing: 1 }),
+    ...dataLane.flatMap(([icon, tone, t, s], i) => {
+      const x = 56 + i * 242;
+      const out = [
+        card(x, 146, 200, 104, { r: 12 }),
+        ...iconChip(x + 14, 160, 34, icon, tone),
+        text(x + 56, 158, 136, 40, t, { size: 14.5, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 14, 204, 176, 38, s, { size: 12, color: C.muted }),
+      ];
+      if (i < dataLane.length - 1) out.push(chevron(x + 207, 184));
+      return out;
+    }),
+    text(56, 270, 600, 18, 'ĐƯỜNG ĐIỀU KHIỂN', { size: 11, bold: true, color: C.muted, spacing: 1 }),
+    ...controlLane.flatMap(([icon, t, s], i) => {
+      const x = 56 + i * 403;
+      const out = [
+        card(x, 294, 362, 82, { r: 12 }),
+        ...iconChip(x + 16, 314, 42, icon, 'primary'),
+        text(x + 72, 304, 276, 24, t, { size: 15, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 72, 330, 276, 38, s, { size: 12, color: C.muted }),
+      ];
+      if (i < controlLane.length - 1) out.push(chevron(x + 368, 321));
+      return out;
+    }),
+    text(56, 400, 600, 18, 'VÌ SAO THIẾT KẾ NHƯ VẬY?', { size: 11, bold: true, color: C.muted, spacing: 1 }),
+    ...layers.flatMap(([icon, tone, t, b], i) => {
+      const x = 56 + i * 396;
+      return [
+        card(x, 424, 376, 184),
+        ...iconChip(x + 20, 442, 44, icon, tone),
+        text(x + 78, 438, 282, 52, t, { size: 16, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 20, 502, 336, 96, b, { size: 14 }),
+      ];
+    }),
+    text(56, 626, 1168, 22, [[
+      { text: 'Công nghệ: ', b: true, color: C.body },
+      { text: 'React · TypeScript · MUI   ·   Python 3.11 · FastAPI · LangGraph   ·   PostgreSQL · MongoDB   ·   Docker · GitHub Actions' },
+    ]], { size: 12, color: C.muted, valign: 'middle' }),
   ],
-  notes: 'Frontend React trên Vercel gọi FastAPI trên Render. Engine quét bằng rules và LangGraph, transform MASK/HMAC/DROP, rồi verifier chạy JOIN/$lookup trên snapshot. Nguồn luôn chỉ đọc; snapshot là schema/DB riêng, build lại mỗi lần. Audit ghi theo chuỗi hash.',
+  notes: 'Đọc theo hai đường. Đường dữ liệu: database gốc chỉ được đọc; bộ xử lý quét PII và áp dụng quyết định của DPO; kết quả ghi vào một bản sao riêng (schema hoặc database khác), tạo lại mỗi lần build; bước kiểm chứng chạy thử phép nối bảng trên bản sao; Analyst chỉ xem dataset đã publish. Đường điều khiển: giao diện web gọi máy chủ API, API kiểm tra đăng nhập, vai trò và trạng thái từng bước, mọi thao tác được ghi vào nhật ký dạng chuỗi hash. Ba lớp kiểm soát: chỉ đọc nguồn, che trên bản sao riêng, kiểm chứng trước khi chia sẻ.',
 });
 
 // 6 — AI approach
 const funnel = [
-  ['Tier 1 · Regex / rules + taxonomy Luật 91', C.navy, 640],
-  ['Tier 2 · BM25 tri thức phân loại', '0F4C5C', 580],
-  ['Tier 3 · Hybrid vector (ChromaDB)', C.trust, 520],
-  ['LLM · chỉ vùng xám · metadata / stats', C.warning, 460],
-  ['Proposal → DPO duyệt (HITL)', C.verified, 400],
+  ['Tầng 1 · Regex / rules + taxonomy Luật 91', C.navy, 640],
+  ['Tầng 2 · BM25 tri thức phân loại', C.primaryDark, 584],
+  ['Tầng 3 · Hybrid vector (ChromaDB)', C.primary, 528],
+  ['LLM · chỉ vùng xám · metadata / thống kê', C.accent, 472],
+  ['Đề xuất → DPO duyệt (HITL)', C.success, 416],
 ];
 const stats = [
-  ['100%', C.trust, 'Action accuracy', 'Luồng A · 339 cột, sau HITL'],
-  ['97.86%', C.verified, 'Recall', 'Luồng B · GLiNER, văn bản tự do'],
-  ['97.51%', C.verified, 'F1', 'Luồng B · Precision 97.16%'],
+  ['100%', 'Action accuracy', 'Luồng A · 339 cột CSDL (trước HITL: 85.25%)'],
+  ['97.86%', 'Recall', 'Luồng B · văn bản tự do, cascade NER'],
+  ['97.51%', 'F1', 'Luồng B · Precision 97.16%'],
 ];
 slides.push({
-  master: 'CONTENT', section: 'AI & kỹ thuật', kicker: '06 · AI / LLM',
-  title: 'AI đề xuất, DPO quyết định',
+  master: 'CONTENT', label: 'AI / LLM',
+  title: ['AI ', hl('đề xuất'), ', DPO ', hl('quyết định', C.success)],
   els: [
-    text(56, 142, 1000, 26, 'LLM chỉ nhận metadata và thống kê đã lọc — không bao giờ nhận raw sample value.', { size: 16, color: C.muted }),
+    text(56, 116, 1100, 24, 'LLM chỉ nhận metadata và thống kê đã lọc, không bao giờ nhận giá trị mẫu thô.', { size: 15, color: C.muted, valign: 'middle' }),
     ...funnel.flatMap(([t, fill, w], i) => {
       const x = 56 + (640 - w) / 2;
-      const y = 188 + i * 62;
+      const y = 156 + i * 60;
       return [
-        rect(x, y, w, 52, { fill, r: 12 }),
-        text(x, y, w, 52, t, { size: 15, bold: true, color: C.white, align: 'center', valign: 'middle' }),
+        rect(x, y, w, 50, { fill, r: 12 }),
+        text(x, y, w, 50, t, { size: 15, bold: true, color: C.white, align: 'center', valign: 'middle' }),
       ];
     }),
-    rect(56, 512, 640, 124, { fill: C.softFill, line: C.softLine, lineW: 1.5, r: 18 }),
-    text(80, 528, 592, 26, 'HITL few-shot memory', { size: 17, bold: true, color: C.navy }),
-    text(80, 560, 592, 64, 'Quyết định ghi đè của DPO thành ví dụ cho lần quét sau. Tắt AI hoặc LLM lỗi: rules vẫn chạy độc lập.', { size: 14 }),
-    ...stats.flatMap(([n, color, t, s], i) => {
-      const y = 188 + i * 150;
-      return [
-        card(740, y, 484, 136),
-        text(764, y, 220, 136, n, { size: 44, bold: true, color, valign: 'middle' }),
-        text(990, y + 34, 214, 26, t, { size: 15, bold: true, color: C.navy }),
-        text(990, y + 64, 214, 44, s, { size: 13, color: C.muted }),
-      ];
-    }),
-    text(740, 640, 484, 20, 'Số liệu báo cáo nghiệm thu P1 · performance/sau_HITL/', { size: 11, color: C.muted }),
-  ],
-  notes: 'Phễu phát hiện nhiều tầng trong LangGraph: rules/regex, BM25, hybrid vector, chỉ gửi LLM phần vùng xám và chỉ với metadata/thống kê. AI chỉ đề xuất; DPO quyết định. Kết quả theo báo cáo nghiệm thu P1: Luồng A 100% action accuracy trên 339 cột sau HITL; Luồng B GLiNER recall 97.86%, precision 97.16%, F1 97.51%.',
-});
-
-// 7 — Technical highlights
-const techStats = [
-  ['317', 'Backend tests', 'pytest, pass 100%', 44],
-  ['160', 'Frontend tests', 'vitest, 35 file test', 44],
-  ['0', 'Lỗi Ruff', 'lint + typecheck sạch', 44],
-  ['SHA-256', 'Audit hash-chain', '/audit/verify · Merkle root', 34],
-];
-const pipeline = [
-  ['GitHub Actions', 'ruff + pytest · self-hosted runner', false],
-  ['Docker Hub', 'len1652/piiguard-api', false],
-  ['Render', 'FastAPI API, chạy 24/7', true],
-  ['Vercel', 'React SPA', true],
-];
-slides.push({
-  master: 'CONTENT', section: 'AI & kỹ thuật', kicker: '07 · KỸ THUẬT',
-  title: 'Kiểm thử, CI/CD và bằng chứng kiểm toán',
-  els: [
-    ...techStats.flatMap(([n, t, s, size], i) => {
-      const x = 56 + i * 295;
-      return [
-        card(x, 172, 283, 168),
-        text(x + 24, 188, 236, 64, n, { size, bold: true, color: C.trust, valign: 'middle' }),
-        text(x + 24, 262, 236, 24, t, { size: 16, bold: true, color: C.navy }),
-        text(x + 24, 292, 236, 24, s, { size: 13, color: C.muted }),
-      ];
-    }),
-    text(56, 368, 600, 26, 'Từ commit đến production', { size: 18, bold: true, color: C.navy }),
-    ...pipeline.flatMap(([t, s, live], i) => {
-      const x = 56 + i * 302;
+    rect(56, 470, 640, 166, { fill: C.accentLight, line: C.accentLine, lineW: 1, r: 16 }),
+    ...iconChip(78, 492, 44, 'sparkles', 'accent', { fill: C.white }),
+    text(136, 492, 540, 44, 'HITL few-shot memory', { size: 17, bold: true, color: C.ink, valign: 'middle' }),
+    text(78, 548, 600, 76, 'Mỗi lần DPO ghi đè đề xuất, quyết định đó thành ví dụ cho lần quét sau. Tắt AI hoặc LLM lỗi: rules vẫn chạy độc lập.', { size: 14.5 }),
+    panel(728, 156, 496, 480, 18),
+    text(756, 178, 440, 20, 'KẾT QUẢ ĐÁNH GIÁ · SAU HITL', { size: 11, bold: true, color: C.onDarkMuted, spacing: 1 }),
+    ...stats.flatMap(([n, t, s], i) => {
+      const y = 212 + i * 124;
       const out = [
-        rect(x, 404, 262, 104, { fill: live ? C.softFill : C.white, line: live ? C.softLine : C.flow, lineW: 1.5, r: 16 }),
-        text(x + 20, 422, live ? 160 : 222, 26, t, { size: 17, bold: true, color: C.navy }),
-        text(x + 20, 454, 222, 40, s, { size: 13, color: C.muted }),
+        text(756, y, 200, 100, n, { size: 40, bold: true, color: C.white, valign: 'middle' }),
+        text(964, y + 18, 236, 26, t, { size: 16, bold: true, color: C.white, valign: 'middle' }),
+        text(964, y + 46, 236, 44, s, { size: 13, color: C.onDark }),
       ];
-      if (live) out.push(...pill(x + 188, 420, 56, 24, 'LIVE', { fill: C.verified, line: C.verified, color: C.white, size: 10 }));
-      if (i < pipeline.length - 1) out.push(arrow(x + 268, 456, x + 296, 456));
+      if (i < stats.length - 1) out.push(rect(756, y + 112, 440, 1, { fill: C.white, transp: 80 }));
       return out;
     }),
-    rect(56, 532, 1168, 76, { fill: C.pillFill, line: C.pillLine, lineW: 1, r: 18 }),
-    text(80, 532, 1120, 76,
-      'Không commit .env hay secret · URL nguồn do DPO đăng ký được mã hoá Fernet, không bao giờ trả lại · Analyst không có endpoint đọc source.',
-      { size: 14, color: C.navy, valign: 'middle' }),
-    text(56, 622, 1168, 20, 'Số liệu tests theo báo cáo nghiệm thu P1 — xem CI mới nhất để xác nhận hiện trạng.', { size: 11, color: C.muted }),
+    text(756, 596, 440, 22, 'Nguồn: performance/sau_HITL/ · dữ liệu tổng hợp', { size: 11, color: C.onDarkMuted, valign: 'middle' }),
   ],
-  notes: 'Theo báo cáo nghiệm thu P1: 317 backend tests, 160 frontend tests, Ruff sạch. CI chạy trên GitHub Actions self-hosted runner; image trên Docker Hub; API chạy trên Render, frontend trên Vercel. Audit hash-chain kiểm tra được qua /audit/verify.',
+  notes: 'Phễu phát hiện nhiều tầng trong LangGraph: regex và rules theo taxonomy Luật 91, BM25, hybrid vector, và chỉ gửi LLM phần vùng xám, chỉ với metadata và thống kê. AI chỉ đề xuất; DPO quyết định, và mỗi lần ghi đè trở thành ví dụ few-shot cho lần sau. Kết quả trong performance/sau_HITL: Luồng A 100% action accuracy trên 339 cột (trước HITL 85.25%); Luồng B văn bản tự do recall 97.86%, precision 97.16%, F1 97.51%.',
 });
 
-// 8 — Demo video
-const qrCards = [
-  [56, 'gen/qr-video.png', 'Video demo 3–5 phút', 'Google Drive · quét mã để mở', LINKS.video],
-  [406, 'gen/qr-app.png', 'Live app', 'frontend-alpha-fawn-53.vercel.app', LINKS.app],
+// 7 — Technical highlights (test counts re-run on this branch, 18/10/2026)
+const techStats = [
+  ['flask', '312', 'Backend tests pass', 'pytest · 5 skip (cần DB live)', 36],
+  ['code', '184', 'Frontend tests pass', 'vitest · 42 file test', 36],
+  ['check', '0', 'Lỗi Ruff', 'lint sạch trên src/ và tests/', 36],
+  ['chain', 'SHA-256', 'Nhật ký chuỗi hash', '/audit/verify chỉ ra bản ghi bị sửa', 30],
+];
+const pipeline = [
+  ['git', 'Push / Pull request', 'feature → develop → main', false],
+  ['flask', 'GitHub Actions', 'Self-hosted runner chạy Ruff + pytest', false],
+  ['rocket', 'Release main', 'Gắn tag SemVer, kích hoạt deploy Render', false],
+  ['cloud', 'Production', 'API trên Render (Docker), web trên Vercel', true],
 ];
 slides.push({
-  master: 'CONTENT', section: 'Demo', kicker: '08 · DEMO',
-  title: 'Xem demo end-to-end',
+  master: 'CONTENT', label: 'Kỹ thuật',
+  title: ['Kiểm thử, CI/CD và ', hl('nhật ký chống sửa')],
   els: [
-    ...qrCards.flatMap(([x, src, t, s, url]) => [
-      card(x, 172, 330, 412),
-      img(x + 30, 196, 270, 270, src, { alt: `QR code: ${url}` }),
-      text(x + 24, 486, 282, 30, t, { size: 19, bold: true, color: C.navy, align: 'center' }),
-      text(x + 24, 522, 282, 40, [[{ text: s, link: url }]], { size: 13, color: C.trust, align: 'center' }),
-    ]),
-    card(766, 172, 458, 196),
-    text(790, 192, 410, 26, 'Tài khoản demo', { size: 18, bold: true, color: C.navy }),
-    ...pill(790, 236, 110, 34, 'DPO', { fill: C.dpoFill, line: C.dpoLine, size: 13 }),
-    text(916, 236, 290, 34, 'dpo / dpo123', { size: 16, bold: true, color: C.body, valign: 'middle', font: 'Courier New' }),
-    ...pill(790, 290, 110, 34, 'Analyst', { fill: C.analystFill, line: C.analystLine, size: 13 }),
-    text(916, 290, 290, 34, 'analyst / analyst123', { size: 16, bold: true, color: C.body, valign: 'middle', font: 'Courier New' }),
-    rect(766, 388, 458, 196, { fill: C.softFill, line: C.softLine, lineW: 1.5, r: 22 }),
-    text(790, 408, 260, 24, 'Luồng trong video', { size: 16, bold: true, color: C.navy }),
-    text(790, 438, 280, 96, 'PostgreSQL / MongoDB → DPO Review → Masking → Audit → Analyst', { size: 15, color: C.body }),
-    text(790, 540, 300, 30, [[{ text: 'API docs: /docs', link: LINKS.docs }]], { size: 13, color: C.trust, valign: 'middle' }),
-    mascot('loading', 1084, 444, 130),
-  ],
-  notes: 'Video demo 3–5 phút trên Google Drive, đi trọn luồng PostgreSQL/MongoDB → DPO Review → Masking → Audit → Analyst. App live trên Vercel; đăng nhập bằng tài khoản demo dpo/dpo123 và analyst/analyst123. Mở video backup nếu demo live gặp sự cố.',
-});
-
-// 9 — Challenges & learnings
-const challenges = [
-  ['THÁCH THỨC', 'Che dữ liệu mà vẫn JOIN được', 'CÁCH XỬ LÝ', 'HMAC-SHA-256 cho khóa nối, đồng bộ hai đầu quan hệ; link_scope giữ bảng liên kết chỉ có khóa.', C.softFill, C.softLine, C.trust],
-  ['THÁCH THỨC', 'Dùng LLM mà không lộ PII', 'CÁCH XỬ LÝ', 'LLM chỉ nhận metadata và thống kê định tính; rules chạy độc lập khi tắt AI hoặc LLM lỗi.', C.warnFill, C.warnLine, C.warning],
-  ['GIỚI HẠN CÒN MỞ', 'Ngoại lệ KEEP cho PII', 'VIỆC TIẾP THEO', 'KEEP vẫn chép giá trị gốc sang snapshot và chưa tự thu hồi theo hạn. Cần chặn trước khi khẳng định Zero Raw PII tuyệt đối.', C.dangerFill, C.dangerLine, C.blocked],
-];
-slides.push({
-  master: 'CONTENT', section: 'Kết', kicker: '09 · BÀI HỌC',
-  title: 'Thách thức và bài học',
-  els: [
-    ...challenges.flatMap(([k1, t, k2, b, fill, line, color], i) => {
-      const x = 56 + i * 396;
+    ...techStats.flatMap(([icon, n, t, s, size], i) => {
+      const x = 56 + i * 295;
       return [
-        rect(x, 172, 376, 344, { fill, line, lineW: 1.5, r: 22 }),
-        text(x + 26, 194, 324, 18, k1, { size: 11, bold: true, color, spacing: 1 }),
-        text(x + 26, 218, 324, 64, t, { size: 21, bold: true, color: C.navy }),
-        text(x + 26, 300, 324, 18, k2, { size: 11, bold: true, color, spacing: 1 }),
-        text(x + 26, 324, 324, 176, b, { size: 17 }),
+        card(x, 128, 283, 168),
+        ...iconChip(x + 20, 146, 36, icon, 'primary'),
+        text(x + 20, 188, 243, 48, n, { size, bold: true, color: C.primary, valign: 'middle' }),
+        text(x + 20, 238, 243, 22, t, { size: 15, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 20, 262, 243, 22, s, { size: 12, color: C.muted, valign: 'middle' }),
       ];
     }),
-    card(56, 540, 1168, 100, { r: 18 }),
-    mascot('error', 70, 544, 92),
-    text(180, 540, 1020, 100, 'Bài học: che dữ liệu chưa đủ — phải chứng minh dataset vẫn dùng được.', { size: 18, bold: true, color: C.navy, valign: 'middle' }),
+    text(56, 318, 600, 26, 'Từ commit đến production', { size: 17, bold: true, color: C.ink, valign: 'middle' }),
+    ...pipeline.flatMap(([icon, t, s, live], i) => {
+      const x = 56 + i * 302;
+      const out = [
+        card(x, 354, 262, 104, { r: 12, ...(live ? { fill: C.successLight, line: C.successLine } : {}) }),
+        ...iconChip(x + 16, 370, 36, icon, live ? 'success' : 'primary', live ? { fill: C.white } : {}),
+        text(x + 62, 370, 186, 36, t, { size: 15, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 16, 412, 232, 40, s, { size: 12.5, color: C.muted }),
+      ];
+      if (i < pipeline.length - 1) out.push(chevron(x + 268, 392));
+      return out;
+    }),
+    rect(56, 480, 1168, 70, { fill: C.primaryLight, line: C.primaryLine, lineW: 1, r: 14 }),
+    ...iconChip(76, 495, 40, 'lock', 'primary', { fill: C.white }),
+    text(130, 480, 1076, 70,
+      'Không commit .env hay secret · URL nguồn do DPO đăng ký được mã hoá Fernet, không bao giờ trả về · Analyst không có endpoint đọc source.',
+      { size: 14, color: C.navy, valign: 'middle' }),
+    rect(56, 562, 1168, 70, { fill: C.successLight, line: C.successLine, lineW: 1, r: 14 }),
+    ...iconChip(76, 577, 40, 'shield', 'success', { fill: C.white }),
+    text(130, 562, 1076, 70,
+      'Test tự động kiểm tra response API và báo cáo không chứa giá trị PII thô; backend chặn Publish khi run chưa VERIFIED.',
+      { size: 14, color: C.navy, valign: 'middle' }),
+    text(56, 646, 1168, 20, 'Số test chạy lại ngày 18/10/2026 trên nhánh hiện tại. CI chạy Ruff + pytest; vitest chạy local.', { size: 11, color: C.muted, valign: 'middle' }),
   ],
-  notes: 'Hai thách thức đã giải: giữ JOIN bằng HMAC và link_scope; dùng LLM nhưng chỉ cho xem metadata. Giới hạn nói thẳng: ngoại lệ KEEP cho PII vẫn đưa giá trị gốc vào snapshot và chưa tự thu hồi theo hạn — đây là việc ưu tiên tiếp theo.',
+  notes: 'Chạy lại ngày 18/10/2026: backend 312 test pass (5 test cần database live được bỏ qua), frontend 184 test pass trên 42 file, Ruff không lỗi. CI chạy Ruff và pytest trên GitHub Actions self-hosted runner; merge vào main thì gắn tag SemVer và kích hoạt deploy Render, kèm kiểm tra /health. API chạy trên Render bằng Docker, web trên Vercel. Nhật ký hoạt động là chuỗi hash SHA-256: mỗi bản ghi băm cùng hash của bản ghi trước, /audit/verify chỉ ra bản ghi đầu tiên bị sửa.',
 });
 
-// 10 — Team & next steps
+// 8 — Challenges & learnings
+const challenges = [
+  ['unlink', 'primary', 'THÁCH THỨC', 'Che dữ liệu mà vẫn JOIN được', 'CÁCH XỬ LÝ', 'HMAC-SHA-256 cho khóa nối, đồng bộ hai đầu quan hệ; link_scope giữ bảng liên kết chỉ có khóa.'],
+  ['sparkles', 'accent', 'THÁCH THỨC', 'Dùng LLM mà không lộ PII', 'CÁCH XỬ LÝ', 'LLM chỉ nhận metadata và thống kê định tính; rules chạy độc lập khi tắt AI hoặc LLM lỗi.'],
+  ['key', 'error', 'GIỚI HẠN CÒN MỞ', 'Ngoại lệ KEEP cho PII', 'VIỆC TIẾP THEO', 'KEEP vẫn chép giá trị gốc sang bản sao và chưa tự thu hồi theo hạn. Cần chặn trước khi khẳng định Zero Raw PII.'],
+];
+slides.push({
+  master: 'CONTENT', label: 'Bài học',
+  title: ['Ba thách thức và ', hl('điều chúng em học được')],
+  els: [
+    ...challenges.flatMap(([icon, tone, k1, t, k2, b], i) => {
+      const x = 56 + i * 396;
+      const [main, light] = TONE[tone];
+      return [
+        card(x, 128, 376, 368),
+        ...iconChip(x + 22, 150, 44, icon, tone),
+        text(x + 80, 148, 276, 18, k1, { size: 11, bold: true, color: main, spacing: 1, valign: 'middle' }),
+        text(x + 80, 168, 276, 56, t, { size: 18, bold: true, color: C.ink }),
+        rect(x + 20, 240, 336, 236, { fill: light, r: 12 }),
+        text(x + 38, 258, 300, 18, k2, { size: 11, bold: true, color: main, spacing: 1, valign: 'middle' }),
+        text(x + 38, 284, 300, 180, b, { size: 17 }),
+      ];
+    }),
+    panel(56, 520, 1168, 120, 18),
+    text(88, 538, 900, 20, 'BÀI HỌC LỚN NHẤT', { size: 11, bold: true, color: C.onDarkMuted, spacing: 1, valign: 'middle' }),
+    text(88, 562, 940, 60, 'Che dữ liệu chưa đủ, phải chứng minh dataset vẫn dùng được.', { size: 22, bold: true, color: C.white, valign: 'middle' }),
+    mascot('awaiting', 1064, 486, 150),
+  ],
+  notes: 'Hai thách thức đã giải: giữ JOIN bằng HMAC đồng bộ hai đầu quan hệ và link_scope; dùng LLM nhưng chỉ cho xem metadata. Giới hạn nói thẳng: ngoại lệ KEEP cho PII vẫn đưa giá trị gốc vào bản sao và chưa tự thu hồi theo hạn, đây là việc ưu tiên tiếp theo. Bài học: che dữ liệu chưa đủ, phải chứng minh dataset vẫn dùng được.',
+});
+
+// 9 — Team & next steps
 const team = [
-  ['Nguyễn Đình Phúc', 'PO / Team Lead · frontend, scope, căn cứ pháp lý, pitch'],
-  ['Trần Xuân Tùng', 'Rules / LLM, workflow phát hiện, đánh giá AI'],
-  ['Nguyễn Trung Kiên', 'MongoDB connector, fixture / nhãn chuẩn, eval'],
-  ['Đoàn Tuấn Long', 'Backend, PostgreSQL connector, guardrail, phân quyền'],
+  ['users', 'Nguyễn Đình Phúc', 'PO / Team Lead', 'Frontend, phạm vi quét, căn cứ pháp lý, pitch'],
+  ['sparkles', 'Trần Xuân Tùng', 'Phát hiện & AI', 'Rules / LLM, workflow phát hiện, đánh giá AI'],
+  ['database', 'Nguyễn Trung Kiên', 'MongoDB & dữ liệu', 'Connector MongoDB, fixture, nhãn chuẩn, eval'],
+  ['server', 'Đoàn Tuấn Long', 'Backend & bảo mật', 'Backend, connector Postgres, guardrail, phân quyền'],
 ];
 const roadmap = [
-  'Chặn ngoại lệ KEEP cho PII, tự thu hồi theo hạn',
-  'Realtime CDC: Debezium / Kafka',
-  'KMS / Vault cho khóa HMAC, SSO SAML / OIDC',
-  'Thêm nguồn: ClickHouse, Snowflake, Databricks',
+  ['lock', 'Chặn KEEP cho PII', 'Tự thu hồi theo hạn trước khi khẳng định Zero Raw PII.'],
+  ['refresh', 'Đồng bộ realtime', 'CDC với Debezium / Kafka thay cho build theo lần.'],
+  ['key', 'Quản lý khóa & SSO', 'KMS / Vault cho khóa HMAC, SSO SAML / OIDC.'],
+  ['plus', 'Thêm nguồn dữ liệu', 'ClickHouse, Snowflake, Databricks.'],
 ];
 slides.push({
-  master: 'HERO', section: 'Kết', title: 'Team P-138 và bước tiếp theo',
+  master: 'CONTENT', label: 'Team & bước tiếp theo',
+  title: ['Team ', hl('P-138'), ' và chặng đường tiếp theo'],
   els: [
-    ...team.flatMap(([n, r], i) => {
-      const y = 152 + i * 98;
+    ...team.flatMap(([icon, n, role, d], i) => {
+      const x = 56 + i * 295;
       return [
-        rect(88, y, 500, 86, { fill: C.white, r: 16, transp: 88 }),
-        text(108, y + 14, 460, 24, n, { size: 17, bold: true, color: C.white }),
-        text(108, y + 46, 470, 24, r, { size: 13, color: C.onDark }),
+        card(x, 128, 283, 132),
+        ...iconChip(x + 20, 146, 44, icon, 'primary'),
+        text(x + 76, 144, 196, 24, n, { size: 16, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 76, 168, 196, 22, role, { size: 12.5, bold: true, color: C.primary, valign: 'middle' }),
+        text(x + 20, 204, 243, 44, d, { size: 12 }),
       ];
     }),
-    text(620, 152, 340, 26, 'Bước tiếp theo', { size: 18, bold: true, color: C.white }),
-    ...roadmap.flatMap((t, i) => {
-      const y = 190 + i * 84;
+    text(56, 282, 600, 22, 'LỘ TRÌNH TIẾP THEO', { size: 12, bold: true, color: C.primary, spacing: 1, valign: 'middle' }),
+    ...roadmap.flatMap(([icon, t, d], i) => {
+      const x = 56 + i * 295;
       return [
-        rect(620, y, 350, 72, { fill: C.white, r: 16, transp: 88 }),
-        text(636, y, 40, 72, `0${i + 1}`, { size: 14, bold: true, color: C.onDark, valign: 'middle' }),
-        text(676, y, 280, 72, t, { size: 14, color: C.white, valign: 'middle' }),
+        card(x, 312, 283, 136),
+        text(x + 20, 328, 40, 22, `0${i + 1}`, { size: 13, bold: true, color: C.primary, valign: 'middle' }),
+        ico(x + 239, 328, 24, icon, C.primary),
+        text(x + 20, 354, 243, 26, t, { size: 15.5, bold: true, color: C.ink, valign: 'middle' }),
+        text(x + 20, 384, 243, 54, d, { size: 13 }),
       ];
     }),
-    rect(1010, 170, 210, 210, { fill: C.white, r: 'full', transp: 86 }),
-    mascot('protected', 1000, 160, 230),
-    text(990, 404, 250, 56, 'Cảm ơn!', { size: 40, bold: true, color: C.white, align: 'center' }),
-    text(990, 462, 250, 36, 'Q&A', { size: 24, color: C.onDark, align: 'center' }),
-    text(88, 600, 1100, 40, [[
-      { text: 'github.com/AI20K-Build-Phase-Cohort-4/P-138', link: LINKS.repo },
-      { text: '   ·   ' },
-      { text: 'frontend-alpha-fawn-53.vercel.app', link: LINKS.app },
-    ]], { size: 13, color: C.onDark, valign: 'middle' }),
+    panel(56, 474, 1168, 166, 20),
+    text(96, 506, 860, 52, 'Cảm ơn Ban giám khảo đã lắng nghe!', { size: 32, bold: true, color: C.white, valign: 'middle' }),
+    text(96, 566, 860, 40, 'PIIGuard Shield: bảo vệ dữ liệu cá nhân, giữ nguyên giá trị phân tích.', { size: 16, color: C.onDark, valign: 'middle' }),
+    rect(1040, 468, 160, 160, { fill: C.white, r: 'full', transp: 88 }),
+    mascot('protected', 1022, 444, 196),
   ],
-  notes: 'Bốn thành viên và vai trò. Bước tiếp theo: ưu tiên chặn ngoại lệ KEEP cho PII; sau đó CDC realtime, quản lý khóa HMAC bằng KMS/Vault và SSO, mở rộng nguồn dữ liệu. Cảm ơn và mời hỏi đáp.',
+  notes: 'Bốn thành viên và vai trò. Lộ trình: ưu tiên chặn ngoại lệ KEEP cho PII và tự thu hồi theo hạn; sau đó đồng bộ realtime bằng CDC, quản lý khóa HMAC bằng KMS/Vault và SSO, mở rộng thêm nguồn dữ liệu. Cảm ơn Ban giám khảo.',
 });
 
 // ---------------------------------------------------------------- thumbnail (16:9, HTML only)
@@ -505,16 +597,8 @@ const THUMB_ROWS = [
   ['region', 'varchar', 'Non-PII', 'non', 'Rule', 'KEEP', 'keep'],
   ['country', 'varchar', 'Non-PII', 'non', 'Rule', 'KEEP', 'keep'],
 ];
-const ICON = {
-  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
-  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/>',
-  chain: '<path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>',
-  user: '<circle cx="10" cy="8" r="4"/><path d="M3 20a7 7 0 0 1 12-5"/><path d="m15 18 2 2 4-4"/>',
-  shield: '<path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/><path d="m9 12 2 2 4-4"/>',
-  check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
-};
 const icon = (name, size) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[name]}</svg>`;
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
 
 function thumbnailHtml() {
   const badges = THUMB_BADGES.map(([n, t, s, ic, cls]) =>
@@ -586,8 +670,8 @@ body { width: 1280px; height: 720px; overflow: hidden; font-family: 'Segoe UI', 
 .src { color: #4B5563; background: #F9FAFB; border: 1px solid #E5E7EB; font-weight: 600; }
 .act { width: 50px; text-align: center; }
 .hmac { color: #6D28D9; background: #F5F3FF; border: 1px solid #DDD6FE; }
-.mask { color: #0F766E; background: #ECFDF5; border: 1px solid #99F6E4; }
-.redact { color: #B45309; background: #FFF7ED; border: 1px solid #FDBA74; }
+.mask { color: #92400E; background: #FFFBEB; border: 1px solid #FCD34D; }
+.redact { color: #1D4ED8; background: #EFF6FF; border: 1px solid #BFDBFE; }
 .keep { color: #4B5563; background: #F3F4F6; border: 1px solid #D1D5DB; }
 .ver { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 5px; background: #ECFDF5; border: 1px solid #A7F3D0; color: #064E3B; font-weight: 700; font-size: 9.5px; }
 .ver span { margin-left: auto; color: #fff; background: #16A34A; border-radius: 10px; padding: 1px 8px; font-size: 8px; }
@@ -644,17 +728,17 @@ body { width: 1280px; height: 720px; overflow: hidden; font-family: 'Segoe UI', 
     <div class="logo"><img src="img/logo.png" alt=""><div><b>PIIGuard Shield</b><span>Data Intelligence &amp; Governance</span></div></div>
     <div class="newa">+ New Action</div>
     <div class="sec">CATALOG &amp; WORKSPACES</div>
-    <div class="nav on">DPO · Quét &amp; duyệt</div>
-    <div class="nav">Runs &amp; datasets</div>
+    <div class="nav on">Quét &amp; duyệt</div>
+    <div class="nav">Lịch sử quét</div>
+    <div class="nav">Nhật ký hoạt động</div>
     <div class="sec">SECURITY &amp; COMPLIANCE</div>
-    <div class="nav">Quy định NĐ 13</div>
-    <div class="nav">Demo che mờ</div>
-    <div class="nav">Audit Hash-Chain</div>
+    <div class="nav">Demo che dữ liệu</div>
+    <div class="nav">Quy định pháp luật</div>
     <div class="who"><i>D</i><div><b>dpo</b><br><span style="color:#6B7280">DPO</span></div></div>
   </div>
   <div class="main">
     <div class="top"><div class="crumb">Northwind Production <span>› public › customers</span></div><div class="st">READY_TO_BUILD</div><div class="pub">Lưu &amp; build</div></div>
-    <div class="tabs"><div class="on">Tổng quan &amp; phân loại</div><div>Rủi ro &amp; đánh giá</div><div>Nhật ký kiểm toán</div><div>Dữ liệu cho Analyst</div></div>
+    <div class="tabs"><div class="on">Tổng quan &amp; phân loại PII</div><div>Rủi ro &amp; đánh giá</div><div>Nhật ký hoạt động</div><div>Dữ liệu cho Analyst</div></div>
     <div class="body">
       <div class="tbl">
         <div class="grp">▾ customers</div>
@@ -699,22 +783,10 @@ function htmlEl(e) {
     const radius = e.r === 'full' ? '50%' : `${e.r || 0}px`;
     const border = e.line ? `border:${e.lineW || 1}px solid #${e.line};` : '';
     const fill = e.fill ? `background:${rgba(e.fill, e.transp)};` : '';
-    const shadow = e.shadow ? 'box-shadow:0 4pt 12pt rgba(15,23,42,.12);' : '';
+    const shadow = e.shadow ? 'box-shadow:0 3pt 10pt rgba(27,81,164,.10);' : '';
     return `<div class="el" style="${box}${fill}${border}border-radius:${radius};${shadow}"></div>`;
   }
   if (e.t === 'img') return `<img class="el" style="${box}" src="${e.src}" alt="${esc(e.alt || '')}">`;
-  if (e.t === 'arrow') {
-    const color = `#${e.color || C.flow}`;
-    const pad = 8;
-    const x = Math.min(e.x1, e.x2) - pad, y = Math.min(e.y1, e.y2) - pad;
-    const w = Math.abs(e.x2 - e.x1) + 2 * pad, h = Math.abs(e.y2 - e.y1) + 2 * pad;
-    const [x1, y1, x2, y2] = [e.x1 - x, e.y1 - y, e.x2 - x, e.y2 - y];
-    const ang = Math.atan2(y2 - y1, x2 - x1);
-    const head = (dx, dy) => `${x2 - 9 * Math.cos(ang) + dx * Math.sin(ang)},${y2 - 9 * Math.sin(ang) - dx * Math.cos(ang) + dy}`;
-    return `<svg class="el" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;overflow:visible" viewBox="0 0 ${w} ${h}">`
-      + `<line x1="${x1}" y1="${y1}" x2="${x2 - 6 * Math.cos(ang)}" y2="${y2 - 6 * Math.sin(ang)}" stroke="${color}" stroke-width="${(e.weight || 2.25) * 4 / 3}"/>`
-      + `<polygon points="${x2},${y2} ${head(5, 0)} ${head(-5, 0)}" fill="${color}"/></svg>`;
-  }
   const paras = paragraphs(e.content).map((runs, i, all) => {
     const mb = i < all.length - 1 && e.para ? `margin-bottom:${e.para}pt;` : '';
     const spans = runs.map((r) => {
@@ -742,13 +814,15 @@ function htmlEl(e) {
   return `<div class="el tx" style="${box}${st}">${paras}</div>`;
 }
 
+// A title is a string or a list of runs (see hl()) that highlights a keyword.
+const titleContent = (title) => (Array.isArray(title) ? [title] : title);
+const slideEls = (s, index) => [...(s.label ? [header(index + 1, s.label)] : []), ...s.els];
+
 function htmlSlide(s, index) {
   const m = MASTERS[s.master];
   const els = [...m.objects];
-  if (s.kicker) els.push(...kicker(s.kicker));
-  els.push(text(m.title.x, m.title.y, m.title.w, m.title.h, s.title, { size: m.title.size, bold: true, color: m.title.color }));
-  els.push(...s.els);
-  if (m.number) els.push(text(m.number.x, m.number.y, m.number.w, m.number.h, String(index + 1), { size: m.number.size, color: m.number.color, align: 'right', valign: 'middle' }));
+  els.push(text(m.title.x, m.title.y, m.title.w, m.title.h, titleContent(s.title), { size: m.title.size, bold: true, color: m.title.color }));
+  els.push(...slideEls(s, index));
   return `<section class="slide">${els.map(htmlEl).join('')}</section>`;
 }
 
@@ -805,16 +879,10 @@ function addPptxEl(pres, slide, e, name) {
       fill: e.fill ? { color: e.fill, transparency: e.transp || 0 } : { type: 'none' },
       line: e.line ? { color: e.line, width: (e.lineW || 1) * 0.75 } : { type: 'none' },
       ...(e.r && e.r !== 'full' ? { rectRadius: IN(e.r) } : {}),
-      ...(e.shadow ? { shadow: { type: 'outer', color: C.navy, opacity: 0.12, blur: 12, offset: 4, angle: 90 } } : {}),
+      ...(e.shadow ? { shadow: { type: 'outer', color: C.primary, opacity: 0.1, blur: 10, offset: 3, angle: 90 } } : {}),
     });
   } else if (e.t === 'img') {
     slide.addImage({ path: path.join(BUILD, e.src), x: IN(e.x), y: IN(e.y), w: IN(e.w), h: IN(e.h), objectName: name, altText: e.alt || DECOR });
-  } else if (e.t === 'arrow') {
-    slide.addShape(pres.shapes.LINE, {
-      x: IN(Math.min(e.x1, e.x2)), y: IN(Math.min(e.y1, e.y2)), w: IN(Math.abs(e.x2 - e.x1)), h: IN(Math.abs(e.y2 - e.y1)),
-      flipH: e.x2 < e.x1, flipV: e.y2 < e.y1, objectName: name,
-      line: { color: e.color || C.flow, width: e.weight || 2.25, endArrowType: 'triangle' },
-    });
   } else {
     slide.addText(pptxRuns(e), { ...textOptions(e), objectName: name });
   }
@@ -844,7 +912,7 @@ async function buildPptx(file) {
   pres.layout = 'LAYOUT_WIDE';
   pres.author = 'Team P-138';
   pres.company = 'VinUni AI20K Build Phase';
-  pres.title = 'PIIGuard Shield — Demo Day';
+  pres.title = 'PIIGuard Shield';
   pres.theme = { headFontFace: FONT, bodyFontFace: FONT };
 
   for (const [name, m] of Object.entries(MASTERS)) {
@@ -863,22 +931,13 @@ async function buildPptx(file) {
           },
         },
       ],
-      ...(m.number ? {
-        slideNumber: { x: IN(m.number.x), y: IN(m.number.y), w: IN(m.number.w), h: IN(m.number.h), fontFace: FONT, fontSize: m.number.size, color: m.number.color, align: 'right' },
-      } : {}),
     });
   }
 
-  let section = null;
   slides.forEach((s, i) => {
-    if (s.section !== section) {
-      pres.addSection({ title: s.section });
-      section = s.section;
-    }
-    const slide = pres.addSlide({ masterName: s.master, sectionTitle: s.section });
-    slide.addText(s.title, { placeholder: 'title' });
-    const els = [...(s.kicker ? kicker(s.kicker) : []), ...s.els];
-    els.forEach((e, j) => addPptxEl(pres, slide, e, `s${i + 1}-${e.t}-${j + 1}`));
+    const slide = pres.addSlide({ masterName: s.master });
+    slide.addText(pptxRuns({ content: titleContent(s.title) }), { placeholder: 'title' });
+    slideEls(s, i).forEach((e, j) => addPptxEl(pres, slide, e, `s${i + 1}-${e.t}-${j + 1}`));
     slide.addNotes(s.notes);
   });
 
@@ -890,22 +949,38 @@ async function buildPptx(file) {
 async function prepareAssets() {
   fs.mkdirSync(path.join(BUILD, 'img'), { recursive: true });
   fs.mkdirSync(path.join(BUILD, 'gen'), { recursive: true });
-  slides.forEach((s) => s.kicker && kicker(s.kicker)); // registers the kicker gradients
   const mascotDir = path.join(ROOT, 'assets', 'mascot');
   for (const f of fs.readdirSync(mascotDir).filter((n) => n.endsWith('.webp'))) {
     await sharp(path.join(mascotDir, f)).png().toFile(path.join(BUILD, 'img', f.replace('.webp', '.png')));
   }
   await sharp(path.join(ROOT, 'assets', 'brand', 'logo.webp')).png().toFile(path.join(BUILD, 'img', 'logo.png'));
+  const png = (svg, key) => sharp(Buffer.from(svg)).png().toFile(path.join(BUILD, 'gen', key));
   for (const [key, { w, h, r }] of gradients) {
-    const stops = GRADIENT.map(([o, c]) => `<stop offset="${o}" stop-color="#${c}"/>`).join('');
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w * 2}" height="${h * 2}" viewBox="0 0 ${w} ${h}">`
-      + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs>`
-      + `<rect width="${w}" height="${h}" rx="${r}" fill="url(#g)"/></svg>`;
-    await sharp(Buffer.from(svg)).png().toFile(path.join(BUILD, 'gen', key));
+    const stops = PANEL.map(([o, c]) => `<stop offset="${o}" stop-color="#${c}"/>`).join('');
+    await png(`<svg xmlns="http://www.w3.org/2000/svg" width="${w * 2}" height="${h * 2}" viewBox="0 0 ${w} ${h}">`
+      + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient>`
+      + '<radialGradient id="glow" cx="0.85" cy="0.1" r="0.6"><stop offset="0" stop-color="#2563EB" stop-opacity="0.45"/><stop offset="1" stop-color="#2563EB" stop-opacity="0"/></radialGradient></defs>'
+      + `<rect width="${w}" height="${h}" rx="${r}" fill="url(#g)"/><rect width="${w}" height="${h}" rx="${r}" fill="url(#glow)"/></svg>`, key);
   }
-  const qr = { width: 600, margin: 1, color: { dark: `#${C.navy}`, light: '#FFFFFF' }, errorCorrectionLevel: 'M' };
-  await QRCode.toFile(path.join(BUILD, 'gen', 'qr-video.png'), LINKS.video, qr);
-  await QRCode.toFile(path.join(BUILD, 'gen', 'qr-app.png'), LINKS.app, qr);
+  for (const [key, { name, color }] of icons) {
+    await png(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#${color}" `
+      + `stroke-width="${name === 'chevron' ? 2.6 : 1.9}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`, key);
+  }
+  // Content slides: airy light canvas with soft blue glows. Cover: the login screen background (navy + blue/teal/violet glows).
+  const glow = (id, cx, cy, r, color, op) =>
+    `<radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}"><stop offset="0" stop-color="${color}" stop-opacity="${op}"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></radialGradient>`;
+  const canvas = (defs, layers) => `<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 1280 720">`
+    + `<defs>${defs}</defs>${layers}</svg>`;
+  await png(canvas(
+    glow('a', 0.95, 0.0, 0.55, '#BFDBFE', 0.7) + glow('b', 0.0, 1.0, 0.5, '#DBEAFE', 0.8) + glow('c', 0.55, 0.45, 0.6, '#FFFFFF', 0.6),
+    `<rect width="1280" height="720" fill="#${C.bg}"/><rect width="1280" height="720" fill="url(#a)"/><rect width="1280" height="720" fill="url(#b)"/><rect width="1280" height="720" fill="url(#c)"/>`,
+  ), 'bg-light.png');
+  await png(canvas(
+    '<linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#081733"/><stop offset="0.55" stop-color="#0F2F63"/><stop offset="1" stop-color="#0B4F6C"/></linearGradient>'
+      + glow('a', 0.22, 0.25, 0.45, '#2563EB', 0.55) + glow('b', 0.85, 0.85, 0.5, '#06B6D4', 0.4) + glow('c', 0.6, 0.1, 0.35, '#7C3AED', 0.25)
+      + '<pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="#FFFFFF" fill-opacity="0.09"/></pattern>',
+    '<rect width="1280" height="720" fill="url(#base)"/><rect width="1280" height="720" fill="url(#a)"/><rect width="1280" height="720" fill="url(#b)"/><rect width="1280" height="720" fill="url(#c)"/><rect width="1280" height="720" fill="url(#dots)"/>',
+  ), 'bg-dark.png');
 }
 
 // ---------------------------------------------------------------- Chrome (PDF + PNG)
@@ -934,7 +1009,7 @@ async function main() {
   await buildPptx(path.join(OUT, 'pitch_deck.pptx'));
 
   const deckHtml = path.join(BUILD, 'slides.html');
-  fs.writeFileSync(deckHtml, htmlDoc('PIIGuard Shield — Demo Day', slides.map(htmlSlide).join('')));
+  fs.writeFileSync(deckHtml, htmlDoc('PIIGuard Shield', slides.map(htmlSlide).join('')));
   chrome(['--no-pdf-header-footer', `--print-to-pdf=${path.join(OUT, 'pitch_deck.pdf')}`, pathToFileURL(deckHtml).href]);
 
   const thumbHtml = path.join(BUILD, 'thumbnail.html');
