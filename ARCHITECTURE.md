@@ -34,7 +34,7 @@ flowchart LR
     subgraph Target["4. Bản Sao An Toàn & Verifier"]
         VERIFY["Downstream Verifier<br/>(Kiểm tra Join & Leak)"]
         SNAPSHOT[("Target DB Snapshot<br/>(HMAC / MASK / REDACT)")]
-        ANALYST["Analyst Workspace<br/>(Data Grid, ERD, CSV)"]
+        ANALYST["Analyst Workspace<br/>(Data Grid, ERD, CSV/ZIP, SQL chỉ đọc)"]
     end
 
     Source --> Engine

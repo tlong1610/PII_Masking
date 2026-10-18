@@ -17,11 +17,11 @@
 | **🩺 Health Check Probe** | [piiguard-vn-api.onrender.com/health](https://piiguard-vn-api.onrender.com/health) | 🟢 200 OK | Trả về `{"status":"ok","env":"production"}` |
 | **📦 Docker Hub Release** | `docker.io/len1652/piiguard-api:latest` | 🟢 Verified | Linux amd64 Image production đóng gói sẵn |
 | **🎬 Video Demo (3-5 phút)** | [Google Drive Demo Folder](https://drive.google.com/drive/folders/1OOIj4LYKQ4vIFTbjH8rg0DRRxJ7hNGoN?usp=sharing) | 🟢 Ready | Luồng E2E PostgreSQL/MongoDB ➔ DPO Review ➔ Masking ➔ Audit ➔ Analyst |
-| **📊 Pitch Deck** | [presentation/README.md](presentation/README.md) | 📝 Hướng dẫn | Cấu trúc slide tham khảo; file `.pptx` chưa có trong repo |
+| **📊 Pitch Deck** | [pitch_deck.pdf](presentation/pitch_deck.pdf) · [.pptx](presentation/pitch_deck.pptx) | 🟢 Ready | 9 slide theo Brand DNA + [thumbnail video](presentation/thumbnail.png); cấu trúc và cách xuất PDF tại [presentation/README.md](presentation/README.md) |
 
 ### 🔑 Tài Khoản Trải Nghiệm Demo (Demo Credentials)
 - **DPO (Data Protection Officer):** `dpo` / `dpo123` (hoặc `dpo@piiguard.vn`) — Phân loại PII, cấu hình Masking/HMAC, thẩm định rủi ro và phát hành snapshot.
-- **Data Analyst:** `analyst` / `analyst123` (hoặc `analyst@piiguard.vn`) — Truy cập và truy vấn snapshot dữ liệu đã được bảo vệ an toàn.
+- **Data Analyst:** `analyst` / `analyst123` (hoặc `analyst@piiguard.vn`) — Xem, tải CSV/ZIP và kết nối SQL chỉ đọc tới các dataset đã được bảo vệ và phát hành.
 
 ---
 
@@ -96,7 +96,7 @@ PostgreSQL fixture chính nằm tại `data/fixtures/seed.sql` (14 bảng quan h
 | Frontend    | React + TypeScript + Vite                                                                                                  |
 | Database    | PostgreSQL (CSDL quan hệ doanh nghiệp đầy đủ nhiều bảng) + MongoDB; psycopg + PyMongo; state trong schema PostgreSQL riêng |
 | Protection  | MASK/DROP và Python HMAC-SHA-256; ChromaDB local chỉ dùng cho tri thức phân loại PII, không lưu raw source value          |
-| DevOps      | Docker Compose + GitHub Actions; máy demo riêng, database không công khai                                                  |
+| DevOps      | Docker Compose + GitHub Actions (self-hosted runner); API trên Render (Docker), web trên Vercel, kho snapshot là Render Postgres |
 
 Quyết định kiến trúc và phương án đánh đổi: [ARCHITECTURE.md](ARCHITECTURE.md) và [docs/core/SYSTEM_ARCHITECTURE.md](docs/core/SYSTEM_ARCHITECTURE.md).
 
@@ -125,6 +125,18 @@ MONGO_DB=mydatabase
 MONGO_SNAPSHOT_DB=mydatabase_protected
 ENABLE_MONGO=true
 ```
+
+Kết nối SQL chỉ đọc cho Analyst (tùy chọn, chỉ cho snapshot PostgreSQL):
+
+```env
+ENABLE_ANALYST_SQL=true
+# Host/port công khai hiển thị cho Analyst khi SNAPSHOT_DATABASE_URL dùng host nội bộ
+ANALYST_SQL_HOST=
+ANALYST_SQL_PORT=
+ANALYST_SQL_SSLMODE=require
+```
+
+Máy chủ snapshot phải nhận kết nối từ máy của Analyst (trên Render: mở IP allow list của database). Mở cho mọi IP là quyết định bảo mật, cần team duyệt.
 
 Không commit `.env`, API key, password, HMAC secret hoặc connection string có credential.
 
@@ -209,7 +221,7 @@ bash scripts/start-app.sh
 | Vai trò | Username | Password | Quyền hạn chính |
 | :--- | :--- | :--- | :--- |
 | **DPO** (Data Protection Officer) | `dpo` | `dpo123` | Quét PII, review bảng, cấu hình che PII (MASK/HMAC/DROP), build snapshot, publish |
-| **Data Analyst** | `analyst` | `analyst123` | Xem danh sách và dữ liệu preview của các snapshot đã được publish |
+| **Data Analyst** | `analyst` | `analyst123` | Xem dataset đã publish, tải CSV từng bảng hoặc ZIP cả dataset, lấy tài khoản SQL chỉ đọc |
 
 ---
 
@@ -234,22 +246,25 @@ GET /sources/{id}/scope
 POST /runs
 GET /runs/{id}
 PUT /runs/{id}/decisions
-POST /runs/{id}/build
+POST /runs/{id}/build      # body tùy chọn: {"dataset_name": "..."}
 POST /datasets/{id}/publish
 GET /datasets/{id}/preview
+GET /datasets/{id}/export   # ?table= một bảng CSV; bỏ trống = ZIP cả dataset
 ```
 
 Màn hình DPO trên frontend (`front_end/`):
 
 | Đường dẫn               | Nội dung                                                                                     |
 | ----------------------- | -------------------------------------------------------------------------------------------- |
-| `/dpo`                  | Quét & duyệt: chọn nguồn (ô chọn trên breadcrumb), chọn phạm vi, quét, quyết định từng trường trên 4 tabs chuẩn hóa (Tổng quan & phân loại, Rủi ro & đánh giá, Nhật ký kiểm toán, Dữ liệu cho Analyst). **Lưu** = lưu quyết định + tạo/kiểm định bản dữ liệu đã bảo vệ; **Phát hành** cho mọi Analyst; **Thu hồi** để chỉnh lại |
-| `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu; tab "Dữ liệu cho Analyst" có kết quả kiểm định và bản xem trước |
-| `/dpo/runs`             | Nơi quản lý duy nhất: tab Chờ duyệt / Chờ phát hành / Đã phát hành / Lỗi; phát hành, thu hồi, xoá ngay trên danh sách (1 run = 1 dataset) |
+| `/dpo`                  | Quét & duyệt: chọn nguồn (ô chọn trên breadcrumb), chọn phạm vi, quét, quyết định từng trường trên 4 tabs chuẩn hóa (Tổng quan & phân loại, Rủi ro & đánh giá, Nhật ký kiểm toán, Dữ liệu cho Analyst). **Lưu** = đặt tên dataset + lưu quyết định + tạo/kiểm định bản dữ liệu đã bảo vệ; **Phát hành** cho mọi Analyst (xác nhận lại tên); **Thu hồi** để chỉnh lại. Quét/build lâu hơn 10 giây thì báo khi xong: âm thanh (bật/tắt được), chấm đỏ trên "Lịch sử quét" và thông báo trình duyệt khi tab đang ẩn |
+| `/dpo/runs/:id`         | Mở lại một run (reload không mất trạng thái); khôi phục quyết định đã lưu; tab "Dữ liệu cho Analyst" có kết quả kiểm định, bản xem trước và nút đổi tên dataset |
+| `/dpo/runs`             | Nơi quản lý duy nhất: tab Chờ duyệt / Chờ phát hành / Đã phát hành / Lỗi; phát hành, thu hồi, xoá ngay trên danh sách (1 run = 1 dataset); run vừa xong được gắn nhãn "Mới xong" / "Có lỗi mới" |
 | `/dpo/masking`          | Demo che mờ: Live Sandbox thử nghiệm kỹ thuật MASK, REDACT, HMAC, DROP trực tiếp và bảng ma trận kỹ thuật bảo vệ dữ liệu (FE-15, FE-19) |
 | `/dpo/rules`            | Quy định Luật BV DLCN 2025 & NĐ 356: Ma trận bảo vệ L1 (Gián tiếp) → L2 (Cơ bản) → L3 (Nhạy cảm) kèm link nguồn pháp luật chính phủ (FE-16, FE-18, FE-20, FE-22) |
 | `/dpo/datasets[/:id]`   | Chỉ còn để link cũ chạy được: chuyển sang `/dpo/runs` hoặc trang run của dataset              |
 | `/dpo/audit`            | Nhật ký hoạt động: nhóm theo ngày, mỗi dòng một câu mô tả dễ hiểu (lọc Quét & duyệt / Phát hành / Nguồn / Đăng nhập); bấm để xem chi tiết sự kiện và mã băm toàn vẹn |
+
+Màn hình Analyst (`/analyst`): chọn dataset đã phát hành rồi xem 4 tab: **Dữ liệu đã bảo vệ** (xem trước, tải CSV từng bảng hoặc ZIP cả dataset), **Các cột & cách dùng**, **Quan hệ giữa các bảng**, và **Kết nối SQL** (chỉ hiện khi bật `ENABLE_ANALYST_SQL`). Tab Kết nối SQL cấp tài khoản Postgres chỉ đọc để mở dataset bằng DBeaver, Power BI hoặc Excel; mật khẩu chỉ hiện một lần, mỗi dataset là một schema `ds_<id>` giữ nguyên tên khi DPO build lại.
 
 `sql-demo` và `nosql-demo` hiện là hai source demo trả từ backend. Nguồn do DPO đăng ký (`POST /sources`) nhận connection string, test connection, kiểm tra schema/database tồn tại, rồi cho DPO chọn bảng/collection trước khi quét:
 
@@ -294,7 +309,7 @@ Không chạy `svc.sh` bằng `sudo`; runner macOS được cài dưới user hi
 | `src/`                                                                 | API, workflow, connectors, protection, verifier và metadata                    |
 | `front_end/`                                                            | React dashboard                                                                |
 | `eval/`, `tests/`                                                      | Fixture, nhãn, so sánh baseline và kiểm tra guardrail                          |
-| `presentation/`                                                        | Demo script, số liệu thực tế và slide sau nghiệm thu                           |
+| [`presentation/`](presentation/README.md)                              | Pitch deck Demo Day 9 slide (PPTX + PDF) và thumbnail video                    |
 | `.github/workflows/`                                                   | CI theo khung repo chương trình                                                |
 
 ## API Endpoints
@@ -312,19 +327,23 @@ Các endpoint chính:
 | `GET /runs/{id}`                          | DPO             | Tiến độ, field profile, quyết định đã lưu và trạng thái                              |
 | `DELETE /runs/{id}`                       | DPO             | Xoá run và metadata; bị chặn (409) khi còn dataset VERIFIED/PUBLISHED; giữ nhật ký audit |
 | `PUT /runs/{id}/decisions`                | DPO             | Review mọi trường; lưu phiên quyết định. Được sửa tới khi phát hành: run VERIFIED (hoặc FAILED ở verifier) quay về READY_TO_BUILD và dataset của run về STAGING (không phát hành được cho tới khi build lại); run PUBLISHED trả 422 — thu hồi trước |
-| `POST /runs/{id}/build`                   | DPO             | Kiểm tra trạng thái và khóa nối trong phạm vi run, tạo bản dữ liệu đã bảo vệ và chạy verifier. Mỗi run có đúng một dataset: build lại dùng lại dataset đó (xoá kết quả verifier cũ) |
+| `POST /runs/{id}/build`                   | DPO             | Kiểm tra trạng thái và khóa nối trong phạm vi run, tạo bản dữ liệu đã bảo vệ và chạy verifier. Mỗi run có đúng một dataset: build lại dùng lại dataset đó (xoá kết quả verifier cũ). `dataset_name` tùy chọn đặt tên dataset |
+| `POST /runs/{id}/cancel`                  | DPO             | Huỷ run đang quét                                                                     |
 | `GET /runs/{id}/report`                   | DPO             | Trả về Privacy Risk Report (dạng HTML/JSON) đánh giá rủi ro PII                      |
 | `GET /runs/{id}/risk-score`               | DPO             | Điểm rủi ro; số dòng đếm từ nguồn, `row_count_estimated=true` nếu không đếm được     |
 | `GET /datasets`                           | DPO / Analyst   | DPO: mọi dataset (trừ FAILED) kèm thời điểm và số grant; Analyst: chỉ PUBLISHED được cấp quyền; lọc `?status=` |
 | `GET /datasets/{id}`                      | DPO             | Chi tiết dataset, kết quả verifier, số cột theo MASK/HMAC/KEEP/DROP                  |
+| `PATCH /datasets/{id}`                    | DPO             | Đổi tên dataset (ghi audit `rename_dataset`)                                         |
 | `POST /datasets/{id}/publish`             | DPO             | Chỉ VERIFIED; tự cấp quyền cho mọi Analyst, ghi audit                               |
 | `POST /datasets/{id}/revoke`              | DPO             | Xoá bản dữ liệu vật lý, huỷ mọi grant; run quay về READY_TO_BUILD (giữ quyết định) để sửa và phát hành lại |
 | `GET /datasets/{id}/preview`              | DPO / Analyst   | Đọc dòng thật từ snapshot đã bảo vệ; `?table=&limit=` (tối đa 200)                   |
+| `GET /datasets/{id}/export`               | DPO / Analyst   | Tải toàn bộ dòng đã bảo vệ: `?table=` một bảng CSV, bỏ trống = ZIP mỗi bảng một CSV  |
+| `GET /sql-access`, `POST /sql-access/credentials` | Analyst | Thông tin kết nối SQL và danh sách dataset đọc được; cấp/đặt lại mật khẩu tài khoản Postgres chỉ đọc (không lưu mật khẩu, ghi audit). 502 khi kho snapshot không truy cập được |
 | `GET/POST /datasets/{id}/grants`, `DELETE /datasets/{id}/grants/{user_id}` | DPO | Xem / cấp / thu hồi quyền của Analyst trên dataset (kèm `username`); giao diện không còn dùng vì phát hành đã cấp quyền cho mọi Analyst |
 | `GET /users?role=ANALYST`                 | DPO             | Danh sách người dùng để cấp quyền (chỉ id, username, role)                           |
 | `GET /audit`, `GET /audit/verify`         | DPO             | Nhật ký kiểm toán lọc `?action=&actions=a,b&entity_type=&entity_id=&run_id=` (`run_id` gồm cả sự kiện của dataset thuộc run); mỗi sự kiện kèm `run_id`, `source_name` để hiển thị; kiểm tra chuỗi hash |
 
-Không có endpoint cho Analyst đọc source hoặc nhập query tùy ý. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
+Không có endpoint cho Analyst đọc source. Analyst chỉ chạy được câu SQL qua tài khoản Postgres riêng: chỉ đọc (`default_transaction_read_only`), tối đa 3 kết nối, mỗi câu tối đa 60 giây, chỉ thấy view `ds_<id>` của dataset được cấp; snapshot gốc và bảng nội bộ của app bị chặn. Gỡ quyền Analyst thì quyền SQL mất ngay (gỡ không được thì API trả lỗi và giữ nguyên quyền cũ); thu hồi dataset thì view bị xoá. Mọi endpoint kiểm tra quyền và trạng thái ở backend.
 
 ## P1 Control Rules
 

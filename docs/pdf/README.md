@@ -16,4 +16,4 @@ PDF đã được upload lên Drive và liên kết từ Notion. Nếu phát hà
 
 Đã bổ sung mã học viên: Nguyễn Đình Phúc `2A202602953C401`; Đoàn Tuấn Long `2A202602609C401`; Trần Xuân Tùng `2A202602787C401`; Nguyễn Trung Kiên `2A202602764` (giữ đúng mã nhóm cung cấp).
 
-Trước khi nộp, xác nhận video Demo Day cuối cùng và bổ sung slide, thumbnail. Số PR 92 là thông tin nhóm cung cấp; benchmark/test là số liệu báo cáo lịch sử. Bản PDF có ghi giới hạn ngoại lệ `KEEP` trên PII và chưa có tự thu hồi theo hạn.
+Slide và thumbnail video đã có tại [`presentation/`](../../presentation/README.md). Trước khi nộp, xác nhận video Demo Day cuối cùng. Số PR 92 là thông tin nhóm cung cấp; benchmark/test là số liệu báo cáo lịch sử. Bản PDF có ghi giới hạn ngoại lệ `KEEP` trên PII và chưa có tự thu hồi theo hạn.
