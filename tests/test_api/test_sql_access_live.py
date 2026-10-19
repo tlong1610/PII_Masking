@@ -9,6 +9,9 @@ from src.config import get_settings
 from src.services import analyst_sql
 
 SNAPSHOT_SCHEMA = "piiguard_test_sqlaccess"
+# Roles are cluster-wide: a developer's real piiguard_analyst_<id> from the local app must not
+# leak into these tests, nor be dropped by them.
+TEST_ROLE_PREFIX = "piiguard_test_analyst_"
 
 
 async def _login(client, username: str, password: str) -> str:
@@ -60,9 +63,12 @@ def sql_env(live_postgres, monkeypatch):
     monkeypatch.setenv("SOURCE_DATABASE_URL", live_postgres["source"])
     monkeypatch.setenv("SNAPSHOT_DATABASE_URL", live_postgres["snapshot"])
     monkeypatch.setenv("SNAPSHOT_SCHEMA", SNAPSHOT_SCHEMA)
+    monkeypatch.setattr(analyst_sql, "ROLE_PREFIX", TEST_ROLE_PREFIX)
     get_settings.cache_clear()
-    # On Render the app's own tables share this database (public schema); stand one in for them.
     with psycopg.connect(live_postgres["snapshot"], autocommit=True) as conn:
+        # A run interrupted before teardown must not leave a role that looks already issued.
+        _drop_test_roles(conn)
+        # On Render the app's own tables share this database (public schema); stand one in for them.
         conn.execute("CREATE TABLE IF NOT EXISTS public.piiguard_app_private (secret text)")
     yield live_postgres
     get_settings.cache_clear()
@@ -73,11 +79,15 @@ def sql_env(live_postgres, monkeypatch):
             (f"{SNAPSHOT_SCHEMA}_run%",),
         ).fetchall():
             conn.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
-        for (role,) in conn.execute(
-            "SELECT rolname FROM pg_roles WHERE rolname LIKE %s", (f"{analyst_sql.ROLE_PREFIX}%",)
-        ).fetchall():
-            conn.execute(f'DROP OWNED BY "{role}"')
-            conn.execute(f'DROP ROLE "{role}"')
+        _drop_test_roles(conn)
+
+
+def _drop_test_roles(conn: psycopg.Connection) -> None:
+    for (role,) in conn.execute(
+        "SELECT rolname FROM pg_roles WHERE starts_with(rolname, %s)", (TEST_ROLE_PREFIX,)
+    ).fetchall():
+        conn.execute(f'DROP OWNED BY "{role}"')
+        conn.execute(f'DROP ROLE "{role}"')
 
 
 @pytest.mark.asyncio
@@ -96,7 +106,7 @@ async def test_analyst_reads_only_granted_views_and_loses_them_on_revoke(client,
     issued = await client.post("/api/v1/sql-access/credentials", headers=_auth(analyst))
     assert issued.status_code == 200
     access = issued.json()
-    assert access["password"] and access["username"].startswith(analyst_sql.ROLE_PREFIX)
+    assert access["password"] and access["username"].startswith(TEST_ROLE_PREFIX)
     again = (await client.get("/api/v1/sql-access", headers=_auth(analyst))).json()
     assert again["has_credentials"] is True and again["password"] is None
 

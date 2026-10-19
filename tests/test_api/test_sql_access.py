@@ -13,7 +13,8 @@ async def _token(client, username: str, password: str) -> str:
 
 @pytest.mark.asyncio
 async def test_sql_access_is_off_by_default_and_analyst_only(client, monkeypatch):
-    monkeypatch.delenv("ENABLE_ANALYST_SQL", raising=False)
+    # Set explicitly: a developer's .env may turn the feature on.
+    monkeypatch.setenv("ENABLE_ANALYST_SQL", "false")
     get_settings.cache_clear()
     analyst = await _token(client, "analyst", "analyst123")
     dpo = await _token(client, "dpo", "dpo123")
@@ -38,6 +39,9 @@ def test_snapshot_location_only_for_postgres_snapshots():
 def test_connection_info_prefers_the_public_host(monkeypatch):
     monkeypatch.setenv("SNAPSHOT_DATABASE_URL", "postgresql://app:secret@dpg-internal-a/piiguard")
     monkeypatch.setenv("ANALYST_SQL_HOST", "dpg-internal-a.virginia-postgres.render.com")
+    # Defaults, pinned so a developer's .env cannot change them.
+    monkeypatch.setenv("ANALYST_SQL_PORT", "0")
+    monkeypatch.setenv("ANALYST_SQL_SSLMODE", "require")
     get_settings.cache_clear()
     try:
         info = analyst_sql.connection_info()
