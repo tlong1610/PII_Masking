@@ -1,49 +1,51 @@
 # Pitch Deck & Demo Materials
 
-![Thumbnail video demo](thumbnail.png)
+![Thumbnail video Demo Day](thumbnail.png)
 
 ## Files
 
 | File | Nội dung |
 | --- | --- |
-| [`pitch_deck.pptx`](pitch_deck.pptx) | Deck 9 slide, sửa được trong PowerPoint/Google Slides; có speaker notes từng slide |
-| [`pitch_deck.pdf`](pitch_deck.pdf) | Bản PDF cùng layout, dùng để nộp hoặc chiếu khi máy không có PowerPoint |
+| [`pitch_deck.pptx`](pitch_deck.pptx) | Deck Demo Day 9 slide, **bản gốc** để sửa trong PowerPoint/WPS/Google Slides; có speaker notes từng slide |
+| [`pitch_deck.pdf`](pitch_deck.pdf) | Bản PDF xuất từ `pitch_deck.pptx`, dùng để nộp hoặc chiếu khi máy không có PowerPoint |
 | [`thumbnail.png`](thumbnail.png) | Ảnh bìa 1920×1080 cho video demo và gallery dự án: màn DPO review trên monitor, Pango chỉ vào màn hình, badge số liệu nghiệm thu P1 |
-| [`source/build_deck.js`](source/build_deck.js) | Nguồn duy nhất của layout; sinh cả PPTX, PDF và thumbnail |
+| [`source/build_deck.js`](source/build_deck.js) | Script dựng thumbnail và một bản deck theo màu app (9 slide); **không phải** nguồn của deck hiện tại |
 | [`video/`](video/README.md) | Video demo khoảng 3:25 dựng bằng HyperFrames: lời đọc TTS tiếng Việt, phụ đề tiếng Anh, cảnh app quay bằng Playwright; cách xem trước và quay lại ở README trong thư mục |
 
-Video demo và app live có link riêng ở [README gốc](../README.md), nên deck không có slide demo/QR.
+Link video demo đã xuất và app live nằm ở [README gốc](../README.md).
 
 ## Cấu trúc deck
 
-1. **Title** — logo, tagline, 4 cách bảo vệ, Team P-138
-2. **Vấn đề** — khung pháp lý mới (Luật 91/2025/QH15, NĐ 356/2025/NĐ-CP, NĐ 330/2026/NĐ-CP), mức phạt tối đa theo Điều 8 Luật 91, ba nỗi đau của DPO
-3. **Giải pháp** — cổng bảo mật giữa database gốc và Analyst; 4 cách bảo vệ MASK · REDACT · HMAC · DROP
-4. **Sản phẩm** — 7 bước Kết nối → Phạm vi → Quét → DPO duyệt → Build → Kiểm chứng → Publish
-5. **Kiến trúc** — đường dữ liệu, đường điều khiển và 3 lớp kiểm soát, viết cho người không chuyên dev
-6. **AI / LLM** — phễu rules → BM25 → hybrid → LLM vùng xám; số liệu Luồng A/B sau HITL
-7. **Kỹ thuật** — số test, CI/CD, nhật ký chuỗi hash SHA-256
-8. **Bài học** — HMAC/`link_scope`, LLM chỉ thấy metadata, giới hạn `KEEP`
-9. **Team & bước tiếp theo** — 4 thành viên, lộ trình, lời cảm ơn
+1. **PIIGuard Shield** — bảo vệ dữ liệu cá nhân theo Luật 91/2025/QH15, giữ nguyên giá trị phân tích; 4 cách bảo vệ MASK · REDACT · HMAC · DROP
+2. **Vấn đề** — Luật 91, NĐ 356/2025, NĐ 330/2026 và mức phạt tối đa; bỏ sót PII, che sai làm hỏng JOIN, thiếu bằng chứng
+3. **Giải pháp** — cổng bảo mật giữa database gốc và Analyst; DPO chọn 1 trong 4 cách bảo vệ cho từng trường
+4. **Sản phẩm** — 7 bước Kết nối → Chọn phạm vi → Quét → DPO duyệt → Build → Kiểm chứng → Publish, hai cổng kiểm soát
+5. **Kiến trúc** — đường dữ liệu, đường điều khiển và 3 lớp kiểm soát (chỉ đọc nguồn, che trên bản sao riêng, kiểm chứng trước khi chia sẻ)
+6. **AI / LLM** — phễu rules → BM25 → hybrid vector → LLM vùng xám; số liệu Luồng A/B sau HITL
+7. **Kỹ thuật** — tests, CI/CD, nhật ký chuỗi hash SHA-256
+8. **Bài học** — giữ JOIN bằng HMAC, dùng LLM mà không lộ PII, giới hạn ngoại lệ `KEEP`
+9. **Team & lộ trình** — 4 thành viên, 4 hướng phát triển, lời cảm ơn
 
-Căn cứ pháp lý ở slide 2 lấy từ bản gốc trong [`docs/legal/`](../docs/legal/). Số liệu AI ở slide 6 lấy từ `performance/sau_HITL/`. Số test ở slide 7 là kết quả chạy lại ngày 18/10/2026 (backend 312 pass + 5 skip cần DB live, frontend 184 pass); khi số test thay đổi thì sửa `techStats` trong `build_deck.js` và build lại.
+Số liệu test/benchmark là số của báo cáo nghiệm thu P1 và được ghi chú như vậy trên slide.
 
-## Nhận diện
+## Nhận diện (Brand DNA)
 
-Màu theo theme của app ([`front_end/src/app/theme/theme.ts`](../front_end/src/app/theme/theme.ts)): primary `#1B51A4`, nền sáng xanh nhạt, card trắng viền `#E5E7EB`. Slide bìa và các panel nhấn mạnh dùng nền navy của màn đăng nhập ([`assets/svg/login-background.svg`](../assets/svg/login-background.svg)). Màu 4 hành động khớp chip trong giao diện DPO: MASK cam `#D97706`, REDACT xanh `#2563EB`, HMAC tím `#7C3AED`, DROP đỏ `#DC2626`. Mascot Pango và logo lấy từ [`assets/`](../assets/README.md) (WebP được chuyển sang PNG khi build). Font Arial để chiếu ổn định trên mọi máy.
+Theo [`assets/svg/piiguard-brand-dna.svg`](../assets/svg/piiguard-brand-dna.svg): nền `#F8FAFC`, gradient `#0F172A → #0F766E → #16A34A`, card trắng bo 22px, màu ngữ nghĩa Verified `#16A34A` / Warning `#D97706` / Blocked `#DC2626`. Mascot Pango và logo lấy từ [`assets/`](../assets/README.md). Font Arial để chiếu ổn định trên mọi máy.
 
-## Build lại
+## Cập nhật deck
 
-Cần Node 18+ và Chrome hoặc Edge (đặt `CHROME_PATH` nếu không ở vị trí mặc định).
+Từ bản Demo Day, deck được sửa trực tiếp trong `pitch_deck.pptx`. Sau mỗi lần sửa, xuất lại PDF để hai bản khớp nhau, ví dụ bằng LibreOffice:
 
 ```bash
-cd presentation/source
-npm install
-npm run build              # ghi đè ../pitch_deck.pptx, ../pitch_deck.pdf, ../thumbnail.png
-node build_deck.js --qa    # thêm ảnh từng slide vào build/qa/ để soát lỗi tràn chữ
+cd presentation
+soffice --headless --convert-to pdf pitch_deck.pptx   # ghi đè pitch_deck.pdf
 ```
 
-Sửa nội dung trong `build_deck.js` rồi build lại, không sửa tay PPTX/PDF để hai bản luôn khớp nhau. Thư mục `source/build/` là file trung gian, đã được gitignore. Không đưa raw PII, sample value hay secret lên slide.
+Hoặc dùng "Export / Save as PDF" của PowerPoint/WPS. Mở PDF xem lại từng trang để chắc không có chữ tràn khung.
+
+**Không chạy `npm run build` trong `source/`**: script sẽ ghi đè `pitch_deck.pptx`, `pitch_deck.pdf` và `thumbnail.png` bằng bản deck theo màu app. Nếu cần dựng lại thumbnail, commit deck trước, chạy build, rồi `git checkout -- pitch_deck.pptx pitch_deck.pdf` để lấy lại deck và chỉ commit `thumbnail.png`.
+
+Không đưa raw PII, sample value hay secret lên slide.
 
 ## Video Demo Checklist
 

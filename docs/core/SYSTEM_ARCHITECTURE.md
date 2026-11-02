@@ -167,8 +167,9 @@ flowchart TB
 
 8. **Analyst Experience (`AnalystDatasetExperienceMVP.tsx`):**
    * Xem trước bảng dữ liệu đã xử lý (`DatasetPreviewTable`) với phân trang 20, 50, 100, 200 dòng.
-   * Xuất file CSV an toàn (`downloadCsv`), tự động loại bỏ triệt để các cột bị `DROPPED`.
+   * Tải CSV từng bảng hoặc ZIP cả dataset (`GET /datasets/{id}/export`) với toàn bộ dòng đã bảo vệ; cột `DROP` không có trong file.
    * Xem ERD Lineage Diagram và truy vấn mẫu để viết code phân tích mà không cần chạm vào dữ liệu nhạy cảm.
+   * **Kết nối SQL** (`SqlAccessPanel.tsx`, bật bằng `ENABLE_ANALYST_SQL`): cấp tài khoản Postgres chỉ đọc để mở dataset bằng DBeaver, Power BI hoặc Excel. Mỗi dataset PostgreSQL đã phát hành có schema `ds_<dataset id>` gồm view trên bảng snapshot, giữ nguyên tên khi DPO build lại. Role `piiguard_analyst_<user id>` chỉ có `USAGE`/`SELECT` trên `ds_*` được cấp, chạy ở chế độ read-only, tối đa 3 kết nối và 60 giây mỗi câu; gỡ quyền thì `REVOKE` ngay, thu hồi dataset thì `DROP SCHEMA ... CASCADE` (`src/services/analyst_sql.py`).
 
 ---
 
@@ -189,7 +190,7 @@ flowchart TB
 | Actor | Quyền được phép | Ràng buộc bảo mật |
 |---|---|---|
 | **DPO** | Quét dữ liệu, xem metadata/thống kê và protected preview, duyệt policy, build, verifier, publish/revoke và audit | DPO UI không render raw source values. Ngoại lệ PII `KEEP` cần lý do/hạn nhưng có thể đưa raw value vào snapshot. |
-| **Analyst** | Xem dataset `PUBLISHED`, preview, CSV và ERD theo API/UI hiện có | Chỉ đọc dataset đã publish; nếu PII được đặt `KEEP` theo ngoại lệ, raw value có thể xuất hiện. Không tuyên bố Zero Raw PII tuyệt đối. |
+| **Analyst** | Xem dataset `PUBLISHED`, preview, tải CSV/ZIP, ERD và truy vấn SQL chỉ đọc trên view `ds_<id>` của dataset được cấp | Chỉ đọc dataset đã publish; nếu PII được đặt `KEEP` theo ngoại lệ, raw value có thể xuất hiện. Không tuyên bố Zero Raw PII tuyệt đối. |
 
 Backend kiểm tra quyền nghiêm ngặt tại middleware/dependencies bằng session token và claim role (`require_dpo`, `require_analyst_or_dpo`), ngăn chặn mọi hành vi bypass từ client.
 

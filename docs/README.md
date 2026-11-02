@@ -7,6 +7,7 @@
 | File | Khi nào đọc |
 |---|---|
 | [`../README.md`](../README.md) | Tổng quan dự án, cách chạy app, API chính |
+| [`../presentation/pitch_deck.pdf`](../presentation/pitch_deck.pdf) | Pitch deck Demo Day 9 slide; bản sửa được là `pitch_deck.pptx` ([cách cập nhật](../presentation/README.md)) |
 | [`pdf/PIIGuard_Shield_Demo_Day.pdf`](pdf/PIIGuard_Shield_Demo_Day.pdf) | Hồ sơ tổng hợp 6 trang để chia sẻ Drive/Release, đọc khi không truy cập GitHub |
 | [`core/MVP_STATUS_REPORT.md`](core/MVP_STATUS_REPORT.md) | Báo cáo nghiệm thu hoàn thành toàn diện giai đoạn P1 |
 | [`core/SYSTEM_ARCHITECTURE.md`](core/SYSTEM_ARCHITECTURE.md) | Luồng DPO → scanner → snapshot → verifier → Analyst, 4 tabs DPO và giới hạn `KEEP`/PII |
@@ -37,7 +38,7 @@
 
 | Đường dẫn | Nội dung |
 |---|---|
-| [`legal/`](legal/) | Luật/Nghị định PDF dùng làm căn cứ (Luật 91/2025/QH15, NĐ 356/2025/NĐ-CP) |
+| [`legal/`](legal/) | Luật/Nghị định PDF dùng làm căn cứ (Luật 91/2025/QH15, NĐ 356/2025/NĐ-CP, NĐ 330/2026/NĐ-CP về xử phạt) |
 | [`archive/gate_2/README.md`](archive/gate_2/README.md) | Evidence Gate 2, giữ để đối chiếu lịch sử |
 | [`archive/evidence/`](archive/evidence/) | Smoke test và evidence rời cũ |
 
